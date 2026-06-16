@@ -18,7 +18,7 @@ import { useToast } from '../src/context/ToastContext';
 import { useShakeAnimation } from '../src/utils/animations';
 import { SuccessCheckmark } from '../src/components/shared/SuccessCheckmark';
 import { API_URL } from '../src/utils/api';
-
+import { OTPVerification } from '../components/OTPVerification';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const BG_IMAGES = [
@@ -148,8 +148,22 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.trim() }),
       });
       const data = await response.json();
-      data.success ? (showToast(data.message, 'success'), setShowVerificationModal(false)) : showToast(data.message, 'error');
-    } catch (e) { showToast('Failed to connect to server', 'error'); }
+      if (data.success) {
+        showToast(data.message, 'success');
+      } else {
+        showToast(data.message, 'error');
+      }
+      return data;
+    } catch (e) {
+      showToast('Failed to connect to server', 'error');
+      return { success: false, message: e.message };
+    }
+  };
+
+  const handleOTPVerified = () => {
+    setShowVerificationModal(false);
+    setSuccessMessage('Account verified successfully. You can now log in.');
+    setShowSuccessModal(true);
   };
 
   return (
@@ -311,25 +325,38 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
         </Modal>
 
         {/* Verification Modal */}
-        <Modal visible={showVerificationModal} transparent animationType="fade" onRequestClose={() => setShowVerificationModal(false)}>
+        <Modal
+          visible={showVerificationModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowVerificationModal(false)}
+        >
           <View style={styles.modalOverlay}>
             <View style={styles.modalCard}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Account Not Verified</Text>
-                <TouchableOpacity onPress={() => setShowVerificationModal(false)} style={styles.modalClose}>
+                <TouchableOpacity
+                  onPress={() => setShowVerificationModal(false)}
+                  style={styles.modalClose}
+                  aria-label="Close modal"
+                >
                   <X size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.modalText}>Your email has not been verified yet. Please check your inbox.</Text>
-              <Text style={styles.modalText}>Link expired or didn't receive it?</Text>
-              <TouchableOpacity onPress={handleResendVerification} activeOpacity={0.8}>
-                <View style={styles.button}>
-                  <Text style={styles.buttonText}>RESEND VERIFICATION LINK</Text>
-                </View>
-              </TouchableOpacity>
+              <OTPVerification
+                email={email}
+                userType="customer"
+                purpose="account-verification"
+                onOTPVerified={handleOTPVerified}
+                onResendOTP={handleResendVerification}
+                onCancel={() => setShowVerificationModal(false)}
+                autoSend={false}
+                embedded={true}
+              />
             </View>
           </View>
         </Modal>
+
 
         {/* Success Modal */}
         <Modal visible={showSuccessModal} transparent animationType="fade" onRequestClose={() => setShowSuccessModal(false)}>

@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
 import Footer from '../components/Footer';
 import ImageLightbox from '../components/ImageLightbox';
+import heroVideo from '../images/Background.mp4';
 import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Sparkles, Smartphone, Star, MapPin, ShieldCheck, ArrowRight, Plus, Minus } from 'lucide-react';
 import { API_URL } from '../config';
 
@@ -168,7 +169,7 @@ function Home() {
                             playsInline
                             style={{ objectFit: 'cover' }}
                         >
-                            <source src="https://assets.mixkit.co/videos/preview/mixkit-tattoo-artist-working-on-a-clients-arm-43099-large.mp4" type="video/mp4" />
+                            <source src={heroVideo} type="video/mp4" />
                         </video>
                     </div>
                     <div className="hero-overlay" style={{ opacity: Math.min(0.6 + scrollY * 0.001, 0.9) }}></div>

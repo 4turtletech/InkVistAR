@@ -442,14 +442,19 @@ export const sendOTP = async (email, userType, otp_method = 'email') => {
 };
 
 // Verify OTP
-export const verifyOTP = async (email, otp, userType) => {
+export const verifyOTP = async (email, otp, userType, purpose = undefined) => {
   if (!otp || otp.length < 4) {
     return { success: false, message: 'Invalid OTP' };
   }
 
+  const payload = { email, otp, user_type: userType };
+  if (purpose) {
+    payload.purpose = purpose;
+  }
+
   const result = await fetchAPI('/verify-otp', {
     method: 'POST',
-    body: JSON.stringify({ email, otp, user_type: userType })
+    body: JSON.stringify(payload)
   });
 
   // Save token if verification successful (Auto-login)

@@ -308,12 +308,7 @@ function AppContent() {
       await AsyncStorage.setItem('user_session', JSON.stringify(result.user));
       registerForPushNotifications(result.user.id).catch(e => console.warn('[PUSH] Registration failed:', e.message));
     } else {
-      if (result?.requireVerification) {
-        Alert.alert('Verification Required', result.message, [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Resend Link', onPress: () => {} },
-        ]);
-      } else {
+      if (!result?.requireVerification) {
         Alert.alert('Login Failed', result?.message || 'Invalid credentials');
       }
     }
