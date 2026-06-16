@@ -82,27 +82,35 @@ const Navbar = () => {
             </div>
 
             {/* Mobile hamburger button */}
-            <button className="mobile-menu-btn" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu">
-                {mobileOpen ? <X size={26} color="#be9055" /> : <Menu size={26} color="#be9055" />}
+            <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)} aria-label="Menu">
+                <Menu size={26} color="#be9055" />
             </button>
 
-            {/* Mobile drawer */}
+            {/* Premium Mobile drawer overlay */}
             {mobileOpen && (
-                <div className="mobile-drawer">
-                    <a href="/#about" className="nav-anchor" onClick={(e) => { setMobileOpen(false); handleAboutClick(e); }}>About</a>
-                    <Link to="/artists" onClick={() => setMobileOpen(false)}>Artists</Link>
-                    <Link to="/gallery" onClick={() => setMobileOpen(false)}>Gallery</Link>
-                    <Link to="/book" onClick={() => setMobileOpen(false)}>Book Consultation</Link>
-                    <Link to="/contact" onClick={() => setMobileOpen(false)}>Contact</Link>
-                    <div className="mobile-drawer-auth">
-                        {user ? (
-                            <button className="signup-btn" style={{ width: '100%' }} onClick={() => { handleProfileClick(); setMobileOpen(false); }}>My Dashboard</button>
-                        ) : (
-                            <>
-                                <Link to="/login" className="login-link" onClick={() => setMobileOpen(false)}>Log In</Link>
-                                <button onClick={() => { navigate('/register'); setMobileOpen(false); }} className="signup-btn" style={{ width: '100%' }}>Sign Up</button>
-                            </>
-                        )}
+                <div className="mobile-drawer-overlay">
+                    <div className="mobile-drawer-header">
+                        <Link to="/" className="home-logo" onClick={() => setMobileOpen(false)}>INKVICTUS</Link>
+                        <button className="mobile-close-btn" onClick={() => setMobileOpen(false)}>
+                            <X size={28} color="#be9055" />
+                        </button>
+                    </div>
+                    <div className="mobile-drawer-content">
+                        <a href="/#about" className="nav-anchor" onClick={(e) => { setMobileOpen(false); handleAboutClick(e); }}>About</a>
+                        <Link to="/artists" onClick={() => setMobileOpen(false)}>Artists</Link>
+                        <Link to="/gallery" onClick={() => setMobileOpen(false)}>Gallery</Link>
+                        <Link to="/book" onClick={() => setMobileOpen(false)}>Book Consultation</Link>
+                        <Link to="/contact" onClick={() => setMobileOpen(false)}>Contact</Link>
+                        <div className="mobile-drawer-auth">
+                            {user ? (
+                                <button className="btn-gold-luxury mobile-full-btn" onClick={() => { handleProfileClick(); setMobileOpen(false); }}>My Dashboard</button>
+                            ) : (
+                                <>
+                                    <Link to="/login" className="login-link" onClick={() => setMobileOpen(false)}>Log In</Link>
+                                    <button onClick={() => { navigate('/register'); setMobileOpen(false); }} className="btn-gold-luxury mobile-full-btn">Sign Up</button>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
