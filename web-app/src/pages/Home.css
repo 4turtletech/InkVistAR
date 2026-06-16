@@ -90,9 +90,13 @@ h1, h2, h3, h4 {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
     z-index: 1;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    opacity: 0.65; /* Slightly increased tint based on user feedback */
+    opacity: 0.65;
+}
+
+.hero-parallax-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .hero-parallax-img {
