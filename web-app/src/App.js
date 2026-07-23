@@ -57,6 +57,8 @@ import CustomerInvoice from './pages/CustomerInvoice';
 import CustomerAftercare from './pages/CustomerAftercare';
 import CustomerReports from './pages/CustomerReports';
 import TermsPage from './pages/TermsPage';
+import { MAINTENANCE_CONFIG } from './maintenanceConfig';
+import MaintenanceNotice from './pages/MaintenanceNotice';
 
 
 
@@ -103,10 +105,10 @@ function App() {
             <Route path="/artist/:id" element={<PublicArtistProfile />} />
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/book" element={<PublicBooking />} />
+            <Route path="/book" element={MAINTENANCE_CONFIG.disableBooking ? <MaintenanceNotice type="booking" /> : <PublicBooking />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-            <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+            <Route path="/register" element={MAINTENANCE_CONFIG.disableRegistration ? <MaintenanceNotice type="registration" /> : <PublicRoute><Register /></PublicRoute>} />
             <Route path="/admin" element={<PublicRoute><AdminLogin /></PublicRoute>} />
             <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminUsers /></ProtectedRoute>} />
@@ -135,7 +137,7 @@ function App() {
             <Route path="/artist/gallery" element={<ProtectedRoute allowedRoles={['artist']}><ArtistGallery /></ProtectedRoute>} />
             <Route path="/customer/bookings" element={<ProtectedRoute allowedRoles={['customer']}><CustomerBookings /></ProtectedRoute>} />
             <Route path="/customer/gallery" element={<ProtectedRoute allowedRoles={['customer']}><CustomerGallery /></ProtectedRoute>} />
-            <Route path="/customer/book" element={<ProtectedRoute allowedRoles={['customer']}><CustomerBookingCreate /></ProtectedRoute>} />
+            <Route path="/customer/book" element={MAINTENANCE_CONFIG.disableBooking ? <MaintenanceNotice type="booking" /> : <ProtectedRoute allowedRoles={['customer']}><CustomerBookingCreate /></ProtectedRoute>} />
             <Route path="/customer/profile" element={<ProtectedRoute allowedRoles={['customer']}><CustomerProfile /></ProtectedRoute>} />
             <Route path="/customer/notifications" element={<ProtectedRoute allowedRoles={['customer']}><CustomerNotifications /></ProtectedRoute>} />
             <Route path="/customer/reviews/new" element={<ProtectedRoute allowedRoles={['customer']}><CustomerReview /></ProtectedRoute>} />
