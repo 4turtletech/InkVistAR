@@ -6,12 +6,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, SafeAreaView,
-  TextInput, KeyboardAvoidingView, Platform, Modal,
+  TextInput, KeyboardAvoidingView, Platform, Modal, Image,
 } from 'react-native';
 import {
   ArrowLeft, Settings, Bell, Lock, Building2, Save, FileText, FileCode2, Clock,
-  AlertTriangle, Plus, Trash2, RotateCcw, MapPin, Phone, Tag, Image, Edit2, X,
+  AlertTriangle, Plus, Trash2, RotateCcw, MapPin, Phone, Tag, Image as ImageIcon, Edit2, X, User, Camera,
 } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
 import { typography, borderRadius, shadows } from '../src/theme';
@@ -23,7 +24,7 @@ import {
   getGalleryCategories, fetchAPI,
 } from '../src/utils/api';
 
-export const AdminSettings = ({ navigation }) => {
+export const AdminSettings = ({ navigation, user }) => {
   const { theme, hapticsEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const styles = getStyles(theme, insets);
@@ -49,6 +50,11 @@ export const AdminSettings = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
+
+  // Admin profile state
+  const [adminProfile, setAdminProfile] = useState({ name: user?.name || '', phone: user?.phone || '' });
+  const [pendingProfileImage, setPendingProfileImage] = useState(null);
+  const [profileSaving, setProfileSaving] = useState(false);
 
   // Branch management state
   const [branches, setBranches] = useState([]);
@@ -155,6 +161,50 @@ export const AdminSettings = ({ navigation }) => {
     else Alert.alert('Error', res.message || 'Failed.');
   };
 
+  const handleSaveAdminProfile = async () => {
+    if (!user?.id) { Alert.alert('Error', 'Unable to identify admin account.'); return; }
+    setProfileSaving(true);
+    try {
+      const payload = {
+        name: adminProfile.name.trim(),
+        email: user.email,
+        type: user.type,
+        phone: adminProfile.phone.trim(),
+        status: 'active',
+      };
+      if (pendingProfileImage) payload.profile_image = pendingProfileImage;
+      const res = await fetchAPI(`/admin/users/${user.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      if (res.success) {
+        setPendingProfileImage(null);
+        Alert.alert('Success', 'Profile updated successfully.');
+      } else {
+        Alert.alert('Error', res.message || 'Failed to update profile.');
+      }
+    } catch (e) { Alert.alert('Error', 'Something went wrong.'); }
+    finally { setProfileSaving(false); }
+  };
+
+  const handlePickProfileImage = async () => {
+    Alert.alert('Profile Picture', 'How would you like to update your photo?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Take Photo', onPress: async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') { Alert.alert('Permission Denied', 'Camera permission is required.'); return; }
+        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.5, base64: true });
+        if (!result.canceled && result.assets[0].base64) setPendingProfileImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      }},
+      { text: 'Choose from Library', onPress: async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') { Alert.alert('Permission Denied', 'Camera roll permission is required.'); return; }
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', allowsEditing: true, aspect: [1, 1], quality: 0.5, base64: true });
+        if (!result.canceled && result.assets[0].base64) setPendingProfileImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      }},
+    ]);
+  };
+
   const handleToggle = async (key) => {
     const prev = settings;
     const newVal = !settings[key];
@@ -191,12 +241,13 @@ export const AdminSettings = ({ navigation }) => {
         <Text style={styles.headerTitle}>System Settings</Text>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, maxHeight: 45, backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border }}>
         <View style={styles.tabContainer}>
           {[
+            { key: 'profile', icon: User, label: 'Profile' },
             { key: 'general', icon: Settings, label: 'General' },
             { key: 'branches', icon: Building2, label: 'Branches' },
-            { key: 'gallery', icon: Image, label: 'Gallery' },
+            { key: 'gallery', icon: ImageIcon, label: 'Gallery' },
             { key: 'policies', icon: FileText, label: 'Policies' },
             { key: 'templates', icon: FileCode2, label: 'Templates' },
           ].map(({ key, icon: Icon, label }) => (
@@ -211,6 +262,81 @@ export const AdminSettings = ({ navigation }) => {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           
+          {activeTab === 'profile' && (
+            <>
+              <Text style={styles.sectionHeader}>My Profile</Text>
+              {/* Avatar Picker */}
+              <TouchableOpacity
+                onPress={handlePickProfileImage}
+                title="Change profile picture"
+                style={{ alignSelf: 'center', marginBottom: 20 }}
+              >
+                <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: theme.surfaceLight, overflow: 'hidden', borderWidth: 3, borderColor: theme.gold, alignItems: 'center', justifyContent: 'center' }}>
+                  {(pendingProfileImage || user?.profile_image) ? (
+                    <Image source={{ uri: pendingProfileImage || user?.profile_image }} style={{ width: '100%', height: '100%' }} />
+                  ) : (
+                    <User size={40} color={theme.textTertiary} />
+                  )}
+                </View>
+                <View style={{ position: 'absolute', bottom: 2, right: 2, backgroundColor: theme.gold, borderRadius: 12, padding: 4, borderWidth: 2, borderColor: theme.surface }}>
+                  <Camera size={12} color={theme.backgroundDeep} />
+                </View>
+              </TouchableOpacity>
+
+              {pendingProfileImage && (
+                <View style={{ backgroundColor: 'rgba(190,144,85,0.15)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 12, alignSelf: 'center' }}>
+                  <Text style={{ fontSize: 11, color: '#be9055', fontWeight: '600', textAlign: 'center' }}>Photo staged — tap Save Profile to apply</Text>
+                </View>
+              )}
+
+              <Text style={styles.sectionHeader}>Account Details</Text>
+              <View style={styles.settingCard}>
+                <View style={styles.settingLeft}>
+                  <User size={20} color={theme.textSecondary} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.settingTitle}>Display Name</Text>
+                    <TextInput
+                      style={[styles.textInput, { color: theme.textPrimary, borderBottomWidth: 1, borderBottomColor: theme.border, paddingVertical: 4 }]}
+                      value={adminProfile.name}
+                      onChangeText={t => setAdminProfile(p => ({ ...p, name: t }))}
+                      placeholder="Your name"
+                      placeholderTextColor={theme.textTertiary}
+                      maxLength={100}
+                    />
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.settingCard}>
+                <View style={styles.settingLeft}>
+                  <Phone size={20} color={theme.textSecondary} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.settingTitle}>Phone Number</Text>
+                    <TextInput
+                      style={[styles.textInput, { color: theme.textPrimary, borderBottomWidth: 1, borderBottomColor: theme.border, paddingVertical: 4 }]}
+                      value={adminProfile.phone}
+                      onChangeText={t => setAdminProfile(p => ({ ...p, phone: t }))}
+                      placeholder="+63..."
+                      placeholderTextColor={theme.textTertiary}
+                      keyboardType="phone-pad"
+                      maxLength={20}
+                    />
+                  </View>
+                </View>
+              </View>
+
+              <AnimatedTouchable
+                style={{ backgroundColor: theme.gold, padding: 14, borderRadius: borderRadius.lg, alignItems: 'center', marginTop: 12, flexDirection: 'row', gap: 8, justifyContent: 'center' }}
+                onPress={handleSaveAdminProfile}
+                disabled={profileSaving}
+                title="Save admin profile"
+              >
+                <Save size={16} color={theme.backgroundDeep} />
+                <Text style={{ ...typography.button, color: theme.backgroundDeep }}>{profileSaving ? 'Saving...' : 'Save Profile'}</Text>
+              </AnimatedTouchable>
+            </>
+          )}
+
           {activeTab === 'general' && (
             <>
               <Text style={styles.sectionHeader}>Studio Info</Text>
@@ -546,7 +672,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   backBtn: { padding: 4 },
   headerTitle: { ...typography.h2, color: theme.textPrimary },
   tabContainer: { flexDirection: 'row' },
-  tab: { paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 6, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tab: { paddingHorizontal: 16, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 6, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   activeTab: { borderBottomColor: theme.gold },
   tabText: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '600' },
   activeTabText: { color: theme.gold },

@@ -1587,7 +1587,7 @@ const InlineCalendar = ({ theme, styles, month, selectedDate, onSelectDate, onPr
       <View style={styles.calDayRow}>
         {DAY_LABELS.map(l => <Text key={l} style={styles.calDayLabel}>{l}</Text>)}
       </View>
-      <View style={styles.calGrid}>
+      <View style={styles.calCellGrid}>
         {cells.map((d, i) => d === null ? (
           <View key={`e-${i}`} style={styles.calCell} />
         ) : (
@@ -1790,7 +1790,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   calMonthText: { ...typography.body, fontWeight: '700', color: theme.textPrimary },
   calDayRow: { flexDirection: 'row', marginBottom: 6 },
   calDayLabel: { flex: 1, textAlign: 'center', ...typography.bodyXSmall, color: theme.textTertiary, fontWeight: '700' },
-  calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calCellGrid: { flexDirection: 'row', flexWrap: 'wrap', width: '100%' },
   calCell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 20 },
   calCellSelected: { backgroundColor: theme.gold },
   calCellPast: { opacity: 0.3 },
@@ -1886,7 +1886,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   },
   calGridMonthText: { ...typography.body, fontWeight: '700', color: theme.textPrimary },
   calDayLabelRow: { flexDirection: 'row', marginBottom: 8 },
-  calDayCells: { flexDirection: 'row', flexWrap: 'wrap' },
+  calDayCells: { flexDirection: 'row', flexWrap: 'wrap', width: '100%' },
   calDayCell: {
     width: '14.28%', aspectRatio: 1, padding: 2, alignItems: 'center',
     borderWidth: 1, borderColor: 'transparent', borderRadius: borderRadius.sm,

@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Keyboard,
-  ScrollView, SafeAreaView, Image, ActivityIndicator, Modal, TouchableOpacity, Platform, Dimensions
+  ScrollView, SafeAreaView, Image, ActivityIndicator, Modal, TouchableOpacity, Platform, Dimensions, Alert
 } from 'react-native';
 import {
   ArrowLeft, Play, Pause, CheckCircle2, Camera, Package, Palette,
@@ -16,7 +16,7 @@ import * as Haptics from 'expo-haptics';
 import { typography } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
-import { API_BASE_URL, API_URL } from '../src/utils/api';
+import { API_BASE_URL, API_URL, fetchAPI } from '../src/utils/api';
 import { HealthAlertPanel } from '../src/components/shared/HealthAlertPanel';
 
 export function ArtistActiveSession({ appointment, onBack, onComplete }) {
@@ -31,11 +31,9 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const [inventoryItems, setInventoryItems] = useState([]);
   const [serviceKits, setServiceKits] = useState({});
   const [addingMaterial, setAddingMaterial] = useState(false);
-  const [alertModal, setAlertModal] = useState({ visible: false, title: '', message: '', onDismiss: null });
-  const [confirmModal, setConfirmModal] = useState({ visible: false, title: '', message: '', onConfirm: null });
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [trackerVisible, setTrackerVisible] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [trackerVisible, setTrackerVisible] = useState(false);
   const [auditLog, setAuditLog] = useState([]);
   const [abortModalVisible, setAbortModalVisible] = useState(false);
   const [abortReason, setAbortReason] = useState('');
@@ -49,6 +47,8 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const [projectTimeline, setProjectTimeline] = useState(null);
   const [projectTimelineLoading, setProjectTimelineLoading] = useState(false);
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
+  const [healthConditions, setHealthConditions] = useState([]);
+  const [healthAllergens, setHealthAllergens] = useState([]);
 
   useEffect(() => { 
     fetchInventory(); 
@@ -188,34 +188,36 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
-  const fetchInventory = async () => { try { const r = await (await fetch(`${API_URL}/admin/inventory`)).json(); if (r.success && r.data) setInventoryItems(r.data.filter(i => i.current_stock > 0)); } catch (e) { console.error(e); } };
-  const fetchServiceKits = async () => { try { const r = await (await fetch(`${API_URL}/admin/service-kits`)).json(); if (r.success) setServiceKits(r.data || {}); } catch (e) { console.error(e); } };
-  const fetchSessionMaterials = async () => { if (!appointment?.id) return; try { const r = await (await fetch(`${API_URL}/appointments/${appointment.id}/materials`)).json(); if (r.success) { setSessionMaterials(r.materials || []); setSessionCost(r.totalCost || 0); } } catch (e) { console.error(e); } };
+  const fetchInventory = async () => { try { const r = await fetchAPI('/admin/inventory'); if (r.success && r.data) setInventoryItems(r.data.filter(i => i.current_stock > 0)); } catch (e) { console.error(e); } };
+  const fetchServiceKits = async () => { try { const r = await fetchAPI('/admin/service-kits'); if (r.success) setServiceKits(r.data || {}); } catch (e) { console.error(e); } };
+  const fetchSessionMaterials = async () => { if (!appointment?.id) return; try { const r = await fetchAPI(`/appointments/${appointment.id}/materials`); if (r.success) { setSessionMaterials(r.materials || []); setSessionCost(r.totalCost || 0); } } catch (e) { console.error(e); } };
 
-  const showAlert = (title, message, onDismiss) => setAlertModal({ visible: true, title, message, onDismiss });
+  const showAlert = (title, message, onDismiss) => {
+    Alert.alert(title, message, [{ text: 'OK', onPress: onDismiss }]);
+  };
 
   const handleQuickAdd = async (inventoryId, quantity = 1) => {
     setAddingMaterial(true);
-    try { const r = await (await fetch(`${API_URL}/appointments/${appointment.id}/materials`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ inventory_id: inventoryId, quantity }) })).json(); if (r.success) fetchSessionMaterials(); else showAlert('Error', r.message || 'Failed. Check stock.'); }
+    try { const r = await fetchAPI(`/appointments/${appointment.id}/materials`, { method: 'POST', body: JSON.stringify({ inventory_id: inventoryId, quantity }) }); if (r.success) fetchSessionMaterials(); else showAlert('Error', r.message || 'Failed. Check stock.'); }
     catch (e) { showAlert('Error', 'Connection failed'); } finally { setAddingMaterial(false); }
   };
 
   const handleQuickAddKit = async (kitItems) => {
     if (!appointment?.id || !kitItems?.length) return;
     setAddingMaterial(true);
-    try { for (const item of kitItems) await fetch(`${API_URL}/appointments/${appointment.id}/materials`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ inventory_id: item.inventory_id, quantity: item.default_quantity }) }); fetchSessionMaterials(); showAlert('Kit Added', 'All items added.'); }
+    try { for (const item of kitItems) await fetchAPI(`/appointments/${appointment.id}/materials`, { method: 'POST', body: JSON.stringify({ inventory_id: item.inventory_id, quantity: item.default_quantity }) }); fetchSessionMaterials(); showAlert('Kit Added', 'All items added.'); }
     catch (e) { showAlert('Error', 'Failed to add kit.'); } finally { setAddingMaterial(false); }
   };
 
   const handleReleaseMaterial = (materialId) => {
     if (!appointment?.id || !materialId) return;
-    setConfirmModal({
-      visible: true, title: 'Return to Stock', message: 'Return this item to inventory?',
-      onConfirm: async () => {
-        try { const r = await (await fetch(`${API_URL}/appointments/${appointment.id}/release-material`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ materialId: Number(materialId) }) })).json(); r.success ? showAlert('Success', 'Returned.') : showAlert('Error', r.message || 'Failed.'); }
+    Alert.alert('Return to Stock', 'Return this item to inventory?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Confirm', onPress: async () => {
+        try { const r = await fetchAPI(`/appointments/${appointment.id}/release-material`, { method: 'POST', body: JSON.stringify({ materialId: Number(materialId) }) }); r.success ? showAlert('Success', 'Returned.') : showAlert('Error', r.message || 'Failed.'); }
         catch (e) { showAlert('Error', 'Connection failed'); } finally { fetchSessionMaterials(); }
-      },
-    });
+      } }
+    ]);
   };
 
   const pickImage = async (type) => {
@@ -298,19 +300,17 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
       }
 
       const materialsList = sessionMaterials.map(m => `${m.quantity}x ${m.item_name}`).join(', ');
-      setConfirmModal({
-        visible: true,
-        title: 'Session Completion Status',
-        message: `Does this piece need another session, or is the tattoo fully complete?\n\nStuff Used: ${materialsList || 'None'}\n(Total material cost: P${sessionCost.toLocaleString()})`,
-        confirmText: 'Fully Complete',
-        cancelText: 'Needs Another',
-        onConfirm: () => processStatusUpdate('completed', true),
-        onCancel: () => {
-          // Append completed (partial) event
-          setAuditLog(prev => [...prev, { timestamp: new Date().toISOString(), event: 'Session Partially Completed', note: 'Needs another session' }]);
-          processStatusUpdate('completed', false);
-        }
-      });
+      Alert.alert(
+        'Session Completion Status',
+        `Does this piece need another session, or is the tattoo fully complete?\n\nStuff Used: ${materialsList || 'None'}\n(Total material cost: P${sessionCost.toLocaleString()})`,
+        [
+          { text: 'Needs Another', style: 'cancel', onPress: () => {
+            setAuditLog(prev => [...prev, { timestamp: new Date().toISOString(), event: 'Session Partially Completed', note: 'Needs another session' }]);
+            processStatusUpdate('completed', false);
+          }},
+          { text: 'Fully Complete', onPress: () => processStatusUpdate('completed', true) }
+        ]
+      );
       return;
     }
 
@@ -365,38 +365,49 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
 
   const handleBackIntercept = () => {
     if (hasUnsavedChanges()) {
-      setConfirmModal({
-        visible: true,
-        title: 'Save Session Progress?',
-        message: status === 'in_progress'
+      Alert.alert(
+        'Save Session Progress?',
+        status === 'in_progress'
           ? 'The tattoo session is still in progress. Would you like to save your current documentation (notes, photos) before closing?'
           : 'You have unsaved changes to your documentation. Would you like to save them before closing?',
-        confirmText: 'Save & Close',
-        cancelText: 'Discard Changes',
-        onConfirm: async () => {
-          await handleSaveDetails();
-          onBack();
-        },
-        onCancel: async () => {
-          if (sessionMaterials && sessionMaterials.length > 0) {
-            for (const mat of sessionMaterials) {
-              try {
-                await fetch(`${API_URL}/appointments/${appointment.id}/release-material`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ materialId: mat.id })
-                });
-              } catch (e) {
-                console.error('Failed to release material on discard', e);
-              }
+        [
+          { text: 'Discard Changes', style: 'cancel', onPress: () => {
+            if (status === 'in_progress') {
+              Alert.alert(
+                'Discard Active Session?',
+                'This will NOT abort the session, but will discard any notes or photos you added during this visit. Any materials you logged will be automatically returned to stock. Are you sure?',
+                [
+                  { text: 'No, Keep Editing', style: 'cancel' },
+                  { text: 'Yes, Discard', style: 'destructive', onPress: async () => {
+                    if (sessionMaterials && sessionMaterials.length > 0) {
+                      for (const mat of sessionMaterials) {
+                        try {
+                          await fetchAPI(`/appointments/${appointment.id}/release-material`, {
+                            method: 'POST',
+                            body: JSON.stringify({ materialId: mat.id })
+                          });
+                        } catch (e) {
+                          console.error('Failed to release material on discard', e);
+                        }
+                      }
+                    }
+                    onBack();
+                  }}
+                ]
+              );
+            } else {
+              onBack();
             }
-          }
-          onBack();
-        }
-      });
-    } else {
-      onBack();
+          }},
+          { text: 'Save & Close', onPress: async () => {
+            await handleSaveDetails();
+            onBack();
+          }}
+        ]
+      );
+      return;
     }
+    onBack();
   };
 
   const getStatusBg = (s) => { switch (s) { case 'confirmed': return colors.info; case 'in_progress': return colors.gold; case 'completed': return colors.success; default: return colors.textTertiary; } };
@@ -729,18 +740,6 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
         </View>
       </Modal>
 
-      {/* Alert Modal */}
-      <Modal visible={alertModal.visible} animationType="fade" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={{ ...typography.h3, color: colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>{alertModal.title}</Text>
-            <Text style={{ ...typography.body, color: colors.textSecondary, marginBottom: 20, textAlign: 'center' }}>{alertModal.message}</Text>
-            <AnimatedTouchable style={styles.modalBtn} onPress={() => { setAlertModal({ ...alertModal, visible: false }); alertModal.onDismiss?.(); }}>
-              <Text style={styles.modalBtnText}>OK</Text>
-            </AnimatedTouchable>
-          </View>
-        </View>
-      </Modal>
 
       {/* Abort Session Modal */}
       <Modal visible={abortModalVisible} animationType="fade" transparent onRequestClose={() => setAbortModalVisible(false)}>
@@ -776,23 +775,6 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
         </View>
       </Modal>
 
-      {/* Confirm Modal */}
-      <Modal visible={confirmModal.visible} animationType="fade" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={{ ...typography.h3, color: colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>{confirmModal.title}</Text>
-            <Text style={{ ...typography.body, color: colors.textSecondary, marginBottom: 20, textAlign: 'center' }}>{confirmModal.message}</Text>
-            <View style={{ flexDirection: 'row', width: '100%' }}>
-              <TouchableOpacity style={[styles.modalBtn, { flex: 1, backgroundColor: colors.surfaceLight, marginRight: 6 }]} onPress={() => { setConfirmModal({ ...confirmModal, visible: false }); confirmModal.onCancel ? confirmModal.onCancel() : null; }} activeOpacity={0.8}>
-                <Text style={[styles.modalBtnText, { color: colors.textPrimary }]}>{confirmModal.cancelText || 'Cancel'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, { flex: 1, marginLeft: 6 }]} onPress={() => { setConfirmModal({ ...confirmModal, visible: false }); confirmModal.onConfirm?.(); }} activeOpacity={0.8}>
-                <Text style={styles.modalBtnText}>{confirmModal.confirmText || 'Confirm'}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       {/* Fullscreen Image Viewer */}
       <Modal visible={!!fullscreenImage} animationType="fade" transparent statusBarTranslucent>

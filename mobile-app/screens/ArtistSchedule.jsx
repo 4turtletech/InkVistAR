@@ -295,9 +295,11 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
             <AnimatedTouchable
               style={styles.toolbarBtn}
               onPress={() => {
-                const today = new Date();
-                const ds = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                setBlockModal({ visible: true, date: ds });
+                if (selectedDate) {
+                  setBlockModal({ visible: true, date: selectedDate });
+                } else {
+                  setAlertModal({ visible: true, title: 'Select Date', message: 'Please tap a date on the calendar first to block it.' });
+                }
               }}
             >
               <Ban size={16} color={colors.error} />

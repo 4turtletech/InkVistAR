@@ -385,7 +385,7 @@ function AppContent() {
                 <Stack.Screen name="admin-inventory" component={AdminInventory} />
                 <Stack.Screen name="admin-notifications" component={AdminNotifications} />
                 <Stack.Screen name="admin-analytics" component={AdminAnalytics} />
-                <Stack.Screen name="admin-settings" component={AdminSettings} />
+                <Stack.Screen name="admin-settings">{(props) => <AdminSettings {...props} user={user} />}</Stack.Screen>
                 <Stack.Screen name="admin-chat" component={AdminChat} />
                 <Stack.Screen name="admin-pos" component={AdminPOS} />
                 <Stack.Screen name="admin-reviews" component={AdminReviewModeration} />

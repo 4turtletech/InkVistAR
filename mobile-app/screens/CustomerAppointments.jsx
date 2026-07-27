@@ -320,7 +320,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={styles.headerTitle}>My Appointments</Text>
-          <AnimatedTouchable onPress={() => customAlert('Color Legend', 'Pending (Yellow): Waiting for studio approval\nConfirmed (Green): Scheduled and active\nCompleted (Blue): Session finished\nCancelled (Red): Session aborted')} style={{ padding: 6, marginLeft: 8, backgroundColor: theme.surfaceLight, borderRadius: borderRadius.round }}>
+          <AnimatedTouchable onPress={() => Alert.alert('Color Legend', 'Pending (Yellow): Waiting for studio approval\nConfirmed (Green): Scheduled and active\nCompleted (Blue): Session finished\nCancelled (Red): Session aborted')} style={{ padding: 6, marginLeft: 8, backgroundColor: theme.surfaceLight, borderRadius: borderRadius.round }}>
             <Info size={16} color={theme.textSecondary} />
           </AnimatedTouchable>
         </View>

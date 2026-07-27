@@ -447,6 +447,14 @@ db.getConnection((err, connection) => {
         }
       });
 
+      // MIGRATION: Add profile_image column to users table if not exists (for admin/manager profiles)
+      db.query("SHOW COLUMNS FROM users LIKE 'profile_image'", (err, results) => {
+        if (!err && results.length === 0) {
+          console.log('[MIGRATE] Adding profile_image column to users table...');
+          db.query("ALTER TABLE users ADD COLUMN profile_image LONGTEXT NULL");
+        }
+      });
+
       // SEED: Create manager@inkvistar.com admin account if not exists (debug account)
       db.query("SELECT id FROM users WHERE email = 'manager@inkvistar.com'", (err, results) => {
         if (!err && results.length === 0) {
@@ -3529,8 +3537,17 @@ app.put('/api/artist/profile/:id', (req, res) => {
   const safeExperienceYears = experience_years !== undefined ? Math.max(0, Math.min(100, parseInt(experience_years) || 0)) : undefined;
   const safeBio = bio !== undefined ? (bio || '').substring(0, 1000) : undefined;
 
-  // Update users table (name and phone)
-  db.query('UPDATE users SET name = ?, phone = ? WHERE id = ?', [safeName, safePhone, id], (err) => {
+  // Update users table (name, phone, profile_image)
+  let userQuery = 'UPDATE users SET name = ?, phone = ?';
+  const userParams = [safeName, safePhone];
+  if (profileImage !== undefined) {
+    userQuery += ', profile_image = ?';
+    userParams.push(profileImage);
+  }
+  userQuery += ' WHERE id = ?';
+  userParams.push(id);
+
+  db.query(userQuery, userParams, (err) => {
     if (err) return res.status(500).json({ success: false, message: 'DB Error (User)' });
 
     // Update artists table
@@ -3752,8 +3769,15 @@ app.put('/api/customer/profile/:id', (req, res) => {
   const { name, phone, location, notes, profileImage, health_conditions, allergens } = req.body;
 
   const updateUserPromise = new Promise((resolve, reject) => {
-    if (name === undefined) return resolve();
-    db.query('UPDATE users SET name = ? WHERE id = ?', [name, id], (err) => {
+    if (name === undefined && profileImage === undefined) return resolve();
+    let query = 'UPDATE users SET ';
+    const params = [];
+    const updates = [];
+    if (name !== undefined) { updates.push('name = ?'); params.push(name); }
+    if (profileImage !== undefined) { updates.push('profile_image = ?'); params.push(profileImage); }
+    query += updates.join(', ') + ' WHERE id = ?';
+    params.push(id);
+    db.query(query, params, (err) => {
       if (err) return reject({ message: 'DB Error (User)' });
       resolve();
     });
@@ -9090,10 +9114,30 @@ app.put('/api/admin/users/:id', (req, res) => {
     performUpdate();
 
     function performUpdate() {
+      const { profile_image } = req.body;
       const isDeleted = (status === 'inactive' || status === 'suspended') ? 1 : 0;
       const query = 'UPDATE users SET name = ?, email = ?, user_type = ?, phone = ?, is_deleted = ? WHERE id = ?';
       db.query(query, [name, email, type, phone, isDeleted, id], (err) => {
         if (err) return res.status(500).json({ success: false, message: err.message });
+
+        // If a profile_image is provided, upsert it into the role-appropriate table
+        if (profile_image !== undefined) {
+          const roleType = type || targetUser.user_type;
+          let imgQuery = null;
+          if (roleType === 'artist') {
+            imgQuery = 'UPDATE artists SET profile_image = ? WHERE user_id = ?';
+          } else if (roleType === 'customer') {
+            imgQuery = `INSERT INTO customers (user_id, profile_image) VALUES (?, ?)
+              ON DUPLICATE KEY UPDATE profile_image = VALUES(profile_image)`;
+          } else {
+            // admin/manager: store in users table directly
+            imgQuery = 'UPDATE users SET profile_image = ? WHERE id = ?';
+          }
+          if (imgQuery) {
+            db.query(imgQuery, [profile_image, id], () => {});
+          }
+        }
+
         logAction(getAdminId(req), 'UPDATE_USER', `Updated user ${id} (${email})`, req.ip);
         res.json({ success: true, message: 'User updated successfully' });
       });

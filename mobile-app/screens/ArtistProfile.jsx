@@ -5,11 +5,11 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView,
-  Modal, TextInput, RefreshControl, Image, Animated, KeyboardAvoidingView, Platform, Switch,
+  Modal, TextInput, RefreshControl, Image, Animated, KeyboardAvoidingView, Platform, Switch, Alert,
 } from 'react-native';
 import {
   LogOut, Edit3, X, ChevronDown, ChevronUp, Lock, User, Phone, Briefcase,
-  Clock, DollarSign, Percent, ShieldAlert, Palette, Activity, Check, Eye, EyeOff, Camera,
+  Clock, ShieldAlert, Palette, Activity, Check, Eye, EyeOff, Camera,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -38,6 +38,7 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
   const [alertModal, setAlertModal] = useState({ visible: false, title: '', message: '' });
   const [specDropdownOpen, setSpecDropdownOpen] = useState(false);
+  const [pendingImage, setPendingImage] = useState(null); // holds newly picked image before save
 
   const avatarScale = useRef(new Animated.Value(1)).current;
 
@@ -63,7 +64,8 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
   const onRefresh = () => { setRefreshing(true); fetchProfile(); };
 
   const handleEdit = () => {
-    setEditForm({ ...profile }); setShowPwd(false);
+    setEditForm({ ...profile, profile_image: pendingImage || profile.profile_image || '' });
+    setShowPwd(false);
     setPwdForm({ current: '', new: '', confirm: '' }); setEditModalVisible(true);
   };
 
@@ -79,10 +81,16 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
           setAlertModal({ visible: true, title: 'Security Error', message: pwdRes.message || 'Failed to change password.' }); setLoading(false); return;
         }
       }
-      const res = await updateArtistProfile(userId, editForm);
+      // Include pending image in the save payload
+      const payload = { ...editForm };
+      if (pendingImage) payload.profileImage = pendingImage;
+      const res = await updateArtistProfile(userId, payload);
       if (res.success) {
+        const updatedProfile = { ...editForm, profile_image: pendingImage || editForm.profile_image };
         setAlertModal({ visible: true, title: 'Success', message: 'Profile updated successfully' });
-        setProfile(editForm); setEditModalVisible(false);
+        setProfile(updatedProfile);
+        setPendingImage(null);
+        setEditModalVisible(false);
       } else {
         setAlertModal({ visible: true, title: 'Error', message: res.message || 'Failed to update profile' });
       }
@@ -96,18 +104,32 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
       Animated.spring(avatarScale, { toValue: 1.15, useNativeDriver: true }),
       Animated.spring(avatarScale, { toValue: 1, friction: 3, tension: 100, useNativeDriver: true })
     ]).start();
-    // Use native alert for avatar to avoid modal conflict with image picker
-    const { Alert } = require('react-native');
-    Alert.alert('Profile Picture', 'Update your avatar?', [
+    Alert.alert('Profile Picture', 'How would you like to update your photo?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Choose from Library', onPress: pickImage }
+      { text: 'Take Photo', onPress: takePhoto },
+      { text: 'Choose from Library', onPress: pickImage },
     ]);
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Camera permission is needed to take a photo.');
+      return;
+    }
+    let result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true, aspect: [1, 1], quality: 0.5, base64: true,
+    });
+    if (!result.canceled && result.assets[0].base64) {
+      const base64Img = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setPendingImage(base64Img);
+    }
   };
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      setAlertModal({ visible: true, title: 'Permission Denied', message: 'Camera roll permission is needed.' });
+      Alert.alert('Permission Denied', 'Camera roll permission is needed.');
       return;
     }
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -115,8 +137,7 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
     });
     if (!result.canceled && result.assets[0].base64) {
       const base64Img = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      setProfile(prev => ({ ...prev, profile_image: base64Img }));
-      await updateArtistProfile(userId, { profileImage: base64Img });
+      setPendingImage(base64Img);
     }
   };
 
@@ -143,10 +164,10 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
 
         {/* Profile Card */}
         <View style={styles.profileCard}>
-          <AnimatedTouchable onPress={handleAvatarPress} activeOpacity={1}>
+          <AnimatedTouchable onPress={handleAvatarPress} activeOpacity={1} title="Change profile picture">
             <Animated.View style={[styles.avatarBox, { transform: [{ scale: avatarScale }] }]}>
-              {profile.profile_image ? (
-                <Image source={{ uri: profile.profile_image }} style={{ width: 90, height: 90, borderRadius: 45 }} />
+              {(pendingImage || profile.profile_image) ? (
+                <Image source={{ uri: pendingImage || profile.profile_image }} style={{ width: 96, height: 96, borderRadius: 48 }} />
               ) : (
                 <Text style={styles.avatarText}>{getInitials(profile.name)}</Text>
               )}
@@ -155,6 +176,11 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
               </View>
             </Animated.View>
           </AnimatedTouchable>
+          {pendingImage && (
+            <View style={{ backgroundColor: 'rgba(190,144,85,0.15)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, marginTop: 6 }}>
+              <Text style={{ fontSize: 11, color: '#be9055', fontWeight: '600' }}>Photo staged — tap Save Changes to apply</Text>
+            </View>
+          )}
           <Text style={styles.name}>{profile.name}</Text>
           <Text style={styles.email}>{profile.email}</Text>
           <TouchableOpacity style={styles.editBtn} onPress={handleEdit} activeOpacity={0.8}>

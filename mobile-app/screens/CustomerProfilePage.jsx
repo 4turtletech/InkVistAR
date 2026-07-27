@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import {
   LogOut, Edit3, X, Phone, MapPin, Palette, Heart, Users, Check,
-  Lock, ShieldAlert, Activity, Eye, EyeOff
+  Lock, ShieldAlert, Activity, Eye, EyeOff, Camera, Save
 } from 'lucide-react-native';
 import { colors, typography, borderRadius } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
@@ -82,6 +82,8 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const shakeAnimation = useRef(new Animated.Value(0)).current;
   const avatarScale = useRef(new Animated.Value(1)).current;
   const styles = getStyles(theme);
+  const [pendingImage, setPendingImage] = useState(null); // holds newly picked image before save
+  const [savingAll, setSavingAll] = useState(false);
 
   useEffect(() => { if (userId) fetchProfile(); }, [userId]);
 
@@ -135,15 +137,36 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const handleProfileSave = async () => {
     setLoading(true);
     try {
-      const res = await updateCustomerProfile(userId, editForm);
+      const payload = { ...editForm };
+      if (pendingImage) payload.profileImage = pendingImage;
+      const res = await updateCustomerProfile(userId, payload);
       if (res.success) {
         Alert.alert('Success', 'Profile updated successfully', [{ text: 'OK' }]);
-        setProfile(editForm); setEditProfileVisible(false);
+        const updatedProfile = { ...editForm, profile_image: pendingImage || editForm.profile_image };
+        setProfile(updatedProfile);
+        setPendingImage(null);
+        setEditProfileVisible(false);
       } else {
         Alert.alert('Error', res.message || 'Failed to update');
       }
     } catch (e) { Alert.alert('Error', 'An error occurred'); }
     finally { setLoading(false); }
+  };
+
+  const handleSaveAllChanges = async () => {
+    if (!pendingImage) return;
+    setSavingAll(true);
+    try {
+      const res = await updateCustomerProfile(userId, { profileImage: pendingImage });
+      if (res.success) {
+        setProfile(prev => ({ ...prev, profile_image: pendingImage }));
+        setPendingImage(null);
+        Alert.alert('Success', 'Profile picture saved!');
+      } else {
+        Alert.alert('Error', res.message || 'Failed to save image');
+      }
+    } catch (e) { Alert.alert('Error', 'An error occurred'); }
+    finally { setSavingAll(false); }
   };
 
   const handleMedicalSave = async () => {
@@ -182,11 +205,26 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
       Animated.spring(avatarScale, { toValue: 1, friction: 3, tension: 100, useNativeDriver: true })
     ]).start();
 
-    // Use native Alert instead of custom Modal to avoid Android blocking the image picker
-    Alert.alert('Profile Picture', 'Update your avatar?', [
+    Alert.alert('Profile Picture', 'How would you like to update your photo?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Choose from Library', onPress: pickImage }
+      { text: 'Take Photo', onPress: takePhoto },
+      { text: 'Choose from Library', onPress: pickImage },
     ]);
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      customAlert('Permission Denied', 'Camera permission is needed to take a photo.');
+      return;
+    }
+    let result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true, aspect: [1, 1], quality: 0.5, base64: true,
+    });
+    if (!result.canceled && result.assets[0].base64) {
+      const base64Img = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setPendingImage(base64Img);
+    }
   };
 
   const pickImage = async () => {
@@ -206,8 +244,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
 
     if (!result.canceled && result.assets[0].base64) {
       const base64Img = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      setProfile(prev => ({ ...prev, profile_image: base64Img }));
-      await updateCustomerProfile(userId, { profileImage: base64Img });
+      setPendingImage(base64Img);
     }
   };
 
@@ -301,23 +338,42 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
 
         {/* Profile Card */}
         <View style={styles.profileCard}>
-          <AnimatedTouchable onPress={handleAvatarPress} activeOpacity={1}>
+          <AnimatedTouchable onPress={handleAvatarPress} activeOpacity={1} title="Change profile picture">
             <Animated.View style={[styles.avatarBox, { transform: [{ scale: avatarScale }] }]}>
-              {profile.profile_image ? (
-                <Image source={{ uri: profile.profile_image }} style={{ width: 96, height: 96, borderRadius: 48 }} />
+              {(pendingImage || profile.profile_image) ? (
+                <Image source={{ uri: pendingImage || profile.profile_image }} style={{ width: 96, height: 96, borderRadius: 48 }} />
               ) : (
                 <Text style={styles.avatarText}>{getInitials(profile.name)}</Text>
               )}
+              <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: theme.gold, borderRadius: 12, padding: 4, borderWidth: 2, borderColor: theme.surface }}>
+                <Camera size={12} color={theme.backgroundDeep} />
+              </View>
             </Animated.View>
           </AnimatedTouchable>
+          {pendingImage && (
+            <View style={{ backgroundColor: 'rgba(190,144,85,0.15)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, marginTop: 6 }}>
+              <Text style={{ fontSize: 11, color: '#be9055', fontWeight: '600' }}>Photo staged — save to apply</Text>
+            </View>
+          )}
           <Text style={styles.name}>{profile.name}</Text>
           <Text style={styles.email}>{profile.email}</Text>
 
-          <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
-            <AnimatedTouchable style={styles.editBtn} onPress={handleEdit}>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+            <AnimatedTouchable style={styles.editBtn} onPress={handleEdit} title="Edit profile fields">
               <Edit3 size={14} color={theme.gold} />
               <Text style={styles.editBtnText}>Edit Profile</Text>
             </AnimatedTouchable>
+            {pendingImage && (
+              <AnimatedTouchable
+                style={[styles.editBtn, { backgroundColor: theme.gold, borderColor: theme.gold }]}
+                onPress={handleSaveAllChanges}
+                title="Save staged photo"
+                disabled={savingAll}
+              >
+                <Save size={14} color={theme.backgroundDeep} />
+                <Text style={[styles.editBtnText, { color: theme.backgroundDeep }]}>{savingAll ? 'Saving...' : 'Save Photo'}</Text>
+              </AnimatedTouchable>
+            )}
           </View>
 
           {/* Profile Completion Bar */}
