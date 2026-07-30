@@ -11,6 +11,7 @@ function Login() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
+    const [credentialError, setCredentialError] = useState('');
     const [isLockedOut, setIsLockedOut] = useState(false);
     const [failedAttempts, setFailedAttempts] = useState(0);
     const [errors, setErrors] = useState({}); // Field-specific inline errors
@@ -89,6 +90,10 @@ function Login() {
         }
         setter(val);
         if (failedAttempts > 0) setFailedAttempts(0);
+        if (fieldName === 'email' || fieldName === 'password') {
+            setError('');
+            setCredentialError('');
+        }
         if (fieldName === 'newPassword') {
             setResetPwFeedback({
                 hasMinLength: val.length >= 8,
@@ -108,6 +113,7 @@ function Login() {
         if (!isEmailValid || !isPasswordValid) return;
 
         setError("");
+        setCredentialError('');
         setIsLockedOut(false);
         setShowResend(false);
         setResendMessage({ text: '' });
@@ -180,8 +186,11 @@ function Login() {
                 if (errData?.requireVerification) {
                     setShowResend(true);
                     setError(errData?.message || "Error logging in");
-                } else {
+                } else if (error.response?.status === 401) {
                     setError('');
+                    setCredentialError('Email or password is incorrect.');
+                } else {
+                    setError(errData?.message || 'Unable to log in right now. Please try again.');
                 }
             }
         } finally {
@@ -324,12 +333,12 @@ function Login() {
                         </div>
                     )}
                     
-                    <form onSubmit={handleLogin} className="login-form">
+                    <form onSubmit={handleLogin} className="login-form" noValidate>
                         <div className="form-group" style={{ position: 'relative' }}>
                             <input 
                                 type="email" 
                                 name="email"
-                                className={`form-input ${errors.email ? 'error' : ''}`} 
+                                className={`form-input ${errors.email || credentialError ? 'error' : ''}`}
                                 placeholder="Email Address"
                                 value={email}
                                 onChange={handleChange(setEmail, 'email')} maxLength={254}
@@ -342,7 +351,7 @@ function Login() {
                             <input 
                                 type={showPassword ? 'text' : 'password'} 
                                 name="password"
-                                className={`form-input ${errors.password ? 'error' : ''}`} 
+                                className={`form-input ${errors.password || credentialError ? 'error' : ''}`}
                                 placeholder="Password"
                                 value={password}
                                 onChange={handleChange(setPassword, 'password')} maxLength={128}
@@ -353,7 +362,8 @@ function Login() {
                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </div>
                             {errors.password && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.password}</small>}
-                            {failedAttempts > 0 && <small style={{color: '#ef4444', display: 'block', marginTop: '6px', fontSize: '0.8rem'}}>Email or password is incorrect. {failedAttempts} incorrect attempt{failedAttempts === 1 ? '' : 's'}.</small>}
+                            {credentialError && <small style={{color: '#ef4444', display: 'block', marginTop: '6px', fontSize: '0.8rem'}}>{credentialError}</small>}
+                            {failedAttempts > 0 && <small style={{color: '#ef4444', display: 'block', marginTop: '6px', fontSize: '0.8rem'}}>{failedAttempts} incorrect attempt{failedAttempts === 1 ? '' : 's'}.</small>}
                         </div>
                         <button type="submit" className="login-btn" disabled={loading}>
                             {loading ? 'Logging in...' : 'Login'}

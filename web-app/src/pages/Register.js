@@ -146,9 +146,9 @@ function Register() {
   };
 
   const validateField = (name, value) => {
-    let errorMsg = "";
-    if (name === 'firstName' && !value.trim()) errorMsg = "First name is required";
-    if (name === 'lastName' && !value.trim()) errorMsg = "Last name is required";
+    let errorMsg = '';
+    if (name === 'firstName' && !value.trim()) errorMsg = 'First name is required';
+    if (name === 'lastName' && !value.trim()) errorMsg = 'Last name is required';
 
     if (name === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -164,7 +164,8 @@ function Register() {
     }
 
     if (name === 'confirmPassword') {
-      if (value !== formData.password) errorMsg = "Passwords do not match";
+      if (!value) errorMsg = 'Confirm password is required';
+      else if (value !== formData.password) errorMsg = 'Passwords do not match';
     }
 
     if (name === 'phone') {
@@ -194,21 +195,15 @@ function Register() {
     return isFirstNameValid && isLastNameValid && isEmailValid && isPhoneValid && isPasswordValid && isConfirmValid;
   };
 
-  const isPasswordValid = () => {
-    return (
-      passwordFeedback.hasMinLength &&
-      passwordFeedback.hasUppercase &&
-      passwordFeedback.hasLowercase &&
-      passwordFeedback.hasNumber &&
-      passwordFeedback.hasSymbol
-    );
-  };
-
   const registerUser = async (e) => {
     e.preventDefault();
 
     setApiError('');
-    if (!validate()) return;
+    const fieldsAreValid = validate();
+    if (!agreedToTerms) {
+      setErrors(prev => ({ ...prev, terms: 'You must accept the Acknowledgement and Waiver' }));
+    }
+    if (!fieldsAreValid || !agreedToTerms) return;
     
     if (!executeRecaptcha) {
       setApiError('reCAPTCHA not loaded. Please try again.');
@@ -339,6 +334,7 @@ function Register() {
                     )}
                   </button>
                 </div>
+                {errors.password && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.password}</small>}
               </div>
               <div className="form-group" style={{ flex: 1 }}>
                 <div style={{ position: 'relative' }}>
@@ -501,12 +497,13 @@ function Register() {
                   onChange={(e) => {
                     const checked = e.target.checked;
                     setAgreedToTerms(checked);
+                    if (checked) setErrors(prev => ({ ...prev, terms: '' }));
                     if (checked) {
                       setPhotoMarketingConsent(true);
                       setShowTermsModal(true);
                     }
                   }}
-                  style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: '#be9055', flexShrink: 0 }}
+                  style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: '#be9055', flexShrink: 0, outline: errors.terms ? '2px solid #ef4444' : 'none', outlineOffset: '2px' }}
                 />
                 <span>
                   I agree to the{' '}
@@ -520,6 +517,7 @@ function Register() {
                   <span style={{ color: '#ef4444' }}> *</span>
                 </span>
               </label>
+              {errors.terms && <small style={{ color: '#ef4444', display: 'block', marginTop: '-6px', fontSize: '0.8rem' }}>{errors.terms}</small>}
 
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '0.85rem', color: '#ffffff', lineHeight: 1.5, textAlign: 'left' }}>
                 <input
@@ -532,7 +530,7 @@ function Register() {
               </label>
             </div>
 
-            <button type="submit" className="login-btn" disabled={!isPasswordValid() || !agreedToTerms}>Register</button>
+            <button type="submit" className="login-btn">Register</button>
           </form>
 
           <div className="login-footer">
