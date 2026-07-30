@@ -14,21 +14,22 @@ function ResetPassword() {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
 
-        if (newPassword !== confirmPassword) {
-            setError("Passwords do not match");
-            return;
-        }
+        const nextFieldErrors = {};
+        const strongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+        if (!newPassword) nextFieldErrors.newPassword = 'New password is required';
+        else if (!strongPassword.test(newPassword)) nextFieldErrors.newPassword = 'Use 8+ characters with uppercase, lowercase, number, and symbol';
+        if (!confirmPassword) nextFieldErrors.confirmPassword = 'Please confirm your new password';
+        else if (newPassword !== confirmPassword) nextFieldErrors.confirmPassword = 'Passwords do not match';
 
-        if (newPassword.length < 6) {
-            setError("Password must be at least 6 characters.");
-            return;
-        }
+        setFieldErrors(nextFieldErrors);
+        if (Object.keys(nextFieldErrors).length > 0) return;
 
         if (!email) {
             setError("No email provided. Please restart the process.");
@@ -46,10 +47,20 @@ function ResetPassword() {
                 alert('Password reset successfully! Please login.');
                 navigate('/login');
             } else {
-                setError(res.data.message || 'Failed to reset password');
+                const message = res.data.message || 'Failed to reset password';
+                if (message.toLowerCase().includes('password')) {
+                    setFieldErrors(prev => ({ ...prev, newPassword: message }));
+                } else {
+                    setError(message);
+                }
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Network error');
+            const message = err.response?.data?.message || 'Network error';
+            if (err.response && message.toLowerCase().includes('password')) {
+                setFieldErrors(prev => ({ ...prev, newPassword: message }));
+            } else {
+                setError(message);
+            }
         } finally {
             setLoading(false);
         }
@@ -69,26 +80,28 @@ function ResetPassword() {
 
                 {error && <p className="error-message" style={{ color: '#ef4444', textAlign: 'center', marginBottom: '1rem' }}>{error}</p>}
 
-                <form onSubmit={handleSubmit} className="reset-form">
+                <form onSubmit={handleSubmit} className="reset-form" noValidate>
                     <div className="form-group">
                         <input
                             type="password"
                             placeholder="New Password"
                             value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            required
-                            className="form-input"
+                            onChange={(e) => { setNewPassword(e.target.value); setFieldErrors(prev => ({ ...prev, newPassword: '' })); }}
+                            className={`form-input ${fieldErrors.newPassword ? 'error' : ''}`}
+                            aria-invalid={Boolean(fieldErrors.newPassword)}
                         />
+                        {fieldErrors.newPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{fieldErrors.newPassword}</small>}
                     </div>
                     <div className="form-group">
                         <input
                             type="password"
                             placeholder="Confirm Password"
                             value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            required
-                            className="form-input"
+                            onChange={(e) => { setConfirmPassword(e.target.value); setFieldErrors(prev => ({ ...prev, confirmPassword: '' })); }}
+                            className={`form-input ${fieldErrors.confirmPassword ? 'error' : ''}`}
+                            aria-invalid={Boolean(fieldErrors.confirmPassword)}
                         />
+                        {fieldErrors.confirmPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{fieldErrors.confirmPassword}</small>}
                     </div>
                     <button type="submit" className="reset-btn" disabled={loading}>
                         {loading ? 'Resetting...' : 'Reset Password'}

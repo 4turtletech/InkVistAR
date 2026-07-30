@@ -68,13 +68,15 @@ function Login() {
         if (name === 'password' && !value) {
             errorMsg = "Password is required";
         }
-        if (name === 'newPassword' && value) {
+        if (name === 'newPassword') {
             const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
-            if (value.length < 8) errorMsg = "Password must be at least 8 characters";
+            if (!value) errorMsg = "New password is required";
+            else if (value.length < 8) errorMsg = "Password must be at least 8 characters";
             else if (!strongRegex.test(value)) errorMsg = "Password needs uppercase, lowercase, number, and symbol";
         }
-        if (name === 'confirmPassword' && value) {
-            if (value !== newPassword) errorMsg = "Passwords do not match";
+        if (name === 'confirmPassword') {
+            if (!value) errorMsg = "Please confirm your new password";
+            else if (value !== newPassword) errorMsg = "Passwords do not match";
         }
         setErrors(prev => ({ ...prev, [name]: errorMsg }));
         return errorMsg === "";
@@ -158,15 +160,16 @@ function Login() {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        const isEmailValid = validateField('email', email);
-        const isPasswordValid = validateField('password', password);
-        if (!isEmailValid || !isPasswordValid) return;
-
         setError("");
         setCredentialError('');
         setIsLockedOut(false);
         setShowResend(false);
         setResendMessage({ text: '' });
+
+        const isEmailValid = validateField('email', email);
+        const isPasswordValid = validateField('password', password);
+        if (!isEmailValid || !isPasswordValid) return;
+
         setLoading(true);
         try {
             const orphanAppointmentId = sessionStorage.getItem('orphanAppointmentId');
@@ -210,7 +213,7 @@ function Login() {
         } catch (error) {
             const errData = error.response?.data;
             if (errData?.lockedOut) {
-                setError(errData.message);
+                setCredentialError(errData.message);
                 setIsLockedOut(true);
             } else if (errData?.requireVerification && errData?.verificationEmail) {
                 // Auto-send OTP and route to verify-account view
@@ -268,6 +271,8 @@ function Login() {
     const sendResetOTP = async (e) => {
         e.preventDefault();
         setError("");
+        const resetEmailValid = validateField('resetEmail', resetEmail);
+        if (!resetEmailValid) return;
         setLoading(true);
         try {
             const response = await Axios.post(`${API_URL}/api/send-otp`, {
@@ -278,10 +283,16 @@ function Login() {
                 setResendAttempts(0);
                 setView('forgot-otp');
             } else {
-                setError(response.data.message);
+                setErrors(prev => ({ ...prev, resetEmail: response.data.message || 'Unable to send a verification code to this email.' }));
             }
         } catch (error) {
-            setError("Error sending OTP");
+            const message = error.response?.data?.message || "Error sending OTP";
+            const normalizedMessage = message.toLowerCase();
+            if (error.response && (normalizedMessage.includes('email') || normalizedMessage.includes('account') || normalizedMessage.includes('user'))) {
+                setErrors(prev => ({ ...prev, resetEmail: message }));
+            } else {
+                setError(message);
+            }
         } finally {
             setLoading(false);
         }
@@ -340,21 +351,9 @@ function Login() {
         e.preventDefault();
         setError("");
         
-        if (newPassword !== confirmPassword) {
-            setError("Passwords do not match");
-            return;
-        }
-
-        if (newPassword.length < 8) {
-            setError("Password must be at least 8 characters.");
-            return;
-        }
-
-        const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
-        if (!strongRegex.test(newPassword)) {
-            setError("Password needs uppercase, lowercase, number, and special character.");
-            return;
-        }
+        const newPasswordValid = validateField('newPassword', newPassword);
+        const confirmPasswordValid = validateField('confirmPassword', confirmPassword);
+        if (!newPasswordValid || !confirmPasswordValid) return;
 
         setLoading(true);
         try {
@@ -370,10 +369,20 @@ function Login() {
                 setSuccessModal({ mounted: true, visible: false });
                 setTimeout(() => setSuccessModal({ mounted: true, visible: true }), 10);
             } else {
-                setError(response.data.message);
+                const message = response.data.message || 'Unable to reset password.';
+                if (message.toLowerCase().includes('password')) {
+                    setErrors(prev => ({ ...prev, newPassword: message }));
+                } else {
+                    setError(message);
+                }
             }
         } catch (error) {
-            setError(error.response?.data?.message || "Error resetting password");
+            const message = error.response?.data?.message || "Error resetting password";
+            if (error.response && message.toLowerCase().includes('password')) {
+                setErrors(prev => ({ ...prev, newPassword: message }));
+            } else {
+                setError(message);
+            }
         } finally {
             setLoading(false);
         }

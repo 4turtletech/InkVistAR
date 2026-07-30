@@ -223,7 +223,6 @@ function ArtistProfile() {
 
             setPasswordErrors(fieldErrors);
             if (Object.keys(fieldErrors).length > 0) {
-                setMessage({ type: 'error', text: 'Please complete the highlighted password fields.' });
                 setSaving(false);
                 return;
             }
@@ -284,10 +283,16 @@ function ArtistProfile() {
             }
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'Failed to update profile';
-            if (errorMessage.toLowerCase().includes('current password')) {
+            const normalizedError = errorMessage.toLowerCase();
+            if (normalizedError.includes('current password')) {
                 setPasswordErrors(prev => ({ ...prev, currentPassword: errorMessage }));
+                setMessage({ type: '', text: '' });
+            } else if (showChangePassword && normalizedError.includes('password')) {
+                setPasswordErrors(prev => ({ ...prev, newPassword: errorMessage }));
+                setMessage({ type: '', text: '' });
+            } else {
+                setMessage({ type: 'error', text: errorMessage });
             }
-            setMessage({ type: 'error', text: errorMessage });
             console.error('Profile update error:', error);
         }
         setSaving(false);
