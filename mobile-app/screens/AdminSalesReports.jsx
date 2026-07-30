@@ -160,11 +160,15 @@ export const AdminSalesReports = ({ navigation }) => {
     let totalVal = 0, totalQty = 0, lowCount = 0;
     const lowItems = [];
     inventory.forEach(it => {
-      const qty = parseInt(it.quantity) || 0;
-      const min = parseInt(it.min_stock_level) || 0;
-      const cost = parseFloat(it.cost) || parseFloat(it.retail_price) || 0;
+      const qty = parseInt(it.current_stock || it.quantity) || 0;
+      const min = parseInt(it.min_stock || it.min_stock_level) || 0;
+      const cost = parseFloat(it.cost_per_unit || it.cost || it.retail_price) || 0;
       totalQty += qty; totalVal += qty * cost;
-      if (qty <= min) { lowCount++; lowItems.push(it); }
+      if (qty <= min) { 
+        lowCount++; 
+        // Normalize properties so the table render doesn't break
+        lowItems.push({ ...it, quantity: qty, min_stock_level: min }); 
+      }
     });
 
     const moves = {};
@@ -523,7 +527,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
   header: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
-    paddingTop: (insets?.top || 0) + 12, paddingBottom: 16,
+    paddingTop: 12, paddingBottom: 16,
     backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
   },
   headerTitle: { ...typography.h2, color: theme.textPrimary },

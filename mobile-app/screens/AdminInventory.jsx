@@ -679,7 +679,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: (insets?.top || 0) + 16, paddingBottom: 16,
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16,
     backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
   },
   headerTitle: { ...typography.h2, color: theme.textPrimary },
@@ -741,7 +741,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   modalCard: { backgroundColor: theme.surface, borderRadius: borderRadius.xxl, padding: 24, maxHeight: '85%', ...shadows.cardStrong, borderWidth: 1, borderColor: theme.borderLight },
   modalOverlayFull: { flex: 1, backgroundColor: theme.background },
   modalCardFull: { flex: 1, backgroundColor: theme.surface },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingHorizontal: 20, paddingTop: 20 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingHorizontal: 20, paddingTop: (insets?.top || 20) + 10 },
   modalTitle: { ...typography.h3, color: theme.textPrimary },
   closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.surfaceLight, justifyContent: 'center', alignItems: 'center' },
   inputLabel: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '600', marginBottom: 6, marginTop: 6 },

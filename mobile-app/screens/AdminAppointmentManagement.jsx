@@ -1612,7 +1612,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   // Header
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: (insets?.top || 0) + 16, paddingBottom: 16,
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16,
     backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
   },
   headerTitle: { ...typography.h2, color: theme.textPrimary },

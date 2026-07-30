@@ -11,7 +11,7 @@ import {
   RefreshControl, ScrollView, Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Search, Plus, Pencil, Trash2, X, UserPlus, Shield, ChevronDown, ChevronLeft, Users, Camera, ArrowUpDown, ShieldCheck, ShieldOff, RotateCcw, Ban } from 'lucide-react-native';
+import { Search, Plus, Pencil, Trash2, X, UserPlus, Shield, ChevronDown, ChevronLeft, Users, Camera, ArrowUpDown, ShieldCheck, ShieldOff, RotateCcw, Ban, Eye, EyeOff } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
 import { typography, spacing, borderRadius, shadows } from '../src/theme';
@@ -60,6 +60,20 @@ export const AdminUserManagement = ({ navigation }) => {
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', type: 'customer', password: '', confirmPassword: '', phone: '', status: 'active' });
   const [profileImage, setProfileImage] = useState(null); // base64 uri
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const getPasswordStrength = (pass) => {
+    if (!pass) return { score: 0, color: theme.borderLight, text: '' };
+    let score = 0;
+    if (pass.length >= 8) score++;
+    if (/[A-Z]/.test(pass)) score++;
+    if (/[0-9]/.test(pass)) score++;
+    if (/[^A-Za-z0-9]/.test(pass)) score++;
+    if (score < 2) return { score, color: theme.error, text: 'Weak' };
+    if (score < 4) return { score, color: theme.warning, text: 'Fair' };
+    return { score, color: theme.success, text: 'Strong' };
+  };
 
   // Sort
   const [sortBy, setSortBy] = useState('name'); // name | role | status | newest
@@ -547,7 +561,7 @@ export const AdminUserManagement = ({ navigation }) => {
             {/* Role Selector */}
             <Text style={styles.inputLabel}>Role</Text>
             <View style={styles.typeRow}>
-              {['customer', 'artist', 'admin', 'manager'].map(type => (
+              {['customer', 'artist', 'admin'].map(type => (
                 <AnimatedTouchable
                   key={type}
                   style={[styles.typeBtn, formData.type === type && styles.typeBtnActive]}
@@ -586,26 +600,46 @@ export const AdminUserManagement = ({ navigation }) => {
             {/* Password (create only) */}
             {!editingUser && (
               <>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password (min. 8 characters)"
-                  placeholderTextColor={theme.textTertiary}
-                  value={formData.password}
-                  onChangeText={t => setFormData({ ...formData, password: t })}
-                  secureTextEntry
-                />
-                <TextInput
-                  style={[
-                    styles.input,
-                    formData.confirmPassword && formData.confirmPassword !== formData.password
-                      && { borderColor: theme.error, borderWidth: 1.5 }
-                  ]}
-                  placeholder="Confirm Password"
-                  placeholderTextColor={theme.textTertiary}
-                  value={formData.confirmPassword}
-                  onChangeText={t => setFormData({ ...formData, confirmPassword: t })}
-                  secureTextEntry
-                />
+                <View style={[styles.input, { flexDirection: 'row', alignItems: 'center', padding: 0 }]}>
+                  <TextInput
+                    style={{ flex: 1, padding: 14, color: theme.textPrimary, ...typography.body }}
+                    placeholder="Password (min. 8 characters)"
+                    placeholderTextColor={theme.textTertiary}
+                    value={formData.password}
+                    onChangeText={t => setFormData({ ...formData, password: t })}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 14 }}>
+                    {showPassword ? <EyeOff size={20} color={theme.textSecondary} /> : <Eye size={20} color={theme.textSecondary} />}
+                  </TouchableOpacity>
+                </View>
+                {formData.password.length > 0 && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: -8, marginBottom: 16 }}>
+                    <View style={{ flex: 1, height: 4, backgroundColor: theme.surfaceLight, borderRadius: 2, overflow: 'hidden', flexDirection: 'row' }}>
+                      <View style={{ flex: getPasswordStrength(formData.password).score / 4, backgroundColor: getPasswordStrength(formData.password).color }} />
+                    </View>
+                    <Text style={{ ...typography.bodyXSmall, color: getPasswordStrength(formData.password).color, width: 45, textAlign: 'right' }}>
+                      {getPasswordStrength(formData.password).text}
+                    </Text>
+                  </View>
+                )}
+                
+                <View style={[
+                  styles.input, { flexDirection: 'row', alignItems: 'center', padding: 0 },
+                  formData.confirmPassword && formData.confirmPassword !== formData.password && { borderColor: theme.error, borderWidth: 1.5 }
+                ]}>
+                  <TextInput
+                    style={{ flex: 1, padding: 14, color: theme.textPrimary, ...typography.body }}
+                    placeholder="Confirm Password"
+                    placeholderTextColor={theme.textTertiary}
+                    value={formData.confirmPassword}
+                    onChangeText={t => setFormData({ ...formData, confirmPassword: t })}
+                    secureTextEntry={!showConfirmPassword}
+                  />
+                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={{ padding: 14 }}>
+                    {showConfirmPassword ? <EyeOff size={20} color={theme.textSecondary} /> : <Eye size={20} color={theme.textSecondary} />}
+                  </TouchableOpacity>
+                </View>
                 {formData.confirmPassword && formData.confirmPassword !== formData.password ? (
                   <Text style={{ color: theme.error, fontSize: 12, marginTop: -10, marginBottom: 10, paddingHorizontal: 2 }}>
                     Passwords do not match.
@@ -753,7 +787,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   // Header
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: (insets?.top || 0) + 16, paddingBottom: 16,
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16,
     backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
   },
   headerTitle: { ...typography.h2, color: theme.textPrimary },
@@ -845,7 +879,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   },
   typeRow: { flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
   typeBtn: {
-    flex: 1, minWidth: '22%', padding: 12, alignItems: 'center',
+    flex: 1, padding: 12, alignItems: 'center',
     backgroundColor: theme.surfaceLight, borderRadius: borderRadius.md,
     borderWidth: 1, borderColor: theme.borderLight,
   },

@@ -6,7 +6,7 @@
  * To revert, simply set them to false.
  */
 export const MAINTENANCE_CONFIG = {
-  disableRegistration: true, // Replaces /register page with maintenance notice
-  disableBooking: true,      // Replaces public /book and customer /customer/book with maintenance notice
+  disableRegistration: false, // Replaces /register page with maintenance notice
+  disableBooking: false,      // Replaces public /book and customer /customer/book with maintenance notice
   facebookUrl: 'https://www.facebook.com/inkvictus'
 };
