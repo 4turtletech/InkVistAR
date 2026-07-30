@@ -331,7 +331,7 @@ export const AdminUserManagement = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>User Roster</Text>
+        <Text style={styles.headerTitle}>User Management</Text>
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
           {/* Sort Dropdown */}
           <View style={{ position: 'relative' }}>

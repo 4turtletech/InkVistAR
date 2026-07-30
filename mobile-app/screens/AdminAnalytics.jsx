@@ -35,6 +35,23 @@ const PERIODS = [
   { key: 'custom', label: 'Custom' },
 ];
 
+const isValidIsoDate = (value) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
+};
+
+const getCustomDateErrors = (start, end, requireBoth = false) => {
+  const errors = { start: '', end: '' };
+  if (!start && requireBoth) errors.start = 'Start date is required';
+  else if (start && !isValidIsoDate(start)) errors.start = 'Use a valid date in YYYY-MM-DD format';
+  if (!end && requireBoth) errors.end = 'End date is required';
+  else if (end && !isValidIsoDate(end)) errors.end = 'Use a valid date in YYYY-MM-DD format';
+  if (!errors.start && !errors.end && start && end && start > end) errors.end = 'End date cannot be before the start date';
+  return errors;
+};
+
 const getChartConfig = (theme) => ({
   backgroundColor: theme.surface,
   backgroundGradientFrom: theme.surface,
@@ -87,6 +104,11 @@ export const AdminAnalytics = ({ navigation }) => {
   const [customEnd, setCustomEnd] = useState('');
   const [pendingStart, setPendingStart] = useState('');
   const [pendingEnd, setPendingEnd] = useState('');
+  const [dateValidationAttempted, setDateValidationAttempted] = useState(false);
+  const customDateErrors = useMemo(
+    () => getCustomDateErrors(pendingStart, pendingEnd, dateValidationAttempted),
+    [pendingStart, pendingEnd, dateValidationAttempted]
+  );
 
   // Breakdown modal state
   const [breakdown, setBreakdown] = useState(null);
@@ -356,6 +378,7 @@ export const AdminAnalytics = ({ navigation }) => {
                 if (p.key === 'custom') {
                   setPendingStart(customStart);
                   setPendingEnd(customEnd);
+                  setDateValidationAttempted(false);
                   setCustomDateModal(true);
                 } else {
                   setPeriod(p.key);
@@ -661,20 +684,22 @@ export const AdminAnalytics = ({ navigation }) => {
               <Text style={{ ...typography.bodySmall, color: theme.textSecondary, marginBottom: 16 }}>Enter dates in YYYY-MM-DD format.</Text>
               <Text style={styles.bdLabel}>Start Date</Text>
               <TextInput
-                style={[styles.dateInput]}
+                style={[styles.dateInput, customDateErrors.start && { borderColor: theme.error, borderWidth: 1.5 }]}
                 placeholder="2025-01-01"
                 placeholderTextColor={theme.textTertiary}
                 value={pendingStart}
                 onChangeText={setPendingStart}
               />
+              {customDateErrors.start ? <Text style={{ ...typography.bodyXSmall, color: theme.error, marginTop: 5 }}>{customDateErrors.start}</Text> : null}
               <Text style={[styles.bdLabel, { marginTop: 12 }]}>End Date</Text>
               <TextInput
-                style={[styles.dateInput]}
+                style={[styles.dateInput, customDateErrors.end && { borderColor: theme.error, borderWidth: 1.5 }]}
                 placeholder="2025-12-31"
                 placeholderTextColor={theme.textTertiary}
                 value={pendingEnd}
                 onChangeText={setPendingEnd}
               />
+              {customDateErrors.end ? <Text style={{ ...typography.bodyXSmall, color: theme.error, marginTop: 5 }}>{customDateErrors.end}</Text> : null}
               <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
                 <AnimatedTouchable
                   style={[styles.modalCloseBtn, { flex: 1, height: 48, borderRadius: 12, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surfaceLight }]}
@@ -685,10 +710,9 @@ export const AdminAnalytics = ({ navigation }) => {
                 <AnimatedTouchable
                   style={[styles.modalCloseBtn, { flex: 1, height: 48, borderRadius: 12, backgroundColor: theme.gold }]}
                   onPress={() => {
-                    if (!pendingStart || !pendingEnd) {
-                      Alert.alert('Incomplete', 'Please enter both start and end dates.');
-                      return;
-                    }
+                    setDateValidationAttempted(true);
+                    const errors = getCustomDateErrors(pendingStart, pendingEnd, true);
+                    if (errors.start || errors.end) return;
                     setCustomStart(pendingStart);
                     setCustomEnd(pendingEnd);
                     setPeriod('custom');

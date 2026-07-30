@@ -34,6 +34,7 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
   const [editForm, setEditForm] = useState({});
   const [showPwd, setShowPwd] = useState(false);
   const [pwdForm, setPwdForm] = useState({ current: '', new: '', confirm: '' });
+  const [pwdErrors, setPwdErrors] = useState({});
   const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
   const [alertModal, setAlertModal] = useState({ visible: false, title: '', message: '' });
@@ -66,18 +67,30 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
   const handleEdit = () => {
     setEditForm({ ...profile, profile_image: pendingImage || profile.profile_image || '' });
     setShowPwd(false);
-    setPwdForm({ current: '', new: '', confirm: '' }); setEditModalVisible(true);
+    setPwdForm({ current: '', new: '', confirm: '' });
+    setPwdErrors({});
+    setEditModalVisible(true);
   };
 
   const handleSave = async () => {
+    if (showPwd) {
+      const fieldErrors = {};
+      if (!pwdForm.current) fieldErrors.current = 'Current password is required';
+      if (!pwdForm.new) fieldErrors.new = 'New password is required';
+      if (!pwdForm.confirm) fieldErrors.confirm = 'Please confirm your new password';
+      if (pwdForm.confirm && pwdForm.new !== pwdForm.confirm) fieldErrors.confirm = 'New passwords do not match';
+      setPwdErrors(fieldErrors);
+      if (Object.keys(fieldErrors).length > 0) return;
+    }
+
     setLoading(true);
     try {
-      if (showPwd && pwdForm.current) {
-        if (pwdForm.new !== pwdForm.confirm) {
-          setAlertModal({ visible: true, title: 'Error', message: 'New passwords do not match.' }); setLoading(false); return;
-        }
+      if (showPwd) {
         const pwdRes = await changeArtistPassword(userId, pwdForm.current, pwdForm.new);
         if (!pwdRes.success) {
+          if ((pwdRes.message || '').toLowerCase().includes('current password')) {
+            setPwdErrors(prev => ({ ...prev, current: pwdRes.message }));
+          }
           setAlertModal({ visible: true, title: 'Security Error', message: pwdRes.message || 'Failed to change password.' }); setLoading(false); return;
         }
       }
@@ -297,7 +310,7 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
                 </View>
               )}
 
-              <TouchableOpacity style={styles.pwdToggle} onPress={() => setShowPwd(!showPwd)} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.pwdToggle} onPress={() => { setShowPwd(!showPwd); setPwdErrors({}); }} activeOpacity={0.8}>
                 <View style={{ marginRight: 6 }}><Lock size={16} color={theme.gold} /></View>
                 <Text style={styles.pwdToggleText}>{showPwd ? 'Hide Password Settings' : 'Change Password'}</Text>
                 <View style={{ marginLeft: 6 }}>{showPwd ? <ChevronUp size={16} color={theme.gold} /> : <ChevronDown size={16} color={theme.gold} />}</View>
@@ -312,18 +325,22 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
                   ].map(f => (
                     <View key={f.key}>
                       <Text style={styles.inputLabel}>{f.label}</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={[styles.passwordFieldWrap, pwdErrors[f.key] && styles.inputError]}>
                         <TextInput
-                          style={[styles.input, { flex: 1 }]}
+                          style={[styles.input, { flex: 1, borderWidth: 0 }]}
                           secureTextEntry={!showPassword[f.key]}
                           value={pwdForm[f.key]}
-                          onChangeText={t => setPwdForm({ ...pwdForm, [f.key]: t })}
+                          onChangeText={t => {
+                            setPwdForm({ ...pwdForm, [f.key]: t });
+                            setPwdErrors(prev => ({ ...prev, [f.key]: '' }));
+                          }}
                           placeholderTextColor={theme.textTertiary}
                         />
                         <TouchableOpacity onPress={() => setShowPassword(p => ({ ...p, [f.key]: !p[f.key] }))} style={{ position: 'absolute', right: 12 }}>
                           {showPassword[f.key] ? <EyeOff size={18} color={theme.textTertiary} /> : <Eye size={18} color={theme.textTertiary} />}
                         </TouchableOpacity>
                       </View>
+                      {pwdErrors[f.key] ? <Text style={styles.fieldErrorText}>{pwdErrors[f.key]}</Text> : null}
                     </View>
                   ))}
                 </View>
@@ -461,6 +478,9 @@ const getStyles = (theme) => StyleSheet.create({
   },
   pwdToggleText: { ...typography.bodySmall, color: theme.gold, fontWeight: '700' },
   pwdSection: { backgroundColor: theme.surfaceLight, padding: 12, borderRadius: 12, marginTop: 6 },
+  passwordFieldWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: theme.border, borderRadius: 12, backgroundColor: theme.surfaceLight },
+  inputError: { borderWidth: 1.5, borderColor: theme.error, borderRadius: 12 },
+  fieldErrorText: { ...typography.bodyXSmall, color: theme.error, marginTop: 4 },
   saveBtn: {
     marginTop: 24, backgroundColor: theme.gold, paddingVertical: 14,
     borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center',

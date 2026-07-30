@@ -44,13 +44,15 @@ export const CustomerReports = ({ navigation }) => {
       const userStr = await AsyncStorage.getItem('user_session');
       if (userStr) {
         const user = JSON.parse(userStr);
+        const apiReportType = reportType === 'bug' ? 'bug' : 'general';
+        const reportTitle = reportType === 'feedback' ? 'Studio Feedback' : reportType === 'other' ? 'General Customer Report' : 'App Bug Report';
         const res = await fetchAPI('/reports', {
           method: 'POST',
           body: JSON.stringify({
             customer_id: user.id,
-            report_type: reportType,
+            report_type: apiReportType,
             category: 'other',
-            title: `${reportType.toUpperCase()} Report`,
+            title: reportTitle,
             description: message
           })
         });

@@ -11,12 +11,20 @@ import { colors, typography, borderRadius } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { getInitials } from '../src/utils/formatters';
-import { getCustomerDashboard, updateCustomerProfile, getCustomerProfile } from '../src/utils/api';
-import { changePassword, sendOtp, verifyOtp } from '../src/api/authAPI';
+import { getCustomerDashboard, updateCustomerProfile, getCustomerProfile, changeCustomerPassword } from '../src/utils/api';
+import { sendOtp, verifyOtp } from '../src/api/authAPI';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 
 const AnimatedTouch = Animated.createAnimatedComponent(TouchableOpacity);
+
+const getPasswordRequirements = (password = '') => ({
+  minLength: password.length >= 8,
+  uppercase: /[A-Z]/.test(password),
+  lowercase: /[a-z]/.test(password),
+  number: /\d/.test(password),
+  symbol: /[@$!%*?&#]/.test(password),
+});
 
 const AnimatedTouchable = ({ children, onPress, style, activeOpacity = 0.9 }) => {
   const { hapticsEnabled } = useTheme();
@@ -69,6 +77,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const [medicalForm, setMedicalForm] = useState({});
   const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' });
   const [passwordError, setPasswordError] = useState('');
+  const [passwordFieldErrors, setPasswordFieldErrors] = useState({});
   const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
   const [otpStep, setOtpStep] = useState(false);
   const [otp, setOtp] = useState('');
@@ -262,14 +271,22 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const handlePasswordSave = async () => {
     setPasswordError('');
     if (!otpStep) {
-      if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
-        setPasswordError('All fields are required'); triggerShake(); return;
+      const fieldErrors = {};
+      if (!passwordForm.current) fieldErrors.current = 'Current password is required';
+      if (!passwordForm.new) fieldErrors.new = 'New password is required';
+      if (!passwordForm.confirm) fieldErrors.confirm = 'Please confirm your new password';
+
+      const requirements = getPasswordRequirements(passwordForm.new);
+      if (passwordForm.new && !Object.values(requirements).every(Boolean)) {
+        fieldErrors.new = 'New password must meet all strength requirements';
       }
-      if (passwordForm.new.length < 8) {
-        setPasswordError('New password must be at least 8 characters'); triggerShake(); return;
+      if (passwordForm.confirm && passwordForm.new !== passwordForm.confirm) {
+        fieldErrors.confirm = 'New passwords do not match';
       }
-      if (passwordForm.new !== passwordForm.confirm) {
-        setPasswordError('New passwords do not match'); triggerShake(); return;
+      setPasswordFieldErrors(fieldErrors);
+      if (Object.keys(fieldErrors).length > 0) {
+        triggerShake();
+        return;
       }
 
       setLoading(true);
@@ -288,20 +305,21 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
 
     // OTP Verification Step
     if (!otp) {
-      setPasswordError('Please enter the OTP'); triggerShake(); return;
+      setPasswordFieldErrors({ otp: 'Verification code is required' }); triggerShake(); return;
     }
 
     setLoading(true);
     try {
       const verifyRes = await verifyOtp(profile.email, otp);
       if (verifyRes.success) {
-        const res = await changePassword(passwordForm.current, passwordForm.new);
+        const res = await changeCustomerPassword(userId, passwordForm.current, passwordForm.new);
         if (res.success) {
           customAlert('Success', 'Password updated successfully');
           setPasswordVisible(false);
           setOtpStep(false);
           setOtp('');
           setPasswordForm({ current: '', new: '', confirm: '' });
+          setPasswordFieldErrors({});
         } else {
           setPasswordError(res.message || 'Failed to update password'); triggerShake();
         }
@@ -474,7 +492,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
               <Switch value={hapticsEnabled} onValueChange={toggleHaptics} trackColor={{ false: theme.border, true: theme.gold }} thumbColor={'#fff'} />
             </View>
             
-            <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]} onPress={() => setPasswordVisible(true)}>
+            <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]} onPress={() => { setPasswordFieldErrors({}); setPasswordError(''); setPasswordVisible(true); }}>
               <View style={styles.rowLeft}>
                 <View style={styles.statIconWrapSmall}><Lock size={16} color={theme.gold} /></View>
                 <Text style={styles.rowLabel}>Change Password</Text>
@@ -536,7 +554,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{otpStep ? 'Verify OTP' : 'Change Password'}</Text>
-              <TouchableOpacity onPress={() => { setPasswordVisible(false); setPasswordError(''); setOtpStep(false); }}>
+              <TouchableOpacity onPress={() => { setPasswordVisible(false); setPasswordError(''); setPasswordFieldErrors({}); setOtpStep(false); }}>
                 <X size={24} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
@@ -553,11 +571,15 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
                   ].map(f => (
                     <View key={f.key}>
                       <Text style={styles.inputLabel}>{f.label}</Text>
-                      <View style={styles.passwordInputContainer}>
+                      <View style={[styles.passwordInputContainer, passwordFieldErrors[f.key] && styles.inputError]}>
                         <TextInput
                           style={styles.passwordInput}
                           value={passwordForm[f.key]}
-                          onChangeText={t => { setPasswordForm({ ...passwordForm, [f.key]: t }); setPasswordError(''); }}
+                          onChangeText={t => {
+                            setPasswordForm({ ...passwordForm, [f.key]: t });
+                            setPasswordError('');
+                            setPasswordFieldErrors(prev => ({ ...prev, [f.key]: '' }));
+                          }}
                           secureTextEntry={!showPassword[f.key]}
                           placeholderTextColor={theme.textTertiary}
                         />
@@ -565,6 +587,26 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
                           {showPassword[f.key] ? <EyeOff size={20} color={theme.textSecondary} /> : <Eye size={20} color={theme.textSecondary} />}
                         </TouchableOpacity>
                       </View>
+                      {passwordFieldErrors[f.key] ? <Text style={styles.fieldErrorText}>{passwordFieldErrors[f.key]}</Text> : null}
+                      {f.key === 'new' && (
+                        <View style={{ marginTop: 10, gap: 5 }}>
+                          {[
+                            ['minLength', 'At least 8 characters'],
+                            ['uppercase', 'One uppercase letter'],
+                            ['lowercase', 'One lowercase letter'],
+                            ['number', 'One number'],
+                            ['symbol', 'One special character (@$!%*?&#)'],
+                          ].map(([key, label]) => {
+                            const met = getPasswordRequirements(passwordForm.new)[key];
+                            return (
+                              <View key={key} style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                                <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: met ? theme.success : theme.textTertiary }} />
+                                <Text style={{ ...typography.bodyXSmall, color: met ? theme.success : theme.textTertiary }}>{label}</Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      )}
                     </View>
                   ))}
 
@@ -591,14 +633,15 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
                   </Text>
                   <Text style={styles.inputLabel}>Enter OTP</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, passwordFieldErrors.otp && styles.inputError]}
                     value={otp}
-                    onChangeText={t => { setOtp(t); setPasswordError(''); }}
+                    onChangeText={t => { setOtp(t); setPasswordError(''); setPasswordFieldErrors(prev => ({ ...prev, otp: '' })); }}
                     keyboardType="number-pad"
                     maxLength={6}
                     placeholder="123456"
                     placeholderTextColor={theme.textTertiary}
                   />
+                  {passwordFieldErrors.otp ? <Text style={styles.fieldErrorText}>{passwordFieldErrors.otp}</Text> : null}
                   <TouchableOpacity onPress={() => sendOtp(profile.email, 'email')} style={{ marginTop: 12, alignSelf: 'flex-start' }}>
                     <Text style={{ color: theme.gold, ...typography.bodySmall, fontWeight: '700' }}>Resend OTP</Text>
                   </TouchableOpacity>
@@ -866,6 +909,8 @@ const getStyles = (theme) => StyleSheet.create({
   },
   eyeBtn: { padding: 14 },
   errorText: { color: theme.error, ...typography.bodySmall, fontWeight: '600', marginBottom: 8, textAlign: 'center' },
+  inputError: { borderColor: theme.error, borderWidth: 1.5 },
+  fieldErrorText: { color: theme.error, ...typography.bodyXSmall, marginTop: 4 },
 
   saveBtn: {
     marginTop: 32, backgroundColor: theme.gold, paddingVertical: 16,

@@ -58,6 +58,7 @@ import { AdminBilling } from './screens/AdminBilling.jsx';
 import { AdminStaff } from './screens/AdminStaff.jsx';
 import { AdminClients } from './screens/AdminClients.jsx';
 import { AdminSalesReports } from './screens/AdminSalesReports.jsx';
+import { AdminCustomerReports } from './screens/AdminCustomerReports.jsx';
 
 // Placeholder for AR Tab
 import PlaceholderScreen from './components/PlaceholderScreen.jsx';
@@ -201,7 +202,7 @@ const AdminTabs = ({ user, onLogout }) => {
       tabBarIcon: ({ focused, color }) => {
         let iconName = 'ellipse';
         if (route.name === 'Dashboard') iconName = focused ? 'home' : 'home-outline';
-        if (route.name === 'Users') return <Users size={24} color={color} />;
+        if (route.name === 'User Management') return <Users size={24} color={color} />;
         if (route.name === 'Bookings') iconName = focused ? 'calendar' : 'calendar-outline';
         if (route.name === 'Studio') iconName = focused ? 'business' : 'business-outline';
         if (route.name === 'POS') return <Package size={24} color={color} />;
@@ -213,7 +214,7 @@ const AdminTabs = ({ user, onLogout }) => {
     <Tab.Screen name="Dashboard">
       {(props) => <AdminDashboard {...props} onLogout={onLogout} />}
     </Tab.Screen>
-    <Tab.Screen name="Users" component={AdminUserManagement} />
+    <Tab.Screen name="User Management" component={AdminUserManagement} />
     <Tab.Screen name="Bookings" component={AdminAppointmentManagement} />
     <Tab.Screen name="Studio" component={AdminStudio} />
   </Tab.Navigator>
@@ -393,6 +394,7 @@ function AppContent() {
                 <Stack.Screen name="admin-staff" component={AdminStaff} />
                 <Stack.Screen name="admin-clients" component={AdminClients} />
                 <Stack.Screen name="admin-reports" component={AdminSalesReports} />
+                <Stack.Screen name="admin-customer-reports" component={AdminCustomerReports} />
               </>
             ) : user.type === 'manager' ? (
               <>
@@ -403,6 +405,7 @@ function AppContent() {
                 <Stack.Screen name="admin-analytics" component={AdminAnalytics} />
                 <Stack.Screen name="admin-notifications" component={AdminNotifications} />
                 <Stack.Screen name="admin-reports" component={AdminSalesReports} />
+                <Stack.Screen name="admin-customer-reports" component={AdminCustomerReports} />
               </>
             ) : user.type === 'artist' ? (
               <>

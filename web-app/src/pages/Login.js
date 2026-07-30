@@ -24,6 +24,7 @@ function Login() {
     const [verificationEmail, setVerificationEmail] = useState('');
     const [resetEmail, setResetEmail] = useState("");
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
+    const [otpError, setOtpError] = useState('');
     const otpRefs = useRef([]);
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -39,6 +40,8 @@ function Login() {
     const [resendTimer, setResendTimer] = useState(300);
     const [resendAttempts, setResendAttempts] = useState(0);
     const [resending, setResending] = useState(false);
+    const otpExpired = (view === 'forgot-otp' || view === 'verify-account') && resendTimer <= 0;
+    const displayedOtpError = otpError || (otpExpired ? 'This verification code has expired. Request a new code.' : '');
 
     // Success modal state
     const [successModal, setSuccessModal] = useState({ mounted: false, visible: false });
@@ -79,6 +82,53 @@ function Login() {
 
     const handleBlur = (e) => {
         validateField(e.target.name, e.target.value);
+    };
+
+    const beginOtpWindow = (response) => {
+        const expiresIn = Math.max(1, Number(response?.data?.expires_in || 300));
+        setResendTimer(expiresIn);
+        setOtpError('');
+    };
+
+    const updateOtpDigit = (idx, rawValue) => {
+        const value = rawValue.replace(/[^0-9]/g, '').slice(0, 1);
+        const nextOtp = [...otp];
+        nextOtp[idx] = value;
+        setOtp(nextOtp);
+        if (!otpExpired) setOtpError('');
+        if (value && idx < 5) otpRefs.current[idx + 1]?.focus();
+    };
+
+    const pasteOtp = (event) => {
+        event.preventDefault();
+        const pasted = event.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+        if (!pasted) return;
+
+        const nextOtp = Array(6).fill('');
+        for (let i = 0; i < 6; i += 1) nextOtp[i] = pasted[i] || '';
+        setOtp(nextOtp);
+        if (!otpExpired) setOtpError('');
+        otpRefs.current[Math.min(pasted.length, 5)]?.focus();
+    };
+
+    const validateOtpSubmission = () => {
+        if (otpExpired) {
+            setOtpError('This verification code has expired. Request a new code.');
+            return false;
+        }
+        if (otp.join('').length !== 6) {
+            setOtpError('Enter the complete 6-digit verification code.');
+            return false;
+        }
+        return true;
+    };
+
+    const showOtpFailure = (message, fallbackMessage) => {
+        const nextMessage = message || fallbackMessage;
+        setOtpError(nextMessage);
+        if (nextMessage.toLowerCase().includes('expired')) setResendTimer(0);
+        setOtp(['', '', '', '', '', '']);
+        otpRefs.current[0]?.focus();
     };
 
     const handleChange = (setter, fieldName) => (e) => {
@@ -168,11 +218,11 @@ function Login() {
                 setError('');
                 setOtp(['', '', '', '', '', '']);
                 try {
-                    await Axios.post(`${API_URL}/api/send-otp`, {
+                    const otpResponse = await Axios.post(`${API_URL}/api/send-otp`, {
                         email: errData.verificationEmail,
                         purpose: 'account-verification'
                     });
-                    setResendTimer(300);
+                    beginOtpWindow(otpResponse);
                     setResendAttempts(0);
                     setView('verify-account');
                 } catch (otpErr) {
@@ -224,7 +274,7 @@ function Login() {
                 email: resetEmail
             });
             if (response.data.success) {
-                setResendTimer(300);
+                beginOtpWindow(response);
                 setResendAttempts(0);
                 setView('forgot-otp');
             } else {
@@ -239,7 +289,9 @@ function Login() {
 
     const verifyResetOTP = async (e) => {
         e.preventDefault();
+        if (!validateOtpSubmission()) return;
         setError("");
+        setOtpError('');
         setLoading(true);
         try {
             const response = await Axios.post(`${API_URL}/api/verify-otp`, {
@@ -249,14 +301,36 @@ function Login() {
             if (response.data.success) {
                 setView('reset-password');
             } else {
-                setError('Incorrect OTP');
-                setOtp(['', '', '', '', '', '']);
-                otpRefs.current[0]?.focus();
+                showOtpFailure(response.data.message, 'The verification code is incorrect.');
             }
         } catch (error) {
-            setError('Incorrect OTP');
-            setOtp(['', '', '', '', '', '']);
-            otpRefs.current[0]?.focus();
+            showOtpFailure(error.response?.data?.message, 'Unable to verify the code. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const verifyAccountOTP = async (e) => {
+        e.preventDefault();
+        if (!validateOtpSubmission()) return;
+
+        setError('');
+        setOtpError('');
+        setLoading(true);
+        try {
+            const response = await Axios.post(`${API_URL}/api/verify-otp`, {
+                email: verificationEmail,
+                otp: otp.join(''),
+                purpose: 'account-verification'
+            });
+            if (response.data.success) {
+                setSuccessModal({ mounted: true, visible: false });
+                setTimeout(() => setSuccessModal({ mounted: true, visible: true }), 10);
+            } else {
+                showOtpFailure(response.data.message, 'The verification code is incorrect.');
+            }
+        } catch (err) {
+            showOtpFailure(err.response?.data?.message, 'Unable to verify the code. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -419,33 +493,20 @@ function Login() {
                                     <input
                                         key={idx}
                                         ref={el => otpRefs.current[idx] = el}
+                                        className={`otp-digit-input ${displayedOtpError ? 'otp-digit-input-error' : ''}`}
                                         type="tel"
                                         inputMode="numeric"
                                         maxLength={1}
                                         value={digit}
-                                        onChange={(e) => {
-                                            const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 1);
-                                            const newOtp = [...otp];
-                                            newOtp[idx] = val;
-                                            setOtp(newOtp);
-                                            if (val && idx < 5) otpRefs.current[idx + 1]?.focus();
-                                        }}
+                                        onChange={(e) => updateOtpDigit(idx, e.target.value)}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
                                                 otpRefs.current[idx - 1]?.focus();
                                             }
                                         }}
-                                        onPaste={(e) => {
-                                            e.preventDefault();
-                                            const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
-                                            if (pasted) {
-                                                const newOtp = [...otp];
-                                                for (let i = 0; i < 6; i++) newOtp[i] = pasted[i] || '';
-                                                setOtp(newOtp);
-                                                const focusIdx = Math.min(pasted.length, 5);
-                                                otpRefs.current[focusIdx]?.focus();
-                                            }
-                                        }}
+                                        onPaste={pasteOtp}
+                                        aria-invalid={Boolean(displayedOtpError)}
+                                        aria-describedby={displayedOtpError ? 'forgot-otp-error' : undefined}
                                         style={{
                                             width: '44px',
                                             height: '52px',
@@ -453,51 +514,59 @@ function Login() {
                                             fontSize: '1.4rem',
                                             fontWeight: '700',
                                             borderRadius: '10px',
-                                            border: digit ? '2px solid #be9055' : '1px solid #ddd',
+                                            border: displayedOtpError ? '2px solid #ef4444' : (digit ? '2px solid #be9055' : '1px solid #ddd'),
                                             backgroundColor: 'white',
                                             color: '#1e293b',
                                             outline: 'none',
                                             transition: 'border-color 0.2s'
                                         }}
-                                        onFocus={(e) => e.target.style.borderColor = '#be9055'}
-                                        onBlur={(e) => { if (!digit) e.target.style.borderColor = '#ddd'; }}
+                                        onFocus={(e) => { e.target.style.borderColor = displayedOtpError ? '#ef4444' : '#be9055'; }}
+                                        onBlur={(e) => { e.target.style.borderColor = displayedOtpError ? '#ef4444' : (digit ? '#be9055' : '#ddd'); }}
                                     />
                                 ))}
                             </div>
+                            {displayedOtpError && <small id="forgot-otp-error" className="otp-inline-error" role="alert">{displayedOtpError}</small>}
                         </div>
                         <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#94a3b8', margin: '12px 0 4px', lineHeight: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                             <Mail size={14} /> Please also check your <strong>Spam</strong> or <strong>Junk</strong> folder.
                         </p>
-                        <button type="submit" className="login-btn" disabled={loading || otp.join('').length < 6}>{loading ? 'Verifying...' : 'Verify OTP'}</button>
+                        <button type="submit" className="login-btn" disabled={loading}>{loading ? 'Verifying...' : 'Verify OTP'}</button>
                         <div className="login-footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                             {resendTimer > 0 ? (
                                 <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
-                                    Resend code in {Math.floor(resendTimer / 60)}:{(resendTimer % 60).toString().padStart(2, '0')}
+                                    Code expires in {Math.floor(resendTimer / 60)}:{(resendTimer % 60).toString().padStart(2, '0')}
                                 </p>
                             ) : resendAttempts >= 3 ? (
+                                <>
+                                <span className="otp-expired-indicator">CODE EXPIRED</span>
                                 <p style={{ fontSize: '0.8rem', color: '#ef4444', margin: 0, fontWeight: 500 }}>
                                     Maximum resend attempts reached. Please try again later.
                                 </p>
+                                </>
                             ) : (
+                                <>
+                                <span className="otp-expired-indicator">CODE EXPIRED</span>
                                 <button type="button" disabled={resending} onClick={async () => {
                                     setResending(true);
                                     setError('');
+                                    setOtpError('');
                                     try {
-                                        await Axios.post(`${API_URL}/api/send-otp`, { email: resetEmail });
-                                        setResendTimer(300);
+                                        const response = await Axios.post(`${API_URL}/api/send-otp`, { email: resetEmail });
+                                        beginOtpWindow(response);
                                         setResendAttempts(prev => prev + 1);
                                         setOtp(['', '', '', '', '', '']);
                                         otpRefs.current[0]?.focus();
                                     } catch (err) {
-                                        setError('Failed to resend OTP.');
+                                        setOtpError(err.response?.data?.message || 'Failed to resend OTP.');
                                     } finally {
                                         setResending(false);
                                     }
                                 }} style={{background: 'none', border: 'none', color: '#be9055', cursor: resending ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '0.85rem', textDecoration: 'underline', padding: 0}}>
                                     {resending ? 'Resending...' : "Didn't receive it? Resend Code"}
                                 </button>
+                                </>
                             )}
-                            <button type="button" onClick={() => { setView('forgot-email'); setError(''); }} style={{background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '0.85rem'}}>Back</button>
+                            <button type="button" onClick={() => { setView('forgot-email'); setError(''); setOtpError(''); }} style={{background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '0.85rem'}}>Back</button>
                         </div>
                     </form>
                     </>
@@ -557,113 +626,83 @@ function Login() {
                         Please enter it below to activate your account.
                     </p>
                     {error && <p className="error-message">{error}</p>}
-                    <form onSubmit={async (e) => {
-                        e.preventDefault();
-                        setError('');
-                        setLoading(true);
-                        try {
-                            const response = await Axios.post(`${API_URL}/api/verify-otp`, {
-                                email: verificationEmail,
-                                otp: otp.join(''),
-                                purpose: 'account-verification'
-                            });
-                            if (response.data.success) {
-                                setSuccessModal({ mounted: true, visible: false });
-                                setTimeout(() => setSuccessModal({ mounted: true, visible: true }), 10);
-                            } else {
-                                setError('Incorrect OTP. Please try again.');
-                                setOtp(['', '', '', '', '', '']);
-                                otpRefs.current[0]?.focus();
-                            }
-                        } catch (err) {
-                            setError('Incorrect OTP. Please try again.');
-                            setOtp(['', '', '', '', '', '']);
-                            otpRefs.current[0]?.focus();
-                        } finally {
-                            setLoading(false);
-                        }
-                    }} className="login-form">
+                    <form onSubmit={verifyAccountOTP} className="login-form">
                         <div className="form-group">
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                 {otp.map((digit, idx) => (
                                     <input
                                         key={idx}
                                         ref={el => otpRefs.current[idx] = el}
+                                        className={`otp-digit-input ${displayedOtpError ? 'otp-digit-input-error' : ''}`}
                                         type="tel"
                                         inputMode="numeric"
                                         maxLength={1}
                                         value={digit}
-                                        onChange={(e) => {
-                                            const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 1);
-                                            const newOtp = [...otp];
-                                            newOtp[idx] = val;
-                                            setOtp(newOtp);
-                                            if (val && idx < 5) otpRefs.current[idx + 1]?.focus();
-                                        }}
+                                        onChange={(e) => updateOtpDigit(idx, e.target.value)}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
                                                 otpRefs.current[idx - 1]?.focus();
                                             }
                                         }}
-                                        onPaste={(e) => {
-                                            e.preventDefault();
-                                            const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
-                                            if (pasted) {
-                                                const newOtp = [...otp];
-                                                for (let i = 0; i < 6; i++) newOtp[i] = pasted[i] || '';
-                                                setOtp(newOtp);
-                                                const focusIdx = Math.min(pasted.length, 5);
-                                                otpRefs.current[focusIdx]?.focus();
-                                            }
-                                        }}
+                                        onPaste={pasteOtp}
+                                        aria-invalid={Boolean(displayedOtpError)}
+                                        aria-describedby={displayedOtpError ? 'account-otp-error' : undefined}
                                         style={{
                                             width: '44px', height: '52px', textAlign: 'center',
                                             fontSize: '1.4rem', fontWeight: '700', borderRadius: '10px',
-                                            border: digit ? '2px solid #be9055' : '1px solid #ddd',
+                                            border: displayedOtpError ? '2px solid #ef4444' : (digit ? '2px solid #be9055' : '1px solid #ddd'),
                                             backgroundColor: 'white', color: '#1e293b', outline: 'none',
                                             transition: 'border-color 0.2s'
                                         }}
-                                        onFocus={(e) => e.target.style.borderColor = '#be9055'}
-                                        onBlur={(e) => { if (!digit) e.target.style.borderColor = '#ddd'; }}
+                                        onFocus={(e) => { e.target.style.borderColor = displayedOtpError ? '#ef4444' : '#be9055'; }}
+                                        onBlur={(e) => { e.target.style.borderColor = displayedOtpError ? '#ef4444' : (digit ? '#be9055' : '#ddd'); }}
                                     />
                                 ))}
                             </div>
+                            {displayedOtpError && <small id="account-otp-error" className="otp-inline-error" role="alert">{displayedOtpError}</small>}
                         </div>
                         <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#94a3b8', margin: '12px 0 4px', lineHeight: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                             <Mail size={14} /> Please also check your <strong>Spam</strong> or <strong>Junk</strong> folder.
                         </p>
-                        <button type="submit" className="login-btn" disabled={loading || otp.join('').length < 6}>
+                        <button type="submit" className="login-btn" disabled={loading}>
                             {loading ? 'Verifying...' : 'Verify Account'}
                         </button>
                         <div className="login-footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                             {resendTimer > 0 ? (
                                 <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
-                                    Resend code in {Math.floor(resendTimer / 60)}:{(resendTimer % 60).toString().padStart(2, '0')}
+                                    Code expires in {Math.floor(resendTimer / 60)}:{(resendTimer % 60).toString().padStart(2, '0')}
                                 </p>
                             ) : resendAttempts >= 3 ? (
+                                <>
+                                <span className="otp-expired-indicator">CODE EXPIRED</span>
                                 <p style={{ fontSize: '0.8rem', color: '#ef4444', margin: 0, fontWeight: 500 }}>
                                     Maximum resend attempts reached. Please try again later.
                                 </p>
+                                </>
                             ) : (
+                                <>
+                                <span className="otp-expired-indicator">CODE EXPIRED</span>
                                 <button type="button" disabled={resending} onClick={async () => {
                                     setResending(true);
                                     setError('');
+                                    setOtpError('');
                                     try {
-                                        await Axios.post(`${API_URL}/api/send-otp`, { email: verificationEmail, purpose: 'account-verification' });
-                                        setResendTimer(300);
+                                        const response = await Axios.post(`${API_URL}/api/send-otp`, { email: verificationEmail, purpose: 'account-verification' });
+                                        beginOtpWindow(response);
                                         setResendAttempts(prev => prev + 1);
                                         setOtp(['', '', '', '', '', '']);
                                         otpRefs.current[0]?.focus();
                                     } catch (err) {
-                                        setError('Failed to resend OTP.');
+                                        setOtpError(err.response?.data?.message || 'Failed to resend OTP.');
                                     } finally {
                                         setResending(false);
                                     }
                                 }} style={{background: 'none', border: 'none', color: '#be9055', cursor: resending ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '0.85rem', textDecoration: 'underline', padding: 0}}>
                                     {resending ? 'Resending...' : "Didn't receive it? Resend Code"}
                                 </button>
+                                </>
                             )}
-                            <button type="button" onClick={() => { setView('login'); setError(''); }} style={{background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '0.85rem'}}>Back to Login</button>
+                            <button type="button" onClick={() => { setView('login'); setError(''); setOtpError(''); }} style={{background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '0.85rem'}}>Back to Login</button>
                         </div>
                     </form>
                     </>

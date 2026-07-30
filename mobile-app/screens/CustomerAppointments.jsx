@@ -23,6 +23,20 @@ import { getCustomerAppointments, updateAppointmentStatus, createCheckoutSession
 
 const ITEMS_PER_PAGE = 5;
 
+const isAppointmentFullyPaid = (appointment) => {
+  if (!appointment) return false;
+  if ((appointment.payment_status || '').toLowerCase() === 'paid') return true;
+  const price = Number(appointment.price || 0);
+  const totalPaid = Number(appointment.total_paid || 0);
+  return price > 0 && totalPaid + 0.005 >= price;
+};
+
+const normalizePaymentState = (appointment) => isAppointmentFullyPaid(appointment)
+  ? { ...appointment, payment_status: 'paid' }
+  : appointment;
+
+const getRemainingBalance = (appointment) => Math.max(0, Number(appointment?.price || 0) - Number(appointment?.total_paid || 0));
+
 const AnimatedTouch = Animated.createAnimatedComponent(TouchableOpacity);
 
 const AnimatedTouchable = ({ children, onPress, style, activeOpacity = 0.9, disabled }) => {
@@ -87,22 +101,23 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
   }, []);
 
   const handleSelectAppointment = async (appt) => {
-    setSelectedAppointment(appt);
+    const normalizedAppointment = appt ? normalizePaymentState(appt) : null;
+    setSelectedAppointment(normalizedAppointment);
     setModalTab('details');
     // B-M2: reset and fetch project timeline
     setProjectTimeline(null);
-    if (!appt) return;
-    if (appt.project_id) {
+    if (!normalizedAppointment) return;
+    if (normalizedAppointment.project_id) {
       setProjectTimelineLoading(true);
       try {
-        const r = await (await fetch(`${API_URL}/projects/${appt.project_id}`)).json();
+        const r = await (await fetch(`${API_URL}/projects/${normalizedAppointment.project_id}`)).json();
         if (r.success && r.project) setProjectTimeline(r.project);
       } catch (e) { /* silent */ } finally { setProjectTimelineLoading(false); }
     }
     try {
       const res = await getCustomerTransactions(customerId);
       if (res.success && res.transactions) {
-        setApptTransactions(res.transactions.filter(t => t.appointment_id === appt.id));
+        setApptTransactions(res.transactions.filter(t => t.appointment_id === normalizedAppointment.id));
       } else {
         setApptTransactions([]);
       }
@@ -118,17 +133,24 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
     try {
       if (!refreshing) setLoading(true);
       const r = await getCustomerAppointments(customerId);
-      if (r.success) { setAppointments(r.appointments || []); checkPaymentStatuses(r.appointments || []); }
+      if (r.success) {
+        const normalized = (r.appointments || []).map(normalizePaymentState);
+        setAppointments(normalized);
+        checkPaymentStatuses(normalized);
+      }
     } catch (e) { console.log('Fetch error:', e); }
     finally { setLoading(false); setRefreshing(false); }
   };
 
   const checkPaymentStatuses = async (list) => {
-    const toCheck = list.filter(a => a.payment_status !== 'paid' && parseFloat(a.price || 0) > 0);
+    const toCheck = list.filter(a => !isAppointmentFullyPaid(a) && parseFloat(a.price || 0) > 0);
     for (const apt of toCheck) {
       try {
         const r = await getPaymentStatus(apt.id);
-        if (r.success && r.payment_status === 'paid') setAppointments(p => p.map(x => x.id === apt.id ? { ...x, payment_status: 'paid' } : x));
+        if (r.success && (r.payment_status === 'paid' || (Number(r.price || apt.price || 0) > 0 && Number(r.totalPaid || 0) + 0.005 >= Number(r.price || apt.price || 0)))) {
+          setAppointments(current => current.map(item => item.id === apt.id ? { ...item, payment_status: 'paid', total_paid: r.totalPaid ?? item.total_paid } : item));
+          setSelectedAppointment(current => current?.id === apt.id ? { ...current, payment_status: 'paid', total_paid: r.totalPaid ?? current.total_paid } : current);
+        }
       } catch (e) { /* silent */ }
     }
   };
@@ -145,12 +167,23 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
 
   const handlePaymentInit = () => {
     if (!selectedAppointment) return;
+    if (isAppointmentFullyPaid(selectedAppointment)) {
+      setSelectedAppointment(current => normalizePaymentState(current));
+      Alert.alert('Fully Paid', 'This tattoo session has already been paid in full.');
+      return;
+    }
     setShowPaymentOptions(true);
   };
 
   const triggerPayment = async (type, customAmt = null) => {
     if (!selectedAppointment) return;
     const appt = selectedAppointment; // capture ref before any state changes
+    if (isAppointmentFullyPaid(appt)) {
+      setShowPaymentOptions(false);
+      setSelectedAppointment(normalizePaymentState(appt));
+      Alert.alert('Fully Paid', 'This tattoo session has already been paid in full.');
+      return;
+    }
     setPaymentLoading(true);
     try {
       const amount = type === 'custom' ? customAmt : appt.price;
@@ -180,9 +213,14 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
     setShowPaymentModal(false);
     setPaymentUrl(null);
     try {
+      const paymentResult = paidApptId ? await getPaymentStatus(paidApptId) : null;
       const r = await getCustomerAppointments(customerId);
       if (r.success) {
-        const freshList = r.appointments || [];
+        const freshList = (r.appointments || []).map(item => normalizePaymentState(
+          item.id === paidApptId && paymentResult?.success
+            ? { ...item, payment_status: paymentResult.payment_status || item.payment_status, total_paid: paymentResult.totalPaid ?? item.total_paid }
+            : item
+        ));
         setAppointments(freshList);
         // Reopen the detail modal with updated data so customer sees "Paid"
         if (paidApptId) {
@@ -200,9 +238,14 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
     setShowPaymentModal(false);
     setPaymentUrl(null);
     try {
+      const paymentResult = closedApptId ? await getPaymentStatus(closedApptId) : null;
       const r = await getCustomerAppointments(customerId);
       if (r.success) {
-        const freshList = r.appointments || [];
+        const freshList = (r.appointments || []).map(item => normalizePaymentState(
+          item.id === closedApptId && paymentResult?.success
+            ? { ...item, payment_status: paymentResult.payment_status || item.payment_status, total_paid: paymentResult.totalPaid ?? item.total_paid }
+            : item
+        ));
         setAppointments(freshList);
         // Reopen with fresh data in case payment completed before closing
         if (closedApptId) {
@@ -473,7 +516,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
 
                 {[
                   ['Status', () => <View style={[modalS.badge, { backgroundColor: getStatusColor(selectedAppointment.status) + '20' }]}><Text style={[modalS.badgeText, { color: getStatusColor(selectedAppointment.status) }]}>{selectedAppointment.status?.toUpperCase()}</Text></View>],
-                  ['Payment Status', () => <View style={[modalS.badge, { backgroundColor: selectedAppointment.payment_status === 'paid' ? `${theme.success}20` : `${theme.warning}20` }]}><Text style={[modalS.badgeText, { color: selectedAppointment.payment_status === 'paid' ? theme.success : theme.warning }]}>{(selectedAppointment.payment_status || 'unpaid').toUpperCase()}</Text></View>],
+                  ['Payment Status', () => <View style={[modalS.badge, { backgroundColor: isAppointmentFullyPaid(selectedAppointment) ? `${theme.success}20` : `${theme.warning}20` }]}><Text style={[modalS.badgeText, { color: isAppointmentFullyPaid(selectedAppointment) ? theme.success : theme.warning }]}>{isAppointmentFullyPaid(selectedAppointment) ? 'PAID' : (selectedAppointment.payment_status || 'unpaid').toUpperCase()}</Text></View>],
                   ['Date & Time', () => <Text style={modalS.value}>{new Date(selectedAppointment.appointment_date).toLocaleDateString()} at {selectedAppointment.start_time}</Text>],
                   ['Artist', () => <><Text style={modalS.value}>{selectedAppointment.artist_name?.trim().toLowerCase() === 'system admin' ? 'Unassigned' : (selectedAppointment.artist_name || 'Unassigned')}</Text><Text style={modalS.subValue}>{selectedAppointment.studio_name}</Text></>],
                   ['Price', () => <Text style={[modalS.value, { color: getDisplayPrice(selectedAppointment) === 'Pending Quote' ? theme.warning : theme.gold, fontWeight: '700' }]}>{getDisplayPrice(selectedAppointment)}</Text>],
@@ -507,10 +550,10 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
               </ScrollView>
             )}
 
-            {modalTab === 'details' && ['pending', 'confirmed', 'completed', 'pending_schedule'].includes(selectedAppointment?.status) && selectedAppointment?.payment_status !== 'paid' && parseFloat(selectedAppointment?.price || 0) > 0 && (
+            {modalTab === 'details' && ['pending', 'confirmed', 'completed', 'pending_schedule'].includes(selectedAppointment?.status) && !isAppointmentFullyPaid(selectedAppointment) && getRemainingBalance(selectedAppointment) > 0 && (
               <AnimatedTouchable style={[modalS.payBtn, { backgroundColor: theme.gold, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 }]} onPress={handlePaymentInit} disabled={paymentLoading} activeOpacity={0.8}>
                 {paymentLoading ? <ActivityIndicator color="#fff" size="small" /> : (
-                  <><CreditCard size={18} color={theme.backgroundDeep} /><Text style={[modalS.payText, { color: theme.backgroundDeep }]}>{['pending', 'pending_schedule'].includes(selectedAppointment?.status) ? 'Pay to Confirm' : 'Pay Balance'} (P{parseFloat(selectedAppointment?.price || 0).toLocaleString()})</Text></>
+                  <><CreditCard size={18} color={theme.backgroundDeep} /><Text style={[modalS.payText, { color: theme.backgroundDeep }]}>{['pending', 'pending_schedule'].includes(selectedAppointment?.status) ? 'Pay to Confirm' : 'Pay Balance'} (P{getRemainingBalance(selectedAppointment).toLocaleString()})</Text></>
                 )}
               </AnimatedTouchable>
             )}

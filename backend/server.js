@@ -2440,8 +2440,9 @@ app.post('/api/customer/change-password', async (req, res) => {
     return res.status(400).json({ success: false, message: 'All password fields are required' });
   }
 
-  if (newPassword.length < 6) {
-    return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+  const strongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+  if (!strongPassword.test(newPassword)) {
+    return res.status(400).json({ success: false, message: 'New password must be at least 8 characters and include uppercase, lowercase, number, and special character' });
   }
 
   // Find user
@@ -2483,7 +2484,7 @@ app.post('/api/customer/change-password', async (req, res) => {
       // Send re-verification email
       const protocol = getProtocol(req);
       const host = req.get('host');
-      const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${user.email}`;
+      const verifyUrl = `${protocol}://${host}/api/verify?token=${encodeURIComponent(verification_token)}`;
       console.log('[DEBUG] Re-verification Link:', verifyUrl);
 
       const html = buildEmailHtml(`
@@ -2556,7 +2557,7 @@ app.post('/api/artist/change-password', async (req, res) => {
       // Send re-verification email
       const protocol = getProtocol(req);
       const host = req.get('host');
-      const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${user.email}`;
+      const verifyUrl = `${protocol}://${host}/api/verify?token=${encodeURIComponent(verification_token)}`;
       console.log('[DEBUG] Re-verification Link:', verifyUrl);
 
       const html = buildEmailHtml(`
@@ -2683,7 +2684,7 @@ app.post('/api/confirm-email-change', (req, res) => {
           // Send verification email to the NEW address
           const protocol = getProtocol(req);
           const host = req.get('host');
-          const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${newEmail}`;
+          const verifyUrl = `${protocol}://${host}/api/verify?token=${encodeURIComponent(verification_token)}`;
           console.log('[DEBUG] New Email Verification Link:', verifyUrl);
 
           const html = buildEmailHtml(`
@@ -2747,7 +2748,8 @@ app.post('/api/send-otp', (req, res) => {
     // to avoid duplicate emails. Only applies to email-based OTP (not SMS which is always re-sent).
     if (otp_method === 'email' && user.otp_code && user.otp_expires && new Date(user.otp_expires) > new Date()) {
       console.log(`[INFO] Existing valid OTP found for ${email} — skipping duplicate email send.`);
-      return res.json({ success: true, message: 'OTP sent to your email!', reused: true });
+      const expiresIn = Math.max(1, Math.ceil((new Date(user.otp_expires).getTime() - Date.now()) / 1000));
+      return res.json({ success: true, message: 'OTP sent to your email!', reused: true, expires_in: expiresIn });
     }
 
     // Validate SMS method requires a phone number
@@ -2768,10 +2770,10 @@ app.post('/api/send-otp', (req, res) => {
         console.log('[DEBUG] OTP for', email, ':', otp_code);
 
         if (otp_method === 'sms') {
-          res.json({ success: true, message: 'OTP sent to your phone!' });
+          res.json({ success: true, message: 'OTP sent to your phone!', expires_in: 300 });
           sendSMS(user.phone, otpMessage(otp_code));
         } else {
-          res.json({ success: true, message: 'OTP sent to your email!' });
+          res.json({ success: true, message: 'OTP sent to your email!', expires_in: 300 });
           const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Verification Code</h2>
               <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Account security verification</p>
@@ -2860,7 +2862,7 @@ app.post('/api/verify-otp', (req, res) => {
 
   console.log('[INFO] VERIFY OTP:', email, code);
 
-  let query = 'SELECT * FROM users WHERE email = ? AND otp_code = ? AND otp_expires > NOW()';
+  let query = 'SELECT * FROM users WHERE email = ? AND otp_code = ?';
   let params = [email, code];
 
   // If user_type is provided, enforce it (backward compatibility)
@@ -2871,27 +2873,37 @@ app.post('/api/verify-otp', (req, res) => {
 
   db.query(query, params, (err, results) => {
     if (err || !results.length) {
-      return res.json({ success: false, message: 'Invalid or expired OTP' });
+      return res.json({ success: false, message: 'The verification code is incorrect.' });
     }
 
-    // Clear OTP after success
-    db.query('UPDATE users SET otp_code = NULL, otp_expires = NULL WHERE email = ?', [email]);
-
-    // If purpose is account verification, mark user as verified
-    if (req.body.purpose === 'account-verification') {
-      db.query('UPDATE users SET is_verified = 1 WHERE email = ?', [email]);
-      console.log('[OK] Account verified via OTP:', email);
+    if (!results[0].otp_expires || new Date(results[0].otp_expires) <= new Date()) {
+      return res.json({ success: false, message: 'The verification code has expired.' });
     }
 
-    console.log('[OK] OTP VERIFIED:', email);
-    res.json({
-      success: true,
-      user: {
-        id: results[0].id,
-        name: results[0].name,
-        email: results[0].email,
-        type: results[0].user_type
+    const isAccountVerification = req.body.purpose === 'account-verification';
+    const updateQuery = isAccountVerification
+      ? 'UPDATE users SET is_verified = 1, verification_token = NULL, otp_code = NULL, otp_expires = NULL WHERE id = ?'
+      : 'UPDATE users SET otp_code = NULL, otp_expires = NULL WHERE id = ?';
+
+    // Persist verification before returning success. This prevents an immediate
+    // login from reading stale account state and prompting for another OTP.
+    db.query(updateQuery, [results[0].id], (updateErr) => {
+      if (updateErr) {
+        console.error('[ERROR] Failed to persist OTP verification:', updateErr.message);
+        return res.status(500).json({ success: false, message: 'Unable to complete verification. Please try again.' });
       }
+
+      if (isAccountVerification) console.log('[OK] Account verified via OTP:', email);
+      console.log('[OK] OTP VERIFIED:', email);
+      res.json({
+        success: true,
+        user: {
+          id: results[0].id,
+          name: results[0].name,
+          email: results[0].email,
+          type: results[0].user_type
+        }
+      });
     });
   }
   );
@@ -2899,10 +2911,17 @@ app.post('/api/verify-otp', (req, res) => {
 
 // VERIFY endpoint
 app.get('/api/verify', (req, res) => {
-  const { token, email } = req.query;
-  console.log('VERIFY:', email, token ? 'OK' : 'NO TOKEN');
+  const { token } = req.query;
+  console.log('VERIFY:', token ? 'TOKEN PROVIDED' : 'NO TOKEN');
 
-  db.query('UPDATE users SET is_verified = 1, verification_token = NULL WHERE email = ? AND verification_token = ?', [email, token], (err, result) => {
+  // The random verification token uniquely identifies the account. Do not also
+  // depend on a raw email query parameter, which can be altered by URL decoding
+  // (notably "+" aliases). Link verification and OTP verification are alternate
+  // ways to satisfy the same account-verification requirement.
+  db.query(
+    'UPDATE users SET is_verified = 1, verification_token = NULL, otp_code = NULL, otp_expires = NULL WHERE verification_token = ?',
+    [token],
+    (err, result) => {
     if (err || result.affectedRows === 0) {
       return res.send(`
         <!DOCTYPE html>
@@ -2936,7 +2955,7 @@ app.get('/api/verify', (req, res) => {
         </html>
       `);
     }
-    console.log('VERIFIED:', email);
+    console.log('VERIFIED VIA EMAIL LINK');
     const loginUrl = `${FRONTEND_URL}/login`;
 
     res.send(`
@@ -2970,7 +2989,8 @@ app.get('/api/verify', (req, res) => {
         </body>
       </html>
     `);
-  });
+    }
+  );
 });
 
 // ========== REGISTER ENDPOINT ==========
@@ -3052,7 +3072,7 @@ app.post('/api/register', async (req, res) => {
         // Send Verification Email
         const protocol = getProtocol(req);
         const host = req.get('host');
-        const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${email}`;
+        const verifyUrl = `${protocol}://${host}/api/verify?token=${encodeURIComponent(verification_token)}`;
 
         // Generate OTP at registration time so the user has it immediately
         // (avoids a second email when they try to login unverified)
@@ -8005,6 +8025,14 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
       const manualPaidPesos = Number(appt.manual_paid_amount || 0);
       const computedTotalPaid = onlinePaidPesos + manualPaidPesos;
 
+      // Reconcile stale appointment flags against the payment ledger before responding.
+      if (apptPrice > 0 && computedTotalPaid + 0.005 >= apptPrice && currentPaymentStatus !== 'paid') {
+        currentPaymentStatus = 'paid';
+        db.query("UPDATE appointments SET payment_status = 'paid' WHERE id = ?", [appointmentId], (syncErr) => {
+          if (syncErr) console.error(`[ERROR] Failed to reconcile fully-paid appointment ${appointmentId}:`, syncErr.message);
+        });
+      }
+
       if (currentPaymentStatus === 'paid') {
         // Payment already confirmed — but admin notifications may not have been sent
         // (e.g. webhook updated DB before polling could trigger notifications)
@@ -10611,7 +10639,7 @@ app.post('/api/resend-verification', (req, res) => {
       // Send Email
       const protocol = getProtocol(req);
       const host = req.get('host');
-      const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${email}`;
+      const verifyUrl = `${protocol}://${host}/api/verify?token=${encodeURIComponent(verification_token)}`;
 
       console.log('[DEBUG] NEW Verification Link:', verifyUrl);
 
@@ -12038,6 +12066,9 @@ function generateReportCode() {
 // POST submit a new customer report
 app.post('/api/reports', (req, res) => {
   const { customer_id, report_type, category, title, description, steps_to_reproduce, attachment, system_info } = req.body;
+  const normalizedReportType = ['bug', 'feature', 'ui_ux', 'general'].includes(report_type)
+    ? report_type
+    : 'general';
 
   if (!customer_id || !title || !description) {
     return res.status(400).json({ success: false, message: 'Missing required fields (customer_id, title, description).' });
@@ -12057,7 +12088,7 @@ app.post('/api/reports', (req, res) => {
 
   db.query(q, [
     reportCode, customer_id,
-    report_type || 'general', category || 'other',
+    normalizedReportType, category || 'other',
     title.substring(0, 255), description,
     steps_to_reproduce || null,
     attachment || null,
@@ -12071,7 +12102,7 @@ app.post('/api/reports', (req, res) => {
     console.log(`[REPORT] New report ${reportCode} from customer ${customer_id}`);
 
     // Notify admin (user_id=1)
-    createNotification(1, `New Customer Report: ${reportCode}`, `A customer submitted a ${report_type || 'general'} report: "${title.substring(0, 80)}". Review it in Studio Settings > Reports.`, 'customer_report', result.insertId);
+    createNotification(1, `New Customer Report: ${reportCode}`, `A customer submitted a ${normalizedReportType} report: "${title.substring(0, 80)}". Review it in Studio > Customer Feedback.`, 'customer_report', result.insertId);
 
     // Thank-you notification to the customer
     createNotification(customer_id, `Thank You for Your Report ${reportCode}`, `We've received your report "${title.substring(0, 80)}" and our team will review it shortly. You can track updates in your Reports page.`, 'report_submitted', result.insertId);

@@ -144,6 +144,10 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
   };
 
   const handleUploadDraft = async () => {
+    if ((selectedAppointment?.status || '').toLowerCase() === 'completed') {
+      Alert.alert('Session Completed', 'Draft designs can no longer be changed after a tattoo session is completed.');
+      return;
+    }
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
@@ -506,11 +510,15 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
                 <View style={modalS.draftCard}>
                   <View style={modalS.draftHeader}>
                     <Text style={modalS.draftTitle}>Artist Draft Design</Text>
-                    <AnimatedTouchable style={modalS.uploadBtn} onPress={handleUploadDraft} disabled={uploadingDraft}>
+                    <AnimatedTouchable
+                      style={[modalS.uploadBtn, (selectedAppointment.status || '').toLowerCase() === 'completed' && { opacity: 0.45 }]}
+                      onPress={handleUploadDraft}
+                      disabled={uploadingDraft || (selectedAppointment.status || '').toLowerCase() === 'completed'}
+                    >
                       {uploadingDraft ? (
                         <ActivityIndicator size="small" color={colors.gold} />
                       ) : (
-                        <Text style={modalS.uploadBtnText}>Upload Draft</Text>
+                        <Text style={modalS.uploadBtnText}>{(selectedAppointment.status || '').toLowerCase() === 'completed' ? 'Session Completed' : 'Upload Draft'}</Text>
                       )}
                     </AnimatedTouchable>
                   </View>

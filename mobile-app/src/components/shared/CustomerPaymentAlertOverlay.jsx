@@ -27,11 +27,14 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
         const res = await response.json();
         
         if (res.success && Array.isArray(res.appointments)) {
-          const unpaidAlerts = res.appointments.filter(a => 
-            ['pending', 'confirmed', 'scheduled', 'completed'].includes((a.status || '').toLowerCase()) 
-            && Number(a.price) > 0 
-            && ['unpaid', 'downpayment_paid'].includes(a.payment_status)
-          );
+          const unpaidAlerts = res.appointments.filter(a => {
+            const price = Number(a.price || 0);
+            const totalPaid = Number(a.total_paid || 0);
+            return ['pending', 'confirmed', 'scheduled', 'completed'].includes((a.status || '').toLowerCase())
+              && price > 0
+              && totalPaid + 0.005 < price
+              && ['unpaid', 'downpayment_paid'].includes((a.payment_status || 'unpaid').toLowerCase());
+          });
           
           if (unpaidAlerts.length > 0) {
             setAlerts(unpaidAlerts);

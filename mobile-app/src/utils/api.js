@@ -758,3 +758,10 @@ export const deleteAdminOverhead = async (id) => {
 export const getAdminPayoutAlerts = async () => {
   return fetchAPI('/admin/payout-alerts').catch(() => ({ success: true, alerts: [] }));
 };
+
+export const changeCustomerPassword = async (customerId, currentPassword, newPassword) => {
+  return fetchAPI('/customer/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ customerId, currentPassword, newPassword })
+  });
+};

@@ -13,7 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 import {
   Search, Plus, Pencil, Trash2, X, Package, AlertTriangle,
   TrendingDown, TrendingUp, Archive, ChevronLeft, ChevronRight,
-  Printer, Download, History, Layers, Filter, Camera, ArrowUpDown, RotateCcw, SortAsc
+  Printer, Download, History, Layers, Filter, Camera, ArrowUpDown, RotateCcw, SortAsc, Check
 } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
@@ -79,6 +79,9 @@ export const AdminInventory = ({ navigation }) => {
   const [kitsModal, setKitsModal] = useState(false);
   const [kitsData, setKitsData] = useState({});
   const [kitsLoading, setKitsLoading] = useState(false);
+  const [kitEditorVisible, setKitEditorVisible] = useState(false);
+  const [kitSaving, setKitSaving] = useState(false);
+  const [kitForm, setKitForm] = useState({ service_type: '', old_service_type: '', materials: {} });
 
   const INVENTORY_CATEGORIES = ['all', 'ink', 'needles', 'jewelry', 'supplies', 'aftercare', 'machinery'];
 
@@ -278,6 +281,53 @@ export const AdminInventory = ({ navigation }) => {
     const result = await fetchAPI('/admin/service-kits');
     if (result.success) setKitsData(result.data || {});
     setKitsLoading(false);
+  };
+
+  const openKitEditor = (serviceType = '') => {
+    const selectedMaterials = {};
+    (kitsData[serviceType] || []).forEach(material => {
+      selectedMaterials[String(material.inventory_id)] = String(material.default_quantity || 1);
+    });
+    setKitForm({ service_type: serviceType, old_service_type: serviceType, materials: selectedMaterials });
+    setKitEditorVisible(true);
+  };
+
+  const toggleKitMaterial = (inventoryId) => {
+    const key = String(inventoryId);
+    setKitForm(current => {
+      const materials = { ...current.materials };
+      if (materials[key] !== undefined) delete materials[key];
+      else materials[key] = '1';
+      return { ...current, materials };
+    });
+  };
+
+  const saveServiceKit = async () => {
+    const serviceType = sanitizeText(kitForm.service_type).trim();
+    const materials = Object.entries(kitForm.materials)
+      .map(([inventoryId, quantity]) => ({ inventory_id: Number(inventoryId), default_quantity: Number(quantity) }))
+      .filter(material => material.inventory_id > 0 && material.default_quantity > 0);
+    if (!serviceType) {
+      Alert.alert('Validation Error', 'Service kit name is required.');
+      return;
+    }
+    if (materials.length === 0) {
+      Alert.alert('Validation Error', 'Select at least one inventory item for this kit.');
+      return;
+    }
+    setKitSaving(true);
+    const result = await fetchAPI('/admin/service-kits', {
+      method: 'POST',
+      body: JSON.stringify({ service_type: serviceType, old_service_type: kitForm.old_service_type, materials }),
+    });
+    setKitSaving(false);
+    if (result.success) {
+      Alert.alert('Success', kitForm.old_service_type ? 'Service kit updated.' : 'Service kit created.');
+      setKitEditorVisible(false);
+      fetchKits();
+    } else {
+      Alert.alert('Error', result.message || 'Failed to save service kit.');
+    }
   };
 
   const renderItem = ({ item, index }) => {
@@ -634,9 +684,15 @@ export const AdminInventory = ({ navigation }) => {
           <View style={styles.modalCardFull}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Service Kits</Text>
-              <AnimatedTouchable onPress={() => setKitsModal(false)} style={styles.closeBtn}>
-                <X size={20} color={theme.textSecondary} />
-              </AnimatedTouchable>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <AnimatedTouchable onPress={() => openKitEditor()} style={[styles.closeBtn, { width: 'auto', paddingHorizontal: 12, flexDirection: 'row', gap: 5 }]}>
+                  <Plus size={16} color={theme.gold} />
+                  <Text style={{ ...typography.bodyXSmall, color: theme.gold, fontWeight: '800' }}>Create Kit</Text>
+                </AnimatedTouchable>
+                <AnimatedTouchable onPress={() => setKitsModal(false)} style={styles.closeBtn}>
+                  <X size={20} color={theme.textSecondary} />
+                </AnimatedTouchable>
+              </View>
             </View>
             {kitsLoading ? <PremiumLoader message="Loading kits..." /> : (
               <FlatList
@@ -645,9 +701,14 @@ export const AdminInventory = ({ navigation }) => {
                 contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
                 renderItem={({ item }) => (
                   <View style={styles.kitCard}>
-                    <Text style={styles.kitTitle}>{item}</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                      <Text style={styles.kitTitle}>{item}</Text>
+                      <AnimatedTouchable onPress={() => openKitEditor(item)} style={{ padding: 6 }}>
+                        <Pencil size={15} color={theme.gold} />
+                      </AnimatedTouchable>
+                    </View>
                     {(kitsData[item] || []).map((mat, i) => (
-                      <Text key={i} style={styles.kitMeta}>• {mat.name} ({mat.default_quantity} {mat.unit})</Text>
+                      <Text key={i} style={styles.kitMeta}>- {mat.item_name || mat.name} ({mat.default_quantity} {mat.unit})</Text>
                     ))}
                   </View>
                 )}
@@ -656,6 +717,67 @@ export const AdminInventory = ({ navigation }) => {
             )}
           </View>
         </SafeAreaView>
+      </Modal>
+
+      <Modal visible={kitEditorVisible} animationType="fade" transparent onRequestClose={() => !kitSaving && setKitEditorVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { maxHeight: '88%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{kitForm.old_service_type ? 'Edit Service Kit' : 'Create Service Kit'}</Text>
+              <AnimatedTouchable onPress={() => setKitEditorVisible(false)} style={styles.closeBtn} disabled={kitSaving}>
+                <X size={20} color={theme.textSecondary} />
+              </AnimatedTouchable>
+            </View>
+            <Text style={styles.inputLabel}>Kit / Service Name</Text>
+            <TextInput
+              style={styles.input}
+              value={kitForm.service_type}
+              onChangeText={text => setKitForm(current => ({ ...current, service_type: text }))}
+              placeholder="e.g. Tattoo Session"
+              placeholderTextColor={theme.textTertiary}
+              maxLength={100}
+            />
+            <Text style={styles.inputLabel}>Inventory Materials</Text>
+            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+              {items.filter(item => !item.is_deleted).map(item => {
+                const key = String(item.id);
+                const selected = kitForm.materials[key] !== undefined;
+                return (
+                  <View key={key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: theme.borderLight }}>
+                    <TouchableOpacity
+                      onPress={() => toggleKitMaterial(item.id)}
+                      style={{ width: 24, height: 24, borderRadius: 6, borderWidth: 1.5, borderColor: selected ? theme.gold : theme.border, backgroundColor: selected ? theme.gold : theme.surfaceLight, justifyContent: 'center', alignItems: 'center' }}
+                    >
+                      {selected ? <Check size={15} color={theme.backgroundDeep} /> : null}
+                    </TouchableOpacity>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ ...typography.bodySmall, color: theme.textPrimary, fontWeight: '700' }}>{item.name}</Text>
+                      <Text style={{ ...typography.bodyXSmall, color: theme.textTertiary }}>{item.current_stock} {item.unit || 'pcs'} available</Text>
+                    </View>
+                    {selected && (
+                      <TextInput
+                        style={[styles.input, { width: 72, height: 40, marginBottom: 0, textAlign: 'center' }]}
+                        value={kitForm.materials[key]}
+                        onChangeText={quantity => setKitForm(current => ({ ...current, materials: { ...current.materials, [key]: quantity.replace(/[^0-9.]/g, '') } }))}
+                        keyboardType="decimal-pad"
+                        placeholder="Qty"
+                        placeholderTextColor={theme.textTertiary}
+                      />
+                    )}
+                  </View>
+                );
+              })}
+            </ScrollView>
+            <View style={styles.modalActions}>
+              <AnimatedTouchable style={styles.cancelBtn} onPress={() => setKitEditorVisible(false)} disabled={kitSaving}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </AnimatedTouchable>
+              <AnimatedTouchable style={[styles.saveBtn, kitSaving && { opacity: 0.6 }]} onPress={saveServiceKit} disabled={kitSaving}>
+                <Text style={styles.saveBtnText}>{kitSaving ? 'Saving...' : 'Save Kit'}</Text>
+              </AnimatedTouchable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Delete / Archive Confirm */}

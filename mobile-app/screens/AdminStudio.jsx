@@ -7,7 +7,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import {
   Package, ShoppingCart, Banknote, Users,
-  MessageSquare, BarChart3, Settings, Star,
+  MessageSquare, BarChart3, Settings, Star, MessagesSquare,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
@@ -21,6 +21,7 @@ const getModules = (theme) => [
   { id: 'admin-chat', title: 'Live Chat', Icon: MessageSquare, color: theme.primary || '#3b82f6', desc: 'Customer support' },
   { id: 'admin-analytics', title: 'Analytics', Icon: BarChart3, color: theme.iconPurple || '#a855f7', desc: 'Studio performance' },
   { id: 'admin-reviews', title: 'Reviews', Icon: Star, color: theme.gold || '#be9055', desc: 'Review moderation' },
+  { id: 'admin-customer-reports', title: 'Customer Feedback', Icon: MessagesSquare, color: theme.info || '#3b82f6', desc: 'Reports and feedback' },
   { id: 'admin-settings', title: 'Settings', Icon: Settings, color: theme.textSecondary || '#64748b', desc: 'System config' },
 ];
 

@@ -16,11 +16,18 @@ export function OTPVerification({ email, userType, purpose, onOTPVerified, onRes
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(300);
   const [canResend, setCanResend] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSendOTP = async () => {
     try {
       const result = await onResendOTP();
-      if (result && result.success) { Alert.alert('OTP Sent', `Code sent to ${email}`); setCountdown(300); setCanResend(false); }
+      if (result && result.success) {
+        Alert.alert('OTP Sent', `Code sent to ${email}`);
+        setOTP('');
+        setError('');
+        setCountdown(Math.max(1, Number(result.expires_in || 300)));
+        setCanResend(false);
+      }
       else { Alert.alert('Error', result?.message || 'Failed to send OTP'); }
     } catch (error) { Alert.alert('Error', 'Failed to send OTP'); }
   };
@@ -28,22 +35,48 @@ export function OTPVerification({ email, userType, purpose, onOTPVerified, onRes
   useEffect(() => { if (autoSend) handleSendOTP(); }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(prev => { if (prev <= 1) { setCanResend(true); clearInterval(timer); return 0; } return prev - 1; });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+    if (countdown <= 0) {
+      setCanResend(true);
+      return undefined;
+    }
+    const timer = setTimeout(() => setCountdown(previous => Math.max(0, previous - 1)), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  const isExpired = countdown <= 0;
+
+  const handleOTPChange = (value) => {
+    const digits = value.replace(/\D/g, '').slice(0, 6);
+    setOTP(digits);
+    if (!isExpired) setError('');
+  };
 
   const handleVerify = async () => {
     const cleanedOtp = otp.replace(/\D/g, ''); // Remove non-digit characters
+    if (isExpired) {
+      setError('This verification code has expired. Request a new code.');
+      return;
+    }
     if (cleanedOtp.length !== 6) {
-      Alert.alert('Invalid Code', 'Please enter a 6-digit numeric code.');
+      setError('Enter the complete 6-digit verification code.');
       return;
     }
     setLoading(true);
     const result = await verifyOTP(email, cleanedOtp, userType, purpose);
     setLoading(false);
-    result.success ? onOTPVerified(result.user) : Alert.alert('Invalid OTP', result.message || 'Code is incorrect or expired.');
+    if (result.success) {
+      setError('');
+      onOTPVerified(result.user);
+    } else {
+      const message = result.message || 'Code is incorrect or expired.';
+      if (message.toLowerCase().includes('expired')) {
+        setCountdown(0);
+        setCanResend(true);
+        setError('This verification code has expired. Request a new code.');
+      } else {
+        setError(message);
+      }
+    }
   };
 
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
@@ -59,22 +92,31 @@ export function OTPVerification({ email, userType, purpose, onOTPVerified, onRes
 
       <View style={styles.otpWrap}>
         <TextInput
-          style={[styles.otpInput, embedded && styles.otpInputEmbedded]}
+          style={[styles.otpInput, embedded && styles.otpInputEmbedded, (error || isExpired) && styles.otpInputError]}
           value={otp}
-          onChangeText={setOTP}
+          onChangeText={handleOTPChange}
           keyboardType="number-pad"
           maxLength={6}
           placeholder="------"
           placeholderTextColor={colors.textTertiary}
         />
+        {(error || isExpired) && (
+          <Text style={styles.errorText}>{error || 'This verification code has expired. Request a new code.'}</Text>
+        )}
       </View>
 
-      {!canResend && <Text style={styles.timer}>Resend code in {formatTime(countdown)}</Text>}
+      {!isExpired ? (
+        <Text style={styles.timer}>Code expires in {formatTime(countdown)}</Text>
+      ) : (
+        <View style={styles.expiredBadge}>
+          <Text style={styles.expiredText}>CODE EXPIRED</Text>
+        </View>
+      )}
 
       <TouchableOpacity
-        style={[styles.button, embedded && styles.buttonEmbedded, (loading || otp.length !== 6) && styles.buttonDisabled]}
+        style={[styles.button, embedded && styles.buttonEmbedded, loading && styles.buttonDisabled]}
         onPress={handleVerify}
-        disabled={loading || otp.length !== 6}
+        disabled={loading}
         activeOpacity={0.8}
         title="Verify your OTP code"
       >
@@ -134,7 +176,11 @@ const styles = StyleSheet.create({
     letterSpacing: 8, fontWeight: '700', color: colors.textPrimary,
   },
   otpInputEmbedded: { width: '85%', borderColor: colors.gold || colors.primary },
+  otpInputError: { borderColor: colors.error, backgroundColor: 'rgba(239, 68, 68, 0.05)' },
+  errorText: { ...typography.bodySmall, color: colors.error, marginTop: 7, textAlign: 'center' },
   timer: { ...typography.bodySmall, color: colors.textTertiary, marginBottom: 20 },
+  expiredBadge: { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: borderRadius.md, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 20 },
+  expiredText: { ...typography.bodyXSmall, color: colors.error, fontWeight: '800', letterSpacing: 0.8 },
   button: {
     backgroundColor: colors.primary, paddingHorizontal: 32, paddingVertical: 14,
     borderRadius: borderRadius.lg, minWidth: 200, alignItems: 'center',

@@ -127,7 +127,8 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
       else if (!strongRegex.test(value)) errorMsg = 'Needs uppercase, lowercase, number & symbol';
     }
     if (name === 'confirmPassword') {
-      if (value !== form.password) errorMsg = 'Passwords do not match';
+      if (!value) errorMsg = 'Confirm password is required';
+      else if (value !== form.password) errorMsg = 'Passwords do not match';
     }
     if (name === 'phone') {
       if (!value) errorMsg = 'Phone number is required';
@@ -546,7 +547,7 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, height: '100%', fontSize: 14, color: colors.textPrimary },
   eyeBtn: { padding: 4 },
-  errorText: { fontSize: 11, color: colors.error, marginTop: 4, marginLeft: 4, marginBottom: 10 },
+  errorText: { fontSize: 11, color: colors.error, marginTop: 4, marginLeft: 4 },
 
   // Strength Meter
   strengthSection: { marginTop: -6, marginBottom: 14 },

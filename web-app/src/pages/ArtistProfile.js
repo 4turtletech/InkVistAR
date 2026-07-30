@@ -67,6 +67,7 @@ function ArtistProfile() {
         newPassword: '',
         confirmPassword: ''
     });
+    const [passwordErrors, setPasswordErrors] = useState({});
 
     const [showPassword, setShowPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
@@ -207,22 +208,24 @@ function ArtistProfile() {
 
         // Password validation
         if (showChangePassword) {
-            if (passwords.newPassword) {
-                if (passwords.newPassword !== passwords.confirmPassword) {
-                    setMessage({ type: 'error', text: 'New passwords do not match' });
-                    setSaving(false);
-                    return;
-                }
-                const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
-                if (passwords.newPassword.length < 8) {
-                    setMessage({ type: 'error', text: 'Password must be at least 8 characters' });
-                    setSaving(false);
-                    return;
-                } else if (!strongRegex.test(passwords.newPassword)) {
-                    setMessage({ type: 'error', text: 'Password needs uppercase, lowercase, number, and symbol' });
-                    setSaving(false);
-                    return;
-                }
+            const fieldErrors = {};
+            if (!passwords.currentPassword) fieldErrors.currentPassword = 'Current password is required';
+            if (!passwords.newPassword) fieldErrors.newPassword = 'New password is required';
+            if (!passwords.confirmPassword) fieldErrors.confirmPassword = 'Please confirm your new password';
+
+            const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+            if (passwords.newPassword && !strongRegex.test(passwords.newPassword)) {
+                fieldErrors.newPassword = 'Use 8+ characters with uppercase, lowercase, number, and symbol';
+            }
+            if (passwords.confirmPassword && passwords.newPassword !== passwords.confirmPassword) {
+                fieldErrors.confirmPassword = 'New passwords do not match';
+            }
+
+            setPasswordErrors(fieldErrors);
+            if (Object.keys(fieldErrors).length > 0) {
+                setMessage({ type: 'error', text: 'Please complete the highlighted password fields.' });
+                setSaving(false);
+                return;
             }
         }
 
@@ -259,6 +262,7 @@ function ArtistProfile() {
 
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
             setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+            setPasswordErrors({});
             setShowChangePassword(false);
 
             // Re-fetch profile
@@ -280,6 +284,9 @@ function ArtistProfile() {
             }
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'Failed to update profile';
+            if (errorMessage.toLowerCase().includes('current password')) {
+                setPasswordErrors(prev => ({ ...prev, currentPassword: errorMessage }));
+            }
             setMessage({ type: 'error', text: errorMessage });
             console.error('Profile update error:', error);
         }
@@ -588,7 +595,7 @@ function ArtistProfile() {
                                         </h3>
                                         <button
                                             type="button"
-                                            onClick={() => setShowChangePassword(!showChangePassword)}
+                                            onClick={() => { setShowChangePassword(!showChangePassword); setPasswordErrors({}); }}
                                             style={{
                                                 padding: '8px 16px',
                                                 backgroundColor: showChangePassword ? '#f1f5f9' : '#be9055',
@@ -620,12 +627,13 @@ function ArtistProfile() {
                                                     <div style={{ position: 'relative' }}>
                                                         <input
                                                             type={showPassword ? 'text' : 'password'}
-                                                            className="form-input artist-profile-input"
+                                                            className={`form-input artist-profile-input ${passwordErrors.currentPassword ? 'error' : ''}`}
                                                             value={passwords.currentPassword}
-                                                            onChange={e => setPasswords({ ...passwords, currentPassword: e.target.value })}
+                                                            onChange={e => { setPasswords({ ...passwords, currentPassword: e.target.value }); setPasswordErrors(prev => ({ ...prev, currentPassword: '' })); }}
                                                             placeholder="Enter current password"
                                                             style={{ paddingRight: '40px' }}
                                                             maxLength={128}
+                                                            aria-invalid={Boolean(passwordErrors.currentPassword)}
                                                         />
                                                         <button
                                                             type="button"
@@ -644,6 +652,7 @@ function ArtistProfile() {
                                                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                                         </button>
                                                     </div>
+                                                    {passwordErrors.currentPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{passwordErrors.currentPassword}</small>}
                                                 </div>
                                             </div>
                                             <div className="grid-2col" style={{ gap: '16px' }}>
@@ -654,11 +663,12 @@ function ArtistProfile() {
                                                     <div style={{ position: 'relative' }}>
                                                         <input
                                                             type={showNewPassword ? "text" : "password"}
-                                                            className="form-input artist-profile-input"
+                                                            className={`form-input artist-profile-input ${passwordErrors.newPassword ? 'error' : ''}`}
                                                             value={passwords.newPassword}
                                                             onChange={e => {
                                                                 const val = e.target.value.slice(0, 50);
                                                                 setPasswords({ ...passwords, newPassword: val });
+                                                                setPasswordErrors(prev => ({ ...prev, newPassword: '' }));
                                                                 setPasswordFeedback({
                                                                     hasMinLength: val.length >= 8,
                                                                     hasUppercase: /[A-Z]/.test(val),
@@ -672,6 +682,7 @@ function ArtistProfile() {
                                                             placeholder="Min. 8 characters"
                                                             style={{ paddingRight: '40px' }}
                                                             maxLength={128}
+                                                            aria-invalid={Boolean(passwordErrors.newPassword)}
                                                         />
                                                         <button
                                                             type="button"
@@ -684,6 +695,7 @@ function ArtistProfile() {
                                                             {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                                         </button>
                                                     </div>
+                                                    {passwordErrors.newPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{passwordErrors.newPassword}</small>}
                                                 </div>
                                                 <div className="form-group">
                                                     <label className="artist-profile-form-label">
@@ -692,12 +704,13 @@ function ArtistProfile() {
                                                     <div style={{ position: 'relative' }}>
                                                         <input
                                                             type={showConfirmPassword ? "text" : "password"}
-                                                            className="form-input artist-profile-input"
+                                                            className={`form-input artist-profile-input ${passwordErrors.confirmPassword ? 'error' : ''}`}
                                                             value={passwords.confirmPassword}
-                                                            onChange={e => setPasswords({ ...passwords, confirmPassword: e.target.value })}
+                                                            onChange={e => { setPasswords({ ...passwords, confirmPassword: e.target.value }); setPasswordErrors(prev => ({ ...prev, confirmPassword: '' })); }}
                                                             placeholder="Re-enter new password"
                                                             style={{ paddingRight: '40px' }}
                                                             maxLength={128}
+                                                            aria-invalid={Boolean(passwordErrors.confirmPassword)}
                                                         />
                                                         <button
                                                             type="button"
@@ -710,6 +723,7 @@ function ArtistProfile() {
                                                             {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                                         </button>
                                                     </div>
+                                                    {passwordErrors.confirmPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{passwordErrors.confirmPassword}</small>}
                                                 </div>
                                             </div>
                                             <div style={{ overflow: 'hidden', maxHeight: passwordFocused ? '200px' : '0', opacity: passwordFocused ? 1 : 0, transition: 'max-height 0.3s ease, opacity 0.3s ease', marginTop: passwordFocused ? '4px' : '0' }}>

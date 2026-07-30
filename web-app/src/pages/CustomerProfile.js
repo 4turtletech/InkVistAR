@@ -63,6 +63,7 @@ function CustomerProfile() {
         newPassword: '',
         confirmPassword: ''
     });
+    const [passwordErrors, setPasswordErrors] = useState({});
     const [showPassword, setShowPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -240,22 +241,24 @@ function CustomerProfile() {
 
         // Password validation
         if (showChangePassword) {
-            if (passwords.newPassword) {
-                if (passwords.newPassword !== passwords.confirmPassword) {
-                    setMessage({ type: 'error', text: 'New passwords do not match' });
-                    setSaving(false);
-                    return;
-                }
-                const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
-                if (passwords.newPassword.length < 8) {
-                    setMessage({ type: 'error', text: 'Password must be at least 8 characters' });
-                    setSaving(false);
-                    return;
-                } else if (!strongRegex.test(passwords.newPassword)) {
-                    setMessage({ type: 'error', text: 'Password needs uppercase, lowercase, number, and symbol' });
-                    setSaving(false);
-                    return;
-                }
+            const fieldErrors = {};
+            if (!passwords.currentPassword) fieldErrors.currentPassword = 'Current password is required';
+            if (!passwords.newPassword) fieldErrors.newPassword = 'New password is required';
+            if (!passwords.confirmPassword) fieldErrors.confirmPassword = 'Please confirm your new password';
+
+            const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+            if (passwords.newPassword && !strongRegex.test(passwords.newPassword)) {
+                fieldErrors.newPassword = 'Use 8+ characters with uppercase, lowercase, number, and symbol';
+            }
+            if (passwords.confirmPassword && passwords.newPassword !== passwords.confirmPassword) {
+                fieldErrors.confirmPassword = 'New passwords do not match';
+            }
+
+            setPasswordErrors(fieldErrors);
+            if (Object.keys(fieldErrors).length > 0) {
+                setMessage({ type: 'error', text: 'Please complete the highlighted password fields.' });
+                setSaving(false);
+                return;
             }
         }
 
@@ -293,10 +296,14 @@ function CustomerProfile() {
 
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
             setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+            setPasswordErrors({});
             setShowChangePassword(false);
             setIsEditing(false);
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'Failed to update profile';
+            if (errorMessage.toLowerCase().includes('current password')) {
+                setPasswordErrors(prev => ({ ...prev, currentPassword: errorMessage }));
+            }
             setMessage({ type: 'error', text: errorMessage });
             console.error('Profile update error:', error);
         }
@@ -586,7 +593,7 @@ function CustomerProfile() {
                                                 <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     <Lock size={20} color="#be9055" /> Password &amp; Security
                                                 </h3>
-                                                <button type="button" onClick={() => setShowChangePassword(!showChangePassword)}
+                                                <button type="button" onClick={() => { setShowChangePassword(!showChangePassword); setPasswordErrors({}); }}
                                                     style={{ padding: '8px 16px', backgroundColor: showChangePassword ? '#f1f5f9' : '#be9055', color: showChangePassword ? '#475569' : 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500', transition: 'all 0.2s' }}>
                                                     {showChangePassword ? 'Cancel' : 'Change Password'}
                                                 </button>
@@ -596,37 +603,40 @@ function CustomerProfile() {
                                                     <div className="form-group" style={{ marginBottom: '16px' }}>
                                                         <label className="artist-profile-form-label"><Lock size={16} /> Current Password</label>
                                                         <div style={{ position: 'relative' }}>
-                                                            <input className="form-input artist-profile-input" type={showPassword ? 'text' : 'password'} value={passwords.currentPassword}
-                                                                onChange={e => setPasswords({ ...passwords, currentPassword: e.target.value })}
-                                                                placeholder="Enter current password" style={{ paddingRight: '40px' }} maxLength={128} />
+                                                            <input className={`form-input artist-profile-input ${passwordErrors.currentPassword ? 'error' : ''}`} type={showPassword ? 'text' : 'password'} value={passwords.currentPassword}
+                                                                onChange={e => { setPasswords({ ...passwords, currentPassword: e.target.value }); setPasswordErrors(prev => ({ ...prev, currentPassword: '' })); }}
+                                                                placeholder="Enter current password" style={{ paddingRight: '40px' }} maxLength={128} aria-invalid={Boolean(passwordErrors.currentPassword)} />
                                                             <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
                                                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                                             </button>
                                                         </div>
+                                                        {passwordErrors.currentPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{passwordErrors.currentPassword}</small>}
                                                     </div>
                                                     <div className="grid-2col">
                                                         <div className="form-group">
                                                             <label className="artist-profile-form-label"><Lock size={16} /> New Password</label>
                                                             <div style={{ position: 'relative' }}>
-                                                                <input type={showNewPassword ? 'text' : 'password'} className="form-input artist-profile-input" value={passwords.newPassword}
-                                                                    onChange={e => { const val = e.target.value.slice(0, 50); setPasswords({ ...passwords, newPassword: val }); setPasswordFeedback({ hasMinLength: val.length >= 8, hasUppercase: /[A-Z]/.test(val), hasLowercase: /[a-z]/.test(val), hasNumber: /[0-9]/.test(val), hasSymbol: /[@$!%*?&#]/.test(val) }); }}
+                                                                <input type={showNewPassword ? 'text' : 'password'} className={`form-input artist-profile-input ${passwordErrors.newPassword ? 'error' : ''}`} value={passwords.newPassword}
+                                                                    onChange={e => { const val = e.target.value.slice(0, 50); setPasswords({ ...passwords, newPassword: val }); setPasswordErrors(prev => ({ ...prev, newPassword: '' })); setPasswordFeedback({ hasMinLength: val.length >= 8, hasUppercase: /[A-Z]/.test(val), hasLowercase: /[a-z]/.test(val), hasNumber: /[0-9]/.test(val), hasSymbol: /[@$!%*?&#]/.test(val) }); }}
                                                                     onFocus={() => setPasswordFocused(true)} onBlur={() => { if (!passwords.newPassword) setPasswordFocused(false); }}
-                                                                    placeholder="Min. 8 characters" style={{ paddingRight: '40px' }} maxLength={128} />
+                                                                    placeholder="Min. 8 characters" style={{ paddingRight: '40px' }} maxLength={128} aria-invalid={Boolean(passwordErrors.newPassword)} />
                                                                 <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
                                                                     {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                                                 </button>
                                                             </div>
+                                                            {passwordErrors.newPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{passwordErrors.newPassword}</small>}
                                                         </div>
                                                         <div className="form-group">
                                                             <label className="artist-profile-form-label"><Lock size={16} /> Confirm New Password</label>
                                                             <div style={{ position: 'relative' }}>
-                                                                <input type={showConfirmPassword ? 'text' : 'password'} className="form-input artist-profile-input" value={passwords.confirmPassword}
-                                                                    onChange={e => setPasswords({ ...passwords, confirmPassword: e.target.value })}
-                                                                    placeholder="Re-enter new password" style={{ paddingRight: '40px' }} maxLength={128} />
+                                                                <input type={showConfirmPassword ? 'text' : 'password'} className={`form-input artist-profile-input ${passwordErrors.confirmPassword ? 'error' : ''}`} value={passwords.confirmPassword}
+                                                                    onChange={e => { setPasswords({ ...passwords, confirmPassword: e.target.value }); setPasswordErrors(prev => ({ ...prev, confirmPassword: '' })); }}
+                                                                    placeholder="Re-enter new password" style={{ paddingRight: '40px' }} maxLength={128} aria-invalid={Boolean(passwordErrors.confirmPassword)} />
                                                                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
                                                                     {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                                                 </button>
                                                             </div>
+                                                            {passwordErrors.confirmPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{passwordErrors.confirmPassword}</small>}
                                                         </div>
                                                     </div>
                                                     <div style={{ overflow: 'hidden', maxHeight: passwordFocused ? '200px' : '0', opacity: passwordFocused ? 1 : 0, transition: 'max-height 0.3s ease, opacity 0.3s ease', marginTop: passwordFocused ? '4px' : '0' }}>

@@ -266,19 +266,19 @@ function Register() {
           </div>
 
           <h2 className="login-title" style={{ fontSize: '1.1rem', marginTop: '1.5rem' }}>Create Account</h2>
-          {apiError && <p className="error-message" style={{ textAlign: 'center' }}>{apiError}</p>}
+          {apiError && <p className="error-message register-api-error" style={{ textAlign: 'center' }}>{apiError}</p>}
 
-          <form onSubmit={registerUser} className="login-form">
+          <form onSubmit={registerUser} className="login-form register-form" noValidate>
             <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
               <div className="form-group" style={{ flex: 1, position: 'relative' }}>
                 <input type="text" name="firstName" className={`form-input ${errors.firstName ? 'error' : ''}`} placeholder="First Name" value={formData.firstName} onChange={handleChange} onBlur={handleBlur} maxLength={50} />
                 <span style={{ position: 'absolute', right: '12px', top: '14px', color: '#ef4444', fontSize: '1.1rem', lineHeight: '1', pointerEvents: 'none' }}>*</span>
-                {errors.firstName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.firstName}</small>}
+                {errors.firstName && <small className="register-field-error">{errors.firstName}</small>}
               </div>
               <div className="form-group" style={{ flex: 1, position: 'relative' }}>
                 <input type="text" name="lastName" className={`form-input ${errors.lastName ? 'error' : ''}`} placeholder="Last Name" value={formData.lastName} onChange={handleChange} onBlur={handleBlur} maxLength={50} />
                 <span style={{ position: 'absolute', right: '12px', top: '14px', color: '#ef4444', fontSize: '1.1rem', lineHeight: '1', pointerEvents: 'none' }}>*</span>
-                {errors.lastName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.lastName}</small>}
+                {errors.lastName && <small className="register-field-error">{errors.lastName}</small>}
               </div>
               <div className="form-group" style={{ width: '90px', position: 'relative', flexShrink: 0 }}>
                 <input type="text" name="suffix" className="form-input" placeholder="Suffix" value={formData.suffix} onChange={handleChange} maxLength={5} />
@@ -287,20 +287,22 @@ function Register() {
             <div className="form-group" style={{ position: 'relative' }}>
               <input type="email" name="email" className={`form-input ${errors.email ? 'error' : ''}`} placeholder="Email Address" value={formData.email} onChange={handleChange} onBlur={handleBlur} maxLength={254} />
               <span style={{ position: 'absolute', right: '12px', top: '14px', color: '#ef4444', fontSize: '1.1rem', lineHeight: '1', pointerEvents: 'none' }}>*</span>
-              {errors.email && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.email}</small>}
+              {errors.email && <small className="register-field-error">{errors.email}</small>}
             </div>
-            <div className="form-group" style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
-              <CountryCodeSelect
-                value={formData.countryCode}
-                onChange={(code) => setFormData(prev => ({ ...prev, countryCode: code }))}
-                style={{ borderRadius: '10px' }}
-              />
-              <div style={{ flex: 1, position: 'relative' }}>
-                <input type="tel" name="phone" className={`form-input ${errors.phone ? 'error' : ''}`} style={{ width: '100%' }} value={formData.phone} onChange={handleChange} placeholder="9XXXXXXXXX" maxLength={10} />
-                <span style={{ position: 'absolute', right: '12px', top: '14px', color: '#ef4444', fontSize: '1.1rem', lineHeight: '1', pointerEvents: 'none' }}>*</span>
+            <div className="form-group">
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+                <CountryCodeSelect
+                  value={formData.countryCode}
+                  onChange={(code) => setFormData(prev => ({ ...prev, countryCode: code }))}
+                  style={{ borderRadius: '10px' }}
+                />
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <input type="tel" name="phone" className={`form-input ${errors.phone ? 'error' : ''}`} style={{ width: '100%' }} value={formData.phone} onChange={handleChange} onBlur={handleBlur} placeholder="9XXXXXXXXX" maxLength={10} />
+                  <span style={{ position: 'absolute', right: '12px', top: '14px', color: '#ef4444', fontSize: '1.1rem', lineHeight: '1', pointerEvents: 'none' }}>*</span>
+                </div>
               </div>
+              {errors.phone && <small className="register-field-error">{errors.phone}</small>}
             </div>
-            {errors.phone && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.phone}</small>}
             <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
               <div className="form-group" style={{ flex: 1 }}>
                 <div style={{ position: 'relative' }}>
@@ -334,7 +336,7 @@ function Register() {
                     )}
                   </button>
                 </div>
-                {errors.password && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.password}</small>}
+                {errors.password && <small className="register-field-error">{errors.password}</small>}
               </div>
               <div className="form-group" style={{ flex: 1 }}>
                 <div style={{ position: 'relative' }}>
@@ -368,13 +370,15 @@ function Register() {
                     )}
                   </button>
                 </div>
-                {errors.confirmPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.confirmPassword}</small>}
+                {errors.confirmPassword && <small className="register-field-error">{errors.confirmPassword}</small>}
               </div>
             </div>
             {/* Full-width Password Strength Meter */}
-            <div style={{ minHeight: '44px', opacity: passwordFocused ? 1 : 0, transition: 'opacity 0.3s ease', marginTop: passwordFocused ? '4px' : '0', visibility: passwordFocused ? 'visible' : 'hidden' }}>
-              <PasswordStrengthMeter feedback={passwordFeedback} />
-            </div>
+            {passwordFocused && (
+              <div style={{ marginTop: '4px', marginBottom: '12px' }}>
+                <PasswordStrengthMeter feedback={passwordFeedback} />
+              </div>
+            )}
 
 
             {/* Health & Safety — Optional Collapsible Section */}
