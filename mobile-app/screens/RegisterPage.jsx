@@ -111,7 +111,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
   }, []);
 
   // --- Field-level validation (matches web validateField) ---
-  const validateField = (name, value) => {
+  const validateField = (name, value, currentPasswordOverride = null) => {
     let errorMsg = '';
     if (name === 'firstName' && !value.trim()) errorMsg = 'First name is required';
     if (name === 'lastName' && !value.trim()) errorMsg = 'Last name is required';
@@ -128,7 +128,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
     }
     if (name === 'confirmPassword') {
       if (!value) errorMsg = 'Confirm password is required';
-      else if (value !== form.password) errorMsg = 'Passwords do not match';
+      else if (value !== (currentPasswordOverride !== null ? currentPasswordOverride : form.password)) errorMsg = 'Passwords do not match';
     }
     if (name === 'phone') {
       if (!value) errorMsg = 'Phone number is required';
@@ -162,9 +162,16 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
       setPasswordFeedback(fb);
       const score = Object.values(fb).filter(Boolean).length;
       Animated.timing(strengthAnim, { toValue: score, duration: 300, useNativeDriver: false }).start();
+      validateField('confirmPassword', form.confirmPassword, value);
     }
 
     validateField(name, value);
+  };
+
+  const handleTermsToggle = () => {
+    const next = !agreedToTerms;
+    setAgreedToTerms(next);
+    setErrors(prev => ({ ...prev, terms: next ? null : 'You must accept the Terms of Service' }));
   };
 
   const handleBlur = (name) => {
@@ -186,6 +193,8 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
     if (!agreedToTerms) {
       setErrors(prev => ({ ...prev, terms: 'You must accept the Terms of Service' }));
       checks.push(false);
+    } else {
+      setErrors(prev => ({ ...prev, terms: null }));
     }
     return checks.every(Boolean);
   };
@@ -369,7 +378,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
             </View>
 
             {/* Terms */}
-            <TouchableOpacity style={styles.checkRow} onPress={() => setAgreedToTerms(!agreedToTerms)} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.checkRow} onPress={handleTermsToggle} activeOpacity={0.7}>
               <View style={[styles.checkbox, agreedToTerms && styles.checkboxActive, errors.terms && styles.checkboxError]}>
                 {agreedToTerms && <Check size={11} color={colors.backgroundDeep} />}
               </View>

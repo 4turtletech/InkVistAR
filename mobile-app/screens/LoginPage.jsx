@@ -121,7 +121,11 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
 
     if (!isValid) { triggerShake(); return; }
 
-    if (lockoutTime > 0) { showToast(`Please wait ${lockoutTime} seconds before trying again.`, 'error'); return; }
+    if (lockoutTime > 0) {
+      triggerShake();
+      setErrors(prev => ({ ...prev, password: `Please wait ${lockoutTime} seconds before trying again.` }));
+      return;
+    }
     setIsLoading(true);
     const result = await onLogin(cleanEmail, password);
     setIsLoading(false);
@@ -130,8 +134,12 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
       else {
         triggerShake();
         const n = failedAttempts + 1; setFailedAttempts(n);
-        if (n >= 3) { setLockoutTime(30); showToast('Temporarily locked for 30 seconds.', 'error'); }
-        else { showToast(result.message || 'Invalid credentials', 'error'); }
+        if (n >= 3) {
+          setLockoutTime(30);
+          setErrors(prev => ({ ...prev, password: 'Temporarily locked for 30 seconds.' }));
+        } else {
+          setErrors(prev => ({ ...prev, password: result.message || 'Email or Password is incorrect.' }));
+        }
       }
     } else { setFailedAttempts(0); }
   };

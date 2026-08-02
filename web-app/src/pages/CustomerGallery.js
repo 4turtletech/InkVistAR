@@ -303,19 +303,19 @@ function CustomerGallery(){
                                                 <input
                                                     type="range" min="0" max="500000" step="5000" value={priceRange.min}
                                                     onChange={(e) => {
-                                                        const val = Math.min(parseInt(e.target.value), priceRange.max - 5000);
-                                                        setPriceRange({ ...priceRange, min: val });
+                                                        const nextMin = Number(e.target.value);
+                                                        setPriceRange(prev => ({ ...prev, min: Math.min(nextMin, prev.max - 5000) }));
                                                     }}
-                                                    style={{ position: 'absolute', width: '100%', appearance: 'none', pointerEvents: 'none', background: 'transparent', zIndex: priceRange.min > 400000 ? 5 : 3 }}
+                                                    style={{ position: 'absolute', width: '100%', appearance: 'none', pointerEvents: 'auto', background: 'transparent', zIndex: priceRange.min > 400000 ? 5 : 3 }}
                                                     className="custom-range-slider"
                                                 />
                                                 <input
                                                     type="range" min="0" max="500000" step="5000" value={priceRange.max}
                                                     onChange={(e) => {
-                                                        const val = Math.max(parseInt(e.target.value), priceRange.min + 5000);
-                                                        setPriceRange({ ...priceRange, max: val });
+                                                        const nextMax = Number(e.target.value);
+                                                        setPriceRange(prev => ({ ...prev, max: Math.max(nextMax, prev.min + 5000) }));
                                                     }}
-                                                    style={{ position: 'absolute', width: '100%', appearance: 'none', pointerEvents: 'none', background: 'transparent', zIndex: 4 }}
+                                                    style={{ position: 'absolute', width: '100%', appearance: 'none', pointerEvents: 'auto', background: 'transparent', zIndex: 4 }}
                                                     className="custom-range-slider"
                                                 />
                                             </div>
