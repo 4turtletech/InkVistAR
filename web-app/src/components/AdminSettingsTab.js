@@ -15,9 +15,9 @@ function AdminSettingsTab({ initialTab = 'studio' }) {
             name: 'InkVistAR Studio',
             email: 'contact@inkvistrar.com',
             phone: '+1-555-0100',
-            address: '123 Art Street, City, State 12345',
+            address: '123 Art Street, City, Region 12345',
             city: 'New York',
-            state: 'NY',
+            state: 'Metro Manila',
             zipCode: '10001',
             country: 'USA',
             openingTime: '09:00',
@@ -322,7 +322,7 @@ function AdminSettingsTab({ initialTab = 'studio' }) {
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label>State</label>
+                                        <label>Region</label>
                                         <input
                                             type="text"
                                             value={settings.studio.state}
