@@ -10570,30 +10570,34 @@ app.get('/api/invoices/:orderId', (req, res) => {
 
 
 // Helper: Simple Rule-based Chatbot (Fallback)
-function getFallbackResponse(message) {
+function getFallbackResponse(message, context = {}) {
   const msg = message.toLowerCase();
-  // Use word-boundary regex to avoid matching short keywords inside longer words
-  // e.g. 'hi' inside 'chicken', 'where' inside 'elsewhere', 'ask' inside 'task'
+  const studio = context.studio || {};
   const has = (words) => words.some(w => new RegExp(`\\b${w}\\b`).test(msg));
 
+  const studioName = typeof studio.name === 'string' && studio.name.trim() ? studio.name.trim() : 'the studio';
+  const studioAddress = typeof studio.address === 'string' && studio.address.trim() ? studio.address.trim() : 'their location';
+  const studioContact = typeof studio.phone === 'string' && studio.phone.trim() ? studio.phone.trim() : 'their contact number';
+
   if (has(['price', 'cost', 'rate', 'charge', 'fee', 'quote', 'estimate', 'pricing', 'how much', 'price range'])) {
-    return "To help you plan for your upcoming session, here is a general guide to our starting rates for large-scale work. Please keep in mind that these are baseline estimates; your final quote will be tailored during your consultation based on the exact design, size, and technical complexity of the piece.\n\n1. 5-Panel Piece: 40k\n2. Full Sleeve (Left/Right): 200k\n3. Full Back: 350k\n4. Full Leg: 350k";
+    return `To help you plan ahead, here is a general estimate guide from ${studioName}. These are baselines only; final pricing is confirmed during consultation based on design complexity, size, and style.`;
   }
   if (has(['book', 'appointment', 'schedule', 'consultation', 'session', 'reserve'])) {
-    return "You can book an appointment by going to the 'Book Consultation' tab on our landing page and go from there or you can log in to your account and book from there as well!";
+    return "You can book an appointment by tapping 'Book Consultation' on our site or app, or log in and start a booking from there.";
   }
   if (has(['location', 'address', 'located', 'directions', 'nearby', 'proximity', 'how to get there', 'find you', 'close to', 'near'])) {
-    return "We are located at the Ground Floor, W Tower, 32nd Street, corner 9th Ave, Taguig, 1634 Metro Manila, Philippines. Located near the 1000th Jollibee branch.";
+    return `We are located at ${studioAddress}. You can also reach us via ${studioContact} for updated directions and hours.`;
   }
   if (has(['style', 'design', 'tattoo ideas', 'portfolio', 'artwork', 'gallery', 'inspiration', 'examples'])) {
-    return "We specialize in any tattoo design you desire. From traditional to modern, we can bring your vision to life. Check out our 'Portfolio' on our landing page to see examples of our work!";
+    return "We offer a wide range of styles and can work with your vision. Check the Portfolio on our landing page for ideas.";
   }
-  if (has(['hello', 'hi', 'hey', 'help', 'support', 'assist', 'inquire', 'greet', 'sup', 'yo', 'what\'s up', 'how are you', 'good morning', 'good afternoon', 'good evening'])) {
-    return "Hi there! I'm InkVistAR's assistant. How can I help you today?";
+  if (has(['hello', 'hi', 'hey', 'help', 'support', 'assist', 'inquire', 'greet', 'sup', 'yo', "what's up", 'how are you', 'good morning', 'good afternoon', 'good evening'])) {
+    return `Hi there! I'm ${studioName}'s assistant. How can I help you today?`;
   }
   if (has(['aftercare', 'after care', 'heal', 'healing', 'clean', 'peeling', 'moisturize', 'ointment', 'wash', 'tattoo care'])) {
-    return "Keep your fresh ink clean, moisturized, and healing perfectly by following these daily steps:\n\n1. Unwrap: Remove the plastic wrap exactly 3 hours after your session.\n2. Wash Gently: Clean the area using warm water and a mild liquid soap, like Dove or Cetaphil.\n3. Pat Dry: Use only a clean paper towel or tissue to avoid bacteria or fuzz from bath towels.\n4. Apply Ointment: Wash your hands, then apply a very thin layer of tattoo aftercare ointment.\n5. Repeat Daily: Do this routine 2 to 3 times a day for 7 to 10 days until the peeling stops.\n6. Switch to Lotion: Once completely peeled, switch to a daily moisturizer to keep it vibrant.";
+    return "Keep your fresh ink clean and hydrated daily: wash gently, avoid direct sunlight, and avoid scratching.";
   }
+
   return "I'm not sure about that one. For specific questions, please contact us directly or visit the studio. We'd love to help!";
 }
 
@@ -10689,6 +10693,14 @@ app.post('/api/chat/report-abuse', (req, res) => {
 });
 
 // ========== CHATBOT ENDPOINT ==========
+// Shared helpers for consistent chatbot prompt data
+const sanitizeChatValue = (value, fallback, blocked = []) => {
+  if (typeof value !== 'string') return fallback;
+  const normalized = value.trim();
+  if (!normalized) return fallback;
+  return blocked.some((item) => normalized.toLowerCase() === String(item).toLowerCase().trim()) ? fallback : normalized;
+};
+
 app.post('/api/chat', async (req, res) => {
   const { message } = req.body;
   console.log('[INFO] Chat message received:', message);
@@ -10736,6 +10748,18 @@ app.post('/api/chat', async (req, res) => {
       const policies = settings.policies || {};
       // Admin-overridable chatbot config (add a "chatbot" section in Admin Settings to customize)
       const botConfig = settings.chatbot || {};
+      const safeStudio = {
+        name: sanitizeChatValue(studio.name, 'your studio', ['InkVistAR Studio', 'InkVictus Tattoo Studio', 'Inkvictus Tattoo Studio']),
+        description: sanitizeChatValue(studio.description, 'A professional tattoo and piercing studio.', []),
+        address: sanitizeChatValue(studio.address, 'your studio location', ['123 Art Street, City, State 12345', '123 Art Street', 'Ground Floor, W Tower, 32nd Street, corner 9th Ave, Taguig, 1634 Metro Manila, Philippines']),
+        phone: sanitizeChatValue(studio.phone, 'the studio contact number', ['+1-555-0100', 'contact@inkvistrar.com']),
+        openingTime: sanitizeChatValue(studio.openingTime, '1:00 PM', ['09:00', '1:00 PM']),
+        closingTime: sanitizeChatValue(studio.closingTime, '10:00 PM', ['18:00', '10:00 PM'])
+      };
+      const assistantName = sanitizeChatValue(botConfig.assistantName, `AI assistant for ${safeStudio.name}`, []);
+      const customInstructions = [botConfig.customInstructions, botConfig.extraInstructions]
+        .filter(Boolean)
+        .join('\\n');
 
       // ── Build dynamic artist roster from DB ──
       const artistRoster = artistRows.length > 0
@@ -10777,7 +10801,7 @@ app.post('/api/chat', async (req, res) => {
   7. Avoid swimming, direct sunlight, and picking at the tattoo for at least 2 weeks.`;
 
       // ── Assemble the full system prompt ──
-      const systemPrompt = `You are the AI assistant for "${studio.name || 'InkVictus Tattoo Studio'}". You represent the studio in a warm, professional, and knowledgeable manner. Customers come to you with questions about tattoos, pricing, artist recommendations, booking, aftercare, and general studio information.
+      const systemPrompt = `You are ${assistantName} for "${safeStudio.name || 'your studio'}". You represent the studio in a warm, professional, and knowledgeable manner. Customers come to you with questions about tattoos, pricing, artist recommendations, booking, aftercare, and general studio information.
 
 === PERSONALITY & TONE ===
 - Be warm, conversational, and confident — like a friendly studio receptionist who genuinely loves tattoos and knows everything about the shop.
@@ -10787,11 +10811,11 @@ app.post('/api/chat', async (req, res) => {
 - IMPORTANT: Always end every response with a relevant follow-up question to keep the conversation flowing and help narrow down what the customer needs (e.g., preferred style, placement, budget, preferred artist).
 
 === STUDIO INFORMATION ===
-- Studio Name: ${studio.name || 'InkVictus Tattoo Studio'}
-- About: ${studio.description || 'A premium tattoo studio delivering world-class ink artistry in a clean, professional environment.'}
-- Location: ${studio.address || 'BGC, Taguig City, Metro Manila, Philippines'}
-- Contact: ${studio.phone || 'Available through the app and social media'}
-- Walk-in Hours: ${studio.openingTime || '1:00 PM'} to ${studio.closingTime || '10:00 PM'} daily
+- Studio Name: ${safeStudio.name || 'the studio'}
+- About: ${safeStudio.description || 'A professional tattoo and piercing studio.'}
+- Location: ${safeStudio.address || 'the studio location'}
+- Contact: ${safeStudio.phone || 'Available through the app and social media'}
+- Walk-in Hours: ${safeStudio.openingTime || '1:00 PM'} to ${safeStudio.closingTime || '10:00 PM'} daily
 - Appointments: Available 24/7 through the online booking system
 
 === ${servicesOffered} ===
@@ -10852,10 +10876,10 @@ ${aftercareInstructions}
 - NEVER claim an artist can do a style outside their listed specialization.
 - NEVER share personal information about artists or other customers.
 - NEVER use emojis in your responses.
-- NEVER make up information you do not have — suggest contacting the studio at ${studio.phone || 'the studio directly'} instead.
+- NEVER make up information you do not have — suggest contacting the studio at ${safeStudio.phone || 'the studio directly'} instead.
 - If asked something completely unrelated to tattoos or the studio, politely redirect the conversation back to how you can help with tattoo-related inquiries.
 
-${botConfig.extraInstructions ? '=== ADDITIONAL INSTRUCTIONS ===\n' + botConfig.extraInstructions : ''}`.trim();
+${customInstructions ? '=== ADDITIONAL INSTRUCTIONS ===\n' + customInstructions : ''}`.trim();
 
       const chatCompletion = await groq.chat.completions.create({
         messages: [
@@ -10874,7 +10898,7 @@ ${botConfig.extraInstructions ? '=== ADDITIONAL INSTRUCTIONS ===\n' + botConfig.
       const errStatus = error?.status || error?.statusCode || 'unknown';
       const errType = error?.error?.type || error?.code || error?.message || 'unknown';
       console.error(`[ERROR] Groq API failed — HTTP ${errStatus} | type: ${errType}. Falling back to rule-based responses.`);
-      const fallback = getFallbackResponse(message);
+      const fallback = getFallbackResponse(message, { studio: safeStudio, billing, care, policies, botConfig });
       return res.json({ success: true, response: fallback });
     }
   } else {
@@ -10884,7 +10908,7 @@ ${botConfig.extraInstructions ? '=== ADDITIONAL INSTRUCTIONS ===\n' + botConfig.
     } else {
       console.warn('[WARN] No GROQ_API_KEY set. Using fallback responses.');
     }
-    const fallback = getFallbackResponse(message);
+    const fallback = getFallbackResponse(message, { studio: { name: 'your studio', description: 'A professional tattoo and piercing studio.', address: 'your studio location', phone: 'the studio contact number', openingTime: '1:00 PM', closingTime: '10:00 PM' }, billing: {}, care: {}, policies: {}, botConfig: {} });
     return res.json({ success: true, response: fallback });
   }
 });

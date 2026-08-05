@@ -18,6 +18,7 @@ function PaymentAlertOverlay() {
     const [alerts, setAlerts] = useState([]);
     const [showPopup, setShowPopup] = useState(false);
     const [popupDismissed, setPopupDismissed] = useState(false);
+    const [toastHidden, setToastHidden] = useState(false);
     const [selectedAlert, setSelectedAlert] = useState(null);
     const [manualPaymentModal, setManualPaymentModal] = useState({ isOpen: false, amount: '', method: 'Cash', cashTendered: '' });
     const [isProcessing, setIsProcessing] = useState(false);
@@ -40,6 +41,7 @@ function PaymentAlertOverlay() {
             const { alerts: newAlerts } = e.detail;
             if (newAlerts && newAlerts.length > 0) {
                 setAlerts(newAlerts);
+                setToastHidden(false);
                 setSelectedAlert(prev => {
                     if (!prev) return newAlerts[0];
                     const stillExists = newAlerts.find(a => a.id === prev.id);
@@ -58,6 +60,7 @@ function PaymentAlertOverlay() {
                 setSelectedAlert(null);
                 setShowPopup(false);
                 setPopupDismissed(false);
+                setToastHidden(false);
                 sessionStorage.removeItem('paymentAlertShown');
             }
         };
@@ -391,7 +394,7 @@ function PaymentAlertOverlay() {
             )}
 
             {/* ===== PERSISTENT TOAST ===== */}
-            {!showPopup && popupDismissed && alerts.length > 0 && (
+            {!showPopup && popupDismissed && alerts.length > 0 && !toastHidden && (
                 <div style={{
                     position: 'fixed', bottom: '20px', right: '20px', zIndex: 9998,
                     background: '#dc2626', color: '#fff',
@@ -410,6 +413,30 @@ function PaymentAlertOverlay() {
                             Click to review and resolve
                         </p>
                     </div>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setToastHidden(true);
+                        }}
+                        style={{
+                            background: 'rgba(255,255,255,0.15)',
+                            border: 'none',
+                            borderRadius: '999px',
+                            width: '28px',
+                            height: '28px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: '#fff',
+                            flexShrink: 0
+                        }}
+                        title="Hide reminder"
+                        aria-label="Hide payment reminder"
+                    >
+                        <X size={14} />
+                    </button>
                     <ArrowRight size={16} style={{ opacity: 0.7 }} />
                 </div>
             )}

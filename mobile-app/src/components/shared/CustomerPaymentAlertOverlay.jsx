@@ -13,6 +13,7 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
   const [alerts, setAlerts] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
   const [popupDismissed, setPopupDismissed] = useState(false);
+  const [toastHidden, setToastHidden] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState(null);
   const hasShownOnLoginRef = useRef(false);
   const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
@@ -38,6 +39,7 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
           
           if (unpaidAlerts.length > 0) {
             setAlerts(unpaidAlerts);
+            setToastHidden(false);
             setSelectedAlert(prev => {
               if (!prev) return unpaidAlerts[0];
               const stillExists = unpaidAlerts.find(a => a.id === prev.id);
@@ -57,6 +59,7 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
             setSelectedAlert(null);
             setShowPopup(false);
             setPopupDismissed(false);
+            setToastHidden(false);
             await AsyncStorage.removeItem('customerPaymentAlertShown');
           }
         }
@@ -224,7 +227,7 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
       </Modal>
 
       {/* COMPACT FLOATING PILL (bottom-right, above tab bar) */}
-      {!showPopup && popupDismissed && alerts.length > 0 && (
+      {!showPopup && popupDismissed && alerts.length > 0 && !toastHidden && (
         <Animated.View style={[
           styles.floatingPill,
           {
@@ -236,19 +239,30 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
             }]
           }
         ]}>
-          <TouchableOpacity 
-            style={styles.pillBtn} 
-            activeOpacity={0.8}
-            onPress={() => setShowPopup(true)}
-          >
-            <AlertTriangle size={16} color="#fff" />
-            <Text style={styles.pillText}>
-              {alerts.length} unpaid
-            </Text>
-            <View style={styles.pillDivider} />
-            <Text style={styles.pillAction}>Pay</Text>
-            <ChevronRight size={14} color="rgba(255,255,255,0.8)" />
-          </TouchableOpacity>
+          <View style={styles.pillRow}>
+            <TouchableOpacity 
+              style={styles.pillBtn} 
+              activeOpacity={0.8}
+              onPress={() => setShowPopup(true)}
+            >
+              <AlertTriangle size={16} color="#fff" />
+              <Text style={styles.pillText}>
+                {alerts.length} unpaid
+              </Text>
+              <View style={styles.pillDivider} />
+              <Text style={styles.pillAction}>Pay</Text>
+              <ChevronRight size={14} color="rgba(255,255,255,0.8)" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.pillCloseBtn}
+              activeOpacity={0.8}
+              onPress={() => setToastHidden(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Hide payment reminder"
+            >
+              <X size={14} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </Animated.View>
       )}
     </>
@@ -437,11 +451,16 @@ const getStyles = (colors) => StyleSheet.create({
     ...shadows.medium,
     elevation: 6,
   },
+  pillRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   pillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingLeft: 14,
+    paddingRight: 10,
     gap: 6,
   },
   pillText: {
@@ -459,5 +478,14 @@ const getStyles = (colors) => StyleSheet.create({
     ...typography.bodySmall,
     fontWeight: '800',
     color: '#fff',
+  },
+  pillCloseBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    backgroundColor: 'rgba(255,255,255,0.16)',
   },
 });

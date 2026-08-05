@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Save, Download, Upload, Bell, Database, Info, Shield, Image } from 'lucide-react';
+import { Save, Download, Upload, Bell, Database, Info, Shield, Image, MessageCircle } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import { filterName, filterDigits } from '../utils/validation';
 import '../pages/AdminSettings.css';
@@ -77,6 +77,22 @@ function AdminSettingsTab({ initialTab = 'studio' }) {
         },
         gallery: {
             categories: 'All, Traditional, Realism, Watercolor, Tribal, New School, Neo Traditional, Japanese, Blackwork, Minimalist'
+        },
+        chatbot: {
+            assistantName: 'Tattoo AI Assistant',
+            services: `Services offered:
+- Tattoo (all styles, all sizes, from small symbols to full-body suits)
+- Piercing
+- Free consultation (walk-in or appointment)`,
+            pricing: `Pricing is case-to-case depending on size, placement, and design complexity:
+- Small tattoos: Starts at around P2,000 - P5,000
+- Medium tattoos: Around P5,000 - P15,000
+- Large pieces: P15,000 and above
+- Final price is always confirmed after consultation.`,
+            customInstructions: `- Always keep replies concise (2-4 short paragraphs max).
+- Never claim exact prices — use ranges, "estimated", "around", "starts at", and recommend consultation.
+- If users ask unrelated topics, politely redirect to tattoo or studio help.
+- End each response with a short follow-up question.`
         }
     });
 
@@ -223,6 +239,12 @@ function AdminSettingsTab({ initialTab = 'studio' }) {
                         onClick={() => setActiveTab('gallery')}
                     >
                         <Image size={16} className="admin-st-7f4ee4f3"/> Gallery Menu
+                    </button>
+                    <button 
+                        className={`tab-button ${activeTab === 'chatbot' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('chatbot')}
+                    >
+                        <MessageCircle size={16} className="admin-st-7f4ee4f3"/> AI Chatbot
                     </button>
                 </div>
 
@@ -598,6 +620,59 @@ function AdminSettingsTab({ initialTab = 'studio' }) {
                         </div>
                     )}
 
+                    {activeTab === 'chatbot' && (
+                        <div className="settings-panel fade-in">
+                            <h2>AI Chatbot Behavior</h2>
+                            <p className="admin-st-eee235c1">These settings affect chatbot replies in both the web and mobile apps.</p>
+                            <div className="settings-section">
+                                <div className="form-group">
+                                    <label>Assistant Name</label>
+                                    <input
+                                        type="text"
+                                        value={settings.chatbot?.assistantName || ''}
+                                        onChange={(e) => handleChangeWithValidation('chatbot', 'assistantName', e.target.value.substring(0, 80))}
+                                        className="form-input"
+                                        maxLength={80}
+                                    />
+                                    <small style={{color: '#64748b', marginTop: '4px', display: 'block'}}>Used by the assistant prompt only.</small>
+                                </div>
+                                <div className="form-group">
+                                    <label>Services / Scope Text</label>
+                                    <textarea
+                                        value={settings.chatbot?.services || ''}
+                                        onChange={(e) => handleChangeWithValidation('chatbot', 'services', e.target.value.substring(0, 1500))}
+                                        className="form-input"
+                                        rows="6"
+                                        maxLength={1500}
+                                    />
+                                    <small style={{color: '#64748b', marginTop: '4px', display: 'block'}}>What services the studio offers (this appears in the bot's context).</small>
+                                </div>
+                                <div className="form-group">
+                                    <label>Pricing Guidelines</label>
+                                    <textarea
+                                        value={settings.chatbot?.pricing || ''}
+                                        onChange={(e) => handleChangeWithValidation('chatbot', 'pricing', e.target.value.substring(0, 2000))}
+                                        className="form-input"
+                                        rows="7"
+                                        maxLength={2000}
+                                    />
+                                    <small style={{color: '#64748b', marginTop: '4px', display: 'block'}}>Pricing language used by chatbot responses.</small>
+                                </div>
+                                <div className="form-group">
+                                    <label>Custom Instructions</label>
+                                    <textarea
+                                        value={settings.chatbot?.customInstructions || ''}
+                                        onChange={(e) => handleChangeWithValidation('chatbot', 'customInstructions', e.target.value.substring(0, 2500))}
+                                        className="form-input"
+                                        rows="7"
+                                        maxLength={2500}
+                                    />
+                                    <small style={{color: '#64748b', marginTop: '4px', display: 'block'}}>Additional behavior rules appended to the assistant prompt.</small>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             </div>
             </>
@@ -608,3 +683,4 @@ function AdminSettingsTab({ initialTab = 'studio' }) {
 }
 
 export default AdminSettingsTab;
+
