@@ -56,7 +56,7 @@ export function ResetPasswordPage({ email, onSubmit }) {
           <View style={[styles.passwordWrap, errors.password && styles.inputError]}>
             <TextInput style={styles.input} placeholder="Enter new password" placeholderTextColor={colors.textTertiary} value={newPassword} onChangeText={handlePasswordChange} secureTextEntry={!showPassword} />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              {showPassword ? <EyeOff size={18} color={colors.textTertiary} /> : <Eye size={18} color={colors.textTertiary} />}
+              {showPassword ? <Eye size={18} color={colors.textTertiary} /> : <EyeOff size={18} color={colors.textTertiary} />}
             </TouchableOpacity>
           </View>
           {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
