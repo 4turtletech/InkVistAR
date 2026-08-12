@@ -8,11 +8,10 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
-  KeyboardAvoidingView, Platform, Modal, Alert, Animated, StatusBar, Image, Dimensions,
+  Keyboard, KeyboardAvoidingView, Platform, Modal, Animated, StatusBar, Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, EyeOff, Check, X, CheckCircle, ArrowRight, Mail, Lock, Sun, Moon } from 'lucide-react-native';
-import { colors, typography, borderRadius, shadows } from '../src/theme';
+import { Eye, EyeOff, Check, X, ArrowRight, Mail, Lock, Sun, Moon } from 'lucide-react-native';
+import { colors, typography, shadows } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { useToast } from '../src/context/ToastContext';
 import { useShakeAnimation } from '../src/utils/animations';
@@ -110,6 +109,7 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
   const handleButtonPressOut = () => { Animated.spring(buttonScale, { toValue: 1, damping: 15, useNativeDriver: true }).start(); };
 
   const handleSubmit = async () => {
+    Keyboard.dismiss();
     const cleanEmail = email.trim();
     let newErrors = {};
     let isValid = true;
@@ -130,7 +130,13 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
     const result = await onLogin(cleanEmail, password);
     setIsLoading(false);
     if (result && !result.success) {
-      if (result.requireVerification) { setShowVerificationModal(true); }
+      if (result.requireVerification) {
+        setEmailFocused(false);
+        setPasswordFocused(false);
+        Keyboard.dismiss();
+        // Let iOS finish hiding the keyboard before mounting a native modal.
+        setTimeout(() => setShowVerificationModal(true), Platform.OS === 'ios' ? 180 : 0);
+      }
       else {
         triggerShake();
         const n = failedAttempts + 1; setFailedAttempts(n);
@@ -169,9 +175,16 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
   };
 
   const handleOTPVerified = () => {
+    Keyboard.dismiss();
     setShowVerificationModal(false);
     setSuccessMessage('Account verified successfully. You can now log in.');
-    setShowSuccessModal(true);
+    // Avoid replacing one modal with another while the OTP keyboard is closing.
+    setTimeout(() => setShowSuccessModal(true), Platform.OS === 'ios' ? 180 : 0);
+  };
+
+  const closeVerificationModal = () => {
+    Keyboard.dismiss();
+    setShowVerificationModal(false);
   };
 
   return (
@@ -270,7 +283,7 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
                 </View>
                 <Text style={[styles.checkLabel, { color: theme.textSecondary }]}>Remember me</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowForgotModal(true)}>
+              <TouchableOpacity onPress={() => { Keyboard.dismiss(); setShowForgotModal(true); }}>
                 <Text style={[styles.forgotText, { color: theme.textSecondary }]}>Forgot password?</Text>
               </TouchableOpacity>
             </View>
@@ -337,14 +350,14 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
           visible={showVerificationModal}
           transparent
           animationType="fade"
-          onRequestClose={() => setShowVerificationModal(false)}
+          onRequestClose={closeVerificationModal}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalCard}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Account Not Verified</Text>
                 <TouchableOpacity
-                  onPress={() => setShowVerificationModal(false)}
+                  onPress={closeVerificationModal}
                   style={styles.modalClose}
                   aria-label="Close modal"
                 >
@@ -357,7 +370,7 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
                 purpose="account-verification"
                 onOTPVerified={handleOTPVerified}
                 onResendOTP={handleResendVerification}
-                onCancel={() => setShowVerificationModal(false)}
+                onCancel={closeVerificationModal}
                 autoSend={false}
                 embedded={true}
               />

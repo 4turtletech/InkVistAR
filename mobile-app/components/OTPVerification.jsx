@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ShieldCheck } from 'lucide-react-native';
 import { colors, typography, borderRadius, shadows } from '../src/theme';
@@ -17,19 +17,22 @@ export function OTPVerification({ email, userType, purpose, onOTPVerified, onRes
   const [countdown, setCountdown] = useState(300);
   const [canResend, setCanResend] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
   const handleSendOTP = async () => {
+    Keyboard.dismiss();
+    setNotice('');
     try {
       const result = await onResendOTP();
       if (result && result.success) {
-        Alert.alert('OTP Sent', `Code sent to ${email}`);
         setOTP('');
         setError('');
+        setNotice(`A new code was sent to ${email}.`);
         setCountdown(Math.max(1, Number(result.expires_in || 300)));
         setCanResend(false);
       }
-      else { Alert.alert('Error', result?.message || 'Failed to send OTP'); }
-    } catch (error) { Alert.alert('Error', 'Failed to send OTP'); }
+      else { setError(result?.message || 'Failed to send OTP. Please try again.'); }
+    } catch (error) { setError('Failed to send OTP. Please try again.'); }
   };
 
   useEffect(() => { if (autoSend) handleSendOTP(); }, []);
@@ -48,10 +51,13 @@ export function OTPVerification({ email, userType, purpose, onOTPVerified, onRes
   const handleOTPChange = (value) => {
     const digits = value.replace(/\D/g, '').slice(0, 6);
     setOTP(digits);
+    setNotice('');
     if (!isExpired) setError('');
   };
 
   const handleVerify = async () => {
+    Keyboard.dismiss();
+    setNotice('');
     const cleanedOtp = otp.replace(/\D/g, ''); // Remove non-digit characters
     if (isExpired) {
       setError('This verification code has expired. Request a new code.');
@@ -99,11 +105,16 @@ export function OTPVerification({ email, userType, purpose, onOTPVerified, onRes
           maxLength={6}
           placeholder="------"
           placeholderTextColor={colors.textTertiary}
+          returnKeyType="done"
+          blurOnSubmit
+          onSubmitEditing={handleVerify}
         />
         {(error || isExpired) && (
           <Text style={styles.errorText}>{error || 'This verification code has expired. Request a new code.'}</Text>
         )}
       </View>
+
+      {notice ? <Text style={styles.noticeText}>{notice}</Text> : null}
 
       {!isExpired ? (
         <Text style={styles.timer}>Code expires in {formatTime(countdown)}</Text>
@@ -178,6 +189,7 @@ const styles = StyleSheet.create({
   otpInputEmbedded: { width: '85%', borderColor: colors.gold || colors.primary },
   otpInputError: { borderColor: colors.error, backgroundColor: 'rgba(239, 68, 68, 0.05)' },
   errorText: { ...typography.bodySmall, color: colors.error, marginTop: 7, textAlign: 'center' },
+  noticeText: { ...typography.bodySmall, color: colors.success || '#16a34a', marginTop: -10, marginBottom: 14, textAlign: 'center' },
   timer: { ...typography.bodySmall, color: colors.textTertiary, marginBottom: 20 },
   expiredBadge: { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: borderRadius.md, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 20 },
   expiredText: { ...typography.bodyXSmall, color: colors.error, fontWeight: '800', letterSpacing: 0.8 },
