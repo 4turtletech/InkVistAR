@@ -352,7 +352,10 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
           animationType="fade"
           onRequestClose={closeVerificationModal}
         >
-          <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            style={styles.modalOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
             <View style={styles.modalCard}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Account Not Verified</Text>
@@ -375,7 +378,7 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
                 embedded={true}
               />
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
 
 

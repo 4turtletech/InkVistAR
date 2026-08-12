@@ -5,11 +5,16 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback,
+  StyleSheet, Keyboard, InputAccessoryView, Platform,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ShieldCheck } from 'lucide-react-native';
 import { colors, typography, borderRadius, shadows } from '../src/theme';
 import { verifyOTP } from '../src/utils/api';
+
+const OTP_INPUT_ACCESSORY_ID = 'otp-keyboard-actions';
 
 export function OTPVerification({ email, userType, purpose, onOTPVerified, onResendOTP, onCancel, autoSend = true, embedded = false }) {
   const [otp, setOTP] = useState('');
@@ -108,6 +113,7 @@ export function OTPVerification({ email, userType, purpose, onOTPVerified, onRes
           returnKeyType="done"
           blurOnSubmit
           onSubmitEditing={handleVerify}
+          inputAccessoryViewID={Platform.OS === 'ios' ? OTP_INPUT_ACCESSORY_ID : undefined}
         />
         {(error || isExpired) && (
           <Text style={styles.errorText}>{error || 'This verification code has expired. Request a new code.'}</Text>
@@ -145,25 +151,39 @@ export function OTPVerification({ email, userType, purpose, onOTPVerified, onRes
           <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
       )}
+
+      {Platform.OS === 'ios' && (
+        <InputAccessoryView nativeID={OTP_INPUT_ACCESSORY_ID}>
+          <View style={styles.keyboardToolbar}>
+            <TouchableOpacity onPress={Keyboard.dismiss} style={styles.keyboardDoneButton}>
+              <Text style={styles.keyboardDoneText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      )}
     </>
   );
 
   // Embedded mode: render flat content for parent modal card
   if (embedded) {
     return (
-      <View style={styles.embeddedContainer}>
-        {renderContent()}
-      </View>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={styles.embeddedContainer}>
+          {renderContent()}
+        </View>
+      </TouchableWithoutFeedback>
     );
   }
 
   // Standalone mode: full-screen gradient + card
   return (
-    <LinearGradient colors={['#0f172a', '#1e293b', colors.primaryDark]} style={styles.container}>
-      <View style={styles.card}>
-        {renderContent()}
-      </View>
-    </LinearGradient>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <LinearGradient colors={['#0f172a', '#1e293b', colors.primaryDark]} style={styles.container}>
+        <View style={styles.card}>
+          {renderContent()}
+        </View>
+      </LinearGradient>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -203,4 +223,10 @@ const styles = StyleSheet.create({
   resendBtn: { padding: 12, marginTop: 6 },
   resendText: { ...typography.body, color: colors.primary, fontWeight: '600' },
   cancelText: { ...typography.bodySmall, color: colors.textTertiary },
+  keyboardToolbar: {
+    minHeight: 44, backgroundColor: '#f3f4f6', borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#d1d5db', justifyContent: 'center', alignItems: 'flex-end', paddingHorizontal: 16,
+  },
+  keyboardDoneButton: { paddingHorizontal: 10, paddingVertical: 8 },
+  keyboardDoneText: { color: colors.primary, fontSize: 16, fontWeight: '700' },
 });
