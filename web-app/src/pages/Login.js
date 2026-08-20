@@ -6,6 +6,26 @@ import { API_URL } from '../config';
 import Navbar from '../components/Navbar';
 import './Login.css';
 
+const getResetPasswordFeedback = (value) => ({
+    hasMinLength: value.length >= 8,
+    hasUppercase: /[A-Z]/.test(value),
+    hasLowercase: /[a-z]/.test(value),
+    hasNumber: /[0-9]/.test(value),
+    hasSymbol: /[@$!%*?&#]/.test(value)
+});
+
+const getResetPasswordError = (value) => {
+    if (!value) return 'New password is required';
+    const rules = getResetPasswordFeedback(value);
+    if (!rules.hasMinLength) return 'Password must be at least 8 characters';
+    if (!rules.hasUppercase) return 'Add at least one uppercase letter';
+    if (!rules.hasLowercase) return 'Add at least one lowercase letter';
+    if (!rules.hasNumber) return 'Add at least one number';
+    if (!rules.hasSymbol) return 'Add at least one special character: @ $ ! % * ? & or #';
+    if (!/^[A-Za-z\d@$!%*?&#]+$/.test(value)) return 'Password contains an unsupported character';
+    return '';
+};
+
 function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -69,10 +89,7 @@ function Login() {
             errorMsg = "Password is required";
         }
         if (name === 'newPassword') {
-            const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
-            if (!value) errorMsg = "New password is required";
-            else if (value.length < 8) errorMsg = "Password must be at least 8 characters";
-            else if (!strongRegex.test(value)) errorMsg = "Password needs uppercase, lowercase, number, and symbol";
+            errorMsg = getResetPasswordError(value);
         }
         if (name === 'confirmPassword') {
             if (!value) errorMsg = "Please confirm your new password";
@@ -138,7 +155,7 @@ function Login() {
         if (fieldName === 'email' || fieldName === 'resetEmail') {
             val = val.replace(/\s/g, ''); // Strip spaces in email
         } else if (fieldName === 'newPassword' || fieldName === 'confirmPassword') {
-            val = val.slice(0, 50);
+            val = val.slice(0, 128);
         }
         setter(val);
         if (failedAttempts > 0) setFailedAttempts(0);
@@ -147,13 +164,22 @@ function Login() {
             setCredentialError('');
         }
         if (fieldName === 'newPassword') {
-            setResetPwFeedback({
-                hasMinLength: val.length >= 8,
-                hasUppercase: /[A-Z]/.test(val),
-                hasLowercase: /[a-z]/.test(val),
-                hasNumber: /[0-9]/.test(val),
-                hasSymbol: /[@$!%*?&#]/.test(val)
-            });
+            setResetPwFeedback(getResetPasswordFeedback(val));
+            setErrors(prev => ({
+                ...prev,
+                newPassword: getResetPasswordError(val),
+                confirmPassword: confirmPassword
+                    ? (confirmPassword === val ? '' : 'Passwords do not match')
+                    : prev.confirmPassword
+            }));
+            return;
+        }
+        if (fieldName === 'confirmPassword') {
+            setErrors(prev => ({
+                ...prev,
+                confirmPassword: !val ? 'Please confirm your new password' : (val === newPassword ? '' : 'Passwords do not match')
+            }));
+            return;
         }
         validateField(fieldName, val);
     };
@@ -256,7 +282,7 @@ function Login() {
         try {
             const response = await Axios.post(`${API_URL}/api/resend-verification`, { email });
             if (response.data.success) {
-                setResendMessage({ text: "Verification email sent! Please check your inbox.", type: 'success' });
+                setResendMessage({ text: "Verification code sent! Please check your inbox.", type: 'success' });
             } else {
                 setResendMessage({ text: response.data.message || "Failed to resend email.", type: 'error' });
             }
@@ -613,7 +639,7 @@ function Login() {
                                         { met: resetPwFeedback.hasMinLength, hint: 'At least 8 characters' },
                                         { met: resetPwFeedback.hasNumber, hint: 'Add a number' },
                                         { met: resetPwFeedback.hasUppercase && resetPwFeedback.hasLowercase, hint: 'Add upper & lowercase letters' },
-                                        { met: resetPwFeedback.hasSymbol, hint: 'Add a special characters: !@#$%^&*()_+' }
+                                        { met: resetPwFeedback.hasSymbol, hint: 'Add a special character: @ $ ! % * ? & or #' }
                                     ];
                                     const nextHint = steps.find(s => !s.met);
                                     return nextHint ? <div style={{ fontSize: '0.7rem', color: '#ef4444' }}>{nextHint.hint}</div> : null;

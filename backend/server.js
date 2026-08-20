@@ -3073,18 +3073,12 @@ app.post('/api/register', async (req, res) => {
 
         const newUserId = result.insertId;
         // Send Verification Email
-        const protocol = getProtocol(req);
-        const host = req.get('host');
-        const verifyUrl = `${protocol}://${host}/api/verify?token=${encodeURIComponent(verification_token)}`;
-
         // Generate OTP at registration time so the user has it immediately
         // (avoids a second email when they try to login unverified)
         const reg_otp_code = Math.floor(100000 + Math.random() * 900000).toString();
         const reg_otp_expires = new Date(Date.now() + 5 * 60 * 1000); // 5 min for registration OTP
         db.query('UPDATE users SET otp_code = ?, otp_expires = ? WHERE id = ?', [reg_otp_code, reg_otp_expires, newUserId]);
 
-        // LOG VERIFICATION LINK (Fix for development/Gmail issues)
-        console.log('[DEBUG] Verification Link:', verifyUrl);
         console.log('[DEBUG] Registration OTP:', reg_otp_code);
 
         const html = buildEmailHtml(`
@@ -3097,10 +3091,6 @@ app.post('/api/register', async (req, res) => {
                 </div>
               </td></tr></table>
               <p style="margin:0 0 16px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#334155;">5 minutes</strong>.</p>
-              <p style="margin:0 0 20px;font-size:12px;color:#555;text-align:center;">You can also verify by clicking the button below:</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
-                <a href="${verifyUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#C19A6B,#8a6c4a);color:#000;font-size:13px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:0.5px;text-transform:uppercase;">Verify via Link</a>
-              </td></tr></table>
               <p style="margin:16px 0 0;font-size:11px;color:#555;text-align:center;">Do not share this code with anyone. InkVistAR will never ask for your code via phone or message.</p>
         `);
         sendEmail(email, 'Verify Your InkVistAR Account', html);
@@ -3789,19 +3779,32 @@ app.get('/api/customer/profile/:id', (req, res) => {
 // Update Customer Profile
 app.put('/api/customer/profile/:id', (req, res) => {
   const { id } = req.params;
-  const { name, phone, location, notes, profileImage, health_conditions, allergens } = req.body;
+  const { name, email, phone, location, notes, profileImage, health_conditions, allergens } = req.body;
+  const normalizedEmail = email === undefined ? undefined : String(email).trim().toLowerCase();
+
+  if (name !== undefined && !String(name).trim()) {
+    return res.status(400).json({ success: false, message: 'Legal name is required' });
+  }
+  if (normalizedEmail !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    return res.status(400).json({ success: false, message: 'Enter a valid email address' });
+  }
+  if (phone !== undefined && !/^\+639\d{9}$/.test(String(phone))) {
+    return res.status(400).json({ success: false, message: 'Enter a valid PH phone number' });
+  }
 
   const updateUserPromise = new Promise((resolve, reject) => {
-    if (name === undefined && profileImage === undefined) return resolve();
+    if (name === undefined && normalizedEmail === undefined && profileImage === undefined) return resolve();
     let query = 'UPDATE users SET ';
     const params = [];
     const updates = [];
     if (name !== undefined) { updates.push('name = ?'); params.push(name); }
+    if (normalizedEmail !== undefined) { updates.push('email = ?'); params.push(normalizedEmail); }
     if (profileImage !== undefined) { updates.push('profile_image = ?'); params.push(profileImage); }
     query += updates.join(', ') + ' WHERE id = ?';
     params.push(id);
     db.query(query, params, (err) => {
-      if (err) return reject({ message: 'DB Error (User)' });
+      if (err?.code === 'ER_DUP_ENTRY') return reject({ status: 409, message: 'That email address is already in use' });
+      if (err) return reject({ status: 500, message: 'DB Error (User)' });
       resolve();
     });
   });
@@ -3847,7 +3850,7 @@ app.put('/api/customer/profile/:id', (req, res) => {
       res.json({ success: true, message: 'Profile updated successfully' });
     })
     .catch(error => {
-      res.status(500).json({ success: false, message: error.message });
+      res.status(error.status || 500).json({ success: false, message: error.message });
     });
 });
 
@@ -4683,7 +4686,7 @@ app.get('/api/gallery/works', (req, res) => {
   const { search, category, minPrice, maxPrice } = req.query;
 
   let query = `
-    SELECT pw.id, pw.title, pw.description, pw.image_url, pw.category, pw.price_estimate, pw.created_at,
+    SELECT pw.id, pw.artist_id, pw.title, pw.description, pw.image_url, pw.category, pw.price_estimate, pw.created_at,
            u.name as artist_name, a.studio_name
     FROM portfolio_works pw
     JOIN users u ON pw.artist_id = u.id
@@ -4704,7 +4707,9 @@ app.get('/api/gallery/works', (req, res) => {
   }
 
   if (minPrice !== undefined && maxPrice !== undefined) {
-    query += ` AND pw.price_estimate BETWEEN ? AND ?`;
+    query += Number(minPrice) === 0
+      ? ` AND (pw.price_estimate IS NULL OR pw.price_estimate BETWEEN ? AND ?)`
+      : ` AND pw.price_estimate BETWEEN ? AND ?`;
     params.push(Number(minPrice), Number(maxPrice));
   }
 
@@ -9080,13 +9085,43 @@ app.get('/api/admin/users', (req, res) => {
 // Admin: Create User
 app.post('/api/admin/users', async (req, res) => {
   const { name, email, password, type, phone, status, profileImage, age, gender, is_verified } = req.body;
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const allowedTypes = ['admin', 'customer', 'artist'];
+
+  if (!String(name || '').trim() || !normalizedEmail || !password || !phone || !type) {
+    return res.status(400).json({ success: false, message: 'Name, email, phone, password, and role are required' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    return res.status(400).json({ success: false, message: 'Enter a valid email address' });
+  }
+  if (!allowedTypes.includes(type)) {
+    return res.status(400).json({ success: false, message: 'Role must be Admin, Customer, or Artist' });
+  }
+  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/.test(password)) {
+    return res.status(400).json({ success: false, message: 'Password must be at least 8 characters and include uppercase, lowercase, number, and an allowed special character' });
+  }
+
   try {
+    if (type === 'admin') {
+      const requestorEmail = req.headers['x-user-email'] || '';
+      const canCreateAdmin = await new Promise((resolve, reject) => {
+        db.query('SELECT is_superadmin FROM users WHERE email = ?', [requestorEmail], (lookupErr, rows) => {
+          if (lookupErr) return reject(lookupErr);
+          resolve(Boolean(rows[0]?.is_superadmin));
+        });
+      });
+      if (!canCreateAdmin) {
+        return res.status(403).json({ success: false, message: 'Only the super admin can create administrator accounts' });
+      }
+    }
+
     const password_hash = await bcrypt.hash(password, 10);
     const isDeleted = (status === 'inactive' || status === 'suspended') ? 1 : 0;
     const verifiedFlag = is_verified === 1 || is_verified === true ? 1 : 0;
     const query = 'INSERT INTO users (name, email, password_hash, user_type, phone, is_deleted, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?)';
 
-    db.query(query, [name, email, password_hash, type, phone, isDeleted, verifiedFlag], (err, result) => {
+    db.query(query, [name, normalizedEmail, password_hash, type, phone, isDeleted, verifiedFlag], (err, result) => {
+      if (err?.code === 'ER_DUP_ENTRY') return res.status(409).json({ success: false, message: 'That email address is already in use' });
       if (err) return res.status(500).json({ success: false, message: err.message });
 
       const newUserId = result.insertId;
@@ -10653,31 +10688,29 @@ app.post('/api/resend-verification', (req, res) => {
       return res.status(400).json({ success: false, message: 'Account already verified. Please login.' });
     }
 
-    // Generate new token
-    const verification_token = crypto.randomBytes(32).toString('hex');
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
-    db.query('UPDATE users SET verification_token = ? WHERE id = ?', [verification_token, user.id], (updateErr) => {
+    db.query('UPDATE users SET otp_code = ?, otp_expires = ? WHERE id = ?', [otpCode, otpExpires, user.id], (updateErr) => {
       if (updateErr) return res.status(500).json({ success: false, message: 'Database error' });
 
-      // Send Email
-      const protocol = getProtocol(req);
-      const host = req.get('host');
-      const verifyUrl = `${protocol}://${host}/api/verify?token=${encodeURIComponent(verification_token)}`;
-
-      console.log('[DEBUG] NEW Verification Link:', verifyUrl);
+      console.log('[DEBUG] Resent verification OTP:', otpCode);
 
       const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Verify Your Account</h2>
-              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Verification link resent</p>
-              <p style="margin:0 0 16px;">A new verification link was requested for your InkVistAR account. Click the button below to verify your email and activate your account.</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
-                <a href="${verifyUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#C19A6B,#8a6c4a);color:#000;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">Verify Account</a>
+              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Your new verification code</p>
+              <p style="margin:0 0 16px;">Enter this 6-digit code on the InkVistAR verification screen to activate your account:</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:20px 0;">
+                <div style="display:inline-block;background-color:#1a1a1a;border:2px solid rgba(193,154,107,0.3);border-radius:12px;padding:16px 32px;">
+                  <span style="font-size:36px;font-weight:800;letter-spacing:12px;color:#C19A6B;font-family:'Courier New',monospace;">${otpCode}</span>
+                </div>
               </td></tr></table>
-              <p style="margin:24px 0 0;font-size:12px;color:#555;text-align:center;word-break:break-all;">Or copy this link: <a href="${verifyUrl}" style="color:#C19A6B;text-decoration:none;">${verifyUrl}</a></p>
+              <p style="margin:0 0 16px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#334155;">5 minutes</strong>.</p>
+              <p style="margin:16px 0 0;font-size:11px;color:#555;text-align:center;">Do not share this code with anyone.</p>
       `);
-      sendEmail(email, 'Resend: Verify Your InkVistAR Account', html);
+      sendEmail(email, 'Your InkVistAR Verification Code', html);
 
-      res.json({ success: true, message: 'Verification link resent! Check your email. (Debug: Check console for link if email fails)' });
+      res.json({ success: true, message: 'Verification code sent. Check your email.', expires_in: 300 });
     });
   });
 });

@@ -153,10 +153,11 @@ function CustomerGallery(){
     const displayItems = viewMode === 'My Tattoos' ? myTattoos : works;
 
     const filteredItems = displayItems.filter(w => {
-        const matchesSearch = (w.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              (w.artist_name || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const normalizedSearch = searchTerm.trim().toLowerCase();
+        const matchesSearch = !normalizedSearch || [w.title, w.artist_name, w.category, w.description]
+            .some(value => String(value || '').toLowerCase().includes(normalizedSearch));
         const matchesCategory = activeCategory === 'All' || w.category === activeCategory;
-        const matchesArtist = activeArtistId === 'All' || w.artist_id?.toString() === activeArtistId.toString();
+        const matchesArtist = activeArtistId === 'All' || String(w.artist_id) === String(activeArtistId);
         const price = w.price_estimate ? Number(w.price_estimate) : null;
         const matchesPrice = price === null || (price >= priceRange.min && (priceRange.max >= 500000 || price <= priceRange.max));
         return matchesSearch && matchesCategory && matchesArtist && matchesPrice;

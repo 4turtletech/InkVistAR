@@ -22,6 +22,9 @@ function ArtistGallery() {
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
     const [lightboxSrc, setLightboxSrc] = useState(null);
     const [cropperSrc, setCropperSrc] = useState(null);
+    const [formErrors, setFormErrors] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -56,6 +59,7 @@ function ArtistGallery() {
 
     const openAddModal = () => {
         setEditingId(null);
+        setFormErrors({});
         setFormData({ 
             title: '', 
             description: '', 
@@ -69,6 +73,7 @@ function ArtistGallery() {
 
     const handleEditClick = (work) => {
         setEditingId(work.id);
+        setFormErrors({});
         setFormData({
             title: work.title,
             description: work.description || '',
@@ -101,33 +106,62 @@ function ArtistGallery() {
         }
     };
 
-    const handleImageUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                // Open the cropper instead of setting the image directly
-                setCropperSrc(reader.result);
-            };
-            reader.readAsDataURL(file);
+    const processImageFile = (file) => {
+        if (!file) return;
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            setFormErrors(prev => ({ ...prev, imageUrl: 'Use a JPG, PNG, or WEBP image' }));
+            return;
         }
+        if (file.size > 5 * 1024 * 1024) {
+            setFormErrors(prev => ({ ...prev, imageUrl: 'Image must be 5MB or smaller' }));
+            return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setCropperSrc(reader.result);
+            setFormErrors(prev => ({ ...prev, imageUrl: '' }));
+        };
+        reader.onerror = () => setFormErrors(prev => ({ ...prev, imageUrl: 'The image could not be read' }));
+        reader.readAsDataURL(file);
+    };
+
+    const handleImageUpload = (e) => {
+        processImageFile(e.target.files[0]);
         // Reset input so the same file can be re-selected
         e.target.value = '';
     };
 
+    const handleImageDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        processImageFile(e.dataTransfer.files?.[0]);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
+        const nextErrors = {
+            title: formData.title.trim() ? '' : 'Project title is required',
+            category: formData.category.trim() ? '' : 'Style category is required',
+            imageUrl: formData.imageUrl ? '' : 'A portfolio image is required'
+        };
+        setFormErrors(nextErrors);
+        if (nextErrors.title || nextErrors.category || nextErrors.imageUrl) return;
+
+        setIsSubmitting(true);
         try {
+            const payload = {
+                artistId,
+                ...formData,
+                title: formData.title.trim(),
+                description: formData.description.trim()
+            };
             if (editingId) {
-                await Axios.put(`${API_URL}/api/artist/portfolio/${editingId}`, {
-                    artistId,
-                    ...formData
-                });
+                await Axios.put(`${API_URL}/api/artist/portfolio/${editingId}`, payload);
             } else {
-                await Axios.post(`${API_URL}/api/artist/portfolio`, {
-                    artistId,
-                    ...formData
-                });
+                await Axios.post(`${API_URL}/api/artist/portfolio`, payload);
             }
             closeModal(setAddWorkModal);
             // Reset form correctly (preserving defaults)
@@ -145,6 +179,8 @@ function ArtistGallery() {
             console.error("Error adding work:", error);
             // Show the actual error message from the server
             alert(error.response?.data?.message || "Failed to save work");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -329,15 +365,16 @@ function ArtistGallery() {
                                     {/* Left: Metadata */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                         <div className="form-group">
-                                            <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Project Title</label>
+                                            <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Project Title *</label>
                                             <input 
                                                 type="text" 
-                                                className="form-input"
+                                                className={`form-input ${formErrors.title ? 'error' : ''}`}
                                                 placeholder="e.g. Neo-Traditional Sleeve Detail"
                                                 value={formData.title}
-                                                onChange={e => setFormData({...formData, title: e.target.value})}
-                                                required
+                                                onChange={e => { setFormData({...formData, title: e.target.value.slice(0, 100)}); if (formErrors.title) setFormErrors(prev => ({ ...prev, title: '' })); }}
+                                                maxLength={100}
                                             />
+                                            {formErrors.title && <small className="error-text">{formErrors.title}</small>}
                                         </div>
                                         <div className="form-group">
                                             <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Project Description</label>
@@ -346,17 +383,19 @@ function ArtistGallery() {
                                                 placeholder="Describe the style, execution, or story behind this work..."
                                                 style={{ minHeight: '80px', maxHeight: '120px' }}
                                                 value={formData.description}
-                                                onChange={e => setFormData({...formData, description: e.target.value})}
+                                                onChange={e => setFormData({...formData, description: e.target.value.slice(0, 500)})}
+                                                maxLength={500}
                                             />
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                             <div className="form-group">
-                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Style Category</label>
-                                                <select className="form-input" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} style={{ height: '44px' }}>
+                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Style Category *</label>
+                                                <select className={`form-input ${formErrors.category ? 'error' : ''}`} value={formData.category} onChange={e => { setFormData({...formData, category: e.target.value}); setFormErrors(prev => ({ ...prev, category: '' })); }} style={{ height: '44px' }}>
                                                     {TATTOO_STYLES.map(style => (
                                                         <option key={style} value={style}>{style}</option>
                                                     ))}
                                                 </select>
+                                                {formErrors.category && <small className="error-text">{formErrors.category}</small>}
                                             </div>
                                             <div className="form-group">
                                                 <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Price Est. (₱)</label>
@@ -386,9 +425,9 @@ function ArtistGallery() {
 
                                     {/* Right: Media Upload */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                        <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '0', display: 'block' }}>Media Asset</label>
+                                        <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '0', display: 'block' }}>Media Asset *</label>
                                         <div style={{ 
-                                            border: '2px dashed #cbd5e1', 
+                                            border: `2px dashed ${formErrors.imageUrl ? '#ef4444' : (isDragging ? '#be9055' : '#cbd5e1')}`,
                                             borderRadius: '20px', 
                                             padding: formData.imageUrl ? '10px' : '40px 20px',
                                             display: 'flex',
@@ -396,12 +435,18 @@ function ArtistGallery() {
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             textAlign: 'center',
-                                            background: '#f8fafc',
+                                            background: isDragging ? 'rgba(193, 154, 107, 0.12)' : '#f8fafc',
                                             transition: 'all 0.3s ease',
                                             cursor: 'pointer',
                                             position: 'relative',
                                             minHeight: '200px'
-                                        }} onClick={() => document.getElementById('work-file-upload').click()}>
+                                        }}
+                                            onClick={() => document.getElementById('work-file-upload').click()}
+                                            onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                                            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                                            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+                                            onDrop={handleImageDrop}
+                                        >
                                             {formData.imageUrl ? (
                                                 <img src={formData.imageUrl} alt="Upload Preview" style={{ width: '100%', borderRadius: '12px', maxHeight: '250px', objectFit: 'cover' }} />
                                             ) : (
@@ -416,12 +461,12 @@ function ArtistGallery() {
                                             <input 
                                                 id="work-file-upload"
                                                 type="file" 
-                                                accept="image/*"
+                                                accept="image/jpeg,image/png,image/webp"
                                                 onChange={handleImageUpload}
                                                 style={{ display: 'none' }}
-                                                required={!formData.imageUrl}
                                             />
                                         </div>
+                                        {formErrors.imageUrl && <small className="error-text">{formErrors.imageUrl}</small>}
                                         {formData.imageUrl && (
                                             <button 
                                                 type="button" 
@@ -437,7 +482,9 @@ function ArtistGallery() {
                             </div>
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-secondary" onClick={() => closeModal(setAddWorkModal)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ padding: '10px 40px' }}>{editingId ? 'Update Archive' : 'Publish to Portfolio'}</button>
+                                <button type="submit" className="btn btn-primary" style={{ padding: '10px 40px' }} disabled={isSubmitting}>
+                                    {isSubmitting ? 'Saving...' : (editingId ? 'Update Archive' : 'Publish to Portfolio')}
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -446,7 +493,7 @@ function ArtistGallery() {
 
             <ConfirmModal 
                 {...confirmDialog} 
-                onCancel={() => setConfirmDialog({ isOpen: false })} 
+                onClose={() => setConfirmDialog({ isOpen: false })}
             />
             <ImageLightbox src={lightboxSrc} alt="Portfolio artwork" onClose={() => setLightboxSrc(null)} />
             {cropperSrc && (
@@ -454,6 +501,7 @@ function ArtistGallery() {
                     imageSrc={cropperSrc}
                     onCropDone={(croppedImage) => {
                         setFormData(prev => ({ ...prev, imageUrl: croppedImage }));
+                        setFormErrors(prev => ({ ...prev, imageUrl: '' }));
                         setCropperSrc(null);
                     }}
                     onCancel={() => setCropperSrc(null)}

@@ -2,7 +2,7 @@
  * exportHelpers.js -- Shared CSV/PDF export utilities for mobile
  * Uses expo-file-system, expo-sharing, and expo-print for cross-platform export.
  */
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 import { Alert, Platform } from 'react-native';
@@ -20,12 +20,21 @@ export const generateCSV = (data, columns) => {
       let val = row[c.key];
       if (val === null || val === undefined) val = '';
       // Escape double quotes and wrap in quotes
-      val = String(val).replace(/"/g, '""');
+      val = String(val);
+      if (/^[=+\-@]/.test(val)) val = `'${val}`;
+      val = val.replace(/"/g, '""');
       return `"${val}"`;
     }).join(',')
   );
-  return [header, ...rows].join('\n');
+  return `\uFEFF${[header, ...rows].join('\r\n')}`;
 };
+
+const escapeHTML = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
 
 /**
  * Export data as a CSV file and open the native share sheet
@@ -67,20 +76,20 @@ export const exportCSV = async (csvContent, filename) => {
 export const buildReportHTML = ({ title, subtitle, metrics = [], tables = [] }) => {
   const metricCards = metrics.map(m => `
     <div class="metric">
-      <div class="metric-label">${m.label}</div>
-      <div class="metric-value">${m.value}</div>
+      <div class="metric-label">${escapeHTML(m.label)}</div>
+      <div class="metric-value">${escapeHTML(m.value)}</div>
     </div>
   `).join('');
 
   const tableSections = tables.map(t => `
     <div class="section">
-      <h3>${t.title}</h3>
+      <h3>${escapeHTML(t.title)}</h3>
       <table>
         <thead>
-          <tr>${t.headers.map(h => `<th>${h}</th>`).join('')}</tr>
+          <tr>${t.headers.map(h => `<th>${escapeHTML(h)}</th>`).join('')}</tr>
         </thead>
         <tbody>
-          ${t.rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}
+          ${t.rows.map(row => `<tr>${row.map(cell => `<td>${escapeHTML(cell)}</td>`).join('')}</tr>`).join('')}
           ${t.rows.length === 0 ? `<tr><td colspan="${t.headers.length}" class="empty">No data available</td></tr>` : ''}
         </tbody>
       </table>
@@ -93,7 +102,7 @@ export const buildReportHTML = ({ title, subtitle, metrics = [], tables = [] }) 
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>${title}</title>
+      <title>${escapeHTML(title)}</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -138,8 +147,8 @@ export const buildReportHTML = ({ title, subtitle, metrics = [], tables = [] }) 
     <body>
       <div class="header">
         <div class="logo">InkVistAR Studio</div>
-        <h1>${title}</h1>
-        <h2>${subtitle}</h2>
+        <h1>${escapeHTML(title)}</h1>
+        <h2>${escapeHTML(subtitle)}</h2>
       </div>
       ${metricCards ? `<div class="metrics">${metricCards}</div>` : ''}
       ${tableSections}

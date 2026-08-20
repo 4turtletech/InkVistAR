@@ -244,6 +244,10 @@ function AdminInventory() {
         filterAndSortInventory();
     }, [inventory, searchTerm, categoryFilter, stockStatusFilter, sortBy]);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, categoryFilter, stockStatusFilter, itemStatusFilter, sortBy]);
+
     const fetchInventory = async () => {
         try {
             setLoading(true);
@@ -284,7 +288,10 @@ function AdminInventory() {
     };
 
     const handleSaveKit = async () => {
-        if (!validateKitField(editingKitServiceType)) return;
+        const nameValid = validateKitField(editingKitServiceType);
+        const materialsValid = editingKitMaterials.length > 0;
+        setErrors(prev => ({ ...prev, kit_materials: materialsValid ? '' : 'Add at least one inventory item to the kit' }));
+        if (!nameValid || !materialsValid) return;
         setIsSaving(true);
         try {
             await Axios.post(`${API_URL}/api/admin/service-kits`, {
@@ -354,7 +361,19 @@ function AdminInventory() {
             type: 'info',
             isAlert: false,
             onConfirm: () => {
-                const printWindow = window.open('', '_blank');
+                if (filteredInventory.length === 0) {
+                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                    showAlert('Nothing to Print', 'There are no inventory items in the current filtered view.', 'info');
+                    return;
+                }
+
+                const printWindow = window.open('', 'inventory-print', 'noopener,noreferrer,width=980,height=720');
+                if (!printWindow) {
+                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                    showAlert('Popup Blocked', 'Please allow popups for this page, then try printing again.', 'warning');
+                    return;
+                }
+
                 const printData = filteredInventory.map(item => 
                     `<tr>
                         <td>${item.name || 'N/A'}</td>
@@ -402,8 +421,12 @@ function AdminInventory() {
                 printWindow.document.close();
                 printWindow.focus();
                 setTimeout(() => {
-                    printWindow.print();
-                    printWindow.close();
+                    try {
+                        printWindow.print();
+                        printWindow.close();
+                    } catch (error) {
+                        console.error('Print failed:', error);
+                    }
                     setConfirmDialog(prev => ({ ...prev, isOpen: false }));
                 }, 250);
             }
@@ -419,6 +442,12 @@ function AdminInventory() {
             type: 'info',
             isAlert: false,
             onConfirm: () => {
+                if (filteredInventory.length === 0) {
+                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                    showAlert('Nothing to Export', 'There are no inventory items in the current filtered view.', 'info');
+                    return;
+                }
+
                 const headerRows = generateReportHeader('Inventory Status Report', {
                     'Category': categoryFilter !== 'all' ? categoryFilter : null,
                     'Stock Level': stockStatusFilter !== 'all' ? stockStatusFilter : null,
@@ -433,12 +462,18 @@ function AdminInventory() {
                     item.category,
                     item.currentStock,
                     item.unit,
-                    item.cost,
+                    item.retailPrice || item.cost,
                     getStockStatus(item.currentStock, item.minStock, item.maxStock)
                 ]);
 
-                downloadCsv([...headerRows, columnHeaders, ...dataRows], 'inventory_export');
-                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                try {
+                    downloadCsv([...headerRows, columnHeaders, ...dataRows], 'inventory_export');
+                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                } catch (error) {
+                    console.error('CSV export failed:', error);
+                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                    showAlert('Export Failed', 'The CSV file could not be generated. Please try again.', 'danger');
+                }
             }
         });
     };
@@ -477,8 +512,10 @@ function AdminInventory() {
                 try {
                     await Axios.delete(`${API_URL}/api/admin/inventory/${id}`);
                     fetchInventory();
+                    showAlert('Item Archived', 'The inventory item was moved to the deleted items view.', 'success');
                 } catch (error) {
                     console.error("Error deleting item:", error);
+                    showAlert('Delete Failed', error.response?.data?.message || 'The inventory item could not be archived.', 'danger');
                 }
             }
         });
@@ -925,6 +962,9 @@ function AdminInventory() {
                                                     <button className="action-btn edit-btn admin-st-c4858c02" onClick={() => handleEdit(item)} title="Edit" style={{ backgroundColor: '#3b82f6', color: 'white', borderColor: '#3b82f6' }}>
                                                         <Edit2 size={16}/>
                                                     </button>
+                                                    <button className="action-btn delete-btn" onClick={() => handleDelete(item.id)} title="Archive Item" aria-label={`Archive ${item.name}`}>
+                                                        <Trash2 size={16}/>
+                                                    </button>
                                                 </div>
                                             ) : (
                                                 <>
@@ -1169,7 +1209,7 @@ function AdminInventory() {
                             </div>
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-secondary" onClick={() => closeModal(setTransactionModal)}>Cancel</button>
-                                <button type="submit" className={`btn ${transactionData.type === 'in' ? 'btn-primary' : ''}`} style={{ background: transactionData.type === 'out' ? '#ef4444' : undefined, color: 'white', padding: '10px 24px' }}>
+                                <button type="submit" className="btn" style={{ backgroundColor: transactionData.type === 'in' ? '#10b981' : '#ef4444', border: `1px solid ${transactionData.type === 'in' ? '#10b981' : '#ef4444'}`, color: '#fff', padding: '10px 24px', fontWeight: 700, boxShadow: '0 4px 10px rgba(15, 23, 42, 0.12)' }}>
                                     Confirm {transactionData.type === 'in' ? 'Addition' : 'Deduction'}
                                 </button>
                             </div>
@@ -1368,7 +1408,7 @@ function AdminInventory() {
                                     <Plus size={18} /> {editingKitOriginalType ? 'Modify System Kit' : 'Register New Protocol'}
                                 </h3>
                                 <div className="form-group">
-                                    <label className="admin-st-d050454a">Service Designation</label>
+                                    <label className="admin-st-d050454a">Service Designation *</label>
                                     <input 
                                         type="text" 
                                         className={`form-input ${errors.kit_name ? 'error' : ''}`} 
@@ -1383,7 +1423,7 @@ function AdminInventory() {
                                     {errors.kit_name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.kit_name}</small>}
                                 </div>
                                 <div className="form-group admin-st-185d793c">
-                                    <label>Add Item to Kit</label>
+                                    <label>Kit Items *</label>
                                     <CustomSelect
                                         value=""
                                         onChange={(val) => {
@@ -1392,6 +1432,7 @@ function AdminInventory() {
                                             const item = inventory.find(i => i.id === itemId);
                                             if (item && !editingKitMaterials.find(m => m.inventory_id === itemId)) {
                                                 setEditingKitMaterials([...editingKitMaterials, { inventory_id: item.id, item_name: item.name, default_quantity: 1, unit: item.unit }]);
+                                                setErrors(prev => ({ ...prev, kit_materials: '' }));
                                             }
                                         }}
                                         options={[
@@ -1399,6 +1440,7 @@ function AdminInventory() {
                                             ...inventory.map(item => ({ value: item.id, label: `${item.name} (${item.unit})` }))
                                         ]}
                                     />
+                                    {errors.kit_materials && <small className="error-text">{errors.kit_materials}</small>}
                                 </div>
                                 
                                 {editingKitMaterials.length > 0 && (
@@ -1418,18 +1460,21 @@ function AdminInventory() {
                                                     className="admin-st-8381b655"
                                                 />
                                                 <span className="admin-st-49cdf874">{mat.item_name} ({mat.unit})</span>
-                                                <button 
+                                                <button
+                                                    type="button"
                                                     className="action-btn delete-btn" 
                                                     onClick={() => setEditingKitMaterials(editingKitMaterials.filter((_, i) => i !== idx))}
+                                                    title={`Remove ${mat.item_name}`}
+                                                    aria-label={`Remove ${mat.item_name}`}
                                                 >
-                                                    <Trash2 size={16}/>
+                                                    <Trash2 size={16}/> Remove
                                                 </button>
                                             </div>
                                         ))}
                                     </div>
                                 )}
                                 <div className="admin-st-bce72c81">
-                                     <button className="btn btn-primary" onClick={handleSaveKit} disabled={isSaving || editingKitMaterials.length === 0}>
+                                     <button type="button" className="btn btn-primary" onClick={handleSaveKit} disabled={isSaving}>
                                         {isSaving ? 'Saving...' : 'Save Kit'}
                                      </button>
                                 </div>
@@ -1452,7 +1497,7 @@ function AdminInventory() {
                                         {editingKitOriginalType === type ? (
                                             <div className="inline-edit-form fade-in">
                                                 <div className="form-group">
-                                                    <label className="admin-st-a2d5e684">Update Service Type Name</label>
+                                                    <label className="admin-st-a2d5e684">Update Service Type Name *</label>
                                                     <input 
                                                         type="text" 
                                                         className={`form-input ${errors.kit_name ? 'error' : ''}`} 
@@ -1466,7 +1511,7 @@ function AdminInventory() {
                                                     {errors.kit_name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.kit_name}</small>}
                                                 </div>
                                                 <div className="form-group admin-st-988c5fa7">
-                                                    <label className="admin-st-a2d5e684">Add Supplies to Kit</label>
+                                                    <label className="admin-st-a2d5e684">Kit Items *</label>
                                                     <CustomSelect
                                                         value=""
                                                         onChange={(val) => {
@@ -1475,6 +1520,7 @@ function AdminInventory() {
                                                             const item = inventory.find(i => i.id === itemId);
                                                             if (item && !editingKitMaterials.find(m => m.inventory_id === itemId)) {
                                                                 setEditingKitMaterials([...editingKitMaterials, { inventory_id: item.id, item_name: item.name, default_quantity: 1, unit: item.unit }]);
+                                                                setErrors(prev => ({ ...prev, kit_materials: '' }));
                                                             }
                                                         }}
                                                         options={[
@@ -1482,6 +1528,7 @@ function AdminInventory() {
                                                             ...inventory.map(item => ({ value: item.id, label: `${item.name} (${item.unit})` }))
                                                         ]}
                                                     />
+                                                    {errors.kit_materials && <small className="error-text">{errors.kit_materials}</small>}
                                                 </div>
                                                 <div className="admin-st-f3877976">
                                                     {editingKitMaterials.map((mat, idx) => (
@@ -1498,11 +1545,14 @@ function AdminInventory() {
                                                                 className="admin-st-b9da71e3"
                                                             />
                                                             <span className="admin-st-25d395ac">{mat.item_name}</span>
-                                                            <button 
+                                                            <button
+                                                                type="button"
                                                                 className="action-btn delete-btn admin-st-67e81612"
                                                                 onClick={() => setEditingKitMaterials(editingKitMaterials.filter((_, i) => i !== idx))}
+                                                                title={`Remove ${mat.item_name}`}
+                                                                aria-label={`Remove ${mat.item_name}`}
                                                             >
-                                                                <X size={14}/>
+                                                                <Trash2 size={14}/> Remove
                                                             </button>
                                                         </div>
                                                     ))}
@@ -1510,7 +1560,7 @@ function AdminInventory() {
                                                 <div className="admin-st-6a3a6aa8">
                                                     <button type="button" className="btn btn-secondary admin-st-2029b6f9" onClick={() => { setEditingKitServiceType(''); setEditingKitOriginalType(''); setEditingKitMaterials([]); }}>Cancel</button>
                                                     <button type="button" className="btn btn-secondary admin-st-7b8c305f" onClick={() => handleDeleteKit(type)}><Trash2 size={16}/></button>
-                                                    <button className="btn btn-primary admin-st-2029b6f9" onClick={handleSaveKit} disabled={isSaving || editingKitMaterials.length === 0} >{isSaving ? '...' : 'Save Changes'}</button>
+                                                    <button type="button" className="btn btn-primary admin-st-2029b6f9" onClick={handleSaveKit} disabled={isSaving}>{isSaving ? '...' : 'Save Changes'}</button>
                                                 </div>
                                             </div>
                                         ) : (

@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput,
-  KeyboardAvoidingView, Platform, SafeAreaView,
+  KeyboardAvoidingView, Platform, SafeAreaView, Alert,
 } from 'react-native';
 import { ArrowLeft, Send, MessageSquare, Radio, X as XIcon } from 'lucide-react-native';
 import { io } from 'socket.io-client';
@@ -100,12 +100,15 @@ export const AdminChat = ({ navigation }) => {
     const text = inputValue.trim();
     if (!text || !selectedSession) return;
     socketRef.current.emit('send_message', { room: selectedSession.id, sender: 'Admin', text });
-    setMessages(prev => [...prev, { sender: 'Admin', text }]);
     setInputValue('');
   };
 
-  const handleClose = () => {
+  const endSelectedChat = () => {
     if (!selectedSession || !socketRef.current) return;
+    if (!socketRef.current.connected) {
+      Alert.alert('Connection Required', 'Reconnect to the server before ending this chat.');
+      return;
+    }
     const endedSession = selectedSession;
     socketRef.current.emit('end_support_session', endedSession.id);
     setEndedSessions(prev => (
@@ -116,6 +119,18 @@ export const AdminChat = ({ navigation }) => {
     setLiveSessions(prev => prev.filter(s => s.id !== endedSession.id));
     setMessages([]);
     setSelectedSession(null);
+  };
+
+  const handleClose = () => {
+    if (!selectedSession) return;
+    Alert.alert(
+      'End Chat',
+      `End the live chat with ${selectedSession.name || 'this customer'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'End Chat', style: 'destructive', onPress: endSelectedChat },
+      ],
+    );
   };
 
   const renderActiveSession = ({ item }) => (

@@ -93,6 +93,17 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
           }
           setAlertModal({ visible: true, title: 'Security Error', message: pwdRes.message || 'Failed to change password.' }); setLoading(false); return;
         }
+        setPwdForm({ current: '', new: '', confirm: '' });
+        setPwdErrors({});
+        setShowPwd(false);
+        setEditModalVisible(false);
+        setLoading(false);
+        setAlertModal({
+          visible: true,
+          title: 'Password Changed',
+          message: 'Your password has been updated. A verification email has been sent — please verify your account and log in again.',
+        });
+        return;
       }
       // Include pending image in the save payload
       const payload = { ...editForm };
@@ -107,7 +118,10 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
       } else {
         setAlertModal({ visible: true, title: 'Error', message: res.message || 'Failed to update profile' });
       }
-    } catch (e) { setAlertModal({ visible: true, title: 'Error', message: 'An error occurred' }); }
+    } catch (e) {
+      console.error('handleSave error:', e);
+      setAlertModal({ visible: true, title: 'Error', message: 'An unexpected error occurred. Please try again.' });
+    }
     finally { setLoading(false); }
   };
 

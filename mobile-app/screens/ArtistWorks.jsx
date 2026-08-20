@@ -79,8 +79,16 @@ export function ArtistWorks({ onBack, artistId }) {
 
   const getNormalizedImageValue = (rawValue) => {
     if (!rawValue) return '';
-    const cleaned = rawValue.trim().replace(/\s+/g, '');
+    let cleaned = rawValue.trim().replace(/^["']|["']$/g, '').replace(/[\r\n\t]/g, '').replace(/&amp;/gi, '&');
     if (cleaned.startsWith('data:image/')) return cleaned;
+
+    const driveMatch = cleaned.match(/^https?:\/\/drive\.google\.com\/file\/d\/([^/]+)/i);
+    if (driveMatch) cleaned = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+
+    if (/^https?:\/\/(www\.)?dropbox\.com\//i.test(cleaned)) {
+      cleaned = cleaned.replace(/[?&]dl=0\b/i, '').replace(/[?&]raw=0\b/i, '');
+      cleaned += cleaned.includes('?') ? '&raw=1' : '?raw=1';
+    }
     return cleaned;
   };
 
@@ -100,6 +108,22 @@ export function ArtistWorks({ onBack, artistId }) {
     }
   };
 
+  const verifyRemoteImage = (imageUrl) => new Promise((resolve) => {
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      resolve(result);
+    };
+    const timeoutId = setTimeout(() => finish(false), 10000);
+    Image.getSize(
+      imageUrl,
+      (width, height) => finish(width > 0 && height > 0),
+      () => finish(false),
+    );
+  });
+
   const handleUploadWork = async () => {
     if (!newWorkTitle.trim() || titleError) return;
     const imageValidation = validateImageValue(newWorkImage);
@@ -107,6 +131,15 @@ export function ArtistWorks({ onBack, artistId }) {
       setImageError(imageValidation.message);
       setAlertModal({ visible: true, title: 'Invalid Image', message: imageValidation.message });
       return;
+    }
+    if (!imageValidation.value.startsWith('data:image/')) {
+      const isAccessible = await verifyRemoteImage(imageValidation.value);
+      if (!isAccessible) {
+        const message = 'This URL is not a publicly accessible image. Copy the direct image address (not the webpage address) and try again.';
+        setImageError(message);
+        setAlertModal({ visible: true, title: 'Image Cannot Be Opened', message });
+        return;
+      }
     }
     const sanitize = (t) => t.trim().replace(/<[^>]*>?/gm, '');
     const payload = { title: sanitize(newWorkTitle), description: sanitize(newWorkDescription), category: newWorkCategory, imageUrl: imageValidation.value, isPublic, priceEstimate: newWorkPriceEstimate ? sanitize(newWorkPriceEstimate) : null };
@@ -282,7 +315,11 @@ export function ArtistWorks({ onBack, artistId }) {
                     {imageError ? <Text style={modalS.error}>{imageError}</Text> : null}
                     {getNormalizedImageValue(newWorkImage) ? (
                       <View style={modalS.urlPreviewWrap}>
-                        <Image source={{ uri: getNormalizedImageValue(newWorkImage) }} style={modalS.imgPreview} />
+                        <Image
+                          source={{ uri: getNormalizedImageValue(newWorkImage) }}
+                          style={modalS.imgPreview}
+                          onError={() => setImageError('Preview failed. Use a direct, publicly accessible image URL.')}
+                        />
                       </View>
                     ) : null}
                   </>

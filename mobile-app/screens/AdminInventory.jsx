@@ -27,7 +27,7 @@ import { formatCurrency } from '../src/utils/formatters';
 import { buildReportHTML, generateCSV, exportCSV, printOrSharePDF } from '../src/utils/exportHelpers';
 import {
   getAdminInventory, createAdminInventory, updateAdminInventory,
-  deleteAdminInventory, fetchAPI,
+  deleteAdminInventory, restoreAdminInventory, fetchAPI,
 } from '../src/utils/api';
 import { sanitizeText, sanitizeNumeric } from '../src/utils/validators';
 
@@ -85,16 +85,25 @@ export const AdminInventory = ({ navigation }) => {
 
   const INVENTORY_CATEGORIES = ['all', 'ink', 'needles', 'jewelry', 'supplies', 'aftercare', 'machinery'];
 
-  const loadData = async () => {
+  const loadData = async (archivedOnly = showArchived) => {
     setLoading(true);
-    const result = await getAdminInventory();
+    const result = await getAdminInventory(archivedOnly ? 'deleted' : 'active');
     if (result.success) {
-      setItems(result.data || result.inventory || []);
+      const normalizedItems = (result.data || result.inventory || []).map(item => ({
+        ...item,
+        current_stock: Number(item.current_stock ?? item.currentStock ?? 0),
+        min_stock: Number(item.min_stock ?? item.minStock ?? 0),
+        max_stock: Number(item.max_stock ?? item.maxStock ?? 0),
+        cost_per_unit: Number(item.cost_per_unit ?? item.cost ?? 0),
+      }));
+      setItems(normalizedItems);
+    } else {
+      Alert.alert('Inventory Error', result.message || 'Could not load inventory.');
     }
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(showArchived); }, [showArchived]);
 
   const openForm = (item = null) => {
     if (item) {
@@ -134,12 +143,19 @@ export const AdminInventory = ({ navigation }) => {
       return;
     }
     const payload = {
-      ...form,
       name: sName,
-      current_stock: parseInt(sanitizeNumeric(form.current_stock)) || 0,
-      min_stock: parseInt(sanitizeNumeric(form.min_stock)) || 0,
-      cost_per_unit: parseFloat(sanitizeNumeric(form.cost_per_unit, true)) || 0,
+      category: form.category,
+      unit: form.unit,
+      currentStock: parseInt(sanitizeNumeric(form.current_stock)) || 0,
+      minStock: parseInt(sanitizeNumeric(form.min_stock)) || 0,
+      cost: parseFloat(sanitizeNumeric(form.cost_per_unit, true)) || 0,
+      image: form.image || '',
     };
+    if (editingItem) {
+      payload.maxStock = Number(editingItem.max_stock || 0);
+      payload.retailPrice = Number(editingItem.retail_price || 0);
+      payload.supplier = editingItem.supplier || '';
+    }
 
     const result = editingItem
       ? await updateAdminInventory(editingItem.id, payload)
@@ -157,7 +173,7 @@ export const AdminInventory = ({ navigation }) => {
   const handleDelete = async () => {
     if (deleteModal.isArchived) {
       // Restore
-      const result = await updateAdminInventory(deleteModal.itemId, { is_deleted: 0 });
+      const result = await restoreAdminInventory(deleteModal.itemId);
       setDeleteModal({ visible: false, itemId: null, itemName: '', isArchived: false });
       if (result.success) {
         Alert.alert('Restored', 'Item restored to active inventory.');

@@ -277,6 +277,49 @@ function AdminPOS() {
         ...inventory.map(i => (i.category || '').trim())
     ])).filter(Boolean);
 
+    const buildDownloadReceipt = () => {
+        if (!lastOrder) return '';
+        return `<html><head><meta charset="utf-8"><title>Invoice #${lastOrder.orderId}</title>
+        <style>body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #1e293b; max-width: 520px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #e2e8f0; padding-bottom: 16px; }
+        .header h2 { margin: 0 0 4px; } .header p { margin: 0; color: #94a3b8; font-size: 0.85rem; }
+        .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem; }
+        .section { margin-bottom: 12px; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
+        .total { font-size: 1.2rem; font-weight: 800; border-top: 2px solid #e2e8f0; margin-top: 8px; padding-top: 12px; }
+        .success { color: #10b981; } .footer { text-align: center; margin-top: 24px; color: #94a3b8; }</style></head><body>
+        <div class="header"><h2>InkVistAR Studio</h2><p>Sales Invoice #${lastOrder.orderId}</p></div>
+        <div class="section"><div class="row"><span>Customer</span><strong>${lastOrder.customerName}</strong></div><div class="row"><span>Date</span><strong>${lastOrder.date}</strong></div></div>
+        <div class="section">${lastOrder.items.map(i => `<div class="row"><span>${i.quantity}x ${i.name}</span><span>₱${((i.retail_price || i.cost) * i.quantity).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`).join('')}</div>
+        <div class="section"><div class="row total"><span>Total</span><span class="success">₱${lastOrder.total.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div><div class="row"><span>Payment</span><strong>${lastOrder.paymentMethod}</strong></div></div>
+        <div class="footer"><p>Thank you for shopping at InkVistAR Studio</p></div></body></html>`;
+    };
+
+    const handleDownloadReceipt = async () => {
+        if (!lastOrder) return;
+        const fileName = `InkVistAR_Invoice_${String(lastOrder.orderId).replace(/[^a-zA-Z0-9_-]/g, '_')}.html`;
+        const blob = new Blob([buildDownloadReceipt()], { type: 'text/html;charset=utf-8' });
+        if (typeof window.showSaveFilePicker === 'function') {
+            try {
+                const fileHandle = await window.showSaveFilePicker({ suggestedName: fileName, types: [{ description: 'HTML receipt', accept: { 'text/html': ['.html'] } }] });
+                const writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+                return;
+            } catch (downloadError) {
+                if (downloadError?.name === 'AbortError') return;
+                console.warn('Save picker unavailable; using browser download.', downloadError);
+            }
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
@@ -769,27 +812,7 @@ function AdminPOS() {
                                     </button>
                                     <button
                                         className="btn btn-secondary"
-                                        onClick={() => {
-                                            // Download = same print flow (browser "Save as PDF")
-                                            const pw = window.open('', '_blank', 'width=600,height=800');
-                                            pw.document.write(`<html><head><title>Invoice #${lastOrder.orderId}</title>
-                                            <style>body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #1e293b; max-width: 520px; margin: 0 auto; }
-                                            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #e2e8f0; padding-bottom: 16px; }
-                                            .header h2 { margin: 0 0 4px; } .header p { margin: 0; color: #94a3b8; font-size: 0.85rem; }
-                                            .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem; }
-                                            .section { margin-bottom: 12px; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
-                                            .total { font-size: 1.2rem; font-weight: 800; border-top: 2px solid #e2e8f0; margin-top: 8px; padding-top: 12px; }
-                                            .success { color: #10b981; } .footer { text-align: center; margin-top: 24px; color: #94a3b8; }
-                                            </style></head><body>
-                                            <div class="header"><h2>InkVistAR Studio</h2><p>Sales Invoice #${lastOrder.orderId}</p></div>
-                                            <div class="section">${lastOrder.items.map(i => `<div class="row"><span>${i.quantity}x ${i.name}</span><span>₱${((i.retail_price || i.cost) * i.quantity).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`).join('')}</div>
-                                            <div class="section"><div class="row total"><span>Total</span><span class="success">₱${lastOrder.total.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div></div>
-                                            <div class="footer"><p>Thank you for shopping at InkVistAR Studio</p></div>
-                                            </body></html>`);
-                                            pw.document.close();
-                                            pw.focus();
-                                            setTimeout(() => pw.print(), 300);
-                                        }}
+                                        onClick={handleDownloadReceipt}
                                         style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', borderRadius: '10px', fontWeight: 600 }}
                                     >
                                         <Download size={16} /> Download

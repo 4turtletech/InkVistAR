@@ -13,11 +13,13 @@ function AdminChat() {
     const [liveSessions, setLiveSessions] = useState([]);
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const selectedRef = useRef(null);
+    const socketRef = useRef(null);
     selectedRef.current = selectedAppointment;
 
     useEffect(() => {
 
         const socket = io(SOCKET_URL);
+        socketRef.current = socket;
         socket.emit('join_admin_tracking');
 
         socket.on('support_sessions_update', (sessions) => {
@@ -31,8 +33,17 @@ function AdminChat() {
             }
         });
 
-        return () => socket.disconnect();
+        return () => {
+            socketRef.current = null;
+            socket.disconnect();
+        };
     }, []);
+
+    const handleEndSelectedChat = () => {
+        if (!selectedAppointment?.id || !socketRef.current) return;
+        socketRef.current.emit('end_support_session', selectedAppointment.id);
+        setSelectedAppointment(null);
+    };
 
     return (
         <div className="admin-page-with-sidenav">
@@ -41,6 +52,16 @@ function AdminChat() {
                 <header className="portal-header">
                     <div className="header-title">
                         <h1>Chats & Consultations</h1>
+                    </div>
+                    <div className="header-actions">
+                        <button
+                            className="btn btn-secondary"
+                            onClick={handleEndSelectedChat}
+                            disabled={!selectedAppointment?.id}
+                            style={{ opacity: selectedAppointment?.id ? 1 : 0.55 }}
+                        >
+                            End Selected Chat
+                        </button>
                     </div>
                 </header>
                 <p className="header-subtitle">Manage live support sessions and artist consultations from one unified dashboard.</p>

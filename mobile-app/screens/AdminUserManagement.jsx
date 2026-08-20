@@ -68,6 +68,8 @@ export const AdminUserManagement = ({ navigation }) => {
   const [profileImage, setProfileImage] = useState(null); // base64 uri
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
+  const [createSubmitAttempted, setCreateSubmitAttempted] = useState(false);
 
   const passwordChecks = (pass) => {
     return [
@@ -79,24 +81,8 @@ export const AdminUserManagement = ({ navigation }) => {
     ];
   };
 
-  const getPasswordHelpColor = (metCount) => {
-    if (!metCount) return theme.borderLight;
-    if (metCount < 3) return theme.error;
-    if (metCount < 5) return theme.warning;
-    return theme.success;
-  };
-
   const isPasswordValid = (pass) => {
     return passwordChecks(pass).every(item => item.met);
-  };
-
-  const getConfirmPasswordError = () => {
-    if (!formData.confirmPassword) {
-      return isPasswordValid(formData.password) ? 'Please confirm password' : '';
-    }
-    if (!isPasswordValid(formData.password)) return 'Enter a valid password first.';
-    if (formData.confirmPassword !== formData.password) return 'Passwords do not match.';
-    return '';
   };
 
   // Sort
@@ -160,6 +146,8 @@ export const AdminUserManagement = ({ navigation }) => {
       setFormData({ name: '', email: '', type: 'customer', password: '', confirmPassword: '', phone: '', status: 'active' });
       setProfileImage(null);
     }
+    setFormErrors({});
+    setCreateSubmitAttempted(false);
     setModalVisible(true);
   };
 
@@ -168,33 +156,23 @@ export const AdminUserManagement = ({ navigation }) => {
     const sEmail = sanitizeEmail(formData.email);
     const sPhone = sanitizePhone(formData.phone);
 
-    if (!sName || !sEmail) {
-      Alert.alert('Validation Error', 'Name and Email are required');
-      return;
-    }
-    if (!isValidEmail(sEmail)) {
-      Alert.alert('Validation Error', 'Please enter a valid email address');
+    const nextErrors = {};
+    if (!sName) nextErrors.name = 'Name is required';
+    if (!sEmail) nextErrors.email = 'Email is required';
+    else if (!isValidEmail(sEmail)) nextErrors.email = 'Please enter a valid email address';
+    if (!editingUser && !formData.password) nextErrors.password = 'Password is required';
+    else if (!editingUser && !isPasswordValid(formData.password)) nextErrors.password = 'Complete every password requirement below';
+    if (!editingUser && !formData.confirmPassword) nextErrors.confirmPassword = 'Please confirm password';
+    else if (!editingUser && formData.password !== formData.confirmPassword) nextErrors.confirmPassword = 'Passwords do not match';
+
+    setCreateSubmitAttempted(true);
+    setFormErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      Alert.alert('Validation Error', 'Please correct the highlighted fields.');
       return;
     }
     if (sPhone && sPhone.startsWith('0')) {
       Alert.alert('Validation Error', 'Phone number cannot start with 0. Use format: 9XXXXXXXXX');
-      return;
-    }
-    if (!editingUser && !formData.password) {
-      Alert.alert('Validation Error', 'Password is required for new users');
-      return;
-    }
-    if (!editingUser && !isPasswordValid(formData.password)) {
-      const missingRule = passwordChecks(formData.password).find(r => !r.met);
-      Alert.alert('Validation Error', missingRule ? `Password requirement missing: ${missingRule.label}` : 'Password does not meet the required rules.');
-      return;
-    }
-    if (!editingUser && !formData.confirmPassword) {
-      Alert.alert('Validation Error', 'Please confirm password');
-      return;
-    }
-    if (!editingUser && formData.password !== formData.confirmPassword) {
-      Alert.alert('Validation Error', 'Passwords do not match. Please re-enter.');
       return;
     }
 
@@ -257,8 +235,8 @@ export const AdminUserManagement = ({ navigation }) => {
     if (!statusModal.user) return;
     const { selectedStatus, reason, user } = statusModal;
     const trimmedReason = (reason || '').trim();
-    if ((selectedStatus === 'deactivated' || selectedStatus === 'banned') && trimmedReason.length < 5) {
-      Alert.alert('Reason Required', 'Please provide at least 5 characters explaining this status change.');
+    if ((selectedStatus === 'deactivated' || selectedStatus === 'banned') && !trimmedReason) {
+      Alert.alert('Reason Required', 'Please explain this status change.');
       return;
     }
     setStatusSaving(true);
@@ -640,18 +618,25 @@ export const AdminUserManagement = ({ navigation }) => {
                     placeholder="Password (min. 8 characters)"
                     placeholderTextColor={theme.textTertiary}
                     value={formData.password}
-                    onChangeText={t => setFormData({ ...formData, password: t })}
+                    onChangeText={t => {
+                      setFormData({ ...formData, password: t });
+                      if (createSubmitAttempted) {
+                        setFormErrors(prev => ({
+                          ...prev,
+                          password: t && isPasswordValid(t) ? '' : (t ? 'Complete every password requirement below' : 'Password is required'),
+                          confirmPassword: formData.confirmPassword && formData.confirmPassword !== t ? 'Passwords do not match' : prev.confirmPassword,
+                        }));
+                      }
+                    }}
                     secureTextEntry={!showPassword}
                   />
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 14 }}>
                     {showPassword ? <EyeOff size={20} color={theme.textSecondary} /> : <Eye size={20} color={theme.textSecondary} />}
                   </TouchableOpacity>
                 </View>
-                {formData.password.length > 0 && (
+                {formErrors.password ? <Text style={{ color: theme.error, fontSize: 12, marginTop: 4, marginBottom: 8 }}>{formErrors.password}</Text> : null}
+                {(formData.password.length > 0 || createSubmitAttempted) && (
                   <View style={{ marginTop: -8, marginBottom: 16 }}>
-                    <View style={{ height: 4, backgroundColor: theme.surfaceLight, borderRadius: 2, overflow: 'hidden', flexDirection: 'row', marginBottom: 8 }}>
-                      <View style={{ flex: passwordChecks(formData.password).filter((item) => item.met).length / 5, backgroundColor: getPasswordHelpColor(passwordChecks(formData.password).filter((item) => item.met).length) }} />
-                    </View>
                     {passwordChecks(formData.password).map(rule => (
                       <Text
                         key={rule.key}
@@ -666,14 +651,19 @@ export const AdminUserManagement = ({ navigation }) => {
                 {!editingUser && (
                   <View style={[
                     styles.input, { flexDirection: 'row', alignItems: 'center', padding: 0 },
-                    getConfirmPasswordError() && { borderColor: theme.error, borderWidth: 1.5 }
+                    formErrors.confirmPassword && { borderColor: theme.error, borderWidth: 1.5 }
                   ]}>
                     <TextInput
                       style={{ flex: 1, padding: 14, color: theme.textPrimary, ...typography.body }}
                       placeholder="Confirm Password"
                       placeholderTextColor={theme.textTertiary}
                       value={formData.confirmPassword}
-                      onChangeText={t => setFormData({ ...formData, confirmPassword: t })}
+                      onChangeText={t => {
+                        setFormData({ ...formData, confirmPassword: t });
+                        if (createSubmitAttempted || formErrors.confirmPassword) {
+                          setFormErrors(prev => ({ ...prev, confirmPassword: !t ? 'Please confirm password' : (t !== formData.password ? 'Passwords do not match' : '') }));
+                        }
+                      }}
                       secureTextEntry={!showConfirmPassword}
                     />
                     <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={{ padding: 14 }}>
@@ -683,9 +673,9 @@ export const AdminUserManagement = ({ navigation }) => {
                 )}
                 {editingUser ? null : (
                   <>
-                    {getConfirmPasswordError() ? (
+                    {formErrors.confirmPassword ? (
                       <Text style={{ color: theme.error, fontSize: 12, marginTop: -10, marginBottom: 10, paddingHorizontal: 2 }}>
-                        {getConfirmPasswordError()}
+                        {formErrors.confirmPassword}
                       </Text>
                     ) : null}
                   </>

@@ -131,12 +131,7 @@ function PaymentAlertOverlay() {
         }
     };
 
-    // Print receipt
-    const handlePrintReceipt = () => {
-        const printContent = receiptRef.current;
-        if (!printContent) return;
-        const printWindow = window.open('', '_blank', 'width=600,height=800');
-        printWindow.document.write(`
+    const buildReceiptDocument = () => `
             <html><head><title>Invoice ${receiptData?.invoiceNumber}</title>
             <style>
                 body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #1e293b; }
@@ -177,15 +172,53 @@ function PaymentAlertOverlay() {
             </div>
             <div class="footer"><p>Thank you for choosing InkVictus Tattoo Studio</p><p>BGC, Taguig City</p></div>
             </body></html>
-        `);
+        `;
+
+    // Print receipt
+    const handlePrintReceipt = () => {
+        if (!receiptRef.current) return;
+        const printWindow = window.open('', '_blank', 'width=600,height=800');
+        if (!printWindow) {
+            showAlert('Popup Blocked', 'Allow popups for this page, then try printing again.', 'warning');
+            return;
+        }
+        printWindow.document.write(buildReceiptDocument());
         printWindow.document.close();
         printWindow.focus();
         setTimeout(() => printWindow.print(), 300);
     };
 
-    // Download receipt as PDF (uses browser print-to-PDF)
-    const handleDownloadReceipt = () => {
-        handlePrintReceipt(); // Browser print dialog allows "Save as PDF"
+    // Download a self-contained receipt file without invoking the print dialog.
+    const handleDownloadReceipt = async () => {
+        if (!receiptData) return;
+        const safeInvoiceNumber = String(receiptData.invoiceNumber || 'receipt').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const fileName = `InkVistAR_Receipt_${safeInvoiceNumber}.html`;
+        const blob = new Blob([buildReceiptDocument()], { type: 'text/html;charset=utf-8' });
+
+        if (typeof window.showSaveFilePicker === 'function') {
+            try {
+                const fileHandle = await window.showSaveFilePicker({
+                    suggestedName: fileName,
+                    types: [{ description: 'HTML receipt', accept: { 'text/html': ['.html'] } }]
+                });
+                const writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+                return;
+            } catch (error) {
+                if (error?.name === 'AbortError') return;
+                console.warn('Save picker unavailable; using browser download instead.', error);
+            }
+        }
+
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
     };
 
     // Resend receipt email to customer

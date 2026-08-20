@@ -335,12 +335,12 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
         </ScrollView>
 
         {/* Forgot Password Modal */}
-        <Modal visible={showForgotModal} transparent animationType="fade" onRequestClose={() => { setResetEmailError(''); setShowForgotModal(false); }}>
+        <Modal visible={showForgotModal} transparent animationType="fade" onRequestClose={() => { Keyboard.dismiss(); setResetEmailError(''); setShowForgotModal(false); }}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
             <View style={styles.modalCard}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Reset Password</Text>
-                <TouchableOpacity onPress={() => { setResetEmailError(''); setShowForgotModal(false); }} style={styles.modalClose}>
+                <TouchableOpacity onPress={() => { Keyboard.dismiss(); setResetEmailError(''); setShowForgotModal(false); }} style={styles.modalClose}>
                   <X size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
@@ -359,9 +359,15 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
                   keyboardType="email-address"
                   autoCapitalize="none"
                   selectionColor={colors.gold}
+                  returnKeyType="done"
+                  onSubmitEditing={handleResetSubmit}
                 />
               </View>
-              {resetEmailError ? <Text style={styles.errorText}>{resetEmailError}</Text> : null}
+              {resetEmailError ? (
+                <Text accessibilityRole="alert" accessibilityLiveRegion="assertive" style={[styles.errorText, { width: '100%', marginTop: 0, marginBottom: 12, color: colors.error }]}>
+                  {resetEmailError}
+                </Text>
+              ) : null}
                 <TouchableOpacity onPress={handleResetSubmit} activeOpacity={0.8}>
                   <View style={styles.button}>
                     <Text style={styles.buttonText}>SEND CODE</Text>

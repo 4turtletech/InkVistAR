@@ -93,6 +93,7 @@ function AdminStaff() {
     const validateWorkField = (field, value) => {
         let errorMsg = "";
         if (field === 'title' && !value) errorMsg = "Title is required";
+        if (field === 'category' && !String(value || '').trim()) errorMsg = "Style category is required";
         setErrors(prev => ({ ...prev, [`work_${field}`]: errorMsg }));
         return errorMsg === "";
     };
@@ -241,7 +242,9 @@ function AdminStaff() {
 
     const handleSaveWork = async (e) => {
         if (e) e.preventDefault();
-        if (!validateWorkField('title', workFormData.title)) return;
+        const titleValid = validateWorkField('title', workFormData.title);
+        const categoryValid = validateWorkField('category', workFormData.category);
+        if (!titleValid || !categoryValid) return;
         try {
             await Axios.put(`${API_URL}/api/artist/portfolio/${selectedWork.id}`, {
                 title: workFormData.title,
@@ -772,7 +775,7 @@ function AdminStaff() {
                                         {/* Right: Metadata */}
                                         <div className="admin-st-ff43421e">
                                             <div className="form-group">
-                                                <label className="admin-st-19644797">Asset Title</label>
+                                                <label className="admin-st-19644797">Asset Title *</label>
                                                 <input
                                                     type="text"
                                                     className={`form-input ${errors.work_title ? 'error' : ''}`}
@@ -785,13 +788,14 @@ function AdminStaff() {
                                             </div>
                                             <div className="admin-st-2f580e88">
                                                 <div className="form-group">
-                                                    <label className="admin-st-19644797">Style Category</label>
+                                                    <label className="admin-st-19644797">Style Category *</label>
                                                     <MultiSelectDropdown 
                                                         options={TATTOO_STYLES}
                                                         selectedStr={workFormData.category}
-                                                        onChange={(newVal) => setWorkFormData({ ...workFormData, category: newVal })}
+                                                        onChange={(newVal) => handleWorkInputChange('category', newVal)}
                                                         placeholder="Select categories"
                                                     />
+                                                    {errors.work_category && <small className="error-text">{errors.work_category}</small>}
                                                 </div>
                                                 <div className="form-group">
                                                     <label className="admin-st-19644797">Market Valuation (₱)</label>

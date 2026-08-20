@@ -3,9 +3,10 @@
  * Themed with lucide icons + theme tokens. Preserves password strength validation.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Keyboard,
+  KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Lock, Eye, EyeOff } from 'lucide-react-native';
@@ -17,6 +18,9 @@ export function ResetPasswordPage({ email, onSubmit }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const passwordRef = useRef(null);
+  const confirmPasswordRef = useRef(null);
 
   const getPasswordError = (text) => {
     if (!text) return 'Password is required';
@@ -30,7 +34,6 @@ export function ResetPasswordPage({ email, onSubmit }) {
 
   const getConfirmPasswordError = (passwordValue, confirmValue) => {
     if (!confirmValue) return 'Please confirm password';
-    if (getPasswordError(passwordValue)) return 'Enter a valid password first';
     if (confirmValue !== passwordValue) return 'Passwords do not match';
     return '';
   };
@@ -47,30 +50,50 @@ export function ResetPasswordPage({ email, onSubmit }) {
     setNewPassword(text);
     setErrors(prev => ({
       ...prev,
-      password: text ? getPasswordError(text) : '',
-      confirmPassword: confirmPassword ? getConfirmPasswordError(text, confirmPassword) : prev.confirmPassword,
+      password: submitAttempted || prev.password ? getPasswordError(text) : '',
+      confirmPassword: submitAttempted || confirmPassword || prev.confirmPassword
+        ? getConfirmPasswordError(text, confirmPassword)
+        : '',
     }));
   };
 
   const handleConfirmChange = (text) => {
     setConfirmPassword(text);
-    setErrors(prev => ({ ...prev, confirmPassword: text ? getConfirmPasswordError(newPassword, text) : '' }));
+    setErrors(prev => ({
+      ...prev,
+      confirmPassword: submitAttempted || prev.confirmPassword ? getConfirmPasswordError(newPassword, text) : '',
+    }));
   };
 
   const handleSubmit = async () => {
+    passwordRef.current?.blur();
+    confirmPasswordRef.current?.blur();
     Keyboard.dismiss();
+    setSubmitAttempted(true);
     const nextErrors = {
       password: getPasswordError(newPassword),
       confirmPassword: getConfirmPasswordError(newPassword, confirmPassword),
     };
     setErrors(nextErrors);
-    if (nextErrors.password || nextErrors.confirmPassword) { Alert.alert('Error', 'Please fix the errors above'); return; }
-    setLoading(true); await onSubmit(newPassword); setLoading(false);
+    if (nextErrors.password || nextErrors.confirmPassword) return;
+    setLoading(true);
+    try {
+      await onSubmit(newPassword);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <LinearGradient colors={['#0f172a', '#1e293b', colors.primaryDark]} style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardWrap}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardWrap}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator={false}
+          >
       <View style={styles.card}>
         <LinearGradient colors={['#0f172a', colors.primary]} style={styles.iconWrap}>
           <Lock size={28} color="#ffffff" />
@@ -81,7 +104,7 @@ export function ResetPasswordPage({ email, onSubmit }) {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>New Password</Text>
           <View style={[styles.passwordWrap, errors.password && styles.inputError]}>
-            <TextInput style={styles.input} placeholder="Enter new password" placeholderTextColor={colors.textTertiary} value={newPassword} onChangeText={handlePasswordChange} secureTextEntry={!showPassword} />
+            <TextInput ref={passwordRef} style={styles.input} placeholder="Enter new password" placeholderTextColor={colors.textTertiary} value={newPassword} onChangeText={handlePasswordChange} secureTextEntry={!showPassword} returnKeyType="next" onSubmitEditing={() => confirmPasswordRef.current?.focus()} blurOnSubmit={false} />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
               {showPassword ? <Eye size={18} color={colors.textTertiary} /> : <EyeOff size={18} color={colors.textTertiary} />}
             </TouchableOpacity>
@@ -99,7 +122,7 @@ export function ResetPasswordPage({ email, onSubmit }) {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Confirm Password</Text>
           <View style={[styles.passwordWrap, errors.confirmPassword && styles.inputError]}>
-            <TextInput style={styles.input} placeholder="Confirm password" placeholderTextColor={colors.textTertiary} value={confirmPassword} onChangeText={handleConfirmChange} secureTextEntry={!showPassword} />
+            <TextInput ref={confirmPasswordRef} style={styles.input} placeholder="Confirm password" placeholderTextColor={colors.textTertiary} value={confirmPassword} onChangeText={handleConfirmChange} secureTextEntry={!showPassword} returnKeyType="done" onSubmitEditing={handleSubmit} />
           </View>
           {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
         </View>
@@ -110,14 +133,17 @@ export function ResetPasswordPage({ email, onSubmit }) {
           </LinearGradient>
         </TouchableOpacity>
       </View>
+          </ScrollView>
       </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  keyboardWrap: { flex: 1, justifyContent: 'center' },
+  container: { flex: 1 },
+  keyboardWrap: { flex: 1 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 20 },
   card: { backgroundColor: '#ffffff', borderRadius: borderRadius.xxl, padding: 28, alignItems: 'center', ...shadows.cardStrong },
   iconWrap: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   title: { ...typography.h2, color: colors.textPrimary, textAlign: 'center', marginBottom: 6 },

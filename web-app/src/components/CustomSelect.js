@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import './CustomSelect.css';
 
-const CustomSelect = ({ value, onChange, options, icon: Icon, label }) => {
+const CustomSelect = ({ value, onChange, options, icon: Icon, label, width = '160px' }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
@@ -29,12 +29,13 @@ const CustomSelect = ({ value, onChange, options, icon: Icon, label }) => {
                 <div 
                     className={`custom-select-trigger ${isOpen ? 'open' : ''}`}
                     onClick={() => setIsOpen(!isOpen)}
+                    style={{ minWidth: width }}
                 >
                     <span>{selectedOption?.label}</span>
                     <ChevronDown size={16} className={`custom-select-arrow ${isOpen ? 'rotated' : ''}`} />
                 </div>
             
-            <div className={`custom-select-dropdown ${isOpen ? 'visible' : ''}`}>
+            <div className={`custom-select-dropdown ${isOpen ? 'visible' : ''}`} style={{ minWidth: width }}>
                 {options.map((option, index) => (
                     <div 
                         key={option.value}

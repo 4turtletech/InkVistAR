@@ -569,8 +569,9 @@ export const isAuthenticated = async () => {
 };
 
 // Admin: Inventory
-export const getAdminInventory = async () => {
-  return fetchAPI('/admin/inventory');
+export const getAdminInventory = async (status = 'active') => {
+  const query = status === 'deleted' ? '?status=deleted' : '?status=active';
+  return fetchAPI(`/admin/inventory${query}`);
 };
 
 export const createAdminInventory = async (data) => {
@@ -590,6 +591,12 @@ export const updateAdminInventory = async (id, data) => {
 export const deleteAdminInventory = async (id) => {
   return fetchAPI(`/admin/inventory/${id}`, {
     method: 'DELETE',
+  });
+};
+
+export const restoreAdminInventory = async (id) => {
+  return fetchAPI(`/admin/inventory/${id}/restore`, {
+    method: 'PUT',
   });
 };
 

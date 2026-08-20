@@ -101,8 +101,10 @@ const Gallery = () => {
     if (activeArtistId && activeArtistId !== 'All') {
       queryParams.append('artistId', activeArtistId);
     }
-    queryParams.append('minPrice', debouncedPriceRange.min);
-    queryParams.append('maxPrice', debouncedPriceRange.max);
+    if (showPriceFilter) {
+      queryParams.append('minPrice', debouncedPriceRange.min);
+      queryParams.append('maxPrice', debouncedPriceRange.max);
+    }
     
     url += queryParams.toString();
     console.log(`[GALLERY] Fetching from URL: ${url}`);
@@ -119,7 +121,7 @@ const Gallery = () => {
         console.error('Error fetching works:', err);
         setLoading(false);
       });
-  }, [activeCategory, activeArtistId, location.search, debouncedPriceRange]);
+  }, [activeCategory, activeArtistId, location.search, debouncedPriceRange, showPriceFilter]);
 
   // Reset page when category or artist changes
   useEffect(() => {

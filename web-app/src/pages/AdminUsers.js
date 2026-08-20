@@ -36,7 +36,7 @@ function AdminUsers() {
     const [searchTerm, setSearchTerm] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchRef = useRef(null);
-    
+
     useEffect(() => {
         function handleClickOutside(event) {
             if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -69,6 +69,7 @@ function AdminUsers() {
     const [clientDetails, setClientDetails] = useState({ profile: {}, appointments: [], notes: '' });
     const [expandedRecordId, setExpandedRecordId] = useState(null);
     const [clientFormData, setClientFormData] = useState({});
+    const [clientErrors, setClientErrors] = useState({});
     const [loadingClientDetails, setLoadingClientDetails] = useState(false);
 
     // ─── Artist Modal ───
@@ -86,6 +87,7 @@ function AdminUsers() {
     const [workFormData, setWorkFormData] = useState({
         title: '', description: '', category: 'Realism', isPublic: true, priceEstimate: ''
     });
+    const [workErrors, setWorkErrors] = useState({});
 
     // ─── Create User Modal ───
     const [createModal, setCreateModal] = useState({ mounted: false, visible: false });
@@ -102,6 +104,7 @@ function AdminUsers() {
         hasMinLength: false, hasUppercase: false, hasLowercase: false,
         hasNumber: false, hasSymbol: false
     });
+    const [createSubmitAttempted, setCreateSubmitAttempted] = useState(false);
     const [profileImagePreview, setProfileImagePreview] = useState(null);
 
     // ─── Confirm Dialog ───
@@ -149,7 +152,7 @@ function AdminUsers() {
         setTimeout(() => setUserModal({ mounted: true, visible: true }), 10);
     };
     const closeAdminModal = () => {
-        setUserModal({ mounted: false, visible: false }); 
+        setUserModal({ mounted: false, visible: false });
         setSelectedUser(null);
     };
 
@@ -161,6 +164,7 @@ function AdminUsers() {
         setClientModal({ mounted: false, visible: false });
         setSelectedClient(null);
         setExpandedRecordId(null);
+        setClientErrors({});
     };
 
     const openArtistModalAnim = () => {
@@ -168,7 +172,7 @@ function AdminUsers() {
         setTimeout(() => setArtistModal({ mounted: true, visible: true }), 10);
     };
     const closeArtistModal = () => {
-        setArtistModal({ mounted: false, visible: false }); 
+        setArtistModal({ mounted: false, visible: false });
         setSelectedArtist(null);
     };
 
@@ -213,12 +217,14 @@ function AdminUsers() {
         setShowCreatePassword(false);
         setShowCreateConfirmPassword(false);
         setCreatePasswordFocused(false);
+        setCreateSubmitAttempted(false);
         setCreatePasswordFeedback({ hasMinLength: false, hasUppercase: false, hasLowercase: false, hasNumber: false, hasSymbol: false });
         setProfileImagePreview(null);
     };
 
     const openEditWork = (work) => {
         setSelectedWork(work);
+        setWorkErrors({});
         setWorkFormData({
             title: work.title || '', description: work.description || '',
             category: work.category || 'Realism',
@@ -230,6 +236,7 @@ function AdminUsers() {
     };
     const closeEditWork = () => {
         setEditWorkModal({ mounted: false, visible: false });
+        setWorkErrors({});
     };
 
     // ═══════════════════════════════════════════════════════════
@@ -352,10 +359,10 @@ function AdminUsers() {
             });
             if (response.data.success) {
                 // Update local state without refetching immediately
-                setUsers(users.map(u => 
-                    u.id === statusModal.user.id 
-                    ? { ...u, account_status: statusFormData.status, status_reason: statusFormData.reason || statusFormData.adminNote } 
-                    : u
+                setUsers(users.map(u =>
+                    u.id === statusModal.user.id
+                        ? { ...u, account_status: statusFormData.status, status_reason: statusFormData.reason || statusFormData.adminNote }
+                        : u
                 ));
                 showAlert("Success", "User status updated and email dispatched.", "success");
                 closeStatusModal();
@@ -489,24 +496,65 @@ function AdminUsers() {
                 .map(inv => ({ ...inv, appointment_date: inv.created_at, design_title: inv.service_type, status: inv.status, recordType: 'Retail' }));
 
             const combinedHistory = [...appointments, ...posSales].sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+            const localPhone = String(profile.phone || '')
+                .replace(/\D/g, '')
+                .replace(/^63/, '')
+                .replace(/^0+/, '')
+                .slice(0, 10);
             setClientDetails({ profile, appointments: combinedHistory, notes: profile.notes || '' });
-            setClientFormData(profile);
+            setClientFormData({ ...profile, phone: localPhone });
+            setClientErrors({});
         } catch (error) {
             console.error("Error fetching client details:", error);
         }
         setLoadingClientDetails(false);
     };
 
+    const validateClientField = (field, value) => {
+        const trimmed = String(value || '').trim();
+        let message = '';
+        if (field === 'name' && !trimmed) message = 'Legal name is required';
+        if (field === 'email') {
+            if (!trimmed) message = 'Email is required';
+            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) message = 'Enter a valid email address';
+        }
+        if (field === 'phone') {
+            if (!trimmed) message = 'Phone number is required';
+            else if (!/^9\d{9}$/.test(trimmed)) message = 'Enter a 10-digit PH number starting with 9';
+        }
+        setClientErrors(prev => ({ ...prev, [field]: message }));
+        return !message;
+    };
+
+    const handleClientFieldChange = (field, value) => {
+        setClientFormData(prev => ({ ...prev, [field]: value }));
+        if (clientErrors[field]) validateClientField(field, value);
+    };
+
     const handleSaveClient = async () => {
         if (!selectedClient) return;
+        const nameValid = validateClientField('name', clientFormData.name);
+        const emailValid = validateClientField('email', clientFormData.email);
+        const phoneValid = validateClientField('phone', clientFormData.phone);
+        if (!nameValid || !emailValid || !phoneValid) return;
         try {
-            await Axios.put(`${API_URL}/api/customer/profile/${selectedClient.id}`, clientFormData);
+            await Axios.put(`${API_URL}/api/customer/profile/${selectedClient.id}`, {
+                ...clientFormData,
+                name: clientFormData.name.trim(),
+                email: clientFormData.email.trim().toLowerCase(),
+                phone: `+63${clientFormData.phone}`
+            });
             showAlert("Success", "Client profile updated!", "success");
             closeClientModal();
             fetchUsers();
         } catch (error) {
             console.error("Error updating client:", error);
-            showAlert("Error", "Failed to update client profile", "danger");
+            const message = error.response?.data?.message || "Failed to update client profile";
+            if (error.response?.status === 409 || message.toLowerCase().includes('email')) {
+                setClientErrors(prev => ({ ...prev, email: message }));
+            } else {
+                showAlert("Error", message, "danger");
+            }
         }
     };
 
@@ -584,6 +632,12 @@ function AdminUsers() {
 
     const handleSaveWork = async (e) => {
         if (e) e.preventDefault();
+        const nextErrors = {
+            title: workFormData.title.trim() ? '' : 'Asset title is required',
+            category: workFormData.category.trim() ? '' : 'Style category is required'
+        };
+        setWorkErrors(nextErrors);
+        if (nextErrors.title || nextErrors.category) return;
         try {
             await Axios.put(`${API_URL}/api/artist/portfolio/${selectedWork.id}`, {
                 title: workFormData.title, description: workFormData.description,
@@ -643,7 +697,7 @@ function AdminUsers() {
                 </div>
                 <div className="form-group">
                     <label>Specialization / Styles</label>
-                    <MultiSelectDropdown 
+                    <MultiSelectDropdown
                         options={TATTOO_STYLES}
                         selectedStr={artistFormData.specialization}
                         onChange={(newVal) => setArtistFormData({ ...artistFormData, specialization: newVal })}
@@ -824,6 +878,16 @@ function AdminUsers() {
         return error === '';
     };
 
+    const syncCreatePasswordFeedback = (passwordValue) => {
+        setCreatePasswordFeedback({
+            hasMinLength: passwordValue.length >= 8,
+            hasUppercase: /[A-Z]/.test(passwordValue),
+            hasLowercase: /[a-z]/.test(passwordValue),
+            hasNumber: /[0-9]/.test(passwordValue),
+            hasSymbol: /[@$!%*?&#]/.test(passwordValue)
+        });
+    };
+
     const handleCreateFieldChange = (name, value) => {
         let sanitized = value;
         if (name === 'firstName' || name === 'lastName') sanitized = filterName(value).slice(0, 50);
@@ -832,20 +896,20 @@ function AdminUsers() {
         else if (name === 'phone') sanitized = filterDigits(value).replace(/^0+/, '').slice(0, 10);
         else if (name === 'password' || name === 'confirmPassword') sanitized = value.slice(0, 128);
         else if (name === 'age') sanitized = filterDigits(value).slice(0, 3);
-        setCreateFormData(prev => ({ ...prev, [name]: sanitized }));
+        const nextFormData = { ...createFormData, [name]: sanitized };
+        setCreateFormData(nextFormData);
 
-        // Live password strength feedback
         if (name === 'password') {
-            setCreatePasswordFeedback({
-                hasMinLength: value.length >= 8,
-                hasUppercase: /[A-Z]/.test(value),
-                hasLowercase: /[a-z]/.test(value),
-                hasNumber: /[0-9]/.test(value),
-                hasSymbol: /[@$!%*?&#]/.test(value)
-            });
+            syncCreatePasswordFeedback(sanitized);
         }
 
         if (createErrors[name]) setCreateErrors(prev => ({ ...prev, [name]: '' }));
+        if (createSubmitAttempted || createErrors.password || createErrors.confirmPassword) {
+            if (name === 'password' || name === 'confirmPassword') {
+                validateCreateField('password', name === 'password' ? sanitized : nextFormData.password);
+                validateCreateField('confirmPassword', name === 'confirmPassword' ? sanitized : nextFormData.confirmPassword);
+            }
+        }
     };
 
     const handleCreateBlur = (name) => {
@@ -871,6 +935,7 @@ function AdminUsers() {
     };
 
     const handleCreateSave = async () => {
+        setCreateSubmitAttempted(true);
         // Validate all fields
         const firstOk = validateCreateField('firstName', createFormData.firstName);
         const lastOk = validateCreateField('lastName', createFormData.lastName);
@@ -896,7 +961,7 @@ function AdminUsers() {
                 profileImage: createFormData.profileImage || null,
                 age: createFormData.age ? parseInt(createFormData.age) : null,
                 is_verified: 1
-            });
+            }, { headers: { 'X-User-Email': currentUser.email || '' } });
             showAlert("Success", "User account created and verified. They can log in immediately.", "success");
             fetchUsers();
             closeCreateModal();
@@ -981,16 +1046,16 @@ function AdminUsers() {
                 <div className="premium-filter-bar premium-filter-bar--stacked">
                     <div className="premium-search-box premium-search-box--full" ref={searchRef}>
                         <Search size={16} className="text-muted" />
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             placeholder="Search by name, email, id..."
-                            value={searchTerm} 
+                            value={searchTerm}
                             onChange={(e) => {
                                 setSearchTerm(e.target.value);
                                 setShowSuggestions(true);
                             }}
                             onFocus={() => setShowSuggestions(true)}
-                            maxLength={100} 
+                            maxLength={100}
                         />
                         {showSuggestions && searchTerm && searchSuggestions.filter(s => s.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 && (
                             <div className="autocomplete-dropdown waterfall-dropdown">
@@ -998,8 +1063,8 @@ function AdminUsers() {
                                     .filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
                                     .slice(0, 8)
                                     .map((suggestion, index) => (
-                                        <div 
-                                            key={suggestion} 
+                                        <div
+                                            key={suggestion}
                                             className="autocomplete-item waterfall-item"
                                             style={{ animationDelay: `${index * 0.05}s` }}
                                             onClick={() => {
@@ -1014,9 +1079,9 @@ function AdminUsers() {
                         )}
                     </div>
                     <div className="premium-filters-row">
-                        <CustomSelect 
-                            value={filterRole} 
-                            onChange={setFilterRole} 
+                        <CustomSelect
+                            value={filterRole}
+                            onChange={setFilterRole}
                             icon={Filter}
                             label="Filter by:"
                             options={[
@@ -1026,9 +1091,9 @@ function AdminUsers() {
                                 { value: 'customer', label: 'Customer' }
                             ]}
                         />
-                        <CustomSelect 
-                            value={filterStatus} 
-                            onChange={setFilterStatus} 
+                        <CustomSelect
+                            value={filterStatus}
+                            onChange={setFilterStatus}
                             options={[
                                 { value: 'all', label: 'All Statuses' },
                                 { value: 'active', label: 'Active Users' },
@@ -1037,9 +1102,9 @@ function AdminUsers() {
                                 { value: 'deleted', label: 'Soft Deleted' }
                             ]}
                         />
-                        <CustomSelect 
-                            value={sortBy} 
-                            onChange={setSortBy} 
+                        <CustomSelect
+                            value={sortBy}
+                            onChange={setSortBy}
                             icon={SlidersHorizontal}
                             label="Sort:"
                             options={[
@@ -1074,9 +1139,9 @@ function AdminUsers() {
                                             <td data-label="Role"><span className={`badge role-${user.user_type}`}>{user.user_type}</span></td>
                                             <td data-label="Status">
                                                 <span className={`badge status-${user.is_deleted ? 'deleted' : (user.account_status || 'active')}`}>
-                                                    {user.is_deleted 
+                                                    {user.is_deleted
                                                         ? 'Soft Deleted'
-                                                        : (user.account_status 
+                                                        : (user.account_status
                                                             ? user.account_status.charAt(0).toUpperCase() + user.account_status.slice(1)
                                                             : 'Active')}
                                                 </span>
@@ -1159,7 +1224,6 @@ function AdminUsers() {
                                             disabled={!currentUser.is_superadmin}
                                         >
                                             <option value="admin">Admin</option>
-                                            <option value="manager">Manager</option>
                                             <option value="artist">Artist</option>
                                             <option value="customer">Customer</option>
                                         </select>
@@ -1239,16 +1303,19 @@ function AdminUsers() {
                                             <div className="admin-st-e7646dcc">
                                                 <div className="admin-st-ff43421e">
                                                     <div className="form-group">
-                                                        <label className="admin-st-19644797">Legal Name</label>
-                                                        <input type="text" className="form-input" value={clientFormData.name || ''} onChange={e => setClientFormData({ ...clientFormData, name: filterName(e.target.value).slice(0, 50) })} maxLength={50} />
+                                                        <label className="admin-st-19644797">Legal Name *</label>
+                                                        <input type="text" className={`form-input ${clientErrors.name ? 'error' : ''}`} value={clientFormData.name || ''} onChange={e => handleClientFieldChange('name', filterName(e.target.value).slice(0, 50))} onBlur={() => validateClientField('name', clientFormData.name)} maxLength={50} />
+                                                        {clientErrors.name && <small className="error-text">{clientErrors.name}</small>}
                                                     </div>
                                                     <div className="form-group">
-                                                        <label className="admin-st-19644797">Direct Link (Email)</label>
-                                                        <input type="email" className="form-input" value={clientFormData.email || ''} onChange={e => setClientFormData({ ...clientFormData, email: e.target.value })} maxLength={254} />
+                                                        <label className="admin-st-19644797">Direct Link (Email) *</label>
+                                                        <input type="email" className={`form-input ${clientErrors.email ? 'error' : ''}`} value={clientFormData.email || ''} onChange={e => handleClientFieldChange('email', e.target.value.replace(/\s/g, '').slice(0, 254))} onBlur={() => validateClientField('email', clientFormData.email)} maxLength={254} />
+                                                        {clientErrors.email && <small className="error-text">{clientErrors.email}</small>}
                                                     </div>
                                                     <div className="form-group">
-                                                        <label className="admin-st-19644797">Primary Contact</label>
-                                                        <input type="text" className="form-input" value={clientFormData.phone || ''} onChange={e => setClientFormData({ ...clientFormData, phone: filterDigits(e.target.value).replace(/^0+/, '').slice(0, 10) })} maxLength={10} placeholder="9XXXXXXXXX" />
+                                                        <label className="admin-st-19644797">Primary Contact *</label>
+                                                        <input type="text" className={`form-input ${clientErrors.phone ? 'error' : ''}`} value={clientFormData.phone || ''} onChange={e => handleClientFieldChange('phone', filterDigits(e.target.value).replace(/^0+/, '').slice(0, 10))} onBlur={() => validateClientField('phone', clientFormData.phone)} maxLength={10} placeholder="9XXXXXXXXX" />
+                                                        {clientErrors.phone && <small className="error-text">{clientErrors.phone}</small>}
                                                     </div>
                                                 </div>
                                                 <div className="admin-st-ff43421e">
@@ -1532,19 +1599,21 @@ function AdminUsers() {
                                         </div>
                                         <div className="admin-st-ff43421e">
                                             <div className="form-group">
-                                                <label className="admin-st-19644797">Asset Title</label>
-                                                <input type="text" className="form-input" value={workFormData.title}
-                                                    onChange={e => setWorkFormData({ ...workFormData, title: e.target.value })} required />
+                                                <label className="admin-st-19644797">Asset Title *</label>
+                                                <input type="text" className={`form-input ${workErrors.title ? 'error' : ''}`} value={workFormData.title}
+                                                    onChange={e => { setWorkFormData({ ...workFormData, title: e.target.value }); if (workErrors.title) setWorkErrors(prev => ({ ...prev, title: '' })); }} maxLength={100} />
+                                                {workErrors.title && <small className="error-text">{workErrors.title}</small>}
                                             </div>
                                             <div className="admin-st-2f580e88">
                                                 <div className="form-group">
-                                                    <label className="admin-st-19644797">Style Category</label>
-                                                    <MultiSelectDropdown 
+                                                    <label className="admin-st-19644797">Style Category *</label>
+                                                    <MultiSelectDropdown
                                                         options={TATTOO_STYLES}
                                                         selectedStr={workFormData.category}
-                                                        onChange={(newVal) => setWorkFormData({ ...workFormData, category: newVal })}
+                                                        onChange={(newVal) => { setWorkFormData({ ...workFormData, category: newVal }); if (workErrors.category) setWorkErrors(prev => ({ ...prev, category: '' })); }}
                                                         placeholder="Select categories"
                                                     />
+                                                    {workErrors.category && <small className="error-text">{workErrors.category}</small>}
                                                 </div>
                                                 <div className="form-group">
                                                     <label className="admin-st-19644797">Market Valuation (₱)</label>
@@ -1652,12 +1721,7 @@ function AdminUsers() {
                                             onChange={(e) => setCreateFormData({ ...createFormData, user_type: e.target.value })} className="form-input">
                                             <option value="customer">Customer (Client)</option>
                                             <option value="artist">Artist (Staff)</option>
-                                            {currentUser.is_superadmin && (
-                                                <>
-                                                    <option value="manager">Manager</option>
-                                                    <option value="admin">Admin</option>
-                                                </>
-                                            )}
+                                            {currentUser.is_superadmin && <option value="admin">Admin</option>}
                                         </select>
                                     </div>
                                 </div>
@@ -1732,30 +1796,31 @@ function AdminUsers() {
                                         {createErrors.confirmPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.confirmPassword}</small>}
                                     </div>
                                 </div>
-                                {/* Password Strength Meter */}
+                                {/* Password Rule Checklist */}
                                 <div style={{ overflow: 'hidden', maxHeight: createPasswordFocused ? '200px' : '0', opacity: createPasswordFocused ? 1 : 0, transition: 'max-height 0.3s ease, opacity 0.3s ease', marginTop: createPasswordFocused ? '4px' : '0', marginBottom: '8px' }}>
                                     <div>
-                                        <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
-                                            {[createPasswordFeedback.hasMinLength, createPasswordFeedback.hasNumber, createPasswordFeedback.hasUppercase && createPasswordFeedback.hasLowercase, createPasswordFeedback.hasSymbol].map((met, i) => (
-                                                <div key={i} style={{ flex: 1, height: '4px', borderRadius: '2px', backgroundColor: met ? '#be9055' : '#e2e8f0', transition: 'background-color 0.3s ease' }} />
-                                            ))}
-                                        </div>
-                                        {(() => {
-                                            const steps = [
-                                                { met: createPasswordFeedback.hasMinLength, hint: 'At least 8 characters' },
-                                                { met: createPasswordFeedback.hasNumber, hint: 'Add a number' },
-                                                { met: createPasswordFeedback.hasUppercase && createPasswordFeedback.hasLowercase, hint: 'Add upper & lowercase letters' },
-                                                { met: createPasswordFeedback.hasSymbol, hint: 'Add a special character: !@#$%^&*()_+' }
-                                            ];
-                                            const nextHint = steps.find(s => !s.met);
-                                            return nextHint ? <div style={{ fontSize: '0.7rem', color: '#ef4444' }}>{nextHint.hint}</div> : null;
-                                        })()}
+                                        {[
+                                            { met: createPasswordFeedback.hasMinLength, hint: 'At least 8 characters' },
+                                            { met: createPasswordFeedback.hasUppercase, hint: 'At least 1 uppercase letter' },
+                                            { met: createPasswordFeedback.hasLowercase, hint: 'At least 1 lowercase letter' },
+                                            { met: createPasswordFeedback.hasNumber, hint: 'At least 1 number' },
+                                            { met: createPasswordFeedback.hasSymbol, hint: 'At least 1 special character: @ $ ! % * ? & or #' }
+                                        ].map((rule) => (
+                                            <div key={rule.hint} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', color: rule.met ? '#15803d' : '#64748b', fontSize: '0.82rem', fontWeight: rule.met ? 600 : 500 }}>
+                                                <span style={{ width: '16px', display: 'inline-flex', justifyContent: 'center' }}>{rule.met ? 'OK' : '-'}</span>
+                                                <span>{rule.hint}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
                             <div className="modal-footer">
                                 <button className="btn btn-secondary" onClick={closeCreateModal}>Cancel</button>
-                                <button className="btn btn-primary admin-st-9be3106b" onClick={handleCreateSave} disabled={!isCreateFormValid()}>
+                                <button
+                                    className="btn btn-primary admin-st-9be3106b"
+                                    onClick={handleCreateSave}
+                                    style={{ opacity: isCreateFormValid() ? 1 : 0.9 }}
+                                >
                                     Create User
                                 </button>
                             </div>
@@ -1880,8 +1945,8 @@ function AdminUsers() {
                                 <div>
                                     {statusModal.user && !statusModal.user.is_superadmin && (
                                         statusModal.user.is_deleted ? (
-                                            <button 
-                                                className="btn" 
+                                            <button
+                                                className="btn"
                                                 onClick={() => handlePermanentDelete(statusModal.user)}
                                                 style={{ backgroundColor: '#ef4444', color: 'white', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                                                 title="Permanently erase this account"
@@ -1889,8 +1954,8 @@ function AdminUsers() {
                                                 <Trash2 size={16} /> Permanently Delete
                                             </button>
                                         ) : (
-                                            <button 
-                                                className="btn" 
+                                            <button
+                                                className="btn"
                                                 onClick={() => handleSoftDelete(statusModal.user)}
                                                 style={{ backgroundColor: '#dc2626', color: 'white', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                                                 title="Soft delete this account"
@@ -1902,8 +1967,8 @@ function AdminUsers() {
                                 </div>
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     <button className="btn btn-secondary" onClick={closeStatusModal}>Cancel</button>
-                                    <button 
-                                        className="btn btn-primary" 
+                                    <button
+                                        className="btn btn-primary"
                                         onClick={submitStatusChange}
                                         style={{ backgroundColor: statusFormData.status === 'banned' ? '#ef4444' : '#10b981', color: 'white' }}
                                     >
@@ -1920,10 +1985,10 @@ function AdminUsers() {
                     <div className="modal-overlay open" style={{ zIndex: 10000 }} onClick={closeDestructiveConfirm}>
                         <div className="modal-content" style={{ maxWidth: '480px', padding: '0', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
                             <div style={{ padding: '32px 24px', textAlign: 'center' }}>
-                                <div style={{ 
-                                    width: '64px', height: '64px', borderRadius: '50%', 
-                                    background: '#fee2e2', 
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                <div style={{
+                                    width: '64px', height: '64px', borderRadius: '50%',
+                                    background: '#fee2e2',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     margin: '0 auto 16px', color: '#dc2626'
                                 }}>
                                     <AlertTriangle size={32} />
@@ -1932,22 +1997,22 @@ function AdminUsers() {
                                 <p style={{ fontSize: '0.95rem', color: '#64748b', margin: '0', lineHeight: '1.6', whiteSpace: 'pre-line' }}>{deleteConfirm.message}</p>
                             </div>
                             <div style={{ display: 'flex', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
-                                <button 
-                                    onClick={closeDestructiveConfirm} 
+                                <button
+                                    onClick={closeDestructiveConfirm}
                                     style={{ flex: 1, padding: '16px', background: 'transparent', border: 'none', borderRight: '1px solid #f1f5f9', fontWeight: 600, color: '#64748b', cursor: 'pointer', transition: 'all 0.2s' }}
                                     onMouseOver={e => e.target.style.background = '#f1f5f9'}
                                     onMouseOut={e => e.target.style.background = 'transparent'}
                                 >
                                     Cancel
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => { if (deleteConfirm.countdown <= 0 && deleteConfirm.onConfirm) { closeDestructiveConfirm(); deleteConfirm.onConfirm(); } }}
                                     disabled={deleteConfirm.countdown > 0}
-                                    style={{ 
-                                        flex: 1, padding: '16px', background: 'transparent', border: 'none', 
-                                        fontWeight: 700, 
-                                        color: deleteConfirm.countdown > 0 ? '#94a3b8' : '#dc2626', 
-                                        cursor: deleteConfirm.countdown > 0 ? 'not-allowed' : 'pointer', 
+                                    style={{
+                                        flex: 1, padding: '16px', background: 'transparent', border: 'none',
+                                        fontWeight: 700,
+                                        color: deleteConfirm.countdown > 0 ? '#94a3b8' : '#dc2626',
+                                        cursor: deleteConfirm.countdown > 0 ? 'not-allowed' : 'pointer',
                                         transition: 'all 0.2s',
                                         opacity: deleteConfirm.countdown > 0 ? 0.6 : 1
                                     }}

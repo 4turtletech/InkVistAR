@@ -140,7 +140,8 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
   }, [route?.params?.filter]);
 
   // Delete confirm
-  const [deleteModal, setDeleteModal] = useState({ visible: false });
+  const [deleteModal, setDeleteModal] = useState({ visible: false, appointmentId: null, returnToEditor: false });
+  const [deleteSaving, setDeleteSaving] = useState(false);
 
   // ── P2-7: View mode (list / calendar) ────────────────────────────────────
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'calendar'
@@ -382,14 +383,17 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
   };
 
   const handleDelete = async () => {
-    if (!selectedAppt?.id) {
-      setDeleteModal({ visible: false });
+    const apptId = deleteModal.appointmentId || selectedAppt?.id;
+    const shouldReturnToEditor = deleteModal.returnToEditor;
+    if (!apptId) {
+      setDeleteModal({ visible: false, appointmentId: null, returnToEditor: false });
       Alert.alert('Error', 'No appointment selected for deletion.');
       return;
     }
-    const apptId = selectedAppt.id;
+    setDeleteSaving(true);
     const result = await deleteAppointmentByAdmin(apptId);
-    setDeleteModal({ visible: false });
+    setDeleteSaving(false);
+    setDeleteModal({ visible: false, appointmentId: null, returnToEditor: false });
     if (result.success) {
       setAppointments(prev => prev.filter(appt => appt.id !== apptId));
       setSelectedAppt(null);
@@ -399,7 +403,26 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
       }
     } else {
       Alert.alert('Error', result.message || 'Failed to delete appointment');
+      if (shouldReturnToEditor) setTimeout(() => setModalVisible(true), 220);
     }
+  };
+
+  const openDeleteConfirmation = (appointment, returnToEditor = false) => {
+    const appointmentId = appointment?.id;
+    if (!appointmentId) {
+      Alert.alert('Error', 'No appointment selected for deletion.');
+      return;
+    }
+    if (returnToEditor) setModalVisible(false);
+    setTimeout(() => {
+      setDeleteModal({ visible: true, appointmentId, returnToEditor });
+    }, returnToEditor ? 220 : 0);
+  };
+
+  const cancelDelete = () => {
+    const shouldReturn = deleteModal.returnToEditor;
+    setDeleteModal({ visible: false, appointmentId: null, returnToEditor: false });
+    if (shouldReturn) setTimeout(() => setModalVisible(true), 220);
   };
 
   const handleRebookNextSession = async (appt) => {
@@ -512,7 +535,7 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
           // Trigger delete intent
           Animated.spring(pan, { toValue: { x: -150, y: 0 }, useNativeDriver: false }).start();
           setSelectedAppt(item);
-          setDeleteModal({ visible: true });
+          openDeleteConfirmation(item, false);
           // Reset after short delay so it doesn't stay stuck open
           setTimeout(() => {
             Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
@@ -1264,7 +1287,7 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
               {/* Actions */}
               <View style={styles.actionRow}>
                 {selectedAppt?.id && (
-                  <AnimatedTouchable style={styles.deleteBtnModal} onPress={() => setDeleteModal({ visible: true })}>
+                  <AnimatedTouchable style={styles.deleteBtnModal} onPress={() => openDeleteConfirmation(selectedAppt, true)}>
                     <Trash2 size={18} color={theme.error} />
                   </AnimatedTouchable>
                 )}
@@ -1285,12 +1308,13 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
       {/* Delete Confirm */}
       <ConfirmModal
         visible={deleteModal.visible}
-        title="Delete Appointment"
-        message="Are you sure you want to delete this appointment? This action cannot be undone."
+        title="Delete Session"
+        message="Are you sure you want to delete this session? This action cannot be undone."
         confirmText="Delete"
         destructive
+        loading={deleteSaving}
         onConfirm={handleDelete}
-        onCancel={() => setDeleteModal({ visible: false })}
+        onCancel={cancelDelete}
       />
     </SafeAreaView>
   );

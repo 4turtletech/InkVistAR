@@ -283,7 +283,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
         <div className="chat-header">
           <div className="chat-header-info">
             <span className="chat-title">{isAdminMode ? (customerName || 'Customer') : (isHumanMode ? 'Live Chat Support' : 'Tattoo AI Assistant')}</span>
-            <span className="chat-subtitle">{isHumanMode ? 'Talking to an artist' : 'Always here to help'}</span>
+            <span className="chat-subtitle">{isHumanMode ? 'Connected to Studio Admin' : 'Always here to help'}</span>
           </div>
           <div className="chat-header-actions">
             {isHumanMode && (
@@ -382,7 +382,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
         <form className="chat-input-area" onSubmit={handleSend}>
           <input
             type="text"
-            placeholder={isHumanMode ? "Type a message to an artist..." : "Ask me anything..."}
+            placeholder={isHumanMode ? "Type a message to support..." : "Ask me anything..."}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value.slice(0, 500))}
             disabled={isLoading && !isHumanMode}

@@ -107,12 +107,19 @@ export function CustomerGallery({ onBack, userId }) {
   };
 
   const displayItems = viewMode === 'My Tattoos' ? myTattoos : works;
-  const availableArtists = Array.from(new Set((works || []).map(w => (w.artist_name || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  const availableArtists = Array.from(new Set((displayItems || []).map(w => (w.artist_name || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+
+  useEffect(() => {
+    if (selectedArtist !== 'All Artists' && !availableArtists.includes(selectedArtist)) {
+      setSelectedArtist('All Artists');
+    }
+  }, [selectedArtist, availableArtists.join('|')]);
+
   const filteredWorks = displayItems.filter(w => {
     const q = searchQuery.toLowerCase();
     const matchSearch = (w.title || '').toLowerCase().includes(q) || (w.artist_name || '').toLowerCase().includes(q) || (w.description || '').toLowerCase().includes(q) || (w.category || '').toLowerCase().includes(q);
     const matchCat = selectedCategories.length === 0 || selectedCategories.includes(w.category);
-    const matchArtist = selectedArtist === 'All Artists' || (w.artist_name || '') === selectedArtist;
+    const matchArtist = selectedArtist === 'All Artists' || (w.artist_name || '').trim() === selectedArtist;
     return matchSearch && matchCat && matchArtist;
   }).sort((a, b) => {
     const dA = new Date(a.created_at || a.appointment_date || 0);
