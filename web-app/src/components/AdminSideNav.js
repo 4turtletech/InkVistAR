@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import io from 'socket.io-client';
 import Axios from 'axios';
-import { API_URL, SOCKET_URL } from '../config';
+import { API_URL, SOCKET_URL, getSocketAccessToken, logoutWebSession } from '../config';
 import { playNotificationSound } from '../utils/notificationSound';
 import ConfirmModal from './ConfirmModal';
 import PaymentAlertOverlay from './PaymentAlertOverlay';
@@ -78,7 +78,7 @@ function AdminSideNav() {
 
     // Socket.io for Real-time Chat Notifications
     useEffect(() => {
-        const socket = io(SOCKET_URL);
+        const socket = io(SOCKET_URL, { auth: async (callback) => callback({ token: await getSocketAccessToken() }) });
 
         socket.on('connect', () => {
             socket.emit('join_admin_tracking');
@@ -209,9 +209,8 @@ function AdminSideNav() {
         { label: 'Notifications', icon: Bell, path: '/admin/notifications', description: 'System alerts & updates' },
     ];
 
-    const handleLogout = () => {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
+    const handleLogout = async () => {
+        await logoutWebSession();
         navigate('/login');
     };
 

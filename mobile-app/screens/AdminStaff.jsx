@@ -21,8 +21,7 @@ import { StatusBadge } from '../src/components/shared/StatusBadge';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { formatDate, getInitials } from '../src/utils/formatters';
-import { API_BASE_URL } from '../src/utils/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL, fetchAPI } from '../src/utils/api';
 
 export const AdminStaff = ({ navigation }) => {
   const { theme, hapticsEnabled } = useTheme();
@@ -39,11 +38,7 @@ export const AdminStaff = ({ navigation }) => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('auth_token');
-      const res = await fetch(`${API_BASE_URL}/api/admin/users?role=artist`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await fetchAPI('/admin/users?role=artist');
       if (data.success) {
         // Always filter client-side to ensure only artists are shown
         // regardless of whether the ?role=artist param is honoured by the backend

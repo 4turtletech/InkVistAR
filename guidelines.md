@@ -178,6 +178,9 @@ This document serves as the primary ground truth for the InkVistAR project. When
 
 ### Authentication
 - `POST /api/login` - User login (response includes `migratedAppointments` count for guest-to-account migration detection)
+- `POST /api/auth/refresh` - Rotate a refresh token and return a new short-lived access token
+- `POST /api/auth/logout` - Revoke refresh sessions and clear the web refresh cookie
+- `GET /api/auth/me` - Return the authenticated safe user object
 - `POST /api/register` - User registration (auto-migrates orphan appointments where `guest_email` matches; response includes `migratedCount`)
 - `POST /api/send-otp` / `/api/verify-otp` - OTP verification
 - `POST /api/reset-password` - Password reset
@@ -310,6 +313,11 @@ SEMAPHORE_API_KEY=<key>
 
 RECAPTCHA_SECRET_KEY=<key>
 
+JWT_ACCESS_SECRET=<32+ character random secret>
+JWT_ACCESS_TTL=15m
+REFRESH_TOKEN_TTL_DAYS=30
+REFRESH_COOKIE_SAME_SITE=lax
+
 STUDIO_CONTACT_EMAIL=admin@inkvistar.com
 
 FRONTEND_URL=https://inkvistar-web.vercel.app/login
@@ -317,6 +325,12 @@ BACKEND_URL=https://inkvistar-api.onrender.com
 ```
 
 ---
+
+## Security Enforcement
+
+- **High-Risk HTTP Routes:** `backend/middleware/highRiskProtection.js` protects admin, payment/payout, customer health/profile, appointment/project, artist earnings/session, notification/report, inventory/POS, and invoice routes. Authorization identity always comes from `req.auth`, never a request-body user ID or the legacy `X-Admin-Id` header. Resource ownership is loaded from the database before access is granted.
+- **Socket.IO Rooms:** `backend/services/socketAuthorization.js` requires admin/manager authentication for admin tracking, verifies artist assignment before joining session rooms, limits customers to their own support room, and binds anonymous live-support sockets to one guest room.
+- **Payment Webhook:** `/api/payments/webhook` is the only unauthenticated payment endpoint. It requires `PAYMONGO_WEBHOOK_SECRET`, a valid HMAC signature, and a timestamp within five minutes.
 
 ## Important Patterns
 

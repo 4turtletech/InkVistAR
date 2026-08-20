@@ -13,12 +13,13 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../src/context/ThemeContext';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { typography, borderRadius, shadows } from '../src/theme';
-import { sendChatMessage, API_BASE_URL } from '../src/utils/api';
+import { sendChatMessage, API_BASE_URL, getSocketAuthToken } from '../src/utils/api';
 import io from 'socket.io-client';
 
 // Connect socket directly to the backend origin (matches web-app SOCKET_URL pattern)
 const socket = io(API_BASE_URL, {
   transports: ['websocket', 'polling'],
+  auth: async (callback) => callback({ token: await getSocketAuthToken() }),
   reconnection: true,
   reconnectionAttempts: 10,
   reconnectionDelay: 2000,

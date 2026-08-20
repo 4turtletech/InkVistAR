@@ -9,7 +9,7 @@ import ImageLightbox from '../components/ImageLightbox';
 import SessionTimeline from '../components/SessionTimeline';
 import './PortalStyles.css';
 import './ArtistStyles.css';
-import { API_URL, SOCKET_URL } from '../config';
+import { API_URL, SOCKET_URL, getSocketAccessToken } from '../config';
 import { getSessionPaymentStatus, shouldShowInQueue } from '../utils/sessionPayment';
 import { formatTime12Hour, formatStatus, getStatusColor } from '../utils/formatters';
 
@@ -215,7 +215,10 @@ function ArtistSessions() {
     useEffect(() => {
         if (!activeSession || !activeSession.secondary_artist_id) return;
 
-        const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+        const socket = io(SOCKET_URL, {
+            transports: ['websocket', 'polling'],
+            auth: async (callback) => callback({ token: await getSocketAccessToken() })
+        });
         socketRef.current = socket;
 
         socket.emit('join_session', {

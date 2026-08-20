@@ -1,12 +1,29 @@
 // src/utils/api.js - UPDATED VERSION
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 export const API_BASE_URL = 'https://api.inkvictusstudio.com';
 export const API_URL = `${API_BASE_URL}/api`;
+const ACCESS_TOKEN_KEY = 'inkvistar_access_token';
+const REFRESH_TOKEN_KEY = 'inkvistar_refresh_token';
+const ACCESS_TOKEN_EXPIRY_KEY = 'inkvistar_access_token_expiry';
+let refreshInFlight = null;
+
+const getAccessTokenExpiry = (token) => {
+  try {
+    if (typeof globalThis.atob !== 'function') return Date.now() + 14 * 60 * 1000;
+    const encoded = String(token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = encoded.padEnd(Math.ceil(encoded.length / 4) * 4, '=');
+    const payload = JSON.parse(globalThis.atob(padded));
+    return Number(payload.exp) * 1000;
+  } catch (_) {
+    return Date.now() + 14 * 60 * 1000;
+  }
+};
 
 // Enhanced fetch helper with better error handling
 export const fetchAPI = async (endpoint, options = {}) => {
   const url = `${API_URL}${endpoint}`; // This now correctly uses the dev or prod URL
+  const { skipAuthRefresh = false, ...requestOptions } = options;
   
   console.log(`📤 API Request: ${options.method || 'GET'} ${url}`);
   
@@ -24,11 +41,27 @@ export const fetchAPI = async (endpoint, options = {}) => {
   const startTime = Date.now();
   
   try {
-    const response = await fetch(url, {
-      ...options,
-      headers: { ...defaultHeaders, ...options.headers },
+    let response = await fetch(url, {
+      ...requestOptions,
+      headers: { ...defaultHeaders, ...requestOptions.headers },
       timeout: 30000, // 30 second timeout
     });
+
+    const isAuthEndpoint = ['/login', '/auth/refresh', '/auth/logout'].includes(endpoint);
+    if (response.status === 401 && !skipAuthRefresh && !isAuthEndpoint) {
+      const nextAccessToken = await refreshMobileSession();
+      if (nextAccessToken) {
+        response = await fetch(url, {
+          ...requestOptions,
+          headers: {
+            ...defaultHeaders,
+            ...requestOptions.headers,
+            Authorization: `Bearer ${nextAccessToken}`,
+          },
+          timeout: 30000,
+        });
+      }
+    }
     
     const responseTime = Date.now() - startTime;
     console.log(`📥 API Response: ${response.status} (${responseTime}ms)`);
@@ -92,9 +125,9 @@ export const fetchAPI = async (endpoint, options = {}) => {
 };
 
 // Helper to get auth token from storage
-const getAuthToken = async () => {
+export const getAuthToken = async () => {
   try {
-    const token = await AsyncStorage.getItem('auth_token');
+    const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
     return token;
   } catch (error) {
     console.error('Error getting auth token:', error);
@@ -105,7 +138,10 @@ const getAuthToken = async () => {
 // Helper to save auth token
 export const saveAuthToken = async (token) => {
   try {
-    await AsyncStorage.setItem('auth_token', token);
+    await Promise.all([
+      SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token),
+      SecureStore.setItemAsync(ACCESS_TOKEN_EXPIRY_KEY, String(getAccessTokenExpiry(token))),
+    ]);
     console.log('Auth token saved');
   } catch (error) {
     console.error('Error saving auth token:', error);
@@ -115,11 +151,64 @@ export const saveAuthToken = async (token) => {
 // Helper to remove auth token
 export const removeAuthToken = async () => {
   try {
-    await AsyncStorage.removeItem('auth_token');
-    console.log('Auth token removed');
+    await Promise.all([
+      SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY),
+      SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
+      SecureStore.deleteItemAsync(ACCESS_TOKEN_EXPIRY_KEY),
+    ]);
+    console.log('Authentication tokens removed');
   } catch (error) {
     console.error('Error removing auth token:', error);
   }
+};
+
+export const saveAuthSession = async ({ accessToken, refreshToken }) => {
+  if (!accessToken || !refreshToken) throw new Error('A complete mobile authentication session is required.');
+  await Promise.all([
+    SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken),
+    SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken),
+    SecureStore.setItemAsync(ACCESS_TOKEN_EXPIRY_KEY, String(getAccessTokenExpiry(accessToken))),
+  ]);
+};
+
+const refreshMobileSession = async () => {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+    if (!refreshToken) return null;
+
+    try {
+      const response = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ refreshToken, clientType: 'mobile' }),
+      });
+      if (!response.ok) {
+        await removeAuthToken();
+        return null;
+      }
+      const result = await response.json();
+      if (!result.accessToken || !result.refreshToken) {
+        await removeAuthToken();
+        return null;
+      }
+      await saveAuthSession(result);
+      return result.accessToken;
+    } catch (error) {
+      console.warn('Authentication refresh failed:', error.message);
+      return null;
+    }
+  })().finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
+};
+
+export const getSocketAuthToken = async () => {
+  const [token, expiry] = await Promise.all([
+    SecureStore.getItemAsync(ACCESS_TOKEN_KEY),
+    SecureStore.getItemAsync(ACCESS_TOKEN_EXPIRY_KEY),
+  ]);
+  if (token && Number(expiry) > Date.now() + 30000) return token;
+  return refreshMobileSession();
 };
 
 // Validation Helpers
@@ -153,10 +242,14 @@ export const loginUser = async (email, password, userType) => {
     body: JSON.stringify({
       email: sanitizeInput(email),
       password,
-      type: userType
+      type: userType,
+      clientType: 'mobile'
     })
   });
-  
+
+  if (result.success && result.accessToken && result.refreshToken) {
+    await saveAuthSession(result);
+  }
   return result;
 };
 
@@ -541,8 +634,14 @@ export const deleteAppointmentByAdmin = async (apptId) => {
 
 // Logout user
 export const logoutUser = async () => {
+  const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+  const result = await fetchAPI('/auth/logout', {
+    method: 'POST',
+    body: JSON.stringify({ refreshToken, clientType: 'mobile' }),
+    skipAuthRefresh: true,
+  });
   await removeAuthToken();
-  return { success: true };
+  return result;
 };
 
 // Get all users (for debugging)

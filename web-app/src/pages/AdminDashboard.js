@@ -11,7 +11,7 @@ import './AdminDashboard.css';
 import AdminSideNav from '../components/AdminSideNav';
 import './PortalStyles.css';
 import './AdminStyles.css';
-import { API_URL } from '../config';
+import { API_URL, logoutWebSession } from '../config';
 import { getDisplayCode, formatTime12Hour, formatStatus } from '../utils/formatters';
 
 function AdminDashboard() {
@@ -299,9 +299,8 @@ function AdminDashboard() {
         );
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
+    const handleLogout = async () => {
+        await logoutWebSession();
         navigate('/admin');
     };
 

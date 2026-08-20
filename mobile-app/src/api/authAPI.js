@@ -1,15 +1,15 @@
 // src/api/authAPI.js
-import { fetchAPI, saveAuthToken, removeAuthToken } from '../utils/api';
+import { fetchAPI, saveAuthSession, removeAuthToken } from '../utils/api';
 
 // Login with email/password
 export const login = async (email, password, userType) => {
-  const result = await fetchAPI('/auth/login', {
+  const result = await fetchAPI('/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password, userType }),
+    body: JSON.stringify({ email, password, type: userType, clientType: 'mobile' }),
   });
   
-  if (result.success && result.token) {
-    await saveAuthToken(result.token);
+  if (result.success && result.accessToken && result.refreshToken) {
+    await saveAuthSession(result);
     await saveUserData(result.user);
   }
   
@@ -23,8 +23,8 @@ export const register = async (userData) => {
     body: JSON.stringify(userData),
   });
   
-  if (result.success && result.token) {
-    await saveAuthToken(result.token);
+  if (result.success && result.accessToken && result.refreshToken) {
+    await saveAuthSession(result);
     await saveUserData(result.user);
   }
   

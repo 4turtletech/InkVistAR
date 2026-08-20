@@ -16,7 +16,7 @@ import { typography, borderRadius, shadows } from '../src/theme';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { getInitials, formatCurrency } from '../src/utils/formatters';
-import { fetchAPI, getArtistPortfolio } from '../src/utils/api';
+import { fetchAPI, getGalleryWorks } from '../src/utils/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -45,10 +45,10 @@ export function CustomerArtistProfile({ route, onBack, onNavigate }) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const r = await fetchAPI(`/artist/profile/${artistId}`);
-      if (r.success) setArtist(r.profile);
-      const pr = await getArtistPortfolio(artistId);
-      if (pr.success) setPortfolio(pr.works?.filter(w => w.is_public !== false) || []);
+      const r = await fetchAPI(`/artists/${artistId}/public`);
+      if (r.success) setArtist(r.artist);
+      const pr = await getGalleryWorks({ artistId });
+      if (pr.success) setPortfolio(pr.works || []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };

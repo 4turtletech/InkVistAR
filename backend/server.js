@@ -18,6 +18,12 @@ const {
   databaseConfig,
 } = require('./config/runtime');
 const { initializeControlledAccounts } = require('./utils/accountBootstrap');
+const { createTokenService } = require('./services/tokenService');
+const { createAuthenticate } = require('./middleware/authenticate');
+const { createHighRiskProtection } = require('./middleware/highRiskProtection');
+const { createAuthRouter, safeUser } = require('./routes/auth');
+const { deliverRefreshToken, isMobileLoginRequest } = require('./services/sessionTransport');
+const { createSocketAuthorizer } = require('./services/socketAuthorization');
 process.env.TZ = 'Asia/Manila'; // Global Node.js timezone localization
 
 const app = express();
@@ -146,7 +152,7 @@ app.use(cors({
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'x-user-email', 'x-admin-id'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'x-user-email'],
   credentials: true,
   optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 }));
@@ -190,6 +196,9 @@ const db = mysql.createPool({
   dateStrings: true, // Force date columns to be returned as strings to prevent timezone shifts
   maxAllowedPacket: 50 * 1024 * 1024 // 50MB - allows large base64 image data in queries
 });
+const tokenService = createTokenService(db);
+const authenticate = createAuthenticate({ tokenService, pool: db });
+const socketAuthorizer = createSocketAuthorizer({ tokenService, pool: db });
 
 // Health check endpoint for Railway/Render
 app.get('/health', (req, res) => {
@@ -326,6 +335,10 @@ db.getConnection((err, connection) => {
         });
 
         console.log('[OK] Users table ready');
+        tokenService.initialize().catch((tokenStoreError) => {
+          console.error('[ERROR] Refresh token storage initialization failed:', tokenStoreError.message);
+          process.exit(1);
+        });
         accountSchemaReady.users = true;
         initializeAccountsWhenSchemaIsReady();
       }
@@ -1926,14 +1939,9 @@ function logAction(userId, action, details, ip = '::1') {
   });
 }
 
-/**
- * Extract admin user ID from request context.
- * Priority: req.body.adminId → req.body.userId → req.body.user_id → X-Admin-Id header → null
- */
+/** Extract the verified administrator ID from the access token. */
 function getAdminId(req) {
-  return req.body?.adminId || req.body?.userId || req.body?.user_id
-    || (req.headers?.['x-admin-id'] ? parseInt(req.headers['x-admin-id'], 10) : null)
-    || null;
+  return req.auth?.userId || null;
 }
 
 // ========== GENERATIVE AI CHATBOT SETUP (Groq) ==========
@@ -1982,6 +1990,9 @@ const debugOnly = (req, res, next) => {
   }
   next();
 };
+
+app.use('/api/auth', createAuthRouter({ tokenService, authenticate }));
+app.use(createHighRiskProtection({ authenticate, pool: db }));
 
 // ========== DEBUG ENDPOINTS ==========
 
@@ -2142,7 +2153,6 @@ app.post('/api/login', async (req, res) => {
       }
 
       const user = results[0];
-      console.log('User object before 403 checks:', user);
 
       // Check if soft deleted
       if (user.is_deleted) {
@@ -2169,7 +2179,7 @@ app.post('/api/login', async (req, res) => {
         });
       }
 
-      console.log('[OK] User found:', user.name);
+      console.log('[OK] Login account found.');
 
       // Check if locked out
       if (user.lockout_until && new Date(user.lockout_until) > new Date()) {
@@ -2279,22 +2289,30 @@ app.post('/api/login', async (req, res) => {
           db.query(
             'SELECT COUNT(*) as cnt FROM appointments WHERE guest_email = ? AND customer_id = ? AND is_deleted = 0',
             [user.email, user.id],
-            (cntErr, cntRows) => {
+            async (cntErr, cntRows) => {
               const migratedAppointments = (!cntErr && cntRows && cntRows[0]) ? cntRows[0].cnt : 0;
+              try {
+                const clientType = isMobileLoginRequest(req) ? 'mobile' : 'web';
+                const session = await tokenService.issueSession(user, {
+                  clientType,
+                  ip: req.ip,
+                  userAgent: req.headers['user-agent'],
+                });
+                const refreshTransport = deliverRefreshToken(req, res, session.refreshToken, clientType);
 
-              res.json({
-                success: true,
-                user: {
-                  id: user.id,
-                  name: user.name,
-                  email: user.email,
-                  type: user.user_type,
-                  is_superadmin: user.is_superadmin === 1,
-                  must_change_password: user.must_change_password === 1
-                },
-                message: 'Login successful!',
-                migratedAppointments: migratedAppointments
-              });
+                res.json({
+                  success: true,
+                  accessToken: session.accessToken,
+                  accessTokenExpiresIn: session.accessTokenExpiresIn,
+                  user: safeUser(user),
+                  message: 'Login successful!',
+                  migratedAppointments: migratedAppointments,
+                  ...refreshTransport,
+                });
+              } catch (sessionError) {
+                console.error('[AUTH] Failed to create login session:', sessionError.message);
+                res.status(500).json({ success: false, message: 'Unable to create a secure login session.' });
+              }
             }
           );
         }
@@ -2306,8 +2324,7 @@ app.post('/api/login', async (req, res) => {
     console.error('[ERROR] Unhandled error in login:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: 'Internal server error'
     });
   }
 });
@@ -2352,8 +2369,14 @@ app.post('/api/reset-password', async (req, res) => {
     // 3. Hash and update
     const password_hash = await bcrypt.hash(newPassword, 10);
 
-    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, otp_code = NULL, otp_expires = NULL, failed_login_attempts = 0, lockout_until = NULL WHERE email = ?', [password_hash, email], (updateErr, result) => {
+    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, otp_code = NULL, otp_expires = NULL, failed_login_attempts = 0, lockout_until = NULL WHERE email = ?', [password_hash, email], async (updateErr, result) => {
       if (updateErr) return res.status(500).json({ success: false, message: 'Database error during password update.' });
+      try {
+        await tokenService.revokeAllForUser(user.id);
+      } catch (revokeError) {
+        console.error('[AUTH] Password reset session revocation failed:', revokeError.message);
+        return res.status(500).json({ success: false, message: 'Password changed, but existing sessions could not be revoked. Please contact support.' });
+      }
       logAction(user.id, 'PASSWORD_RESET', `User reset their password.`, req.ip || '::1');
       res.json({ success: true, message: 'Password updated successfully' });
     });
@@ -2362,7 +2385,8 @@ app.post('/api/reset-password', async (req, res) => {
 
 // ========== CUSTOMER CHANGE PASSWORD ENDPOINT ==========
 app.post('/api/customer/change-password', async (req, res) => {
-  const { customerId, currentPassword, newPassword } = req.body;
+  const customerId = req.auth.userId;
+  const { currentPassword, newPassword } = req.body;
   console.log('[INFO] Customer change password requested for ID:', customerId);
 
   // Validation
@@ -2403,10 +2427,16 @@ app.post('/api/customer/change-password', async (req, res) => {
     const password_hash = await bcrypt.hash(newPassword, 10);
     const verification_token = crypto.randomBytes(32).toString('hex');
 
-    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, is_verified = 0, verification_token = ? WHERE id = ?', [password_hash, verification_token, customerId], (updateErr) => {
+    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, is_verified = 0, verification_token = ? WHERE id = ?', [password_hash, verification_token, customerId], async (updateErr) => {
       if (updateErr) {
         console.error('[ERROR] Error updating password:', updateErr);
         return res.status(500).json({ success: false, message: 'Failed to update password' });
+      }
+      try {
+        await tokenService.revokeAllForUser(customerId);
+      } catch (revokeError) {
+        console.error('[AUTH] Customer session revocation failed:', revokeError.message);
+        return res.status(500).json({ success: false, message: 'Password changed, but existing sessions could not be revoked. Please contact support.' });
       }
       logAction(customerId, 'PASSWORD_CHANGED', 'Customer changed their password — re-verification required', req.ip || '::1');
       createNotification(customerId, 'Password Changed', 'Your account password was successfully updated.', 'password_change');
@@ -2435,7 +2465,8 @@ app.post('/api/customer/change-password', async (req, res) => {
 
 // ========== ARTIST CHANGE PASSWORD ENDPOINT ==========
 app.post('/api/artist/change-password', async (req, res) => {
-  const { artistId, currentPassword, newPassword } = req.body;
+  const artistId = req.auth.userId;
+  const { currentPassword, newPassword } = req.body;
   console.log('[INFO] Artist change password requested for ID:', artistId);
 
   // Validation
@@ -2476,10 +2507,16 @@ app.post('/api/artist/change-password', async (req, res) => {
     const password_hash = await bcrypt.hash(newPassword, 10);
     const verification_token = crypto.randomBytes(32).toString('hex');
 
-    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, is_verified = 0, verification_token = ? WHERE id = ?', [password_hash, verification_token, artistId], (updateErr) => {
+    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, is_verified = 0, verification_token = ? WHERE id = ?', [password_hash, verification_token, artistId], async (updateErr) => {
       if (updateErr) {
         console.error('[ERROR] Error updating password:', updateErr);
         return res.status(500).json({ success: false, message: 'Failed to update password' });
+      }
+      try {
+        await tokenService.revokeAllForUser(artistId);
+      } catch (revokeError) {
+        console.error('[AUTH] Artist session revocation failed:', revokeError.message);
+        return res.status(500).json({ success: false, message: 'Password changed, but existing sessions could not be revoked. Please contact support.' });
       }
       logAction(artistId, 'PASSWORD_CHANGED', 'Artist changed their password — re-verification required', req.ip || '::1');
       createNotification(artistId, 'Password Changed', 'Your account password was successfully updated.', 'password_change');
@@ -2508,7 +2545,8 @@ app.post('/api/artist/change-password', async (req, res) => {
 
 // ========== REQUEST EMAIL CHANGE (sends OTP to current email) ==========
 app.post('/api/request-email-change', (req, res) => {
-  const { userId, newEmail } = req.body;
+  const userId = req.auth.userId;
+  const { newEmail } = req.body;
   console.log('[INFO] Email change requested for user ID:', userId);
 
   if (!userId || !newEmail) {
@@ -2563,7 +2601,8 @@ app.post('/api/request-email-change', (req, res) => {
 
 // ========== CONFIRM EMAIL CHANGE (verify OTP, update email, force re-verification) ==========
 app.post('/api/confirm-email-change', (req, res) => {
-  const { userId, otp, newEmail } = req.body;
+  const userId = req.auth.userId;
+  const { otp, newEmail } = req.body;
   console.log('[INFO] Confirming email change for user ID:', userId);
 
   if (!userId || !otp || !newEmail) {
@@ -2720,7 +2759,8 @@ app.post('/api/send-otp', (req, res) => {
 
 // ── Push Token Registration ──────────────────────────────────────
 app.post('/api/push/register', (req, res) => {
-  const { user_id, token, platform } = req.body;
+  const user_id = req.auth.userId;
+  const { token, platform } = req.body;
   if (!user_id || !token) return res.json({ success: false, message: 'user_id and token required' });
 
   db.query(
@@ -3538,7 +3578,8 @@ app.get('/api/artist/:artistId/portfolio', (req, res) => {
 
 // Add portfolio work
 app.post('/api/artist/portfolio', (req, res) => {
-  const { artistId, imageUrl, title, description, category, isPublic, priceEstimate } = req.body;
+  const artistId = req.auth.role === 'artist' ? req.auth.userId : req.body.artistId;
+  const { imageUrl, title, description, category, isPublic, priceEstimate } = req.body;
 
   if (!imageUrl) {
     return res.status(400).json({ success: false, message: 'Image data or URL is required.' });
@@ -3903,6 +3944,10 @@ app.post('/api/customer/appointments', async (req, res) => {
   console.log('[INFO] Customer booking request received');
   let { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage, price, serviceType, consultationMethod, customerName, guestEmail, guestPhone } = req.body;
 
+  // Logged-in customers are identified only by their verified access token.
+  // Anonymous callers are always treated as guests, even if they submit a customerId.
+  customerId = req.auth?.userId || null;
+
   // --- Validate Customer ID & Handle Guests ---
   let finalCustomerId = customerId;
   let isGuest = 0;
@@ -4167,7 +4212,8 @@ app.get('/api/customer/:customerId/appointments', (req, res) => {
 // Customer Reschedule Endpoint
 app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
   const { id } = req.params;
-  const { customerId, newDate, newTime, reason } = req.body;
+  const customerId = req.auth.userId;
+  const { newDate, newTime, reason } = req.body;
 
   if (!customerId || !newDate) {
     return res.status(400).json({ success: false, message: 'Missing required fields (customerId, newDate).' });
@@ -4267,7 +4313,8 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
 // Customer submits a reschedule REQUEST (for appointments within 1 week but ≥12 hours away)
 app.post('/api/customer/appointments/:id/reschedule-request', (req, res) => {
   const { id } = req.params;
-  const { customerId, requestedDate, requestedTime, reason } = req.body;
+  const customerId = req.auth.userId;
+  const { requestedDate, requestedTime, reason } = req.body;
 
   if (!customerId || !requestedDate || !reason) {
     return res.status(400).json({ success: false, message: 'Missing required fields (customerId, requestedDate, reason).' });
@@ -8090,38 +8137,43 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
 
 app.post('/api/payments/webhook', (req, res) => {
   if (!PAYMONGO_WEBHOOK_SECRET) {
-    console.warn('[WARN] PAYMONGO_WEBHOOK_SECRET is not set. Webhook signature will not be verified.');
+    console.error('[PAYMENT] PAYMONGO_WEBHOOK_SECRET is not configured; webhook rejected.');
+    return res.status(503).json({ success: false, message: 'Webhook verification is not configured.' });
   }
 
   const signatureHeader = req.headers['paymongo-signature'];
   const rawBody = req.rawBody ? req.rawBody.toString() : JSON.stringify(req.body || {});
 
-  if (PAYMONGO_WEBHOOK_SECRET) {
-    if (!signatureHeader) {
-      return res.status(400).json({ success: false, message: 'Missing Paymongo-Signature header' });
-    }
+  if (!signatureHeader) {
+    return res.status(400).json({ success: false, message: 'Missing Paymongo-Signature header' });
+  }
 
-    const parts = signatureHeader.split(',').reduce((acc, part) => {
-      const [k, v] = part.split('=');
-      acc[k] = v;
-      return acc;
-    }, {});
+  const parts = signatureHeader.split(',').reduce((acc, part) => {
+    const [k, v] = part.split('=');
+    if (k && v) acc[k.trim()] = v.trim();
+    return acc;
+  }, {});
 
-    const timestamp = parts.t;
-    const signature = parts.v1;
+  const timestamp = parts.t;
+  const signature = parts.v1 || parts.li || parts.te;
 
-    if (!timestamp || !signature) {
-      return res.status(400).json({ success: false, message: 'Invalid signature header' });
-    }
+  if (!timestamp || !signature) {
+    return res.status(400).json({ success: false, message: 'Invalid signature header' });
+  }
 
-    const expected = crypto.createHmac('sha256', PAYMONGO_WEBHOOK_SECRET)
-      .update(`${timestamp}.${rawBody}`)
-      .digest('hex');
+  const timestampMs = Number(timestamp) * 1000;
+  if (!Number.isFinite(timestampMs) || Math.abs(Date.now() - timestampMs) > 5 * 60 * 1000) {
+    return res.status(400).json({ success: false, message: 'Webhook signature timestamp is outside the allowed window.' });
+  }
 
-    if (expected !== signature) {
-      console.error('[ERROR] Webhook signature mismatch');
-      return res.status(400).json({ success: false, message: 'Signature mismatch' });
-    }
+  const expected = crypto.createHmac('sha256', PAYMONGO_WEBHOOK_SECRET)
+    .update(`${timestamp}.${rawBody}`)
+    .digest('hex');
+  const expectedBuffer = Buffer.from(expected, 'utf8');
+  const suppliedBuffer = Buffer.from(signature, 'utf8');
+  if (expectedBuffer.length !== suppliedBuffer.length || !crypto.timingSafeEqual(expectedBuffer, suppliedBuffer)) {
+    console.error('[ERROR] Webhook signature mismatch');
+    return res.status(400).json({ success: false, message: 'Signature mismatch' });
   }
 
   const event = req.body;
@@ -8625,7 +8677,8 @@ app.post('/api/admin/aftercare-templates/reset', (req, res) => {
 // Customer: Cancel a pending booking with reason
 app.put('/api/customer/appointments/:id/cancel', (req, res) => {
   const { id } = req.params;
-  const { customerId, reason, isGracePeriod } = req.body;
+  const customerId = req.auth.userId;
+  const { reason, isGracePeriod } = req.body;
 
   if (!customerId || !reason || reason.trim().length < 10) {
     return res.status(400).json({ success: false, message: 'A cancellation reason (min 10 characters) is required.' });
@@ -8738,7 +8791,8 @@ app.put('/api/customer/appointments/:id/cancel', (req, res) => {
 
 // Toggle favorite status
 app.post('/api/customer/favorites', (req, res) => {
-  const { userId, workId } = req.body;
+  const userId = req.auth.userId;
+  const { workId } = req.body;
   if (!userId || !workId) return res.status(400).json({ success: false, message: 'Missing userId or workId' });
 
   db.query('SELECT * FROM favorites WHERE user_id = ? AND work_id = ?', [userId, workId], (err, results) => {
@@ -9529,7 +9583,8 @@ app.post('/api/admin/inventory', (req, res) => {
 // Admin: Update Inventory Item
 app.put('/api/admin/inventory/:id', (req, res) => {
   const { id } = req.params;
-  const { name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice, user_id, image } = req.body;
+  const { name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice, image } = req.body;
+  const user_id = req.auth.userId;
 
   // First, fetch the current item to detect price changes
   db.query('SELECT cost, retail_price, name FROM inventory WHERE id = ?', [id], (fetchErr, rows) => {
@@ -9645,7 +9700,7 @@ app.post('/api/admin/inventory/:id/transaction', (req, res) => {
 
       // Log transaction with item_price
       db.query('INSERT INTO inventory_transactions (inventory_id, type, quantity, reason, user_id, item_price) VALUES (?, ?, ?, ?, ?, ?)',
-        [id, type, quantity, reason, req.body.user_id || null, item_price],
+        [id, type, quantity, reason, req.auth.userId, item_price],
         (logErr) => {
           if (logErr) console.error('Failed to log transaction:', logErr);
           logAction(getAdminId(req), 'STOCK_TRANSACTION', `${type.toUpperCase()} ${quantity} for item ${id}: ${reason}`, req.ip);
@@ -10267,7 +10322,8 @@ app.get('/api/admin/expenses', (req, res) => {
 
 // Admin: Create Studio Expense
 app.post('/api/admin/expenses', (req, res) => {
-  const { category, description, amount, userId } = req.body;
+  const { category, description, amount } = req.body;
+  const userId = req.auth.userId;
   if (!category || !amount) return res.status(400).json({ success: false, message: 'Category and amount are required.' });
   db.query('INSERT INTO studio_expenses (category, description, amount, created_by, created_at) VALUES (?, ?, ?, ?, ?)',
     [category, description || '', parseFloat(amount), userId || null, getLocalDatetime()], (err, result) => {
@@ -10636,7 +10692,8 @@ app.post('/api/resend-verification', (req, res) => {
 
 // ========== CHAT ABUSE REPORT ENDPOINT ==========
 app.post('/api/chat/report-abuse', (req, res) => {
-  const { customerId, userName, strikes } = req.body;
+  const customerId = req.auth.userId;
+  const { userName, strikes } = req.body;
   console.log(`[WARN] Chat abuse report: Customer ${customerId} (${userName}) - ${strikes} profanity strikes`);
 
   if (!customerId) {
@@ -10890,20 +10947,43 @@ console.log('[OK] Chatbot endpoint (/api/chat) is registered.');
 const activeSupportSessions = {};
 const activeSessionPeers = {}; // Dual-artist session sync: { 'session_123': { socketId: { artistId, artistName } } }
 
+io.use(async (socket, next) => {
+  try {
+    await socketAuthorizer.attachAuthentication(socket);
+    next();
+  } catch (error) {
+    console.warn('[SOCKET AUTH] Connection rejected:', error.message);
+    next(new Error('Authentication failed.'));
+  }
+});
+
+const rejectSocketAction = (socket, event) => {
+  socket.emit('authorization_error', {
+    event,
+    message: 'You do not have permission to access this real-time channel.'
+  });
+};
+
 io.on('connection', (socket) => {
-  console.log('[OK] A user connected to chat:', socket.id);
+  console.log('[OK] Socket connected:', socket.id, socket.auth ? `user ${socket.auth.userId}` : 'guest');
 
   // Join a room based on a unique identifier
   socket.on('join_room', (room) => {
+    if (!socketAuthorizer.authorizeSupportRoom(socket, room)) return rejectSocketAction(socket, 'join_room');
     socket.join(room);
     console.log(`User ${socket.id} joined room: ${room}`);
   });
 
   // ═══════════ DUAL-ARTIST SESSION SYNC ═══════════
   // Tracks which artists are actively viewing each session modal
-  socket.on('join_session', (data) => {
-    const { appointmentId, artistId, artistName } = data || {};
+  socket.on('join_session', async (data) => {
+    const { appointmentId } = data || {};
     if (!appointmentId) return;
+    if (!await socketAuthorizer.authorizeAppointment(socket, appointmentId)) {
+      return rejectSocketAction(socket, 'join_session');
+    }
+    const artistId = socket.auth.userId;
+    const artistName = socketAuthorizer.displayName(socket);
     const room = `session_${appointmentId}`;
     socket.join(room);
     // Store artist info on the socket for cleanup on disconnect
@@ -10950,15 +11030,20 @@ io.on('connection', (socket) => {
     const { appointmentId } = payload || {};
     if (!appointmentId) return;
     const room = `session_${appointmentId}`;
+    if (!socket.rooms.has(room)) return rejectSocketAction(socket, 'session_update');
     // Broadcast to all OTHER sockets in the room (excludes sender)
-    socket.to(room).emit('session_update', payload);
+    socket.to(room).emit('session_update', { ...payload, actorId: socket.auth?.userId });
   });
 
   // ═══════════ END DUAL-ARTIST SESSION SYNC ═══════════
 
   // Customer initiates a live support session
   socket.on('start_support_session', (data) => {
-    const { room, name } = data;
+    const { room } = data || {};
+    if (!socketAuthorizer.authorizeSupportRoom(socket, room) || !socket.rooms.has(room)) {
+      return rejectSocketAction(socket, 'start_support_session');
+    }
+    const name = socketAuthorizer.displayName(socket);
     if (!activeSupportSessions[room]) {
       activeSupportSessions[room] = {
         id: room,
@@ -10984,6 +11069,7 @@ io.on('connection', (socket) => {
 
   // Admin joins the global admin tracking room to get session lists
   socket.on('join_admin_tracking', () => {
+    if (!socketAuthorizer.canTrackSupport(socket)) return rejectSocketAction(socket, 'join_admin_tracking');
     socket.join('admin_room');
     // Instantly send current sessions to the newly connected admin
     socket.emit('support_sessions_update', Object.values(activeSupportSessions));
@@ -10993,22 +11079,29 @@ io.on('connection', (socket) => {
   socket.on('send_message', (data) => {
     console.log('[INFO] Support chat message received.');
 
+    const room = String(data?.room || '');
+    const text = String(data?.text || '').trim().slice(0, 2000);
+    if (!text || !socketAuthorizer.authorizeSupportRoom(socket, room) || !socket.rooms.has(room)) {
+      return rejectSocketAction(socket, 'send_message');
+    }
+    const sender = socketAuthorizer.displayName(socket);
+
     const msgId = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
 
     // Save message memory to active sessions log
-    if (activeSupportSessions[data.room]) {
-      activeSupportSessions[data.room].messages.push({
+    if (activeSupportSessions[room]) {
+      activeSupportSessions[room].messages.push({
         id: msgId,
-        sender: data.sender,
-        text: data.text,
+        sender,
+        text,
         timestamp: new Date(),
         read: false
       });
-      activeSupportSessions[data.room].lastMessage = data.text;
-      activeSupportSessions[data.room].timestamp = new Date();
+      activeSupportSessions[room].lastMessage = text;
+      activeSupportSessions[room].timestamp = new Date();
 
       // Persist to database
-      db.query('INSERT INTO support_messages (room_id, sender, message) VALUES (?, ?, ?)', [data.room, data.sender, data.text], (err) => {
+      db.query('INSERT INTO support_messages (room_id, sender, message) VALUES (?, ?, ?)', [room, sender, text], (err) => {
         if (err) console.error('Error saving chat message:', err);
       });
 
@@ -11017,18 +11110,15 @@ io.on('connection', (socket) => {
 
       // Push Notification Logic for Chat
       // Case A: Support (Admin/Artist) replies to Customer in customer_{id} room
-      const customerRoomMatch = data.room.match(/^customer_(\d+)$/);
-      const isFromSupport = data.sender.toLowerCase().includes('admin') ||
-        data.sender.toLowerCase().includes('artist') ||
-        data.sender.toLowerCase().includes('agent') ||
-        data.sender.toLowerCase().includes('staff');
+      const customerRoomMatch = room.match(/^customer_(\d+)$/);
+      const isFromSupport = socketAuthorizer.canTrackSupport(socket);
 
       if (customerRoomMatch && isFromSupport) {
         const customerId = customerRoomMatch[1];
         createNotification(
           customerId,
           'New Support Message',
-          `Support: ${data.text.substring(0, 50)}${data.text.length > 50 ? '...' : ''}`,
+          `Support: ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`,
           'chat_message',
           null
         );
@@ -11038,7 +11128,7 @@ io.on('connection', (socket) => {
         db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (err, admins) => {
           if (!err && admins.length > 0) {
             admins.forEach(admin => {
-              createNotification(admin.id, 'New Message from Client', `${data.sender}: ${data.text.substring(0, 50)}`, 'chat_message', null);
+              createNotification(admin.id, 'New Message from Client', `${sender}: ${text.substring(0, 50)}`, 'chat_message', null);
             });
           }
         });
@@ -11046,12 +11136,16 @@ io.on('connection', (socket) => {
     }
 
     // Broadcast the message to the other user in the room (include msgId)
-    socket.to(data.room).emit('receive_message', { ...data, id: msgId });
+    socket.to(room).emit('receive_message', { room, sender, text, id: msgId });
   });
 
   // Mark messages as read
   socket.on('mark_read', (data) => {
-    const { room, reader } = data;
+    const { room } = data || {};
+    if (!socketAuthorizer.authorizeSupportRoom(socket, room) || !socket.rooms.has(room)) {
+      return rejectSocketAction(socket, 'mark_read');
+    }
+    const reader = socketAuthorizer.displayName(socket);
     if (activeSupportSessions[room]) {
       let changed = false;
       activeSupportSessions[room].messages.forEach(msg => {
@@ -11069,6 +11163,9 @@ io.on('connection', (socket) => {
 
   // End support session (from either customer or admin)
   socket.on('end_support_session', (room) => {
+    if (!socketAuthorizer.authorizeSupportRoom(socket, room) || !socket.rooms.has(room)) {
+      return rejectSocketAction(socket, 'end_support_session');
+    }
     if (activeSupportSessions[room]) {
       delete activeSupportSessions[room];
       // Tell the room it was closed
@@ -11534,7 +11631,7 @@ function startRescheduleRequestExpiry() {
 app.get('/api/artists/:id/public', (req, res) => {
   const { id } = req.params;
   const q = `
-    SELECT u.name, u.email, u.phone, 
+    SELECT u.name,
            COALESCE(a.studio_name, 'Independent Artist') as studio_name, 
            COALESCE(a.experience_years, 0) as experience_years, 
            COALESCE(a.specialization, 'General Artist') as specialization, 
@@ -11572,7 +11669,9 @@ app.get('/api/artists/:id/reviews', (req, res) => {
 
 // POST submit a review
 app.post('/api/reviews', (req, res) => {
-  const { customer_id, artist_id, appointment_id, rating, comment } = req.body;
+  const customer_id = req.auth.userId;
+  const { appointment_id, rating, comment } = req.body;
+  const artist_id = req.authorizationResource.artist_id;
   console.log('[REVIEW] Submission attempt:', { customer_id, artist_id, appointment_id, rating, comment: comment?.substring(0, 50) });
 
   if (!customer_id || !artist_id || !appointment_id || !rating) {
@@ -12040,7 +12139,8 @@ function generateReportCode() {
 
 // POST submit a new customer report
 app.post('/api/reports', (req, res) => {
-  const { customer_id, report_type, category, title, description, steps_to_reproduce, attachment, system_info } = req.body;
+  const customer_id = req.auth.userId;
+  const { report_type, category, title, description, steps_to_reproduce, attachment, system_info } = req.body;
   const normalizedReportType = ['bug', 'feature', 'ui_ux', 'general'].includes(report_type)
     ? report_type
     : 'general';
@@ -12194,7 +12294,9 @@ app.put('/api/admin/reports/:id', (req, res) => {
 // POST add a reply to a report (admin or customer)
 app.post('/api/reports/:id/reply', (req, res) => {
   const { id } = req.params;
-  const { sender_id, sender_role, message } = req.body;
+  const sender_id = req.auth.userId;
+  const sender_role = req.auth.role;
+  const { message } = req.body;
 
   if (!sender_id || !sender_role || !message) {
     return res.status(400).json({ success: false, message: 'Missing required fields.' });
@@ -12235,7 +12337,9 @@ app.post('/api/reports/:id/reply', (req, res) => {
 
 // POST /api/projects — Create a new tattoo project and link a seed appointment to it
 app.post('/api/projects', (req, res) => {
-  const { customer_id, artist_id, design_title, total_sessions_planned, notes, seed_appointment_id } = req.body;
+  const { design_title, total_sessions_planned, notes, seed_appointment_id } = req.body;
+  const customer_id = req.authorizationResource?.customer_id || req.body.customer_id;
+  const artist_id = req.authorizationResource?.artist_id || req.body.artist_id;
   if (!customer_id || !artist_id || !total_sessions_planned) {
     return res.status(400).json({ success: false, message: 'customer_id, artist_id, and total_sessions_planned are required.' });
   }

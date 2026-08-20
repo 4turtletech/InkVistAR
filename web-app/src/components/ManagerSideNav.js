@@ -16,7 +16,7 @@ import {
     Menu
 } from 'lucide-react';
 import Axios from 'axios';
-import { API_URL } from '../config';
+import { API_URL, logoutWebSession } from '../config';
 import { playNotificationSound } from '../utils/notificationSound';
 import '../styles/ManagerSideNav.css';
 
@@ -80,8 +80,8 @@ function ManagerSideNav() {
         { label: 'Notifications', icon: Bell, path: '/manager/notifications' },
     ];
 
-    const handleLogout = () => {
-        localStorage.removeItem('user');
+    const handleLogout = async () => {
+        await logoutWebSession();
         navigate('/login');
     };
 

@@ -6,6 +6,9 @@ node_modules/
 .env.local
 .env.*.local
 
+# Local deployment-secret notes (never commit actual secret values)
+backend/RAILWAY_VARIABLES.local.md
+
 # Build outputs
 build/
 dist/

@@ -123,6 +123,17 @@ function CustomerNotifications() {
         }
     };
 
+    const openInvoice = async (invoiceId) => {
+        try {
+            const response = await Axios.get(`${API_URL}/api/invoices/${invoiceId}`, { responseType: 'blob' });
+            const documentUrl = URL.createObjectURL(response.data);
+            window.open(documentUrl, '_blank', 'noopener,noreferrer');
+            setTimeout(() => URL.revokeObjectURL(documentUrl), 60000);
+        } catch (error) {
+            console.error('Unable to open invoice:', error);
+        }
+    };
+
     const formatNotificationTime = (dateString) => {
         const date = new Date(dateString);
         const now = new Date();
@@ -342,7 +353,7 @@ function CustomerNotifications() {
                                                                     <a href={`/customer/waiver/${n.related_id}`} style={glassChipBrand}>View Waiver</a>
                                                                 )}
                                                                 {n.type === 'pos_invoice' && (
-                                                                    <a href={`${API_URL}/api/invoices/${n.related_id}`} target="_blank" rel="noopener noreferrer" style={glassChipBrand}>Invoice</a>
+                                                                    <button onClick={(event) => { event.stopPropagation(); openInvoice(n.related_id); }} style={glassChipBrand}>Invoice</button>
                                                                 )}
                                                                 {(n.type === 'aftercare_reminder' || n.type === 'aftercare_daily') && (
                                                                     <button onClick={(e) => { e.stopPropagation(); navigate('/customer/aftercare'); }} style={glassChipBrand}>View Guide</button>
@@ -420,7 +431,7 @@ function CustomerNotifications() {
                                         <a href={`/customer/bookings?appointment=${selectedNotification.related_id}`} style={glassModalBtnPrimary}>View Booking</a>
                                     );
                                 })()}
-                                {selectedNotification.type === 'pos_invoice' && <a href={`${API_URL}/api/invoices/${selectedNotification.related_id}`} target="_blank" rel="noopener noreferrer" style={glassModalBtnPrimary}>View Invoice</a>}
+                                {selectedNotification.type === 'pos_invoice' && <button onClick={() => openInvoice(selectedNotification.related_id)} style={glassModalBtnPrimary}>View Invoice</button>}
                                 {(selectedNotification.type === 'email_change' || selectedNotification.type === 'password_change') && <button onClick={() => navigate('/customer/profile')} style={glassModalBtnPrimary}>Manage Profile</button>}
                                 {(selectedNotification.type === 'aftercare_reminder' || selectedNotification.type === 'aftercare_daily') && <button onClick={() => { setSelectedNotification(null); navigate('/customer/aftercare'); }} style={glassModalBtnPrimary}>View Guide</button>}
                                 {selectedNotification.type === 'appointment_request' && selectedNotification.message && selectedNotification.message.includes('[WAIVER_SIGNED]') && selectedNotification.related_id && (

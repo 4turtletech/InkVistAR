@@ -7,6 +7,10 @@ const BOOTSTRAP_ADMIN_ENABLED = envFlag('BOOTSTRAP_ADMIN');
 const DEMO_ACCOUNTS_ENABLED = envFlag('SEED_DEMO_ACCOUNTS');
 const DEBUG_ROUTES_ENABLED = !IS_PRODUCTION && envFlag('ENABLE_DEBUG_ROUTES');
 const CAPTCHA_BYPASS_ENABLED = !IS_PRODUCTION && envFlag('CAPTCHA_BYPASS');
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || (IS_PRODUCTION ? '' : 'development-only-access-secret-change-me');
+const JWT_ACCESS_TTL = process.env.JWT_ACCESS_TTL || '15m';
+const REFRESH_TOKEN_TTL_DAYS = Number(process.env.REFRESH_TOKEN_TTL_DAYS || 30);
+const REFRESH_COOKIE_SAME_SITE = String(process.env.REFRESH_COOKIE_SAME_SITE || 'lax').toLowerCase();
 
 const databaseConfig = {
   host: process.env.MYSQLHOST || process.env.DB_HOST || (IS_PRODUCTION ? '' : 'localhost'),
@@ -35,6 +39,10 @@ function validateRuntimeConfiguration() {
       throw new Error('RECAPTCHA_SECRET_KEY is required in production.');
     }
 
+    if (JWT_ACCESS_SECRET.length < 32) {
+      throw new Error('JWT_ACCESS_SECRET must contain at least 32 characters in production.');
+    }
+
     if (process.env.PAYMONGO_SECRET_KEY && !process.env.PAYMONGO_WEBHOOK_SECRET) {
       throw new Error('PAYMONGO_WEBHOOK_SECRET is required in production when PayMongo is enabled.');
     }
@@ -42,6 +50,19 @@ function validateRuntimeConfiguration() {
 
   if (!Number.isInteger(databaseConfig.port) || databaseConfig.port < 1 || databaseConfig.port > 65535) {
     throw new Error('Database port must be a valid integer between 1 and 65535.');
+  }
+
+  if (!Number.isInteger(REFRESH_TOKEN_TTL_DAYS) || REFRESH_TOKEN_TTL_DAYS < 1 || REFRESH_TOKEN_TTL_DAYS > 365) {
+    throw new Error('REFRESH_TOKEN_TTL_DAYS must be an integer between 1 and 365.');
+  }
+
+  const accessTtlMatch = /^(\d{1,2})m$/.exec(JWT_ACCESS_TTL);
+  if (!accessTtlMatch || Number(accessTtlMatch[1]) < 5 || Number(accessTtlMatch[1]) > 30) {
+    throw new Error('JWT_ACCESS_TTL must be between 5m and 30m.');
+  }
+
+  if (!['lax', 'strict', 'none'].includes(REFRESH_COOKIE_SAME_SITE)) {
+    throw new Error('REFRESH_COOKIE_SAME_SITE must be lax, strict, or none.');
   }
 
   if (DEMO_ACCOUNTS_ENABLED && !['development', 'staging', 'test'].includes(APP_ENV)) {
@@ -85,5 +106,9 @@ module.exports = {
   DEMO_ACCOUNTS_ENABLED,
   DEBUG_ROUTES_ENABLED,
   CAPTCHA_BYPASS_ENABLED,
+  JWT_ACCESS_SECRET,
+  JWT_ACCESS_TTL,
+  REFRESH_TOKEN_TTL_DAYS,
+  REFRESH_COOKIE_SAME_SITE,
   databaseConfig,
 };

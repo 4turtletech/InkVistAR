@@ -22,8 +22,7 @@ import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { ConfirmModal } from '../src/components/shared/ConfirmModal';
 import { formatCurrency, formatDate } from '../src/utils/formatters';
-import { API_BASE_URL } from '../src/utils/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetchAPI } from '../src/utils/api';
 
 export const AdminBilling = ({ navigation }) => {
   const { theme, hapticsEnabled } = useTheme();
@@ -84,18 +83,11 @@ export const AdminBilling = ({ navigation }) => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('auth_token');
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const [resInvoices, resPayouts, resArtists] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/admin/invoices`, { headers }),
-        fetch(`${API_BASE_URL}/api/admin/payouts`, { headers }),
-        fetch(`${API_BASE_URL}/api/admin/users?role=artist`, { headers }),
+      const [invData, payData, artData] = await Promise.all([
+        fetchAPI('/admin/invoices'),
+        fetchAPI('/admin/payouts'),
+        fetchAPI('/admin/users?role=artist'),
       ]);
-
-      const invData = await resInvoices.json().catch(() => ({}));
-      const payData = await resPayouts.json().catch(() => ({}));
-      const artData = await resArtists.json().catch(() => ({}));
 
       setInvoices(invData.success ? (invData.data || invData.invoices || []) : []);
       setPayouts(payData.success ? (payData.data || payData.payouts || []) : []);
@@ -110,11 +102,7 @@ export const AdminBilling = ({ navigation }) => {
 
   const loadArtists = async () => {
     try {
-      const token = await AsyncStorage.getItem('auth_token');
-      const res = await fetch(`${API_BASE_URL}/api/admin/users?role=artist`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await fetchAPI('/admin/users?role=artist');
       if (data.success) {
         setArtists((data.users || data.data || []).filter(u => u.user_type === 'artist' || u.role === 'artist'));
       }
@@ -140,10 +128,8 @@ export const AdminBilling = ({ navigation }) => {
       return;
     }
     try {
-      const token = await AsyncStorage.getItem('auth_token');
-      const res = await fetch(`${API_BASE_URL}/api/admin/payouts`, {
+      const data = await fetchAPI('/admin/payouts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           artistId: payoutForm.artistId,
           amount: parsedAmount,
@@ -151,7 +137,6 @@ export const AdminBilling = ({ navigation }) => {
           referenceNumber: payoutForm.reference,
         })
       });
-      const data = await res.json();
       if (data.success) {
         Alert.alert('Success', 'Payout recorded successfully.');
         setPayoutModalVisible(false);
@@ -177,10 +162,8 @@ export const AdminBilling = ({ navigation }) => {
       return;
     }
     try {
-      const token = await AsyncStorage.getItem('auth_token');
-      const res = await fetch(`${API_BASE_URL}/api/admin/invoices`, {
+      const data = await fetchAPI('/admin/invoices', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           clientName: clientName.trim(),
           serviceType,
@@ -190,7 +173,6 @@ export const AdminBilling = ({ navigation }) => {
           status: 'paid',
         })
       });
-      const data = await res.json();
       if (data.success) {
         Alert.alert('Success', 'Invoice created successfully.');
         setCreateInvoiceModal(false);
@@ -206,10 +188,8 @@ export const AdminBilling = ({ navigation }) => {
 
   const handleUpdateInvoice = async () => {
     try {
-      const token = await AsyncStorage.getItem('auth_token');
-      const res = await fetch(`${API_BASE_URL}/api/admin/invoices/${invoiceDetail.id}`, {
+      const data = await fetchAPI(`/admin/invoices/${invoiceDetail.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           client: invoiceDetail.client_name,
           type: invoiceDetail.service_type,
@@ -217,7 +197,6 @@ export const AdminBilling = ({ navigation }) => {
           status: invoiceDetail.status
         })
       });
-      const data = await res.json();
       if (data.success) {
         Alert.alert('Success', 'Invoice updated successfully.');
         setInvoiceDetail(null);

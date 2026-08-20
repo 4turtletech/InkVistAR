@@ -13,7 +13,7 @@ import { ArrowLeft, Send, MessageSquare, Radio, X as XIcon } from 'lucide-react-
 import { io } from 'socket.io-client';
 import { colors, typography, spacing, borderRadius, shadows } from '../src/theme';
 import { EmptyState } from '../src/components/shared/EmptyState';
-import { API_BASE_URL, getChatHistory } from '../src/utils/api';
+import { API_BASE_URL, getChatHistory, getSocketAuthToken } from '../src/utils/api';
 
 export const AdminChat = ({ navigation }) => {
   const [liveSessions, setLiveSessions] = useState([]);
@@ -31,7 +31,7 @@ export const AdminChat = ({ navigation }) => {
 
   useEffect(() => {
     const baseUrl = (API_BASE_URL || '').replace(/\/api\/?$/, '');
-    const socket = io(baseUrl);
+    const socket = io(baseUrl, { auth: async (callback) => callback({ token: await getSocketAuthToken() }) });
     socketRef.current = socket;
     socket.emit('join_admin_tracking');
 

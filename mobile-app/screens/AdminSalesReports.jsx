@@ -19,8 +19,7 @@ import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { formatCurrency } from '../src/utils/formatters';
-import { API_BASE_URL } from '../src/utils/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetchAPI } from '../src/utils/api';
 import { generateCSV, exportCSV, buildReportHTML, printOrSharePDF, sharePDF } from '../src/utils/exportHelpers';
 
 const toDateStr = (d) => d.toISOString().split('T')[0];
@@ -77,19 +76,14 @@ export const AdminSalesReports = ({ navigation }) => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('auth_token');
-      const h = { Authorization: `Bearer ${token}` };
       if (reportType === 'sales') {
-        const res = await fetch(`${API_BASE_URL}/api/admin/invoices`, { headers: h });
-        const d = await res.json();
+        const d = await fetchAPI('/admin/invoices');
         if (d.success) setInvoices(d.data || []);
       } else {
-        const [invR, txR] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/admin/inventory`, { headers: h }),
-          fetch(`${API_BASE_URL}/api/admin/inventory/transactions`, { headers: h }),
+        const [invD, txD] = await Promise.all([
+          fetchAPI('/admin/inventory'),
+          fetchAPI('/admin/inventory/transactions'),
         ]);
-        const invD = await invR.json();
-        const txD = await txR.json();
         if (invD.success) setInventory(invD.data || []);
         if (txD.success) setTransactions(txD.data || []);
       }

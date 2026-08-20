@@ -3,7 +3,7 @@ import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Users, Calendar, TrendingUp, AlertCircle, LogOut } from 'lucide-react';
 import './PortalStyles.css';
-import { API_URL } from '../config';
+import { API_URL, logoutWebSession } from '../config';
 import ManagerSideNav from '../components/ManagerSideNav';
 import Pagination from '../components/Pagination';
 
@@ -72,7 +72,7 @@ function ManagerPortal() {
             <div className="portal-container manager-portal">
             <header className="portal-header">
                 <h1>Manager Dashboard</h1>
-                <button className="logout-btn" onClick={() => navigate('/login')}>
+                <button className="logout-btn" onClick={async () => { await logoutWebSession(); navigate('/login'); }}>
                     <LogOut size={20} />
                     Logout
                 </button>

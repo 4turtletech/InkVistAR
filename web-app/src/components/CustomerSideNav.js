@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import Axios from 'axios';
-import { API_URL } from '../config';
+import { API_URL, logoutWebSession } from '../config';
 import { playNotificationSound } from '../utils/notificationSound';
 import '../styles/CustomerSideNav.css';
 import NotificationAlertOverlay from './NotificationAlertOverlay';
@@ -115,8 +115,8 @@ function CustomerSideNav() {
         { label: 'Profile', icon: User, path: '/customer/profile' },
     ];
 
-    const handleLogout = () => {
-        localStorage.removeItem('user');
+    const handleLogout = async () => {
+        await logoutWebSession();
         navigate('/login');
     };
 

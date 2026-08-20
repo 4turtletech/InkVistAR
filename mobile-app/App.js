@@ -66,7 +66,7 @@ import PlaceholderScreen from './components/PlaceholderScreen.jsx';
 // API utilities
 import {
   loginUser, registerUser, sendOTP, resetUserPassword,
-  saveAuthToken, updatePushToken, removeAuthToken,
+  updatePushToken, logoutUser,
 } from './src/utils/api';
 import { registerForPushNotifications } from './src/utils/pushNotifications';
 
@@ -304,7 +304,6 @@ function AppContent() {
   const handleLogin = useCallback(async (email, password, userType) => {
     const result = await loginUser(email, password, userType);
     if (result && result.success === true && result.user && result.user.name) {
-      if (result.token) await saveAuthToken(result.token);
       setUser(result.user);
       await AsyncStorage.setItem('user_session', JSON.stringify(result.user));
       registerForPushNotifications(result.user.id).catch(e => console.warn('[PUSH] Registration failed:', e.message));
@@ -313,7 +312,7 @@ function AppContent() {
   }, []);
 
   const handleLogout = useCallback(async () => {
-    await removeAuthToken();
+    await logoutUser();
     await AsyncStorage.removeItem('user_session');
     setUser(null);
   }, []);

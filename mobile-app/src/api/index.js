@@ -14,4 +14,4 @@ export * from './customerAPI';
 export * from './commonAPI';
 
 // Base API utilities
-export { fetchAPI, saveAuthToken, removeAuthToken, isAuthenticated } from '../utils/api';
+export { fetchAPI, saveAuthToken, saveAuthSession, removeAuthToken, isAuthenticated } from '../utils/api';

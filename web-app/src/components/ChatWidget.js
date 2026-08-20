@@ -2,11 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import io from 'socket.io-client';
 import Axios from 'axios';
 import { MessageSquare, X, Send, User, Bot, UserSquare, Check, CheckCheck, LogOut } from 'lucide-react';
-import { API_URL, SOCKET_URL } from '../config';
+import { API_URL, SOCKET_URL, getSocketAccessToken } from '../config';
 import './ChatWidget.css';
 
 // Establish socket connection outside the component
-const socket = io(SOCKET_URL);
+const socket = io(SOCKET_URL, { auth: async (callback) => callback({ token: await getSocketAccessToken() }) });
 
 export default function ChatWidget({ room = null, currentUser = 'Guest', userName = 'Guest User', customerName = '', isAdminMode = false, initialMessages = null }) {
   // Initialize state from sessionStorage or defaults

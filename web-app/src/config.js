@@ -19,29 +19,120 @@ export const API_URL = explicitApi || (isProduction ? BACKEND_DIRECT_URL : 'http
 // For Socket.IO: always connect directly to the backend server, never through Vercel proxy.
 export const SOCKET_URL = explicitApi || (isProduction ? BACKEND_DIRECT_URL : 'http://localhost:3001');
 
+let accessToken = null;
+let refreshPromise = null;
+const refreshClient = Axios.create({ withCredentials: true });
+
+export const setAccessToken = (token) => {
+  accessToken = token || null;
+};
+
+export const getAccessToken = () => accessToken;
+
+const isAccessTokenExpired = (token) => {
+  try {
+    const encoded = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = encoded.padEnd(Math.ceil(encoded.length / 4) * 4, '=');
+    const payload = JSON.parse(window.atob(padded));
+    return !payload.exp || payload.exp <= Math.floor(Date.now() / 1000) + 30;
+  } catch (_) {
+    return true;
+  }
+};
+
+const refreshWebAccessToken = async () => {
+  if (accessToken) return accessToken;
+  if (!refreshPromise) {
+    refreshPromise = refreshClient
+      .post(`${API_URL}/api/auth/refresh`, {})
+      .then((response) => {
+        setAccessToken(response.data.accessToken);
+        if (response.data.user) localStorage.setItem('user', JSON.stringify(response.data.user));
+        return response.data.accessToken;
+      })
+      .finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+};
+
+export const getSocketAccessToken = async () => {
+  if (accessToken && isAccessTokenExpired(accessToken)) accessToken = null;
+  if (accessToken || !localStorage.getItem('user')) return accessToken;
+  try {
+    return await refreshWebAccessToken();
+  } catch (_) {
+    clearWebSession();
+    return null;
+  }
+};
+
+export const clearWebSession = () => {
+  accessToken = null;
+  localStorage.removeItem('user');
+  localStorage.removeItem('token');
+};
+
+export const logoutWebSession = async () => {
+  try {
+    await refreshClient.post(`${API_URL}/api/auth/logout`, {});
+  } catch (_) {
+    // Local cleanup still happens if the network is unavailable.
+  } finally {
+    clearWebSession();
+  }
+};
+
 if (!explicitApi) {
   console.warn(
     `API_URL not provided via env. Using ${API_URL}; set REACT_APP_API_URL for production.`
   );
 }
 
-// ── Global Axios Interceptor: Inject Admin Identity ──
-// Automatically attaches the logged-in user's ID as X-Admin-Id header
-// so every admin mutation is attributed in audit logs.
-Axios.interceptors.request.use((config) => {
-  try {
-    const raw = localStorage.getItem('user');
-    if (raw) {
-      const user = JSON.parse(raw);
-      if (user?.id) {
-        config.headers['X-Admin-Id'] = String(user.id);
-      }
+Axios.defaults.withCredentials = true;
+
+Axios.interceptors.request.use(async (config) => {
+  const requestUrl = String(config.url || '');
+  const isAuthRequest = ['/api/login', '/api/auth/refresh', '/api/auth/logout'].some((path) => requestUrl.includes(path));
+  if (!accessToken && !isAuthRequest && localStorage.getItem('user')) {
+    try {
+      await refreshWebAccessToken();
+    } catch (refreshError) {
+      clearWebSession();
+      throw refreshError;
     }
-  } catch (_) {
-    // localStorage parse failure — skip silently
   }
+  if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
   return config;
 });
+
+Axios.interceptors.response.use(
+  (response) => {
+    if (response.data?.accessToken) setAccessToken(response.data.accessToken);
+    return response;
+  },
+  async (error) => {
+    const originalRequest = error.config;
+    const requestUrl = String(originalRequest?.url || '');
+    const isAuthRequest = ['/api/login', '/api/auth/refresh', '/api/auth/logout'].some((path) => requestUrl.includes(path));
+
+    if (error.response?.status !== 401 || originalRequest?._authRetried || isAuthRequest || !localStorage.getItem('user')) {
+      return Promise.reject(error);
+    }
+
+    originalRequest._authRetried = true;
+    try {
+      const nextAccessToken = await refreshWebAccessToken();
+      originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`;
+      return Axios(originalRequest);
+    } catch (refreshError) {
+      clearWebSession();
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/admin') {
+        window.location.assign('/login');
+      }
+      return Promise.reject(refreshError);
+    }
+  }
+);
 
 // Google reCAPTCHA v3 site key
 // In production, set REACT_APP_RECAPTCHA_SITE_KEY to override.

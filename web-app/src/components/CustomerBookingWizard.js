@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 
 import Axios from 'axios';
 import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info, Image as ImageIcon, Upload, MapPin, UserPlus, Clock, CalendarCheck, UserCog, Gift, Check, Paintbrush, Gem, Star, CreditCard, Eye, Shield, Bell, Sparkles, Award, Video, Users, FileWarning, Heart, AlertTriangle, Plus, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { API_URL, SOCKET_URL } from '../config';
+import { API_URL, SOCKET_URL, getSocketAccessToken } from '../config';
 import io from 'socket.io-client';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import WaiverFormModal from './WaiverFormModal';
@@ -179,7 +179,10 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     useEffect(() => { loadingRef.current = loading; }, [loading]);
 
     useEffect(() => {
-        const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+        const socket = io(SOCKET_URL, {
+            transports: ['websocket', 'polling'],
+            auth: async (callback) => callback({ token: await getSocketAccessToken() })
+        });
 
         socket.on('slot_booked', ({ date: bookedDate, time: bookedTime }) => {
             setFormData(prev => {
