@@ -37,6 +37,7 @@ export function ArtistWorks({ onBack, artistId }) {
   const [newWorkCategory, setNewWorkCategory] = useState('Realism');
   const [isPublic, setIsPublic] = useState(true);
   const [newWorkImage, setNewWorkImage] = useState('');
+  const [imageError, setImageError] = useState('');
   const [newWorkPriceEstimate, setNewWorkPriceEstimate] = useState('');
   const [works, setWorks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,13 +75,41 @@ export function ArtistWorks({ onBack, artistId }) {
     if (!result.canceled) setNewWorkImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
   };
 
-  const resetForm = () => { setNewWorkTitle(''); setNewWorkImage(''); setNewWorkDescription(''); setNewWorkPriceEstimate(''); setTitleError(''); setIsPublic(true); setEditingWorkId(null); setUploadType('url'); };
+  const resetForm = () => { setNewWorkTitle(''); setNewWorkImage(''); setImageError(''); setNewWorkDescription(''); setNewWorkPriceEstimate(''); setTitleError(''); setIsPublic(true); setEditingWorkId(null); setUploadType('url'); };
+
+  const getNormalizedImageValue = (rawValue) => {
+    if (!rawValue) return '';
+    const cleaned = rawValue.trim().replace(/\s+/g, '');
+    if (cleaned.startsWith('data:image/')) return cleaned;
+    return cleaned;
+  };
+
+  const validateImageValue = (rawValue) => {
+    const normalized = getNormalizedImageValue(rawValue);
+    if (!normalized) return { valid: false, message: 'Please provide an image.' };
+    if (normalized.startsWith('data:image/')) return { valid: true, value: normalized };
+    const urlValue = normalized.startsWith('www.') ? `https://${normalized}` : normalized;
+    try {
+      const parsed = new URL(urlValue);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return { valid: false, message: 'Only HTTP or HTTPS image URLs are supported.' };
+      }
+      return { valid: true, value: urlValue };
+    } catch (e) {
+      return { valid: false, message: 'Please enter a valid direct image URL.' };
+    }
+  };
 
   const handleUploadWork = async () => {
     if (!newWorkTitle.trim() || titleError) return;
-    if (!newWorkImage.trim()) { setAlertModal({ visible: true, title: 'Missing Image', message: 'Please provide an image.' }); return; }
+    const imageValidation = validateImageValue(newWorkImage);
+    if (!imageValidation.valid) {
+      setImageError(imageValidation.message);
+      setAlertModal({ visible: true, title: 'Invalid Image', message: imageValidation.message });
+      return;
+    }
     const sanitize = (t) => t.trim().replace(/<[^>]*>?/gm, '');
-    const payload = { title: sanitize(newWorkTitle), description: sanitize(newWorkDescription), category: newWorkCategory, imageUrl: newWorkImage, isPublic, priceEstimate: newWorkPriceEstimate ? sanitize(newWorkPriceEstimate) : null };
+    const payload = { title: sanitize(newWorkTitle), description: sanitize(newWorkDescription), category: newWorkCategory, imageUrl: imageValidation.value, isPublic, priceEstimate: newWorkPriceEstimate ? sanitize(newWorkPriceEstimate) : null };
     setLoading(true);
     let result;
     if (editingWorkId) { try { result = await (await fetch(`${API_URL}/artist/portfolio/${editingWorkId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })).json(); } catch (e) { result = { success: false, message: 'Network error.' }; } }
@@ -90,7 +119,7 @@ export function ArtistWorks({ onBack, artistId }) {
     else setAlertModal({ visible: true, title: 'Error', message: result.message || 'Failed.' });
   };
 
-  const handleEditWork = (w) => { setEditingWorkId(w.id); setNewWorkTitle(w.title); setNewWorkDescription(w.description || ''); setNewWorkCategory(w.category || 'Realism'); setIsPublic(w.is_public === 1 || w.is_public === true); setNewWorkImage(w.image_url); setNewWorkPriceEstimate(w.price_estimate ? String(w.price_estimate) : ''); setUploadType(w.image_url?.startsWith('data:') ? 'upload' : 'url'); setShowUploadModal(true); };
+  const handleEditWork = (w) => { setEditingWorkId(w.id); setNewWorkTitle(w.title); setNewWorkDescription(w.description || ''); setNewWorkCategory(w.category || 'Realism'); setIsPublic(w.is_public === 1 || w.is_public === true); setNewWorkImage(w.image_url); setImageError(''); setNewWorkPriceEstimate(w.price_estimate ? String(w.price_estimate) : ''); setUploadType(w.image_url?.startsWith('data:') ? 'upload' : 'url'); setShowUploadModal(true); };
 
   const handleDeleteWork = (id) => { setConfirmDeleteId(id); };
   const confirmDelete = async () => { const id = confirmDeleteId; setConfirmDeleteId(null); const r = await deleteArtistWork(id); r.success ? loadPortfolio() : setAlertModal({ visible: true, title: 'Error', message: 'Failed.' }); };
@@ -236,7 +265,28 @@ export function ArtistWorks({ onBack, artistId }) {
                 <View style={modalS.tabWrap}>
                   {['url', 'upload'].map(t => <TouchableOpacity key={t} style={[modalS.tab, uploadType === t && modalS.tabActive]} onPress={() => setUploadType(t)}><Text style={[modalS.tabText, uploadType === t && modalS.tabTextActive]}>{t === 'url' ? 'URL' : 'Upload'}</Text></TouchableOpacity>)}
                 </View>
-                {uploadType === 'url' ? <TextInput style={modalS.input} placeholder="https://example.com/image.jpg" placeholderTextColor={colors.textTertiary} value={newWorkImage} onChangeText={setNewWorkImage} /> : (
+                {uploadType === 'url' ? (
+                  <>
+                    <TextInput
+                      style={[modalS.input, imageError && { borderColor: colors.error }]}
+                      placeholder="https://example.com/image.jpg"
+                      placeholderTextColor={colors.textTertiary}
+                      value={newWorkImage}
+                      onChangeText={(text) => {
+                        setNewWorkImage(text);
+                        if (imageError) setImageError('');
+                      }}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    {imageError ? <Text style={modalS.error}>{imageError}</Text> : null}
+                    {getNormalizedImageValue(newWorkImage) ? (
+                      <View style={modalS.urlPreviewWrap}>
+                        <Image source={{ uri: getNormalizedImageValue(newWorkImage) }} style={modalS.imgPreview} />
+                      </View>
+                    ) : null}
+                  </>
+                ) : (
                   <TouchableOpacity style={modalS.imgPicker} onPress={pickImage}>
                     {newWorkImage ? <Image source={{ uri: newWorkImage }} style={modalS.imgPreview} /> : (
                       <View style={modalS.imgPlaceholder}><Upload size={28} color={colors.textTertiary} /><Text style={modalS.imgPickerText}>Select Image</Text></View>
@@ -419,6 +469,7 @@ const getModalStyles = (colors) => StyleSheet.create({
   tabTextActive: { color: colors.textPrimary, fontWeight: '700' },
   imgPicker: { height: 140, backgroundColor: colors.surfaceLight, borderRadius: 12, borderStyle: 'dashed', borderWidth: 2, borderColor: colors.border, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   imgPreview: { width: '100%', height: '100%' },
+  urlPreviewWrap: { marginTop: 10, height: 140, backgroundColor: colors.surfaceLight, borderRadius: 12, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   imgPlaceholder: { alignItems: 'center' },
   imgPickerText: { ...typography.bodyXSmall, color: colors.textTertiary, marginTop: 6 },
   catOpt: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 7, backgroundColor: colors.surfaceLight, borderRadius: 20, marginRight: 8, borderWidth: 1, borderColor: colors.border },

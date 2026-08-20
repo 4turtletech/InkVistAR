@@ -382,13 +382,23 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
   };
 
   const handleDelete = async () => {
-    const result = await deleteAppointmentByAdmin(selectedAppt.id);
+    if (!selectedAppt?.id) {
+      setDeleteModal({ visible: false });
+      Alert.alert('Error', 'No appointment selected for deletion.');
+      return;
+    }
+    const apptId = selectedAppt.id;
+    const result = await deleteAppointmentByAdmin(apptId);
     setDeleteModal({ visible: false });
     if (result.success) {
+      setAppointments(prev => prev.filter(appt => appt.id !== apptId));
+      setSelectedAppt(null);
       setModalVisible(false);
-      loadData();
+      if (viewMode === 'calendar') {
+        loadData();
+      }
     } else {
-      Alert.alert('Error', 'Failed to delete appointment');
+      Alert.alert('Error', result.message || 'Failed to delete appointment');
     }
   };
 

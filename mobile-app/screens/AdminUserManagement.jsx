@@ -24,7 +24,13 @@ import { ConfirmModal } from '../src/components/shared/ConfirmModal';
 import { ClientProfileModal } from '../src/components/Admin/ClientProfileModal';
 import { ArtistProfileModal } from '../src/components/Admin/ArtistProfileModal';
 import { getInitials } from '../src/utils/formatters';
-import { getAllUsersForAdmin, deleteUserByAdmin, createUserByAdmin, updateUserByAdmin } from '../src/utils/api';
+import {
+  getAllUsersForAdmin,
+  deleteUserByAdmin,
+  createUserByAdmin,
+  updateUserByAdmin,
+  updateUserStatusByAdmin,
+} from '../src/utils/api';
 import { sanitizeText, sanitizeEmail, isValidEmail, sanitizePhone } from '../src/utils/validators';
 
 const getRoleColors = (theme) => ({
@@ -63,16 +69,34 @@ export const AdminUserManagement = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const getPasswordStrength = (pass) => {
-    if (!pass) return { score: 0, color: theme.borderLight, text: '' };
-    let score = 0;
-    if (pass.length >= 8) score++;
-    if (/[A-Z]/.test(pass)) score++;
-    if (/[0-9]/.test(pass)) score++;
-    if (/[^A-Za-z0-9]/.test(pass)) score++;
-    if (score < 2) return { score, color: theme.error, text: 'Weak' };
-    if (score < 4) return { score, color: theme.warning, text: 'Fair' };
-    return { score, color: theme.success, text: 'Strong' };
+  const passwordChecks = (pass) => {
+    return [
+      { key: 'length', label: 'At least 8 characters', met: pass.length >= 8 },
+      { key: 'upper', label: '1 uppercase letter', met: /[A-Z]/.test(pass) },
+      { key: 'lower', label: '1 lowercase letter', met: /[a-z]/.test(pass) },
+      { key: 'number', label: '1 number', met: /\d/.test(pass) },
+      { key: 'special', label: '1 special character', met: /[^A-Za-z0-9]/.test(pass) },
+    ];
+  };
+
+  const getPasswordHelpColor = (metCount) => {
+    if (!metCount) return theme.borderLight;
+    if (metCount < 3) return theme.error;
+    if (metCount < 5) return theme.warning;
+    return theme.success;
+  };
+
+  const isPasswordValid = (pass) => {
+    return passwordChecks(pass).every(item => item.met);
+  };
+
+  const getConfirmPasswordError = () => {
+    if (!formData.confirmPassword) {
+      return isPasswordValid(formData.password) ? 'Please confirm password' : '';
+    }
+    if (!isPasswordValid(formData.password)) return 'Enter a valid password first.';
+    if (formData.confirmPassword !== formData.password) return 'Passwords do not match.';
+    return '';
   };
 
   // Sort
@@ -160,8 +184,13 @@ export const AdminUserManagement = ({ navigation }) => {
       Alert.alert('Validation Error', 'Password is required for new users');
       return;
     }
-    if (!editingUser && formData.password.length < 8) {
-      Alert.alert('Validation Error', 'Password must be at least 8 characters');
+    if (!editingUser && !isPasswordValid(formData.password)) {
+      const missingRule = passwordChecks(formData.password).find(r => !r.met);
+      Alert.alert('Validation Error', missingRule ? `Password requirement missing: ${missingRule.label}` : 'Password does not meet the required rules.');
+      return;
+    }
+    if (!editingUser && !formData.confirmPassword) {
+      Alert.alert('Validation Error', 'Please confirm password');
       return;
     }
     if (!editingUser && formData.password !== formData.confirmPassword) {
@@ -214,10 +243,12 @@ export const AdminUserManagement = ({ navigation }) => {
   };
 
   const openStatusModal = (user) => {
+    const accountStatus = (user?.account_status || user?.status || 'active').toLowerCase();
+    const normalizedStatus = ['active', 'deactivated', 'banned'].includes(accountStatus) ? accountStatus : 'active';
     setStatusModal({
       visible: true,
       user,
-      selectedStatus: user.is_deleted ? 'deactivated' : user.status || 'active',
+      selectedStatus: user.is_deleted ? 'deactivated' : normalizedStatus,
       reason: ''
     });
   };
@@ -225,12 +256,15 @@ export const AdminUserManagement = ({ navigation }) => {
   const handleStatusUpdate = async () => {
     if (!statusModal.user) return;
     const { selectedStatus, reason, user } = statusModal;
-    if ((selectedStatus === 'deactivated' || selectedStatus === 'banned') && reason.trim().length < 5) {
+    const trimmedReason = (reason || '').trim();
+    if ((selectedStatus === 'deactivated' || selectedStatus === 'banned') && trimmedReason.length < 5) {
       Alert.alert('Reason Required', 'Please provide at least 5 characters explaining this status change.');
       return;
     }
     setStatusSaving(true);
-    const result = await updateUserByAdmin(user.id, { status: selectedStatus, statusReason: reason });
+    const payload = { status: selectedStatus };
+    if (selectedStatus !== 'active' && trimmedReason) payload.reason = trimmedReason;
+    const result = await updateUserStatusByAdmin(user.id, payload);
     setStatusSaving(false);
     if (result.success) {
       setStatusModal({ visible: false, user: null, selectedStatus: 'active', reason: '' });
@@ -614,37 +648,49 @@ export const AdminUserManagement = ({ navigation }) => {
                   </TouchableOpacity>
                 </View>
                 {formData.password.length > 0 && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: -8, marginBottom: 16 }}>
-                    <View style={{ flex: 1, height: 4, backgroundColor: theme.surfaceLight, borderRadius: 2, overflow: 'hidden', flexDirection: 'row' }}>
-                      <View style={{ flex: getPasswordStrength(formData.password).score / 4, backgroundColor: getPasswordStrength(formData.password).color }} />
+                  <View style={{ marginTop: -8, marginBottom: 16 }}>
+                    <View style={{ height: 4, backgroundColor: theme.surfaceLight, borderRadius: 2, overflow: 'hidden', flexDirection: 'row', marginBottom: 8 }}>
+                      <View style={{ flex: passwordChecks(formData.password).filter((item) => item.met).length / 5, backgroundColor: getPasswordHelpColor(passwordChecks(formData.password).filter((item) => item.met).length) }} />
                     </View>
-                    <Text style={{ ...typography.bodyXSmall, color: getPasswordStrength(formData.password).color, width: 45, textAlign: 'right' }}>
-                      {getPasswordStrength(formData.password).text}
-                    </Text>
+                    {passwordChecks(formData.password).map(rule => (
+                      <Text
+                        key={rule.key}
+                        style={{ ...typography.bodyXSmall, color: rule.met ? theme.success : theme.textTertiary, marginBottom: 2 }}
+                      >
+                        {rule.met ? '✓' : '•'} {rule.label}
+                      </Text>
+                    ))}
                   </View>
                 )}
+
+                {!editingUser && (
+                  <View style={[
+                    styles.input, { flexDirection: 'row', alignItems: 'center', padding: 0 },
+                    getConfirmPasswordError() && { borderColor: theme.error, borderWidth: 1.5 }
+                  ]}>
+                    <TextInput
+                      style={{ flex: 1, padding: 14, color: theme.textPrimary, ...typography.body }}
+                      placeholder="Confirm Password"
+                      placeholderTextColor={theme.textTertiary}
+                      value={formData.confirmPassword}
+                      onChangeText={t => setFormData({ ...formData, confirmPassword: t })}
+                      secureTextEntry={!showConfirmPassword}
+                    />
+                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={{ padding: 14 }}>
+                      {showConfirmPassword ? <EyeOff size={20} color={theme.textSecondary} /> : <Eye size={20} color={theme.textSecondary} />}
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {editingUser ? null : (
+                  <>
+                    {getConfirmPasswordError() ? (
+                      <Text style={{ color: theme.error, fontSize: 12, marginTop: -10, marginBottom: 10, paddingHorizontal: 2 }}>
+                        {getConfirmPasswordError()}
+                      </Text>
+                    ) : null}
+                  </>
+                )}
                 
-                <View style={[
-                  styles.input, { flexDirection: 'row', alignItems: 'center', padding: 0 },
-                  formData.confirmPassword && formData.confirmPassword !== formData.password && { borderColor: theme.error, borderWidth: 1.5 }
-                ]}>
-                  <TextInput
-                    style={{ flex: 1, padding: 14, color: theme.textPrimary, ...typography.body }}
-                    placeholder="Confirm Password"
-                    placeholderTextColor={theme.textTertiary}
-                    value={formData.confirmPassword}
-                    onChangeText={t => setFormData({ ...formData, confirmPassword: t })}
-                    secureTextEntry={!showConfirmPassword}
-                  />
-                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={{ padding: 14 }}>
-                    {showConfirmPassword ? <EyeOff size={20} color={theme.textSecondary} /> : <Eye size={20} color={theme.textSecondary} />}
-                  </TouchableOpacity>
-                </View>
-                {formData.confirmPassword && formData.confirmPassword !== formData.password ? (
-                  <Text style={{ color: theme.error, fontSize: 12, marginTop: -10, marginBottom: 10, paddingHorizontal: 2 }}>
-                    Passwords do not match.
-                  </Text>
-                ) : null}
               </>
             )}
 

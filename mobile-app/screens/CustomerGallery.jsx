@@ -39,6 +39,7 @@ export function CustomerGallery({ onBack, userId }) {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [searchFocused, setSearchFocused] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState(initialCategory ? [initialCategory] : []);
+  const [selectedArtist, setSelectedArtist] = useState('All Artists');
   const [sortOrder, setSortOrder] = useState('desc');
   const [works, setWorks] = useState([]);
   const [viewMode, setViewMode] = useState(initialViewMode);
@@ -106,11 +107,13 @@ export function CustomerGallery({ onBack, userId }) {
   };
 
   const displayItems = viewMode === 'My Tattoos' ? myTattoos : works;
+  const availableArtists = Array.from(new Set((works || []).map(w => (w.artist_name || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b));
   const filteredWorks = displayItems.filter(w => {
     const q = searchQuery.toLowerCase();
     const matchSearch = (w.title || '').toLowerCase().includes(q) || (w.artist_name || '').toLowerCase().includes(q) || (w.description || '').toLowerCase().includes(q) || (w.category || '').toLowerCase().includes(q);
     const matchCat = selectedCategories.length === 0 || selectedCategories.includes(w.category);
-    return matchSearch && matchCat;
+    const matchArtist = selectedArtist === 'All Artists' || (w.artist_name || '') === selectedArtist;
+    return matchSearch && matchCat && matchArtist;
   }).sort((a, b) => {
     const dA = new Date(a.created_at || a.appointment_date || 0);
     const dB = new Date(b.created_at || b.appointment_date || 0);
@@ -251,6 +254,27 @@ export function CustomerGallery({ onBack, userId }) {
             ))}
           </View>
 
+          {viewMode !== 'My Tattoos' && (
+            <>
+              <View style={styles.filterLabelRow}>
+                <User size={14} color={colors.textSecondary} />
+                <Text style={styles.filterLabel}>Artist Filter</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
+                <TouchableOpacity style={[styles.catChip, selectedArtist === 'All Artists' && styles.catChipActive]} onPress={() => setSelectedArtist('All Artists')}>
+                  {selectedArtist === 'All Artists' && <Check size={13} color={colors.backgroundDeep} />}
+                  <Text style={[styles.catText, selectedArtist === 'All Artists' && styles.catTextActive]}>All Artists</Text>
+                </TouchableOpacity>
+                {availableArtists.map(artist => (
+                  <TouchableOpacity key={artist} style={[styles.catChip, selectedArtist === artist && styles.catChipActive]} onPress={() => setSelectedArtist(artist)}>
+                    {selectedArtist === artist && <Check size={13} color={colors.backgroundDeep} />}
+                    <Text style={[styles.catText, selectedArtist === artist && styles.catTextActive]}>{artist}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </>
+          )}
+
           {/* Category Checkboxes */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
             <TouchableOpacity style={[styles.catChip, selectedCategories.length === 0 && styles.catChipActive]} onPress={() => handleCategoryToggle('All')}>
@@ -368,6 +392,8 @@ const getStyles = (colors) => StyleSheet.create({
   viewModeBtnActive: { backgroundColor: colors.gold, borderColor: colors.gold },
   viewModeText: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600' },
   viewModeTextActive: { color: colors.backgroundDeep, fontWeight: '700' },
+  filterLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  filterLabel: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '700', textTransform: 'uppercase' },
   catRow: { flexDirection: 'row', marginBottom: 16, paddingRight: 16 },
   catChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 7, borderRadius: borderRadius.round, backgroundColor: colors.backgroundDeep, borderWidth: 1, borderColor: colors.border, marginRight: 8, gap: 4 },
   catChipActive: { backgroundColor: colors.gold, borderColor: colors.gold },

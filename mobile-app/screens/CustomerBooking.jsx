@@ -133,7 +133,8 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
   useEffect(() => { fetchAvailability(); }, [currentMonth]);
 
   const handleInput = (field, val) => {
-    setFormData(p => ({ ...p, [field]: val }));
+    const nextValue = field === 'placementNotes' ? val.slice(0, 150) : val;
+    setFormData(p => ({ ...p, [field]: nextValue }));
     if (errors[field]) setErrors(p => ({ ...p, [field]: '' }));
   };
 
@@ -194,6 +195,7 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
     } else if (step === 3) {
       if (formData.placement.length === 0) newErrors.placement = "Select at least one placement.";
       if (formData.placement.includes('Other') && !formData.placementNotes.trim()) newErrors.placementNotes = "Specify location notes.";
+      else if (formData.placement.includes('Other') && formData.placementNotes.length > 150) newErrors.placementNotes = "Location notes must not exceed 150 characters.";
     } else if (step === 4) {
       if (!formData.date) newErrors.date = "Select a date.";
       const showTime = formData.selectedServices.includes('Consultation') || formData.selectedServices.includes('Piercing');
@@ -487,9 +489,11 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
             placeholderTextColor={colors.textTertiary} 
             value={formData.placementNotes} 
             onChangeText={(v) => handleInput('placementNotes', v)}
+            maxLength={150}
             returnKeyType="done"
             onSubmitEditing={Keyboard.dismiss}
           />
+          <Text style={styles.counter}>{formData.placementNotes.length}/150</Text>
           {errors.placementNotes && <Text style={styles.errorTxt}>{errors.placementNotes}</Text>}
         </View>
       )}

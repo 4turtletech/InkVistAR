@@ -505,6 +505,14 @@ export const updateUserByAdmin = async (userId, userData) => {
   });
 };
 
+// Admin: Update a User's Account Status (active/deactivated/banned)
+export const updateUserStatusByAdmin = async (userId, statusData) => {
+  return fetchAPI(`/admin/users/${userId}/status`, {
+    method: 'PUT',
+    body: JSON.stringify(statusData),
+  });
+};
+
 // Admin: Delete a User (can be soft or hard delete based on backend)
 export const deleteUserByAdmin = async (userId) => {
   return fetchAPI(`/admin/users/${userId}`, {

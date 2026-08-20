@@ -24,6 +24,7 @@ import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { ConfirmModal } from '../src/components/shared/ConfirmModal';
 import { formatCurrency } from '../src/utils/formatters';
+import { buildReportHTML, generateCSV, exportCSV, printOrSharePDF } from '../src/utils/exportHelpers';
 import {
   getAdminInventory, createAdminInventory, updateAdminInventory,
   deleteAdminInventory, fetchAPI,
@@ -67,9 +68,8 @@ export const AdminInventory = ({ navigation }) => {
 
   // Autocomplete & Filters
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [itemStatusFilter, setItemStatusFilter] = useState('active');
-  const [categoryFilter, setCategoryFilter] = useState([]);
-  const [stockStatusFilter, setStockStatusFilter] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState(''); // '' = all
+  const [stockStatusFilter, setStockStatusFilter] = useState(''); // '' = all
 
   // History & Kits
   const [historyModal, setHistoryModal] = useState(false);
@@ -221,21 +221,22 @@ export const AdminInventory = ({ navigation }) => {
 
   const filtered = items
     .filter(item => {
-      if (!showArchived && item.is_deleted) return false; // hide archived by default
+      const isArchived = item.is_deleted === true || Number(item.is_deleted) === 1;
+      if (showArchived ? !isArchived : isArchived) return false;
       const matchSearch = (item.name || '').toLowerCase().includes(search.toLowerCase()) || (item.category || '').toLowerCase().includes(search.toLowerCase());
       
       let matchCategory = true;
-      if (categoryFilter.length > 0) {
-        matchCategory = categoryFilter.includes((item.category || '').toLowerCase());
+      if (categoryFilter) {
+        matchCategory = (item.category || '').toLowerCase() === categoryFilter;
       }
       
       let matchStock = true;
-      if (stockStatusFilter.length > 0) {
+      if (stockStatusFilter) {
         matchStock = false;
-        if (stockStatusFilter.includes('out') && item.current_stock <= 0) matchStock = true;
-        if (stockStatusFilter.includes('low') && item.current_stock > 0 && item.current_stock <= item.min_stock) matchStock = true;
-        if (stockStatusFilter.includes('optimal') && item.current_stock > item.min_stock && item.current_stock <= item.max_stock) matchStock = true;
-        if (stockStatusFilter.includes('overstock') && item.current_stock > item.max_stock) matchStock = true;
+        if (stockStatusFilter === 'out' && item.current_stock <= 0) matchStock = true;
+        if (stockStatusFilter === 'low' && item.current_stock > 0 && item.current_stock <= item.min_stock) matchStock = true;
+        if (stockStatusFilter === 'optimal' && item.current_stock > item.min_stock && item.current_stock <= item.max_stock) matchStock = true;
+        if (stockStatusFilter === 'overstock' && item.current_stock > item.max_stock) matchStock = true;
       }
 
       return matchSearch && matchCategory && matchStock;
@@ -249,19 +250,11 @@ export const AdminInventory = ({ navigation }) => {
     });
 
   const toggleCategory = (cat) => {
-    if (categoryFilter.includes(cat)) {
-      setCategoryFilter(categoryFilter.filter(c => c !== cat));
-    } else {
-      setCategoryFilter([...categoryFilter, cat]);
-    }
+    setCategoryFilter(prev => (prev === cat ? '' : cat));
   };
 
   const toggleStockStatus = (status) => {
-    if (stockStatusFilter.includes(status)) {
-      setStockStatusFilter(stockStatusFilter.filter(s => s !== status));
-    } else {
-      setStockStatusFilter([...stockStatusFilter, status]);
-    }
+    setStockStatusFilter(prev => (prev === status ? '' : status));
   };
 
   const lowStockCount = items.filter(i => i.current_stock <= i.min_stock && i.current_stock > 0).length;
@@ -328,6 +321,81 @@ export const AdminInventory = ({ navigation }) => {
     } else {
       Alert.alert('Error', result.message || 'Failed to save service kit.');
     }
+  };
+
+  const getStockStatus = (item) => {
+    const currentStock = Number(item.current_stock) || 0;
+    const minStock = Number(item.min_stock) || 0;
+    const maxStock = Number(item.max_stock) || 0;
+
+    if (currentStock <= 0) return 'Out of stock';
+    if (maxStock > 0 && currentStock > maxStock) return 'Overstock';
+    if (currentStock <= minStock) return 'Low';
+    return 'Optimal';
+  };
+
+  const handlePrint = async () => {
+    if (!filtered.length) {
+      Alert.alert('Nothing to Print', 'There are no inventory items in the current filtered view.');
+      return;
+    }
+
+    const headerRows = filtered.map((item) => [
+      item.name || 'N/A',
+      item.category || 'General',
+      String(item.current_stock || 0),
+      item.unit || 'pcs',
+      `₱${formatCurrency(item.cost_per_unit || 0)}`,
+      getStockStatus(item),
+    ]);
+
+    const html = buildReportHTML({
+      title: 'Inventory Status Report',
+      subtitle: `Generated on ${new Date().toLocaleString()}`,
+      metrics: [
+        { label: 'Filtered Items', value: String(filtered.length) },
+        { label: 'Low Stock', value: String(filtered.filter((item) => (Number(item.current_stock) || 0) > 0 && (Number(item.current_stock) || 0) <= (Number(item.min_stock) || 0)).length) },
+        { label: 'Out of Stock', value: String(filtered.filter((item) => (Number(item.current_stock) || 0) <= 0).length) },
+        { label: 'Inventory View', value: showArchived ? 'Archived Only' : 'Active Only' },
+      ],
+      tables: [
+        {
+          title: 'Inventory Items',
+          headers: ['Item Name', 'Category', 'Current Stock', 'Unit', 'Cost', 'Status'],
+          rows: headerRows,
+        },
+      ],
+    });
+
+    await printOrSharePDF(html);
+  };
+
+  const handleExportCSV = async () => {
+    if (!filtered.length) {
+      Alert.alert('Nothing to Export', 'There are no inventory items in the current filtered view.');
+      return;
+    }
+
+    const columns = [
+      { key: 'name', label: 'Item Name' },
+      { key: 'category', label: 'Category' },
+      { key: 'current_stock', label: 'Current Stock' },
+      { key: 'unit', label: 'Unit' },
+      { key: 'cost_per_unit', label: 'Cost' },
+      { key: 'status', label: 'Status' },
+    ];
+
+    const rows = filtered.map((item) => ({
+      name: item.name || 'N/A',
+      category: item.category || 'General',
+      current_stock: Number(item.current_stock) || 0,
+      unit: item.unit || 'pcs',
+      cost_per_unit: item.cost_per_unit || 0,
+      status: getStockStatus(item),
+    }));
+
+    const csv = generateCSV(rows, columns);
+    await exportCSV(csv, `inventory_export_${new Date().toISOString().slice(0, 10)}`);
   };
 
   const renderItem = ({ item, index }) => {
@@ -408,10 +476,10 @@ export const AdminInventory = ({ navigation }) => {
       {/* Header Actions */}
       <View style={styles.actionRow}>
         <View style={styles.actionGroup}>
-          <AnimatedTouchable style={styles.iconBtnHeader} onPress={() => Alert.alert('Print', 'Inventory report printing is optimized for the web portal.')}>
+          <AnimatedTouchable style={styles.iconBtnHeader} onPress={handlePrint}>
             <Printer size={16} color={theme.textPrimary} />
           </AnimatedTouchable>
-          <AnimatedTouchable style={styles.iconBtnHeader} onPress={() => Alert.alert('Export', 'CSV export is available in the web portal.')}>
+          <AnimatedTouchable style={styles.iconBtnHeader} onPress={handleExportCSV}>
             <Download size={16} color={theme.textPrimary} />
           </AnimatedTouchable>
         </View>
@@ -444,10 +512,12 @@ export const AdminInventory = ({ navigation }) => {
           <AnimatedTouchable
             style={[styles.iconBtnHeader, { flexDirection: 'row', gap: 4, paddingHorizontal: 10, width: 'auto', backgroundColor: showArchived ? 'rgba(239,68,68,0.12)' : theme.surfaceLight }]}
             onPress={() => setShowArchived(!showArchived)}
-            title="Toggle archived items"
+            title={showArchived ? 'Show active inventory' : 'Show archived inventory'}
           >
             <Archive size={14} color={showArchived ? theme.error : theme.textPrimary} />
-            <Text style={{ ...typography.bodyXSmall, color: showArchived ? theme.error : theme.textPrimary, fontWeight: '700' }}>Archived</Text>
+            <Text style={{ ...typography.bodyXSmall, color: showArchived ? theme.error : theme.textPrimary, fontWeight: '700' }}>
+              {showArchived ? 'Archived Only' : 'Archived'}
+            </Text>
           </AnimatedTouchable>
           <AnimatedTouchable style={[styles.iconBtnHeader, { backgroundColor: theme.surfaceLight }]} onPress={fetchHistory}>
             <History size={16} color={theme.textPrimary} />
@@ -501,24 +571,24 @@ export const AdminInventory = ({ navigation }) => {
       {/* Filters */}
       <View style={styles.filterRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-          <AnimatedTouchable style={[styles.filterPill, stockStatusFilter.length === 0 && styles.filterPillActive]} onPress={() => setStockStatusFilter([])}>
-             <Text style={[styles.filterText, stockStatusFilter.length === 0 && styles.filterTextActive]}>All Stock</Text>
+          <AnimatedTouchable style={[styles.filterPill, !stockStatusFilter && styles.filterPillActive]} onPress={() => setStockStatusFilter('')}>
+             <Text style={[styles.filterText, !stockStatusFilter && styles.filterTextActive]}>All Stock</Text>
           </AnimatedTouchable>
           {['low', 'out', 'optimal', 'overstock'].map(f => (
-            <AnimatedTouchable key={f} style={[styles.filterPill, stockStatusFilter.includes(f) && styles.filterPillActive]} onPress={() => toggleStockStatus(f)}>
-              <Text style={[styles.filterText, stockStatusFilter.includes(f) && styles.filterTextActive]}>{f.charAt(0).toUpperCase() + f.slice(1)}</Text>
+            <AnimatedTouchable key={f} style={[styles.filterPill, stockStatusFilter === f && styles.filterPillActive]} onPress={() => toggleStockStatus(f)}>
+              <Text style={[styles.filterText, stockStatusFilter === f && styles.filterTextActive]}>{f.charAt(0).toUpperCase() + f.slice(1)}</Text>
             </AnimatedTouchable>
           ))}
         </ScrollView>
       </View>
       <View style={[styles.filterRow, { marginTop: 0 }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-          <AnimatedTouchable style={[styles.filterPill, categoryFilter.length === 0 && styles.filterPillActive]} onPress={() => setCategoryFilter([])}>
-             <Text style={[styles.filterText, categoryFilter.length === 0 && styles.filterTextActive]}>All Categories</Text>
+          <AnimatedTouchable style={[styles.filterPill, !categoryFilter && styles.filterPillActive]} onPress={() => setCategoryFilter('')}>
+             <Text style={[styles.filterText, !categoryFilter && styles.filterTextActive]}>All Categories</Text>
           </AnimatedTouchable>
           {INVENTORY_CATEGORIES.filter(c => c !== 'all').map(cat => (
-            <AnimatedTouchable key={cat} style={[styles.filterPill, categoryFilter.includes(cat) && styles.filterPillActive]} onPress={() => toggleCategory(cat)}>
-              <Text style={[styles.filterText, categoryFilter.includes(cat) && styles.filterTextActive]}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
+            <AnimatedTouchable key={cat} style={[styles.filterPill, categoryFilter === cat && styles.filterPillActive]} onPress={() => toggleCategory(cat)}>
+              <Text style={[styles.filterText, categoryFilter === cat && styles.filterTextActive]}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
             </AnimatedTouchable>
           ))}
         </ScrollView>

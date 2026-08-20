@@ -20,10 +20,12 @@ export const AdminChat = ({ navigation }) => {
   const [selectedSession, setSelectedSession] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
+  const [endedSessions, setEndedSessions] = useState([]);
 
   const socketRef = useRef(null);
   const flatListRef = useRef(null);
   const selectedRef = useRef(null);
+  const prevSessionsRef = useRef([]);
 
   useEffect(() => { selectedRef.current = selectedSession; }, [selectedSession]);
 
@@ -35,6 +37,26 @@ export const AdminChat = ({ navigation }) => {
 
     socket.on('support_sessions_update', (sessions) => {
       const sorted = [...sessions].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const prevSessions = prevSessionsRef.current || [];
+      const currentIds = new Set(sorted.map(session => session.id));
+      const newlyEnded = prevSessions.filter(session => !currentIds.has(session.id));
+
+      if (newlyEnded.length > 0) {
+        setEndedSessions(prev => {
+          const deduped = [...prev];
+          newlyEnded.forEach((endedSession) => {
+            if (!deduped.some((existing) => existing.id === endedSession.id)) {
+              deduped.push(endedSession);
+            }
+          });
+          return deduped;
+        });
+      } else if (prevSessions.length === 0 && sessions.length === 0) {
+        setEndedSessions([]);
+      }
+
+      setEndedSessions(prev => prev.filter(session => !currentIds.has(session.id)));
+      prevSessionsRef.current = sorted;
       setLiveSessions(sorted);
       const sel = selectedRef.current;
       if (sel && !sessions.find(s => s.id === sel.id)) setSelectedSession(null);
@@ -59,9 +81,20 @@ export const AdminChat = ({ navigation }) => {
           setMessages(prev => [...prev, { sender: data.sender, text: data.text }]);
         }
       });
-      return () => { socketRef.current.off('receive_message'); };
+      socketRef.current.on('session_closed', () => {
+        setSelectedSession(null);
+        setMessages([]);
+      });
+      return () => {
+        socketRef.current.off('receive_message');
+        socketRef.current.off('session_closed');
+      };
     }
   }, [selectedSession]);
+
+  const handleClearEndedSessions = () => {
+    setEndedSessions([]);
+  };
 
   const handleSend = () => {
     const text = inputValue.trim();
@@ -73,12 +106,19 @@ export const AdminChat = ({ navigation }) => {
 
   const handleClose = () => {
     if (!selectedSession || !socketRef.current) return;
-    socketRef.current.emit('close_session', { room: selectedSession.id });
-    setLiveSessions(prev => prev.filter(s => s.id !== selectedSession.id));
+    const endedSession = selectedSession;
+    socketRef.current.emit('end_support_session', endedSession.id);
+    setEndedSessions(prev => (
+      prev.some(session => session.id === endedSession.id)
+        ? prev
+        : [{ ...endedSession, timestamp: new Date() }, ...prev]
+    ));
+    setLiveSessions(prev => prev.filter(s => s.id !== endedSession.id));
+    setMessages([]);
     setSelectedSession(null);
   };
 
-  const renderSession = ({ item }) => (
+  const renderActiveSession = ({ item }) => (
     <TouchableOpacity
       style={[styles.sessionCard, selectedSession?.id === item.id && styles.sessionCardActive]}
       onPress={() => setSelectedSession(item)}
@@ -96,6 +136,21 @@ export const AdminChat = ({ navigation }) => {
         {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </Text>
     </TouchableOpacity>
+  );
+
+  const renderEndedSession = ({ item }) => (
+    <View style={[styles.sessionCard, styles.endedSessionCard]}>
+      <View style={styles.sessionTop}>
+        <Text style={styles.sessionName}>{item.name}</Text>
+        <View style={styles.endedBadge}>
+          <Text style={styles.endedBadgeText}>Ended</Text>
+        </View>
+      </View>
+      <Text style={styles.sessionPreview} numberOfLines={1}>{item.lastMessage || 'Session ended.'}</Text>
+      <Text style={styles.sessionTime}>
+        {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      </Text>
+    </View>
   );
 
   const renderMessage = ({ item }) => {
@@ -125,25 +180,49 @@ export const AdminChat = ({ navigation }) => {
         {selectedSession && (
           <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
             <XIcon size={14} color="#ffffff" />
-            <Text style={styles.closeBtnText}>Close</Text>
+            <Text style={styles.closeBtnText}>End Chat</Text>
+          </TouchableOpacity>
+        )}
+        {!selectedSession && endedSessions.length > 0 && (
+          <TouchableOpacity style={styles.clearEndedBtn} onPress={handleClearEndedSessions}>
+            <Text style={styles.clearEndedText}>Clear Ended</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {!selectedSession ? (
-        /* Session List */
-        liveSessions.length === 0 ? (
-          <View style={styles.emptyWrap}>
-            <EmptyState icon={MessageSquare} title="No active sessions" subtitle="Customer support requests will appear here" />
-          </View>
-        ) : (
-          <FlatList
-            data={liveSessions}
-            renderItem={renderSession}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.listContent}
-          />
-        )
+        <>
+          {liveSessions.length > 0 && (
+            <FlatList
+              data={liveSessions}
+              renderItem={renderActiveSession}
+              keyExtractor={item => item.id}
+              contentContainerStyle={styles.listContent}
+            />
+          )}
+          {endedSessions.length === 0 && liveSessions.length === 0 ? (
+            <View style={styles.emptyWrap}>
+              <EmptyState icon={MessageSquare} title="No active sessions" subtitle="Customer support requests will appear here" />
+            </View>
+          ) : null}
+          {endedSessions.length > 0 && (
+            <View style={styles.endedSection}>
+              <View style={styles.endedSectionHeaderRow}>
+                <Text style={styles.endedSectionTitle}>Past / Ended Chats</Text>
+                <TouchableOpacity style={styles.clearAllEndedBtn} onPress={handleClearEndedSessions}>
+                  <Text style={styles.clearAllEndedText}>Clear</Text>
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={endedSessions}
+                renderItem={renderEndedSession}
+                keyExtractor={item => `ended-${item.id}`}
+                contentContainerStyle={styles.listContent}
+                scrollEnabled={false}
+              />
+            </View>
+          )}
+        </>
       ) : (
         /* Chat Window */
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -189,6 +268,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.error, paddingHorizontal: 12, paddingVertical: 6, borderRadius: borderRadius.md,
   },
   closeBtnText: { ...typography.bodyXSmall, color: '#ffffff', fontWeight: '700' },
+  clearEndedBtn: {
+    marginLeft: 8,
+    backgroundColor: colors.textTertiary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: borderRadius.md,
+  },
+  clearEndedText: { ...typography.bodyXSmall, color: '#ffffff', fontWeight: '700' },
 
   // List
   listContent: { padding: 16 },
@@ -198,6 +282,7 @@ const styles = StyleSheet.create({
     marginBottom: 10, borderWidth: 1, borderColor: colors.border,
   },
   sessionCardActive: { borderColor: colors.primary, borderWidth: 2 },
+  endedSessionCard: { opacity: 0.78, borderColor: colors.borderLight, borderStyle: 'dashed' },
   sessionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   sessionName: { ...typography.body, fontWeight: '600', color: colors.textPrimary },
   liveBadge: {
@@ -205,8 +290,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.successBg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: borderRadius.round,
   },
   liveBadgeText: { ...typography.bodyXSmall, color: colors.success, fontWeight: '700' },
+  endedBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: colors.borderLight, paddingHorizontal: 8, paddingVertical: 3, borderRadius: borderRadius.round,
+  },
+  endedBadgeText: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '700' },
   sessionPreview: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: 4 },
   sessionTime: { ...typography.bodyXSmall, color: colors.textTertiary, textAlign: 'right' },
+  endedSection: { borderTopWidth: 1, borderTopColor: colors.borderLight, paddingBottom: 20 },
+  endedSectionHeaderRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 16, marginTop: 4, marginBottom: 2,
+  },
+  endedSectionTitle: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '700' },
+  clearAllEndedBtn: {
+    backgroundColor: colors.textTertiary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: borderRadius.round,
+  },
+  clearAllEndedText: { ...typography.bodyXSmall, color: '#ffffff', fontWeight: '700' },
 
   // Chat
   chatContent: { padding: 16, paddingBottom: 8 },

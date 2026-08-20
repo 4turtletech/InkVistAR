@@ -41,6 +41,7 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
   // Forgot Password State
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [resetEmailError, setResetEmailError] = useState('');
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -151,9 +152,21 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
   };
 
   const handleResetSubmit = () => {
-    if (!resetEmail.trim()) { showToast('Please enter your email address', 'error'); return; }
-    if (onForgotPassword) { onForgotPassword(resetEmail, 'customer'); setShowForgotModal(false); setResetEmail(''); }
+    Keyboard.dismiss();
+    const cleanResetEmail = resetEmail.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!cleanResetEmail) { setResetEmailError('Email is required'); return; }
+    if (!emailRegex.test(cleanResetEmail)) { setResetEmailError('Please enter a valid email address'); return; }
+    setResetEmailError('');
+    if (onForgotPassword) { onForgotPassword(cleanResetEmail, 'customer'); setShowForgotModal(false); setResetEmail(''); }
     else { showToast('Not connected yet.', 'error'); setShowForgotModal(false); }
+  };
+
+  const openForgotPasswordModal = () => {
+    Keyboard.dismiss();
+    setResetEmail(email.trim());
+    setResetEmailError('');
+    setShowForgotModal(true);
   };
 
   const handleResendVerification = async () => {
@@ -283,7 +296,7 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
                 </View>
                 <Text style={[styles.checkLabel, { color: theme.textSecondary }]}>Remember me</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => { Keyboard.dismiss(); setShowForgotModal(true); }}>
+            <TouchableOpacity onPress={openForgotPasswordModal}>
                 <Text style={[styles.forgotText, { color: theme.textSecondary }]}>Forgot password?</Text>
               </TouchableOpacity>
             </View>
@@ -322,27 +335,40 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
         </ScrollView>
 
         {/* Forgot Password Modal */}
-        <Modal visible={showForgotModal} transparent animationType="fade" onRequestClose={() => setShowForgotModal(false)}>
-          <View style={styles.modalOverlay}>
+        <Modal visible={showForgotModal} transparent animationType="fade" onRequestClose={() => { setResetEmailError(''); setShowForgotModal(false); }}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
             <View style={styles.modalCard}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Reset Password</Text>
-                <TouchableOpacity onPress={() => setShowForgotModal(false)} style={styles.modalClose}>
+                <TouchableOpacity onPress={() => { setResetEmailError(''); setShowForgotModal(false); }} style={styles.modalClose}>
                   <X size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <Text style={styles.modalText}>Enter your email to receive a verification code.</Text>
-              <View style={[styles.inputWrap, { marginBottom: 16 }]}>
+              <View style={[styles.inputWrap, { marginBottom: resetEmailError ? 6 : 16 }, resetEmailError && styles.inputError]}>
                 <Mail size={18} color={colors.textTertiary} style={styles.inputIcon} />
-                <TextInput style={styles.input} placeholder="your@email.com" placeholderTextColor={colors.textTertiary} value={resetEmail} onChangeText={setResetEmail} keyboardType="email-address" autoCapitalize="none" selectionColor={colors.gold} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="your@email.com"
+                  placeholderTextColor={colors.textTertiary}
+                  value={resetEmail}
+                  onChangeText={(text) => {
+                    setResetEmail(text.replace(/\s/g, ''));
+                    if (resetEmailError) setResetEmailError('');
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  selectionColor={colors.gold}
+                />
               </View>
-              <TouchableOpacity onPress={handleResetSubmit} activeOpacity={0.8}>
-                <View style={styles.button}>
-                  <Text style={styles.buttonText}>SEND CODE</Text>
-                </View>
-              </TouchableOpacity>
+              {resetEmailError ? <Text style={styles.errorText}>{resetEmailError}</Text> : null}
+                <TouchableOpacity onPress={handleResetSubmit} activeOpacity={0.8}>
+                  <View style={styles.button}>
+                    <Text style={styles.buttonText}>SEND CODE</Text>
+                  </View>
+                </TouchableOpacity>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
 
         {/* Verification Modal */}
