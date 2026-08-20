@@ -139,18 +139,6 @@ export const testBackend = async () => {
   return fetchAPI('/test');
 };
 
-// Emergency Login (Network Test)
-export const emergencyLogin = async (email, userType) => {
-  const result = await fetchAPI('/emergency-login', {
-    method: 'POST',
-    body: JSON.stringify({
-      email: email || 'test@example.com',
-      type: userType || 'customer'
-    })
-  });
-  return result;
-};
-
 // Login user
 export const loginUser = async (email, password, userType) => {
   if (!email || !password) {

@@ -9,6 +9,15 @@ const crypto = require('crypto');
 // Provide fetch for Node runtimes that lack the global (e.g., Node 16 on some hosts)
 const fetch = global.fetch || require('node-fetch');
 require('dotenv').config();
+const {
+  APP_ENV,
+  BOOTSTRAP_ADMIN_ENABLED,
+  DEMO_ACCOUNTS_ENABLED,
+  DEBUG_ROUTES_ENABLED,
+  CAPTCHA_BYPASS_ENABLED,
+  databaseConfig,
+} = require('./config/runtime');
+const { initializeControlledAccounts } = require('./utils/accountBootstrap');
 process.env.TZ = 'Asia/Manila'; // Global Node.js timezone localization
 
 const app = express();
@@ -89,14 +98,19 @@ const PAYMONGO_MODE = process.env.PAYMONGO_MODE || 'test';
 const PAYMONGO_API_BASE = 'https://api.paymongo.com/v1';
 
 // Google reCAPTCHA v3 configuration
-const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY || '6Le9F78sAAAAACBBrgQz5pzpbZ2VxI4h71UXhCd9';
+const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY || '';
 
 async function verifyCaptcha(token) {
-  // TEMPORARILY DISABLED -- always pass CAPTCHA checks during development
-  console.log('[reCAPTCHA v3] CAPTCHA verification is DISABLED. Returning true.');
-  return true;
-  /*
-  if (!token) return false;
+  if (CAPTCHA_BYPASS_ENABLED) {
+    console.warn('[reCAPTCHA] Development bypass is enabled.');
+    return true;
+  }
+
+  if (!RECAPTCHA_SECRET_KEY || !token) {
+    console.warn('[reCAPTCHA] Verification rejected because the secret or client token is missing.');
+    return false;
+  }
+
   try {
     const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
@@ -104,14 +118,12 @@ async function verifyCaptcha(token) {
       body: `secret=${RECAPTCHA_SECRET_KEY}&response=${encodeURIComponent(token)}`
     });
     const data = await response.json();
-    console.log('[reCAPTCHA v3] Verification result:', data);
     // For v3, consider a score of 0.3 or above as passing to prevent overly aggressive blocking
     return data.success === true && (data.score === undefined || data.score >= 0.3);
   } catch (err) {
     console.error('reCAPTCHA verification error:', err.message);
     return false;
   }
-  */
 }
 
 // Enhanced CORS configuration
@@ -166,11 +178,11 @@ app.use((req, res, next) => {
 
 // MySQL Connection Pool (supporting Railway and generic env variables)
 const db = mysql.createPool({
-  host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
-  user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
-  password: process.env.MYSQLPASSWORD || process.env.DB_PASS || 'banana',
-  database: process.env.MYSQLDATABASE || process.env.DB_NAME || 'inkvistar',
-  port: process.env.MYSQLPORT ? Number(process.env.MYSQLPORT) : (process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306),
+  host: databaseConfig.host,
+  user: databaseConfig.user,
+  password: databaseConfig.password,
+  database: databaseConfig.database,
+  port: databaseConfig.port,
    connectionLimit: 10,
   waitForConnections: true,
   queueLimit: 0,
@@ -181,7 +193,7 @@ const db = mysql.createPool({
 
 // Health check endpoint for Railway/Render
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
+  res.status(200).json({ status: 'healthy', environment: APP_ENV, timestamp: new Date().toISOString() });
 });
 
 // Helper to get local MySQL DATETIME string
@@ -215,8 +227,24 @@ db.getConnection((err, connection) => {
     console.error('[ERROR] Error SQL State:', err.sqlState);
   } else {
     console.log('[OK] MySQL Connected Successfully via Pool!');
-    console.log('[INFO] Database:', process.env.DB_NAME || 'inkvistar');
+    console.log('[INFO] Database:', databaseConfig.database);
     connection.release();
+
+    const accountSchemaReady = { users: false, artists: false, customers: false, started: false };
+    const failAccountInitializationIfEnabled = (schemaName, schemaError) => {
+      console.error(`[WARN] Error checking ${schemaName} table:`, schemaError.message);
+      if (BOOTSTRAP_ADMIN_ENABLED || DEMO_ACCOUNTS_ENABLED) process.exit(1);
+    };
+    const initializeAccountsWhenSchemaIsReady = () => {
+      if (accountSchemaReady.started || !accountSchemaReady.users || !accountSchemaReady.artists || !accountSchemaReady.customers) return;
+      accountSchemaReady.started = true;
+      initializeControlledAccounts(db).catch((accountInitError) => {
+        console.error('[ERROR] Controlled account initialization failed:', accountInitError.message);
+        if (BOOTSTRAP_ADMIN_ENABLED || DEMO_ACCOUNTS_ENABLED) {
+          process.exit(1);
+        }
+      });
+    };
 
     // Create Users Table if not exists (REQUIRED for all other tables)
     const usersTableQuery = `
@@ -239,12 +267,14 @@ db.getConnection((err, connection) => {
         status_reason TEXT NULL,
         appeal_status ENUM('none', 'pending', 'accepted', 'denied') DEFAULT 'none',
         appeal_message TEXT NULL,
+        is_superadmin TINYINT(1) DEFAULT 0,
+        must_change_password TINYINT(1) DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `;
     db.query(usersTableQuery, (err) => {
       if (err) {
-        console.error('[WARN] Error checking users table:', err.message);
+        failAccountInitializationIfEnabled('users', err);
       } else {
         // MIGRATION: Add 'phone' column if it doesn't exist
         db.query("SHOW COLUMNS FROM users LIKE 'phone'", (err, results) => {
@@ -296,6 +326,8 @@ db.getConnection((err, connection) => {
         });
 
         console.log('[OK] Users table ready');
+        accountSchemaReady.users = true;
+        initializeAccountsWhenSchemaIsReady();
       }
     });
 
@@ -314,8 +346,12 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(artistsTableQuery, (err) => {
-      if (err) console.error('[WARN] Error checking artists table:', err.message);
-      else console.log('[OK] Artists table ready');
+      if (err) failAccountInitializationIfEnabled('artists', err);
+      else {
+        console.log('[OK] Artists table ready');
+        accountSchemaReady.artists = true;
+        initializeAccountsWhenSchemaIsReady();
+      }
 
       // MIGRATION: Check if 'commission_rate' column exists, if not add it
       db.query("SHOW COLUMNS FROM artists LIKE 'commission_rate'", (err, results) => {
@@ -401,9 +437,12 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(customerTableQuery, (err) => {
-      if (err) console.error('[WARN] Error checking customers table:', err.message);
-      else console.log('[OK] Customers table ready');
-      createDefaultUsers();
+      if (err) failAccountInitializationIfEnabled('customers', err);
+      else {
+        console.log('[OK] Customers table ready');
+        accountSchemaReady.customers = true;
+        initializeAccountsWhenSchemaIsReady();
+      }
 
       // Add is_deleted column if it doesn't exist (Soft Delete support)
       db.query("SHOW COLUMNS FROM users LIKE 'is_deleted'", (err, results) => {
@@ -429,46 +468,11 @@ db.getConnection((err, connection) => {
         }
       });
 
-      // MIGRATION: Add is_superadmin column if not exists
-      db.query("SHOW COLUMNS FROM users LIKE 'is_superadmin'", (err, results) => {
-        if (!err && results.length === 0) {
-          console.log('[MIGRATE] Migrating users table: Adding is_superadmin column...');
-          db.query("ALTER TABLE users ADD COLUMN is_superadmin TINYINT(1) DEFAULT 0", (alterErr) => {
-            if (!alterErr) {
-              // Flag the default admin account as super admin
-              db.query("UPDATE users SET is_superadmin = 1 WHERE email = 'admin@inkvistar.com'", (updateErr) => {
-                if (!updateErr) console.log('[OK] Super admin flag set for admin@inkvistar.com');
-              });
-            }
-          });
-        } else if (!err && results.length > 0) {
-          // Column exists — ensure the flag is always set on startup
-          db.query("UPDATE users SET is_superadmin = 1 WHERE email = 'admin@inkvistar.com' AND is_superadmin = 0");
-        }
-      });
-
       // MIGRATION: Add profile_image column to users table if not exists (for admin/manager profiles)
       db.query("SHOW COLUMNS FROM users LIKE 'profile_image'", (err, results) => {
         if (!err && results.length === 0) {
           console.log('[MIGRATE] Adding profile_image column to users table...');
           db.query("ALTER TABLE users ADD COLUMN profile_image LONGTEXT NULL");
-        }
-      });
-
-      // SEED: Create manager@inkvistar.com admin account if not exists (debug account)
-      db.query("SELECT id FROM users WHERE email = 'manager@inkvistar.com'", (err, results) => {
-        if (!err && results.length === 0) {
-          const bcrypt = require('bcryptjs');
-          bcrypt.hash('manager123', 10).then(hash => {
-            db.query(
-              "INSERT INTO users (name, email, password_hash, user_type, is_verified, is_deleted, is_superadmin) VALUES (?, ?, ?, 'manager', 1, 0, 0)",
-              ['Manager Admin', 'manager@inkvistar.com', hash],
-              (insertErr) => {
-                if (!insertErr) console.log('[OK] Seeded admin account: manager@inkvistar.com');
-                else console.error('Seed error:', insertErr.message);
-              }
-            );
-          });
         }
       });
 
@@ -1684,7 +1688,7 @@ function buildEmailHtml(contentHtml) {
 
 async function sendEmail(to, subject, html) {
   if (!EMAIL_API_KEY) {
-    console.log('[WARN] EMAIL_API_KEY missing. Email logged to console.');
+    console.log('[WARN] EMAIL_API_KEY missing. Email delivery skipped.');
     return;
   }
 
@@ -1704,11 +1708,10 @@ async function sendEmail(to, subject, html) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Non-JSON response' }));
-      console.error('[ERROR] Resend API Error:', response.status, errorData);
-      throw new Error(`Resend API Error: ${response.status} - ${JSON.stringify(errorData)}`);
+      console.error('[ERROR] Resend API rejected email delivery:', response.status);
+      throw new Error(`Resend API Error: ${response.status}`);
     } else {
-      console.log(`[OK] Email sent to ${to}`);
+      console.log('[OK] Email sent successfully.');
     }
   } catch (error) {
     console.error('[ERROR] Email Network Error:', error.message);
@@ -1759,7 +1762,7 @@ function sendReceiptEmail(customerEmail, invoiceData) {
 
   const emailHtml = buildEmailHtml(contentHtml);
   sendEmail(customerEmail, `Your InkVictus Receipt — ${invoiceData.id}`, emailHtml);
-  console.log(`[OK] Receipt email queued for ${customerEmail} — ${invoiceData.id}`);
+  console.log(`[OK] Receipt email queued for invoice ${invoiceData.id}`);
 }
 
 /**
@@ -1869,7 +1872,7 @@ function sendConsultationSummaryEmail(recipientEmail, recipientName, consultatio
 
     const emailHtml = buildEmailHtml(contentHtml);
     sendResendEmail(recipientEmail, `InkVistAR: Your Consultation Summary${bookingCode ? ` [${bookingCode}]` : ''}`, emailHtml);
-    console.log(`[OK] Consultation summary email sent to ${recipientEmail}`);
+    console.log('[OK] Consultation summary email sent.');
   } catch (err) {
     console.error(`[WARN] Error sending consultation summary email to ${recipientEmail}:`, err.message);
   }
@@ -1900,7 +1903,7 @@ async function sendPushNotification(userId, title, body, data) {
     }
 
     const pushToken = results[0].push_token;
-    console.log(`[INFO] Sending push notification to token: ${pushToken}`);
+    console.log(`[INFO] Sending push notification for user ${userId}`);
 
     // 2. Send to Expo's push API
     await fetch('https://exp.host/--/api/v2/push/send', {
@@ -1933,90 +1936,6 @@ function getAdminId(req) {
     || null;
 }
 
-// Helper: Create Default Users (Admin, Artist, Customer)
-function createDefaultUsers() {
-  // 1. Admin
-  const checkAdmin = "SELECT * FROM users WHERE user_type = 'admin' LIMIT 1";
-  db.query(checkAdmin, async (err, results) => {
-    if (!err && results.length === 0) {
-      console.log('[WARN] No admin found. Creating default admin...');
-      try {
-        const adminPass = await bcrypt.hash('admin123', 10);
-        const createAdmin = "INSERT INTO users (name, email, password_hash, user_type, is_verified) VALUES ('System Admin', 'admin@inkvistar.com', ?, 'admin', 1)";
-        db.query(createAdmin, [adminPass], (err) => {
-          if (!err) console.log('[OK] Default Admin Created: admin@inkvistar.com / admin123');
-          else console.error('[ERROR] Failed to create admin:', err.message);
-        });
-      } catch (e) {
-        console.error('[ERROR] Error creating admin hash:', e);
-      }
-    }
-  });
-
-  // 2. Artist
-  const checkArtist = "SELECT * FROM users WHERE email = 'artist@inkvistar.com' LIMIT 1";
-  db.query(checkArtist, async (err, results) => {
-    if (!err && results.length === 0) {
-      console.log('[WARN] No default artist found. Creating default artist...');
-      try {
-        const artistPass = await bcrypt.hash('artist123', 10);
-        const createArtist = "INSERT INTO users (name, email, password_hash, user_type, is_verified) VALUES ('Default Artist', 'artist@inkvistar.com', ?, 'artist', 1)";
-        db.query(createArtist, [artistPass], (err, result) => {
-          if (!err && result.insertId) {
-            const artistId = result.insertId;
-            const createProfile = "INSERT INTO artists (user_id, studio_name, experience_years, specialization, hourly_rate, commission_rate) VALUES (?, 'InkVistAR Studio', 5, 'Realism', 150.00, 0.30)";
-            db.query(createProfile, [artistId], (err) => {
-              if (!err) console.log('[OK] Default Artist Created: artist@inkvistar.com / artist123');
-            });
-          }
-        });
-      } catch (e) { console.error(e); }
-    }
-  });
-
-  // 3. Customer
-  const checkCustomer = "SELECT * FROM users WHERE email = 'customer@inkvistar.com' LIMIT 1";
-  db.query(checkCustomer, async (err, results) => {
-    if (!err && results.length === 0) {
-      console.log('[WARN] No default customer found. Creating default customer...');
-      try {
-        const customerPass = await bcrypt.hash('customer123', 10);
-        const createCustomer = "INSERT INTO users (name, email, password_hash, user_type, is_verified) VALUES ('Default Customer', 'customer@inkvistar.com', ?, 'customer', 1)";
-        db.query(createCustomer, [customerPass], (err, result) => {
-          if (!err && result.insertId) {
-            const customerId = result.insertId;
-            const createProfile = "INSERT INTO customers (user_id, phone, location) VALUES (?, '555-0123', 'New York, NY')";
-            db.query(createProfile, [customerId], (err) => {
-              if (!err) console.log('[OK] Default Customer Created: customer@inkvistar.com / customer123');
-            });
-          }
-        });
-      } catch (e) { console.error(e); }
-    }
-  });
-
-  // 4. System Guest (for unauthenticated public bookings)
-  const checkGuest = "SELECT * FROM users WHERE email = 'guest@inkvistar.com' LIMIT 1";
-  db.query(checkGuest, async (err, results) => {
-    if (!err && results.length === 0) {
-      console.log('[WARN] No System Guest found. Creating System Guest account for public bookings...');
-      try {
-        const guestPass = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
-        const createGuest = "INSERT INTO users (name, email, password_hash, user_type, is_verified, is_deleted) VALUES ('System Guest', 'guest@inkvistar.com', ?, 'customer', 1, 0)";
-        db.query(createGuest, [guestPass], (err, result) => {
-          if (!err && result.insertId) {
-            const customerId = result.insertId;
-            const createProfile = "INSERT INTO customers (user_id, notes) VALUES (?, 'System account for unauthenticated guest bookings')";
-            db.query(createProfile, [customerId], () => {
-              console.log('[OK] Default System Guest Created: guest@inkvistar.com');
-            });
-          }
-        });
-      } catch (e) { console.error(e); }
-    }
-  });
-}
-
 // ========== GENERATIVE AI CHATBOT SETUP (Groq) ==========
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 let groq = null;
@@ -2040,7 +1959,7 @@ async function verifyGroq() {
       messages: [{ role: 'user', content: 'Hello' }],
       model: 'llama-3.3-70b-versatile',
     });
-    console.log('[OK] Groq API is WORKING! Response:', chatCompletion.choices[0].message.content);
+    console.log('[OK] Groq API connection verified.');
   } catch (error) {
     console.error('[ERROR] Groq API Check Failed:', error.message);
     console.log('[WARN] Chatbot will run in OFFLINE MODE (Fallback responses).');
@@ -2050,11 +1969,19 @@ verifyGroq();
 
 // ========== MIDDLEWARE ==========
 app.use((req, res, next) => {
-  console.log(`\n[REQ] ${new Date().toISOString()} ${req.method} ${req.url}`);
-  console.log('[DEBUG] Headers:', req.headers);
-  console.log('[DEBUG] Body:', req.body);
+  const startedAt = Date.now();
+  res.on('finish', () => {
+    console.log(`[REQ] ${req.method} ${req.path} ${res.statusCode} ${Date.now() - startedAt}ms`);
+  });
   next();
 });
+
+const debugOnly = (req, res, next) => {
+  if (!DEBUG_ROUTES_ENABLED) {
+    return res.status(404).json({ success: false, message: 'Endpoint not found' });
+  }
+  next();
+};
 
 // ========== DEBUG ENDPOINTS ==========
 
@@ -2071,7 +1998,7 @@ app.get('/api/test', (req, res) => {
 });
 
 // Debug: List all routes
-app.get('/api/debug/routes', (req, res) => {
+app.get('/api/debug/routes', debugOnly, (req, res) => {
   const routes = [];
   app._router.stack.forEach((middleware) => {
     if (middleware.route) {
@@ -2096,7 +2023,7 @@ app.get('/api/debug/routes', (req, res) => {
 });
 
 // Test database connection
-app.get('/api/debug/db', (req, res) => {
+app.get('/api/debug/db', debugOnly, (req, res) => {
   console.log('[INFO] Testing database...');
 
   db.query('SELECT 1 + 1 AS result', (err, results) => {
@@ -2118,7 +2045,7 @@ app.get('/api/debug/db', (req, res) => {
 });
 
 // List all users
-app.get('/api/debug/users', (req, res) => {
+app.get('/api/debug/users', debugOnly, (req, res) => {
   console.log('[INFO] Listing all users...');
 
   db.query('SELECT id, name, email, user_type, is_deleted FROM users', (err, results) => {
@@ -2140,7 +2067,7 @@ app.get('/api/debug/users', (req, res) => {
 });
 
 // Check specific user
-app.get('/api/debug/user/:id', (req, res) => {
+app.get('/api/debug/user/:id', debugOnly, (req, res) => {
   const { id } = req.params;
   console.log(`[INFO] Checking user ${id}...`);
 
@@ -2170,7 +2097,6 @@ app.get('/api/debug/user/:id', (req, res) => {
 // ========== LOGIN ENDPOINT (SIMPLIFIED) ==========
 app.post('/api/login', async (req, res) => {
   console.log('\n========== LOGIN REQUEST ==========');
-  console.log('[DEBUG] Body:', req.body);
 
   try {
     const { email, password, type } = req.body;
@@ -2183,7 +2109,7 @@ app.post('/api/login', async (req, res) => {
       });
     }
 
-    console.log(`[INFO] Searching for user: ${email}`);
+    console.log('[INFO] Searching for login account.');
 
     // Query database
     let query = 'SELECT * FROM users WHERE email = ?';
@@ -2345,7 +2271,7 @@ app.post('/api/login', async (req, res) => {
         (migErr, migResult) => {
           const emailMigratedCount = migResult ? migResult.affectedRows : 0;
           if (emailMigratedCount > 0) {
-            console.log(`[INFO] Login migration: Claimed ${emailMigratedCount} orphan appointment(s) for ${user.name} (${user.email})`);
+            console.log(`[INFO] Login migration: Claimed ${emailMigratedCount} orphan appointment(s) for user ${user.id}`);
             createNotification(user.id, 'Prior Bookings Found!', `We found ${emailMigratedCount} consultation request(s) linked to your email from before. They have been automatically added to your account.`, 'appointment_request');
           }
 
@@ -2363,7 +2289,8 @@ app.post('/api/login', async (req, res) => {
                   name: user.name,
                   email: user.email,
                   type: user.user_type,
-                  is_superadmin: user.is_superadmin === 1
+                  is_superadmin: user.is_superadmin === 1,
+                  must_change_password: user.must_change_password === 1
                 },
                 message: 'Login successful!',
                 migratedAppointments: migratedAppointments
@@ -2388,7 +2315,7 @@ app.post('/api/login', async (req, res) => {
 // ========== RESET PASSWORD ENDPOINT ==========
 app.post('/api/reset-password', async (req, res) => {
   const { email, newPassword } = req.body;
-  console.log('[INFO] Resetting password for:', email);
+  console.log('[INFO] Password reset requested');
 
   // 1. Validation and Sanitization
   if (!email || !newPassword) {
@@ -2425,7 +2352,7 @@ app.post('/api/reset-password', async (req, res) => {
     // 3. Hash and update
     const password_hash = await bcrypt.hash(newPassword, 10);
 
-    db.query('UPDATE users SET password_hash = ?, otp_code = NULL, otp_expires = NULL, failed_login_attempts = 0, lockout_until = NULL WHERE email = ?', [password_hash, email], (updateErr, result) => {
+    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, otp_code = NULL, otp_expires = NULL, failed_login_attempts = 0, lockout_until = NULL WHERE email = ?', [password_hash, email], (updateErr, result) => {
       if (updateErr) return res.status(500).json({ success: false, message: 'Database error during password update.' });
       logAction(user.id, 'PASSWORD_RESET', `User reset their password.`, req.ip || '::1');
       res.json({ success: true, message: 'Password updated successfully' });
@@ -2476,7 +2403,7 @@ app.post('/api/customer/change-password', async (req, res) => {
     const password_hash = await bcrypt.hash(newPassword, 10);
     const verification_token = crypto.randomBytes(32).toString('hex');
 
-    db.query('UPDATE users SET password_hash = ?, is_verified = 0, verification_token = ? WHERE id = ?', [password_hash, verification_token, customerId], (updateErr) => {
+    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, is_verified = 0, verification_token = ? WHERE id = ?', [password_hash, verification_token, customerId], (updateErr) => {
       if (updateErr) {
         console.error('[ERROR] Error updating password:', updateErr);
         return res.status(500).json({ success: false, message: 'Failed to update password' });
@@ -2488,7 +2415,6 @@ app.post('/api/customer/change-password', async (req, res) => {
       const protocol = getProtocol(req);
       const host = req.get('host');
       const verifyUrl = `${protocol}://${host}/api/verify?token=${encodeURIComponent(verification_token)}`;
-      console.log('[DEBUG] Re-verification Link:', verifyUrl);
 
       const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Password Changed</h2>
@@ -2517,8 +2443,9 @@ app.post('/api/artist/change-password', async (req, res) => {
     return res.status(400).json({ success: false, message: 'All password fields are required' });
   }
 
-  if (newPassword.length < 6) {
-    return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+  const strongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+  if (!strongPassword.test(newPassword)) {
+    return res.status(400).json({ success: false, message: 'New password must be at least 8 characters and include uppercase, lowercase, number, and special character' });
   }
 
   // Find user
@@ -2549,7 +2476,7 @@ app.post('/api/artist/change-password', async (req, res) => {
     const password_hash = await bcrypt.hash(newPassword, 10);
     const verification_token = crypto.randomBytes(32).toString('hex');
 
-    db.query('UPDATE users SET password_hash = ?, is_verified = 0, verification_token = ? WHERE id = ?', [password_hash, verification_token, artistId], (updateErr) => {
+    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, is_verified = 0, verification_token = ? WHERE id = ?', [password_hash, verification_token, artistId], (updateErr) => {
       if (updateErr) {
         console.error('[ERROR] Error updating password:', updateErr);
         return res.status(500).json({ success: false, message: 'Failed to update password' });
@@ -2561,7 +2488,6 @@ app.post('/api/artist/change-password', async (req, res) => {
       const protocol = getProtocol(req);
       const host = req.get('host');
       const verifyUrl = `${protocol}://${host}/api/verify?token=${encodeURIComponent(verification_token)}`;
-      console.log('[DEBUG] Re-verification Link:', verifyUrl);
 
       const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Password Changed</h2>
@@ -2583,7 +2509,7 @@ app.post('/api/artist/change-password', async (req, res) => {
 // ========== REQUEST EMAIL CHANGE (sends OTP to current email) ==========
 app.post('/api/request-email-change', (req, res) => {
   const { userId, newEmail } = req.body;
-  console.log('[INFO] Email change requested for user ID:', userId, '→', newEmail);
+  console.log('[INFO] Email change requested for user ID:', userId);
 
   if (!userId || !newEmail) {
     return res.status(400).json({ success: false, message: 'User ID and new email are required' });
@@ -2613,8 +2539,6 @@ app.post('/api/request-email-change', (req, res) => {
         (updateErr) => {
           if (updateErr) return res.status(500).json({ success: false, message: 'Failed to generate OTP' });
 
-          console.log('[DEBUG] Email Change OTP for', user.email, ':', otp_code);
-
           // Send OTP to the CURRENT email
           const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Email Change Request</h2>
@@ -2640,7 +2564,7 @@ app.post('/api/request-email-change', (req, res) => {
 // ========== CONFIRM EMAIL CHANGE (verify OTP, update email, force re-verification) ==========
 app.post('/api/confirm-email-change', (req, res) => {
   const { userId, otp, newEmail } = req.body;
-  console.log('[INFO] Confirming email change for user ID:', userId, '→', newEmail);
+  console.log('[INFO] Confirming email change for user ID:', userId);
 
   if (!userId || !otp || !newEmail) {
     return res.status(400).json({ success: false, message: 'User ID, OTP, and new email are required' });
@@ -2688,7 +2612,7 @@ app.post('/api/confirm-email-change', (req, res) => {
           const protocol = getProtocol(req);
           const host = req.get('host');
           const verifyUrl = `${protocol}://${host}/api/verify?token=${encodeURIComponent(verification_token)}`;
-          console.log('[DEBUG] New Email Verification Link:', verifyUrl);
+          console.log('[INFO] New-email verification message queued.');
 
           const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Verify Your New Email</h2>
@@ -2723,7 +2647,7 @@ app.put('/api/users/:id/push-token', (req, res) => {
 });
 
 // ========== DEBUG/GLOBAL USER ENDPOINTS ==========
-app.get('/api/debug/users', (req, res) => {
+app.get('/api/debug/users', debugOnly, (req, res) => {
   db.query('SELECT id, name, user_type FROM users WHERE is_deleted = 0', (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
     res.json({ success: true, users: results });
@@ -2735,7 +2659,7 @@ app.get('/api/debug/users', (req, res) => {
 app.post('/api/send-otp', (req, res) => {
   // otp_method: 'email' (default) or 'sms'
   const { email, user_type, otp_method = 'email' } = req.body;
-  console.log(`[INFO] SEND OTP: ${email} via ${otp_method}`);
+  console.log(`[INFO] OTP requested via ${otp_method}`);
 
   db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
     if (err || !results.length) {
@@ -2750,7 +2674,7 @@ app.post('/api/send-otp', (req, res) => {
     // If user already has a valid, unexpired OTP (e.g. from registration), skip sending a new one
     // to avoid duplicate emails. Only applies to email-based OTP (not SMS which is always re-sent).
     if (otp_method === 'email' && user.otp_code && user.otp_expires && new Date(user.otp_expires) > new Date()) {
-      console.log(`[INFO] Existing valid OTP found for ${email} — skipping duplicate email send.`);
+      console.log('[INFO] Existing valid OTP found; skipping duplicate email send.');
       const expiresIn = Math.max(1, Math.ceil((new Date(user.otp_expires).getTime() - Date.now()) / 1000));
       return res.json({ success: true, message: 'OTP sent to your email!', reused: true, expires_in: expiresIn });
     }
@@ -2769,8 +2693,6 @@ app.post('/api/send-otp', (req, res) => {
       [otp_code, otp_expires, email],
       (updateErr) => {
         if (updateErr) return res.json({ success: false, message: 'DB error' });
-
-        console.log('[DEBUG] OTP for', email, ':', otp_code);
 
         if (otp_method === 'sms') {
           res.json({ success: true, message: 'OTP sent to your phone!', expires_in: 300 });
@@ -2823,7 +2745,7 @@ async function sendPushNotification(userId, title, body, data = {}) {
     if (err) { console.error('[PUSH] [ERROR] DB error fetching token:', err.message); return; }
     if (!rows.length) { console.warn(`[PUSH] [WARN] No token found for user ${userId} — skipping push`); return; }
     const token = rows[0].token;
-    console.log(`[PUSH] [INFO] Token for user ${userId}: ${token.substring(0, 40)}...`);
+    console.log(`[PUSH] [INFO] Push token found for user ${userId}`);
     if (!token.startsWith('ExponentPushToken')) {
       console.warn('[PUSH] [WARN] Token is not an Expo push token — skipping');
       return;
@@ -2843,7 +2765,7 @@ async function sendPushNotification(userId, title, body, data = {}) {
 }
 
 // ── Push Debug Endpoint (test manually) ──────────────────────────
-app.get('/api/push/debug/:userId', (req, res) => {
+app.get('/api/push/debug/:userId', debugOnly, (req, res) => {
   const { userId } = req.params;
   db.query('SELECT token, platform, updated_at FROM user_push_tokens WHERE user_id = ?', [userId], (err, rows) => {
     if (err) return res.json({ success: false, error: err.message });
@@ -2852,7 +2774,7 @@ app.get('/api/push/debug/:userId', (req, res) => {
   });
 });
 
-app.post('/api/push/test-send/:userId', async (req, res) => {
+app.post('/api/push/test-send/:userId', debugOnly, async (req, res) => {
   const { userId } = req.params;
   await sendPushNotification(userId, 'Test Notification', 'Push notifications are working!', {});
   res.json({ success: true, message: `Push attempted for user ${userId}. Check Railway logs.` });
@@ -2863,7 +2785,7 @@ app.post('/api/verify-otp', (req, res) => {
   // Handle both 'otp' and 'otp_code' from frontend
   const code = otp || req.body.otp_code;
 
-  console.log('[INFO] VERIFY OTP:', email, code);
+  console.log('[INFO] OTP verification requested');
 
   let query = 'SELECT * FROM users WHERE email = ? AND otp_code = ?';
   let params = [email, code];
@@ -2896,8 +2818,8 @@ app.post('/api/verify-otp', (req, res) => {
         return res.status(500).json({ success: false, message: 'Unable to complete verification. Please try again.' });
       }
 
-      if (isAccountVerification) console.log('[OK] Account verified via OTP:', email);
-      console.log('[OK] OTP VERIFIED:', email);
+      if (isAccountVerification) console.log('[OK] Account verified via OTP for user ID:', results[0].id);
+      console.log('[OK] OTP verified for user ID:', results[0].id);
       res.json({
         success: true,
         user: {
@@ -3000,7 +2922,6 @@ app.get('/api/verify', (req, res) => {
 app.post('/api/register', async (req, res) => {
   try {
     console.log('\n[INFO] ========== REGISTER REQUEST ==========');
-    console.log('[DEBUG] Request body:', req.body);
 
     const { firstName, lastName, suffix, name, email, password, type, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent, captchaToken, health_conditions, allergens } = req.body;
 
@@ -3035,7 +2956,7 @@ app.post('/api/register', async (req, res) => {
       }
 
       if (results.length > 0) {
-        console.log('[ERROR] User already exists:', email);
+        console.log('[INFO] Registration rejected because the account already exists.');
         return res.status(400).json({
           success: false,
           message: 'Email already registered'
@@ -3078,8 +2999,6 @@ app.post('/api/register', async (req, res) => {
         const reg_otp_code = Math.floor(100000 + Math.random() * 900000).toString();
         const reg_otp_expires = new Date(Date.now() + 5 * 60 * 1000); // 5 min for registration OTP
         db.query('UPDATE users SET otp_code = ?, otp_expires = ? WHERE id = ?', [reg_otp_code, reg_otp_expires, newUserId]);
-
-        console.log('[DEBUG] Registration OTP:', reg_otp_code);
 
         const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Welcome, ${fullName}!</h2>
@@ -3147,7 +3066,7 @@ app.post('/api/register', async (req, res) => {
             (migErr, migResult) => {
               const migratedCount = migResult ? migResult.affectedRows : 0;
               if (migratedCount > 0) {
-                console.log(`[INFO] Migrated ${migratedCount} orphan appointment(s) to new user ${fullName} (${email})`);
+                console.log(`[INFO] Migrated ${migratedCount} orphan appointment(s) to new user ${userId}`);
                 createNotification(userId, 'Prior Bookings Found!', `We found ${migratedCount} consultation request(s) linked to your email from before you created your account. They have been automatically added to your account.`, 'appointment_request');
               }
 
@@ -3716,12 +3635,14 @@ app.post('/api/artist/appointments', (req, res) => {
 // Artist: Add New Client
 app.post('/api/artist/clients', async (req, res) => {
   const { name, email, password } = req.body;
-  console.log('[INFO] Request to add client:', { name, email });
+  console.log('[INFO] Artist requested client creation.');
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
+  }
 
   try {
-    // Create user with provided password or default '123123123A!'
-    const plainPassword = password || '123123123A!';
-    const password_hash = await bcrypt.hash(plainPassword, 10);
+    const password_hash = await bcrypt.hash(password, 10);
     const query = 'INSERT INTO users (name, email, password_hash, user_type) VALUES (?, ?, ?, "customer")';
 
     db.query(query, [name, email, password_hash], (err, result) => {
@@ -3979,7 +3900,7 @@ app.get('/api/public/calendar-availability', (req, res) => {
 
 // Customer book appointment
 app.post('/api/customer/appointments', async (req, res) => {
-  console.log('[INFO] Customer booking request:', req.body);
+  console.log('[INFO] Customer booking request received');
   let { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage, price, serviceType, consultationMethod, customerName, guestEmail, guestPhone } = req.body;
 
   // --- Validate Customer ID & Handle Guests ---
@@ -5482,7 +5403,7 @@ app.post('/api/admin/appointments', async (req, res) => {
                     }
 
                     if (guestEmail) {
-                      console.log(`[DEBUG] Fallback path — sending guest email to: ${guestEmail}`);
+                      console.log('[INFO] Sending guest booking email.');
                       const fbGuestHtml = buildEmailHtml(`
                     <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Consultation Request Received!</h2>
                     <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">We're excited to help you on your next piece</p>
@@ -5567,7 +5488,7 @@ app.post('/api/admin/appointments', async (req, res) => {
               });
 
               // ═══ Guest External Notifications (SMS + Email) ═══
-              console.log(`[DEBUG] Guest notification block — guestEmail: "${guestEmail}", guestPhone: "${guestPhone}", isFromWizard: ${isFromWizard}, customerId: ${customerId}`);
+              console.log(`[INFO] Processing guest notification for appointment ${result.insertId}`);
               const appointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
               const appointmentTime = startTime ? new Date(`2000-01-01T${startTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'TBD';
               const displayDesign = designTitle || 'Consultation';
@@ -7688,7 +7609,7 @@ app.post('/api/appointments/:id/release-material', (req, res) => {
   const materialId = parseInt(req.body.materialId, 10);
 
   console.log(`[INFO] Releasing material ${materialId} for appt ${appointmentId}`);
-  console.log(`DEBUG: Received materialId: ${req.body.materialId} (parsed: ${materialId}), appointmentId: ${req.params.id} (parsed: ${appointmentId})`);
+  console.log(`[INFO] Material update requested for appointment ${appointmentId}, material ${materialId}`);
 
   if (isNaN(materialId)) return res.status(400).json({ success: false, message: 'Material record ID required' });
 
@@ -7946,11 +7867,11 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
           const data = await response.json();
 
           if (!response.ok) {
-            console.error('[ERROR] PayMongo API Error:', JSON.stringify(data, null, 2));
+            console.error('[ERROR] PayMongo API rejected checkout creation:', response.status, data.errors?.[0]?.code || 'unknown');
             return res.status(502).json({
               success: false,
-              message: `PayMongo Error: ${data.errors?.[0]?.detail || 'Unknown error'}`,
-              error: data
+              message: 'Payment provider rejected the checkout request.',
+              code: data.errors?.[0]?.code || 'payment_provider_error'
             });
           }
 
@@ -10424,7 +10345,7 @@ app.post('/api/admin/invoices', (req, res) => {
 app.put('/api/admin/invoices/:id', (req, res) => {
   const { id } = req.params;
   const { client, type, amount, discount_amount, discount_type, status, items } = req.body;
-  console.log(`[DEBUG] Updating invoice ${id}:`, req.body);
+  console.log(`[INFO] Updating invoice ${id}`);
   const targetDiscount = discount_amount || 0;
   const itemsJson = items ? JSON.stringify(items) : null;
   const query = 'UPDATE invoices SET client_name = ?, service_type = ?, amount = ?, discount_amount = ?, discount_type = ?, status = ?, items = ? WHERE id = ?';
@@ -10674,7 +10595,7 @@ app.get('/api/ar/config', (req, res) => {
 // ========== RESEND VERIFICATION ENDPOINT ==========
 app.post('/api/resend-verification', (req, res) => {
   const { email } = req.body;
-  console.log('[INFO] Resend verification requested for:', email);
+  console.log('[INFO] Verification email resend requested.');
 
   if (!email) return res.status(400).json({ success: false, message: 'Email required' });
 
@@ -10693,8 +10614,6 @@ app.post('/api/resend-verification', (req, res) => {
 
     db.query('UPDATE users SET otp_code = ?, otp_expires = ? WHERE id = ?', [otpCode, otpExpires, user.id], (updateErr) => {
       if (updateErr) return res.status(500).json({ success: false, message: 'Database error' });
-
-      console.log('[DEBUG] Resent verification OTP:', otpCode);
 
       const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Verify Your Account</h2>
@@ -10755,7 +10674,7 @@ const sanitizeChatValue = (value, fallback, blocked = []) => {
 
 app.post('/api/chat', async (req, res) => {
   const { message } = req.body;
-  console.log('[INFO] Chat message received:', message);
+  console.log('[INFO] Chat message received.');
 
   if (!message) {
     return res.status(400).json({ success: false, message: 'Message required' });
@@ -10967,26 +10886,6 @@ ${customInstructions ? '=== ADDITIONAL INSTRUCTIONS ===\n' + customInstructions 
 
 console.log('[OK] Chatbot endpoint (/api/chat) is registered.');
 
-// ========== EMERGENCY LOGIN (ALWAYS WORKS) ==========
-app.post('/api/emergency-login', (req, res) => {
-  console.log('[WARN] Emergency login called:', req.body);
-
-  const { email, type } = req.body;
-
-  res.json({
-    success: true,
-    user: {
-      id: type === 'artist' ? 1 : (type === 'admin' ? 999 : 4),
-      name: type === 'artist' ? 'Mike Chen' : (type === 'admin' ? 'System Admin' : 'John Smith'),
-      email: email || 'test@email.com',
-      type: type
-    },
-    message: 'Emergency login successful (bypassing database)'
-  });
-});
-
-
-
 // ========== SOCKET.IO REAL-TIME CHAT ==========
 const activeSupportSessions = {};
 const activeSessionPeers = {}; // Dual-artist session sync: { 'session_123': { socketId: { artistId, artistName } } }
@@ -11092,7 +10991,7 @@ io.on('connection', (socket) => {
 
   // Listen for new messages
   socket.on('send_message', (data) => {
-    console.log('Message received:', data);
+    console.log('[INFO] Support chat message received.');
 
     const msgId = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
 
@@ -11977,7 +11876,7 @@ app.post('/api/contact', async (req, res) => {
         `);
 
         await sendEmail(studioEmail, `New Contact: ${subject || 'Website Inquiry'} \u2014 ${name}`, html);
-        console.log(`\u2705 Contact form email sent from ${name} (${email})`);
+        console.log('[OK] Contact form email sent.');
       } catch (emailErr) {
         // Don't fail the request if email fails — message is already saved
         console.error('\u26a0\ufe0f Contact email notification failed:', emailErr.message);
@@ -12000,7 +11899,7 @@ app.post('/api/contact', async (req, res) => {
           </p>
         `);
         await sendEmail(email, `We received your message \u2014 InkVictus Studio`, confirmHtml);
-        console.log(`\u2705 Confirmation email sent to ${email}`);
+        console.log('[OK] Contact confirmation email sent.');
       } catch (confirmErr) {
         console.error('\u26a0\ufe0f Customer confirmation email failed:', confirmErr.message);
       }
@@ -12120,7 +12019,7 @@ app.post('/api/admin/inquiries/:id/reply', async (req, res) => {
 
     const replySubject = `Re: ${inquiry.subject || 'Your Inquiry'} \u2014 InkVictus Studio`;
     await sendEmail(inquiry.email, replySubject, replyHtml);
-    console.log(`\u2705 Admin reply sent to ${inquiry.email} for inquiry #${id}`);
+    console.log(`[OK] Admin reply sent for inquiry #${id}`);
 
     res.json({ success: true, message: 'Reply sent successfully.' });
   } catch (error) {
@@ -12509,12 +12408,8 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('[OK] Socket.IO chat server is waiting for connections...');
   console.log('\n[INFO] Available Endpoints:');
   console.log(`   GET  http://localhost:${PORT}/api/test`);
-  console.log(`   GET  http://localhost:${PORT}/api/debug/db`);
-  console.log(`   GET  http://localhost:${PORT}/api/debug/users`);
-  console.log(`   GET  http://localhost:${PORT}/api/debug/user/1`);
   console.log(`   POST http://localhost:${PORT}/api/register`);
   console.log(`   POST http://localhost:${PORT}/api/login`);
-  console.log(`   POST http://localhost:${PORT}/api/emergency-login`);
   console.log(`   GET  http://localhost:${PORT}/api/artist/dashboard/1`);
   console.log(`   GET  http://localhost:${PORT}/api/customer/dashboard/1`);
   console.log('='.repeat(50) + '\n');

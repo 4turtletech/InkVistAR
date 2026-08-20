@@ -5,7 +5,7 @@ require('dotenv').config();
 const dbConfig = {
   host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
   user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
-  password: process.env.MYSQLPASSWORD || process.env.DB_PASS || 'banana',
+  password: process.env.MYSQLPASSWORD || process.env.DB_PASS,
   database: process.env.MYSQLDATABASE || process.env.DB_NAME || 'inkvistar',
   port: process.env.MYSQLPORT ? Number(process.env.MYSQLPORT) : (process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306),
   connectionLimit: 1, // Only need one connection for this script

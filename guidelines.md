@@ -520,11 +520,11 @@ BACKEND_URL=https://inkvistar-api.onrender.com
 ---
 
 ## Test Accounts
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@inkvistar.com | admin123 |
-| Artist | artist@inkvistar.com | artist123 |
-| Customer | customer@inkvistar.com | customer123 |
+
+Test accounts are not created automatically. In a development or staging environment,
+set `SEED_DEMO_ACCOUNTS=true` with a temporary `DEMO_ACCOUNT_PASSWORD`, deploy once,
+then turn the switch off and remove the password variable. Demo accounts must never be
+enabled in production.
 
 ---
 
@@ -773,4 +773,4 @@ Wallis and Futuna ,WF/WLF ,681
 Western Sahara ,EH/ESH ,212 
 Yemen ,YE/YEM ,967 
 Zambia ,ZM/ZMB ,260 
-Zimbabwe ,ZW/ZWE ,263 
+Zimbabwe ,ZW/ZWE ,263

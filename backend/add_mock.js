@@ -3,12 +3,17 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const db = mysql.createConnection({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASS || 'banana',
-  database: process.env.DB_NAME || 'inkvistar',
-  port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306
+  host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
+  user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
+  password: process.env.MYSQLPASSWORD || process.env.DB_PASS,
+  database: process.env.MYSQLDATABASE || process.env.DB_NAME || 'inkvistar',
+  port: Number(process.env.MYSQLPORT || process.env.DB_PORT || 3306)
 });
+
+if (!process.env.DEMO_ACCOUNT_PASSWORD) {
+  console.error('DEMO_ACCOUNT_PASSWORD is required to run this legacy mock-data script.');
+  process.exit(1);
+}
 
 db.connect(async (err) => {
   if (err) {
@@ -18,7 +23,7 @@ db.connect(async (err) => {
   console.log('[OK] Connected to the database...');
 
   // 1. Setup Password
-  const defaultPassword = 'password123';
+  const defaultPassword = process.env.DEMO_ACCOUNT_PASSWORD;
   const passwordHash = bcrypt.hashSync(defaultPassword, 10);
 
   // 2. Insert Managers and Artists

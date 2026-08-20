@@ -11,6 +11,13 @@ build/
 dist/
 .DS_Store
 
+# Runtime logs and local database/backup artifacts
+*.log
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+
 # Local App development and IDE settings
 TattooARApp/
 ar-tattoo-native/
