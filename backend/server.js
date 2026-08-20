@@ -2395,9 +2395,12 @@ app.post('/api/reset-password', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Email and new password are required.' });
   }
 
-  // Basic password policy (matches registration)
-  if (newPassword.length < 6) {
-    return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
+  const passwordPolicy = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+  if (!passwordPolicy.test(newPassword)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.'
+    });
   }
 
   // Find user
@@ -9223,36 +9226,52 @@ app.put('/api/admin/users/:id/status', (req, res) => {
 
     db.query(updateQuery, [status, finalReason, id], async (updateErr) => {
       if (updateErr && updateErr.code === 'ER_BAD_FIELD_ERROR' && !isRetry) {
-        // Columns don't exist yet — run migration inline then retry
-        console.log('[MIGRATE] account_status/status_reason columns missing. Running inline migration...');
-        const alterQuery = `
-          ALTER TABLE users 
-          ADD COLUMN IF NOT EXISTS account_status ENUM('active', 'deactivated', 'banned') DEFAULT 'active',
-          ADD COLUMN IF NOT EXISTS status_reason TEXT NULL,
-          ADD COLUMN IF NOT EXISTS appeal_status ENUM('none', 'pending', 'accepted', 'denied') DEFAULT 'none',
-          ADD COLUMN IF NOT EXISTS appeal_message TEXT NULL
-        `;
-        db.query(alterQuery, (alterErr) => {
-          if (alterErr) {
-            console.error('[MIGRATE] Inline migration failed:', alterErr.message);
-            // Try a MySQL 5.7 compatible approach (no IF NOT EXISTS for ADD COLUMN)
-            db.query("SHOW COLUMNS FROM users LIKE 'account_status'", (showErr, showResults) => {
-              if (!showErr && showResults.length === 0) {
-                db.query(`ALTER TABLE users ADD COLUMN account_status ENUM('active', 'deactivated', 'banned') DEFAULT 'active', ADD COLUMN status_reason TEXT NULL, ADD COLUMN appeal_status ENUM('none', 'pending', 'accepted', 'denied') DEFAULT 'none', ADD COLUMN appeal_message TEXT NULL`, (altErr2) => {
-                  if (altErr2) return res.status(500).json({ success: false, message: 'Migration failed: ' + altErr2.message });
-                  console.log('[MIGRATE] Columns added successfully (compat mode). Retrying update...');
-                  performStatusUpdate(targetUser, true);
-                });
-              } else {
-                // Column exists but something else is wrong
-                return res.status(500).json({ success: false, message: 'Migration error: ' + (alterErr.message || 'Unknown') });
-              }
-            });
+        console.log('[MIGRATE] account status columns missing. Running compatibility migration...');
+        const requiredColumns = [
+          {
+            name: 'account_status',
+            query: "ALTER TABLE users ADD COLUMN account_status ENUM('active', 'deactivated', 'banned') DEFAULT 'active'"
+          },
+          {
+            name: 'status_reason',
+            query: "ALTER TABLE users ADD COLUMN status_reason TEXT NULL"
+          },
+          {
+            name: 'appeal_status',
+            query: "ALTER TABLE users ADD COLUMN appeal_status ENUM('none', 'pending', 'accepted', 'denied') DEFAULT 'none'"
+          },
+          {
+            name: 'appeal_message',
+            query: "ALTER TABLE users ADD COLUMN appeal_message TEXT NULL"
+          }
+        ];
+
+        const ensureColumn = (idx) => {
+          if (idx >= requiredColumns.length) {
+            console.log('[MIGRATE] Account status columns verified. Retrying update...');
+            performStatusUpdate(targetUser, true);
             return;
           }
-          console.log('[MIGRATE] Columns added successfully. Retrying update...');
-          performStatusUpdate(targetUser, true);
-        });
+
+          const column = requiredColumns[idx];
+          db.query(`SHOW COLUMNS FROM users LIKE '${column.name}'`, (showErr, showResults) => {
+            if (showErr) {
+              return res.status(500).json({ success: false, message: 'Migration check failed: ' + showErr.message });
+            }
+            if (showResults.length > 0) {
+              ensureColumn(idx + 1);
+              return;
+            }
+            db.query(column.query, (alterErr) => {
+              if (alterErr) {
+                return res.status(500).json({ success: false, message: 'Migration failed: ' + alterErr.message });
+              }
+              ensureColumn(idx + 1);
+            });
+          });
+        };
+
+        ensureColumn(0);
         return;
       }
       if (updateErr) return res.status(500).json({ success: false, message: updateErr.message });
