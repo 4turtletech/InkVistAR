@@ -68,6 +68,12 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const [customAllergen, setCustomAllergen] = useState('');
     const [healthNoneConfirmed, setHealthNoneConfirmed] = useState(false);
 
+    // Per-session specific screening state
+    const [medicationsBloodThinners, setMedicationsBloodThinners] = useState('');
+    const [recentIllnessInfection, setRecentIllnessInfection] = useState('');
+    const [substanceInfluence, setSubstanceInfluence] = useState(false);
+    const [siteSkinCondition, setSiteSkinCondition] = useState('Normal');
+
     const toggleHealthTag = (list, setList, tag) => {
         setList(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
         if (healthNoneConfirmed) setHealthNoneConfirmed(false);
@@ -347,6 +353,24 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             });
 
             if (response.data.success) {
+                const newApptId = response.data.id || response.data.appointmentId;
+                if (newApptId) {
+                    Axios.post(`${API_URL}/api/health-screenings`, {
+                        appointmentId: newApptId,
+                        customerId: uid,
+                        allergies: selectedAllergens.join(', '),
+                        medicationsBloodThinners: medicationsBloodThinners,
+                        hasDiabetes: selectedConditions.includes('Diabetes'),
+                        hasSkinDisorders: selectedConditions.includes('Skin Condition'),
+                        isPregnant: selectedConditions.includes('Pregnancy'),
+                        hasBleedingConditions: selectedConditions.includes('Blood Disorder'),
+                        hasImmuneConditions: selectedConditions.includes('Immunocompromised'),
+                        recentIllnessInfection: recentIllnessInfection,
+                        substanceInfluence: substanceInfluence,
+                        siteSkinCondition: siteSkinCondition
+                    }).catch(e => console.error('Failed to post health screening:', e));
+                }
+
                 if (!currentUser && response.data.id) {
                     sessionStorage.setItem('orphanAppointmentId', response.data.id);
                 }
@@ -1133,7 +1157,69 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 </div>
             )}
 
-            {errors.health && <small style={{color: '#ef4444', display: 'block', marginBottom: '12px', fontSize: '0.85rem', textAlign: 'center'}}>{errors.health}</small>}
+            {/* Per-Session Screening Questions */}
+            <div style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginBottom: '20px' }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '0.95rem', color: '#1e293b', fontWeight: 700 }}>
+                    Procedure Session Screening
+                </h4>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            Current Medications / Blood Thinners
+                        </label>
+                        <input 
+                            type="text" 
+                            placeholder="E.g. Aspirin, Ibuprofen, None" 
+                            value={medicationsBloodThinners}
+                            onChange={e => setMedicationsBloodThinners(e.target.value)}
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem' }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            Recent Illness or Infection (Past 14 Days)
+                        </label>
+                        <input 
+                            type="text" 
+                            placeholder="E.g. Fever, Flu, None" 
+                            value={recentIllnessInfection}
+                            onChange={e => setRecentIllnessInfection(e.target.value)}
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem' }}
+                        />
+                    </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            Procedure Site Skin Condition
+                        </label>
+                        <select 
+                            value={siteSkinCondition}
+                            onChange={e => setSiteSkinCondition(e.target.value)}
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem', background: 'white' }}
+                        >
+                            <option value="Normal">Normal & Healthy Skin</option>
+                            <option value="Sunburned">Sunburned / Tanned</option>
+                            <option value="Rash / Irritation">Active Rash / Irritation</option>
+                            <option value="Cut / Open Wound">Cut / Open Wound</option>
+                            <option value="Eczema / Psoriasis Flare">Eczema / Psoriasis Flare</option>
+                        </select>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', color: '#1e293b', marginTop: '16px' }}>
+                            <input 
+                                type="checkbox" 
+                                checked={substanceInfluence}
+                                onChange={e => setSubstanceInfluence(e.target.checked)}
+                                style={{ width: '18px', height: '18px', accentColor: '#ef4444' }}
+                            />
+                            <span>Consumed <strong>alcohol or drugs</strong> in past 24 hours</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
 
             {/* Waiver Consent Toggle — Moved here from Contact step */}
             <div style={{ margin: '8px 0 8px', padding: '16px 20px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px' }}>

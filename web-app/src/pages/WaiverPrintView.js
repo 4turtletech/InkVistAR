@@ -13,6 +13,7 @@ export default function WaiverPrintView() {
 
     const [appointment, setAppointment] = useState(null);
     const [consentRecord, setConsentRecord] = useState(null);
+    const [healthScreening, setHealthScreening] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -20,9 +21,10 @@ export default function WaiverPrintView() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [apptRes, consentRes] = await Promise.all([
+                const [apptRes, consentRes, healthRes] = await Promise.all([
                     Axios.get(`${API_URL}/api/admin/appointments/${id}`),
-                    Axios.get(`${API_URL}/api/consents/appointment/${id}`).catch(err => ({ data: { success: false } }))
+                    Axios.get(`${API_URL}/api/consents/appointment/${id}`).catch(err => ({ data: { success: false } })),
+                    Axios.get(`${API_URL}/api/health-screenings/appointment/${id}`).catch(err => ({ data: { success: false } }))
                 ]);
                 
                 if (apptRes.data.success && apptRes.data.appointment) {
@@ -33,6 +35,10 @@ export default function WaiverPrintView() {
                 
                 if (consentRes && consentRes.data && consentRes.data.success) {
                     setConsentRecord(consentRes.data.consent);
+                }
+
+                if (healthRes && healthRes.data && healthRes.data.success) {
+                    setHealthScreening(healthRes.data.screening);
                 }
             } catch (err) {
                 console.error('Error fetching waiver data:', err);
@@ -66,11 +72,11 @@ export default function WaiverPrintView() {
 
     const a = appointment;
     const c = consentRecord;
+    const hs = healthScreening;
     
     const bookingCode = getDisplayCode(a.booking_code, a.id);
     const clientName = c?.customer_name || a.customer_name || a.client_name || a.guest_email || 'Client';
     
-    // We prefer the consent record timestamp if available, fallback to old column
     const acceptedAtStr = c?.accepted_at || a.waiver_accepted_at;
     const waiverDate = acceptedAtStr
         ? new Date(acceptedAtStr.replace(' ', 'T') + (acceptedAtStr.includes('Z') ? '' : '+08:00')).toLocaleString('en-US', { 
@@ -157,7 +163,7 @@ export default function WaiverPrintView() {
                     })}
                 </div>
 
-                {/* Signature / Acceptance Block */}
+                {/* Signature / Acceptance & Identification Block */}
                 <div style={s.acceptanceBlock}>
                     <h3 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>Electronic Acceptance Record</h3>
                     <div style={s.sigGrid}>
@@ -170,25 +176,56 @@ export default function WaiverPrintView() {
                             <span style={s.sigValue}>{c?.signature_evidence || 'N/A'}</span>
                         </div>
                         <div style={s.sigField}>
+                            <span style={s.sigLabel}>Date of Birth / Age</span>
+                            <span style={s.sigValue}>
+                                {c?.date_of_birth ? `${c.date_of_birth} (${c.calculated_age} yrs)` : 'N/A'}
+                            </span>
+                        </div>
+                        <div style={s.sigField}>
+                            <span style={s.sigLabel}>ID Verification</span>
+                            <span style={s.sigValue}>
+                                {c?.id_type || 'ID'}: ****{c?.id_last_four || 'N/A'} ({c?.id_verification_status === 'verified' ? '✅ Verified' : '⏳ Unverified'})
+                            </span>
+                        </div>
+
+                        {/* Guardian details if client is minor */}
+                        {c?.guardian_name && (
+                            <div style={{ gridColumn: '1 / -1', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '12px', marginTop: '8px' }}>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>Parent / Guardian Verification</span>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '6px', fontSize: '0.85rem', color: '#78350f' }}>
+                                    <div><strong>Guardian Name:</strong> {c.guardian_name} ({c.guardian_relationship})</div>
+                                    <div><strong>Guardian ID:</strong> {c.guardian_id_info}</div>
+                                    <div><strong>Signature:</strong> {c.guardian_signature}</div>
+                                    <div><strong>In-Person Presence:</strong> {c.guardian_present ? '✅ Confirmed Present' : '❌ Not Verified'}</div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div style={s.sigField}>
                             <span style={s.sigLabel}>Booking Reference</span>
                             <span style={{ ...s.sigValue, color: '#be9055', fontFamily: 'monospace' }}>{bookingCode}</span>
-                        </div>
-                        <div style={s.sigField}>
-                            <span style={s.sigLabel}>Service Type</span>
-                            <span style={s.sigValue}>{c?.procedure_type || a.service_type || 'Consultation'}</span>
-                        </div>
-                        <div style={s.sigField}>
-                            <span style={s.sigLabel}>Appointment Date</span>
-                            <span style={s.sigValue}>{appointmentDate}</span>
                         </div>
                         <div style={s.sigField}>
                             <span style={s.sigLabel}>Witness</span>
                             <span style={s.sigValue}>{c?.witness_name || 'N/A'}</span>
                         </div>
-                        
+
+                        {/* Health Screening Snapshot Summary */}
+                        {hs && (
+                            <div style={{ gridColumn: '1 / -1', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '12px', marginTop: '8px' }}>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>Per-Session Health Clearance Record</span>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '6px', fontSize: '0.82rem', color: '#14532d' }}>
+                                    <div><strong>Status:</strong> {hs.screening_status?.toUpperCase()}</div>
+                                    <div><strong>Site Condition:</strong> {hs.site_skin_condition || 'Normal'}</div>
+                                    <div><strong>Blood Thinners:</strong> {hs.medications_blood_thinners || 'None'}</div>
+                                    <div><strong>Alcohol/Drugs (24h):</strong> {hs.substance_influence ? '⚠️ Yes' : 'No'}</div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Consent Checkboxes Visualized */}
                         {c && (
-                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '12px' }}>
+                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '12px' }}>
                                 <div style={s.tag}>Procedure: {c.procedure_consent ? '✅' : '❌'}</div>
                                 <div style={s.tag}>Payment: {c.payment_consent ? '✅' : '❌'}</div>
                                 <div style={s.tag}>Health Data: {c.health_data_consent ? '✅' : '❌'}</div>

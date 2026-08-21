@@ -53,6 +53,13 @@ function ArtistSessions() {
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [showHealthAlert, setShowHealthAlert] = useState(false);
+    
+    // Consent & Health Screening State
+    const [consentRecord, setConsentRecord] = useState(null);
+    const [sessionHealthScreening, setSessionHealthScreening] = useState(null);
+    const [showRefusalModal, setShowRefusalModal] = useState(false);
+    const [refusalReasonText, setRefusalReasonText] = useState('');
+    const [refusalActionType, setRefusalActionType] = useState('postponed'); // 'postponed' or 'refused'
     // Feature B: Project timeline for the active session (read-only for artist)
     const [projectTimeline, setProjectTimeline] = useState(null);
     const [projectTimelineLoading, setProjectTimelineLoading] = useState(false);
@@ -145,6 +152,59 @@ function ArtistSessions() {
     useEffect(() => {
         fetchSessions();
     }, [artistId]);
+
+    useEffect(() => {
+        if (activeSession && activeSession.id) {
+            Axios.get(`${API_URL}/api/consents/appointment/${activeSession.id}`)
+                .then(res => { if (res.data.success) setConsentRecord(res.data.consent); else setConsentRecord(null); })
+                .catch(() => setConsentRecord(null));
+
+            Axios.get(`${API_URL}/api/health-screenings/appointment/${activeSession.id}`)
+                .then(res => { if (res.data.success) setSessionHealthScreening(res.data.screening); else setSessionHealthScreening(null); })
+                .catch(() => setSessionHealthScreening(null));
+        } else {
+            setConsentRecord(null);
+            setSessionHealthScreening(null);
+        }
+    }, [activeSession ? activeSession.id : null]);
+
+    const handleVerifyCustomerId = async () => {
+        if (!consentRecord?.id) return;
+        try {
+            await Axios.put(`${API_URL}/api/consents/${consentRecord.id}/verify-id`, {
+                idVerificationStatus: 'verified',
+                verifiedBy: user?.name || 'Artist Staff'
+            });
+            const res = await Axios.get(`${API_URL}/api/consents/appointment/${activeSession.id}`);
+            if (res.data.success) setConsentRecord(res.data.consent);
+            alert('Customer ID marked as Verified.');
+        } catch (e) {
+            alert('Failed to update ID verification');
+        }
+    };
+
+    const handleReviewHealthScreening = async (approved, status = 'approved', reason = '') => {
+        if (!sessionHealthScreening?.id) return;
+        try {
+            await Axios.put(`${API_URL}/api/health-screenings/${sessionHealthScreening.id}/review`, {
+                artistApproved: approved,
+                screeningStatus: status,
+                rejectionReason: reason
+            });
+            const res = await Axios.get(`${API_URL}/api/health-screenings/appointment/${activeSession.id}`);
+            if (res.data.success) setSessionHealthScreening(res.data.screening);
+            if (!approved) {
+                setShowRefusalModal(false);
+                setRefusalReasonText('');
+                fetchSessions();
+                alert(`Procedure ${status}. Customer notification has been sent.`);
+            } else {
+                alert('Health screening approved for procedure.');
+            }
+        } catch (e) {
+            alert('Failed to update health screening review');
+        }
+    };
 
     useEffect(() => {
         if (activeSession) {
@@ -1156,6 +1216,92 @@ function ArtistSessions() {
                                 if (!hasHealthData) return null;
                                 return (
                                     <div style={{ marginBottom: '16px' }}>
+                                        {/* ══ Age & ID Verification Card ══ */}
+                                        {consentRecord && (
+                                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                        Client Identification &amp; Age Verification
+                                                    </span>
+                                                    <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, background: consentRecord.id_verification_status === 'verified' ? '#dcfce7' : '#fef3c7', color: consentRecord.id_verification_status === 'verified' ? '#166534' : '#92400e' }}>
+                                                        {consentRecord.id_verification_status === 'verified' ? '✅ ID Verified' : '⏳ ID Unverified'}
+                                                    </span>
+                                                </div>
+
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.85rem', color: '#1e293b', marginBottom: '10px' }}>
+                                                    <div><strong>Date of Birth:</strong> {consentRecord.date_of_birth || 'N/A'}</div>
+                                                    <div><strong>Calculated Age:</strong> {consentRecord.calculated_age !== null ? `${consentRecord.calculated_age} yrs` : 'N/A'}</div>
+                                                    <div><strong>ID Type:</strong> {consentRecord.id_type || 'N/A'}</div>
+                                                    <div><strong>Last 4 Digits:</strong> ****{consentRecord.id_last_four || 'N/A'}</div>
+                                                </div>
+
+                                                {/* Guardian Verification Info */}
+                                                {consentRecord.guardian_name && (
+                                                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px', marginTop: '8px', fontSize: '0.82rem', color: '#78350f' }}>
+                                                        <strong>Parent/Guardian Consent:</strong> {consentRecord.guardian_name} ({consentRecord.guardian_relationship})<br />
+                                                        <strong>ID Details:</strong> {consentRecord.guardian_id_info} | <strong>Signature:</strong> {consentRecord.guardian_signature}<br />
+                                                        <strong>In-Person Presence:</strong> {consentRecord.guardian_present ? '✅ Verified Present' : '❌ Not Verified'}
+                                                    </div>
+                                                )}
+
+                                                {consentRecord.id_verification_status !== 'verified' && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleVerifyCustomerId}
+                                                        style={{ marginTop: '10px', width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #16a34a', background: '#f0fdf4', color: '#166534', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}
+                                                    >
+                                                        Confirm &amp; Mark Customer ID as Verified
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* ══ Per-Session Health Screening Review Card ══ */}
+                                        {sessionHealthScreening && (
+                                            <div style={{ background: sessionHealthScreening.screening_status === 'approved' ? '#f0fdf4' : sessionHealthScreening.screening_status === 'postponed' || sessionHealthScreening.screening_status === 'refused' ? '#fef2f2' : '#fffbeb', border: '1.5px solid #cbd5e1', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                        Per-Session Health Screening
+                                                    </span>
+                                                    <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, background: sessionHealthScreening.screening_status === 'approved' ? '#dcfce7' : sessionHealthScreening.screening_status === 'postponed' ? '#fee2e2' : '#fef3c7', color: sessionHealthScreening.screening_status === 'approved' ? '#166534' : sessionHealthScreening.screening_status === 'postponed' ? '#991b1b' : '#92400e' }}>
+                                                        Status: {sessionHealthScreening.screening_status?.toUpperCase()}
+                                                    </span>
+                                                </div>
+
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.82rem', color: '#334155', marginBottom: '12px' }}>
+                                                    <div><strong>Site Condition:</strong> {sessionHealthScreening.site_skin_condition || 'Normal'}</div>
+                                                    <div><strong>Blood Thinners:</strong> {sessionHealthScreening.medications_blood_thinners || 'None'}</div>
+                                                    <div><strong>Illness (14d):</strong> {sessionHealthScreening.recent_illness_infection || 'None'}</div>
+                                                    <div><strong>Alcohol/Drugs (24h):</strong> {sessionHealthScreening.substance_influence ? '⚠️ Yes' : 'No'}</div>
+                                                </div>
+
+                                                {sessionHealthScreening.rejection_reason && (
+                                                    <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem', color: '#991b1b', marginBottom: '10px' }}>
+                                                        <strong>Postponement / Refusal Reason:</strong> {sessionHealthScreening.rejection_reason}
+                                                    </div>
+                                                )}
+
+                                                {sessionHealthScreening.screening_status === 'pending_review' && (
+                                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleReviewHealthScreening(true, 'approved')}
+                                                            style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: '#16a34a', color: 'white', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}
+                                                        >
+                                                            Approve Screening
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => { setRefusalActionType('postponed'); setShowRefusalModal(true); }}
+                                                            style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: '#ea580c', color: 'white', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}
+                                                        >
+                                                            Postpone / Refuse
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
                                         <button
                                             type="button"
                                             id="health-alert-toggle"
@@ -1792,6 +1938,60 @@ function ArtistSessions() {
                             >
                                 <AlertTriangle size={16} />
                                 {isAborting ? 'Stopping Session...' : 'Confirm Abort'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Health Screening Postponement / Refusal Modal */}
+            {showRefusalModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+                    <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', maxWidth: '480px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', border: '1px solid #cbd5e1' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#991b1b', fontWeight: 700 }}>
+                                Health Screening Decision
+                            </h3>
+                            <button onClick={() => setShowRefusalModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Action Type</label>
+                            <select 
+                                value={refusalActionType} 
+                                onChange={e => setRefusalActionType(e.target.value)}
+                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.92rem', background: 'white' }}
+                            >
+                                <option value="postponed">Postpone Session (Needs Rescheduling)</option>
+                                <option value="refused">Refuse &amp; Cancel Session (Safety Risk)</option>
+                            </select>
+                        </div>
+
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                                Reason for {refusalActionType === 'postponed' ? 'Postponement' : 'Refusal'} <span style={{ color: '#ef4444' }}>*</span>
+                            </label>
+                            <textarea 
+                                rows={4}
+                                value={refusalReasonText}
+                                onChange={e => setRefusalReasonText(e.target.value)}
+                                placeholder="Explain safety or health concern (e.g. active skin rash at site, high blood pressure, recent illness, or alcohol influence)..."
+                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                            <button onClick={() => setShowRefusalModal(false)} style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', fontWeight: 600, cursor: 'pointer' }}>
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={() => handleReviewHealthScreening(false, refusalActionType, refusalReasonText.trim())}
+                                disabled={refusalReasonText.trim().length < 5}
+                                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: refusalReasonText.trim().length >= 5 ? '#dc2626' : '#cbd5e1', color: 'white', fontWeight: 700, cursor: refusalReasonText.trim().length >= 5 ? 'pointer' : 'not-allowed' }}
+                            >
+                                Confirm {refusalActionType === 'postponed' ? 'Postponement' : 'Refusal'}
                             </button>
                         </div>
                     </div>
