@@ -33,6 +33,7 @@ function ArtistSessions() {
     const [serviceKits, setServiceKits] = useState({});
     const [addingMaterial, setAddingMaterial] = useState(false);
     const [inventorySearch, setInventorySearch] = useState('');
+    const [traceabilityModal, setTraceabilityModal] = useState({ visible: false, inventoryItem: null, batch_number: '', lot_number: '', serial_number: '', expiration_date: '' });
     const [isCompletingSession, setIsCompletingSession] = useState(false);
     const [isStartingProcedure, setIsStartingProcedure] = useState(false);
     const [showAbortModal, setShowAbortModal] = useState(false);
@@ -402,13 +403,22 @@ function ArtistSessions() {
             const errorMsg = e.response?.data?.message || "Failed to connect to the server.";
             showAlert("Release Error", errorMsg, "danger");
         } finally {
-            // Always refetch materials to ensure UI is in sync with DB
-            // This helps if the status changed unexpectedly or due to a race condition.
             fetchSessionMaterials(activeSession.id);
         }
     };
 
-    const handleQuickAdd = async (inventoryId, quantity = 1) => {
+    const handleOpenTraceabilityModal = (item) => {
+        setTraceabilityModal({
+            visible: true,
+            inventoryItem: item,
+            batch_number: item.batch_number || '',
+            lot_number: item.lot_number || '',
+            serial_number: item.serial_number || '',
+            expiration_date: item.expiration_date ? new Date(item.expiration_date).toISOString().split('T')[0] : ''
+        });
+    };
+
+    const handleQuickAdd = async (inventoryId, quantity = 1, traceability = {}) => {
         if (!activeSession) return;
         
         const item = inventoryItems.find(i => i.id === inventoryId);
@@ -424,7 +434,9 @@ function ArtistSessions() {
         setAddingMaterial(true);
         try {
             const res = await Axios.post(`${API_URL}/api/appointments/${activeSession.id}/materials`, {
-                inventory_id: inventoryId, quantity
+                inventory_id: inventoryId, 
+                quantity,
+                ...traceability
             });
             if (res.data.success) {
                 fetchSessionMaterials(activeSession.id);
@@ -1679,8 +1691,9 @@ function ArtistSessions() {
                                                     return filtered.length > 0 ? filtered.map(item => (
                                                         <div
                                                             key={item.id}
-                                                            onClick={async () => {
-                                                                await handleQuickAdd(item.id, 1);
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleOpenTraceabilityModal(item);
                                                             }}
                                                             style={{
                                                                 padding: '10px 14px',
@@ -1992,6 +2005,82 @@ function ArtistSessions() {
                                 style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: refusalReasonText.trim().length >= 5 ? '#dc2626' : '#cbd5e1', color: 'white', fontWeight: 700, cursor: refusalReasonText.trim().length >= 5 ? 'pointer' : 'not-allowed' }}
                             >
                                 Confirm {refusalActionType === 'postponed' ? 'Postponement' : 'Refusal'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {traceabilityModal.visible && (
+                <div className="modal-overlay" onClick={() => setTraceabilityModal({ ...traceabilityModal, visible: false })} style={{ zIndex: 1100 }}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+                        <div className="modal-header">
+                            <h3 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Package size={20} color="#b7954e" /> Traceability & Tracking
+                            </h3>
+                            <button className="close-btn" onClick={() => setTraceabilityModal({ ...traceabilityModal, visible: false })}><X size={20}/></button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '20px' }}>
+                            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px', marginTop: 0 }}>
+                                Confirm or enter the specific batch/lot details for <strong>{traceabilityModal.inventoryItem?.name}</strong> being used.
+                            </p>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Batch Number</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-input" 
+                                        value={traceabilityModal.batch_number} 
+                                        onChange={e => setTraceabilityModal({ ...traceabilityModal, batch_number: e.target.value })}
+                                        placeholder="e.g. B-2024-001"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Lot Number</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-input" 
+                                        value={traceabilityModal.lot_number} 
+                                        onChange={e => setTraceabilityModal({ ...traceabilityModal, lot_number: e.target.value })}
+                                        placeholder="e.g. L-5541"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Serial Number (Optional)</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-input" 
+                                        value={traceabilityModal.serial_number} 
+                                        onChange={e => setTraceabilityModal({ ...traceabilityModal, serial_number: e.target.value })}
+                                        placeholder="If applicable"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Expiration Date</label>
+                                    <input 
+                                        type="date" 
+                                        className="form-input" 
+                                        value={traceabilityModal.expiration_date} 
+                                        onChange={e => setTraceabilityModal({ ...traceabilityModal, expiration_date: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => setTraceabilityModal({ ...traceabilityModal, visible: false })}>Cancel</button>
+                            <button 
+                                className="btn btn-primary" 
+                                onClick={() => {
+                                    handleQuickAdd(traceabilityModal.inventoryItem.id, 1, {
+                                        batch_number: traceabilityModal.batch_number,
+                                        lot_number: traceabilityModal.lot_number,
+                                        serial_number: traceabilityModal.serial_number,
+                                        expiration_date: traceabilityModal.expiration_date
+                                    });
+                                    setTraceabilityModal({ ...traceabilityModal, visible: false });
+                                }}
+                            >
+                                Confirm & Add
                             </button>
                         </div>
                     </div>
