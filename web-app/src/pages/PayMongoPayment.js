@@ -60,13 +60,11 @@ const PayMongoPayment = () => {
                 return;
             }
 
-            // Defensively cast all values to scalar types to avoid circular references (like React events)
             const payload = {
                 appointmentId: appointmentId ? String(appointmentId) : null,
                 price: price ? Number(price) : 0,
                 paymentType: (typeof finalType === 'string') ? finalType : 'deposit',
-                customAmount: finalType === 'custom' ? Number(customAmount) : null,
-                agreedToWaiver: true // We send this since the user will agree via the modal before triggering actual payment, but wait, this is initialization
+                customAmount: finalType === 'custom' ? Number(customAmount) : null
             };
             
             console.log('[Checkout] Payload:', payload);
@@ -86,13 +84,26 @@ const PayMongoPayment = () => {
         }
     };
 
-    const handlePayment = async () => {
+    const handlePayment = async (consentData) => {
         if (!checkoutUrl) {
             alert('Payment is not yet initialized. Please wait.');
             return;
         }
 
         setStatus('processing');
+        
+        try {
+            await axios.post(`${API_URL}/api/consents`, {
+                appointmentId,
+                ...consentData
+            });
+        } catch (error) {
+            console.error('Failed to log consent:', error);
+            alert('Failed to record consent. Please try again.');
+            setStatus('selection');
+            return;
+        }
+
         window.location.href = checkoutUrl;
     };
 
@@ -280,11 +291,9 @@ const PayMongoPayment = () => {
             <PaymentConfirmationModal 
                 isOpen={showWaiverModal}
                 onClose={() => setShowWaiverModal(false)}
-                onAccept={() => {
+                onAccept={(consentData) => {
                     setShowWaiverModal(false);
-                    // The payload initialization was already done earlier. 
-                    // To ensure we log the waiver, we will send an update to backend just before redirecting.
-                    handlePayment();
+                    handlePayment(consentData);
                 }}
                 amount={paymentType === 'deposit' ? depositPrice : paymentType === 'custom' ? Number(customAmount) : location.state?.remainingBalance || price}
                 paymentType={paymentType === 'deposit' ? 'Downpayment' : paymentType === 'balance' ? 'Remaining Balance' : paymentType === 'custom' ? 'Custom Partial' : 'Full Payment'}

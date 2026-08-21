@@ -2,7 +2,7 @@ import './CustomerStyles.css';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
-import { User, Mail, Phone, MapPin, Save, Edit2, X, FileText, Lock, Eye, EyeOff, CheckCircle, AlertCircle, Camera, Heart, ShieldAlert } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Save, Edit2, X, FileText, Lock, Eye, EyeOff, CheckCircle, AlertCircle, Camera, Heart, ShieldAlert, Shield, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
@@ -79,6 +79,12 @@ function CustomerProfile() {
     const [errors, setErrors] = useState({});
     const navigate = useNavigate();
     const [cropperImage, setCropperImage] = useState(null);
+
+    // Privacy & Consents state
+    const [consents, setConsents] = useState([]);
+    const [consentsLoading, setConsentsLoading] = useState(false);
+    const [expandedConsent, setExpandedConsent] = useState(null);
+    const [withdrawingId, setWithdrawingId] = useState(null);
 
     // Health & Safety state
     const PRESET_CONDITIONS = ['Diabetes', 'Hypertension', 'Heart Condition', 'Blood Disorder', 'Epilepsy', 'Pregnancy', 'Skin Condition', 'Immunocompromised'];
@@ -175,6 +181,44 @@ function CustomerProfile() {
         };
         fetch();
     }, [customerId]);
+
+    // Fetch consent records
+    useEffect(() => {
+        const fetchConsents = async () => {
+            if (!customerId) return;
+            try {
+                setConsentsLoading(true);
+                const res = await Axios.get(`${API_URL}/api/consents/customer/${customerId}`);
+                if (res.data.success) {
+                    setConsents(res.data.consents || []);
+                }
+            } catch (e) {
+                console.error('Failed to fetch consents:', e);
+            } finally {
+                setConsentsLoading(false);
+            }
+        };
+        fetchConsents();
+    }, [customerId]);
+
+    const handleWithdrawConsent = async (consentId, field, currentValue) => {
+        try {
+            setWithdrawingId(consentId);
+            await Axios.put(`${API_URL}/api/consents/${consentId}/withdraw`, {
+                withdrawnConsents: { [field]: !currentValue },
+                reason: 'User withdrew via profile',
+                updatedBy: profile.name || 'Customer'
+            });
+            // Refresh consents
+            const res = await Axios.get(`${API_URL}/api/consents/customer/${customerId}`);
+            if (res.data.success) setConsents(res.data.consents || []);
+            setMessage({ type: 'success', text: `Consent ${currentValue ? 'withdrawn' : 'restored'} successfully.` });
+        } catch (e) {
+            setMessage({ type: 'error', text: 'Failed to update consent.' });
+        } finally {
+            setWithdrawingId(null);
+        }
+    };
 
     useEffect(() => {
         let interval;
@@ -396,6 +440,88 @@ function CustomerProfile() {
                                                 <p style={{ margin: 0, fontSize: '0.88rem', color: '#94a3b8' }}>No health conditions or allergens on file. Click Edit Profile to add them.</p>
                                             </div>
                                         )}
+
+                                        {/* Privacy & Consents Section */}
+                                        <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '16px', marginBottom: '16px' }}>
+                                            <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Shield size={20} color="#be9055" /> Privacy & Consents
+                                            </h3>
+                                            {consentsLoading ? (
+                                                <p style={{ margin: 0, fontSize: '0.88rem', color: '#94a3b8' }}>Loading consent records...</p>
+                                            ) : consents.length === 0 ? (
+                                                <p style={{ margin: 0, fontSize: '0.88rem', color: '#94a3b8' }}>No consent records on file yet. They are created when you sign a waiver during booking or payment.</p>
+                                            ) : (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                    {consents.map(c => {
+                                                        const isExpanded = expandedConsent === c.id;
+                                                        const acceptedDate = c.accepted_at
+                                                            ? new Date(c.accepted_at.replace(' ', 'T') + (c.accepted_at.includes('Z') ? '' : '+08:00')).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' })
+                                                            : 'Unknown';
+                                                        const hasWithdrawals = c.withdrawal_history && JSON.parse(c.withdrawal_history || '[]').length > 0;
+                                                        return (
+                                                            <div key={c.id} style={{ background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                                                                <div
+                                                                    onClick={() => setExpandedConsent(isExpanded ? null : c.id)}
+                                                                    style={{ padding: '14px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                                                                >
+                                                                    <div>
+                                                                        <p style={{ margin: 0, fontWeight: 600, color: '#1e293b', fontSize: '0.92rem' }}>
+                                                                            {c.procedure_type || c.service_type || 'General Service'}
+                                                                            {c.booking_code && <span style={{ color: '#be9055', marginLeft: '8px', fontFamily: 'monospace', fontSize: '0.82rem' }}>#{c.booking_code}</span>}
+                                                                        </p>
+                                                                        <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                            <Calendar size={12} /> Signed {acceptedDate}
+                                                                            {c.waiver_version && <span style={{ marginLeft: '8px', background: 'rgba(190,144,85,0.1)', padding: '1px 6px', borderRadius: '4px', fontSize: '0.72rem', color: '#be9055', fontWeight: 600 }}>v{c.waiver_version}</span>}
+                                                                            {hasWithdrawals && <span style={{ marginLeft: '4px', background: '#fef2f2', padding: '1px 6px', borderRadius: '4px', fontSize: '0.72rem', color: '#dc2626', fontWeight: 600 }}>Modified</span>}
+                                                                        </p>
+                                                                    </div>
+                                                                    {isExpanded ? <ChevronUp size={18} color="#94a3b8" /> : <ChevronDown size={18} color="#94a3b8" />}
+                                                                </div>
+                                                                {isExpanded && (
+                                                                    <div style={{ padding: '0 16px 16px', borderTop: '1px solid #e2e8f0' }}>
+                                                                        <div style={{ paddingTop: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                                                            <div style={{ fontSize: '0.8rem', color: '#475569' }}><strong>Signature:</strong> {c.signature_evidence || 'N/A'}</div>
+                                                                            <div style={{ fontSize: '0.8rem', color: '#475569' }}><strong>Witness:</strong> {c.witness_name || 'N/A'}</div>
+                                                                        </div>
+                                                                        <p style={{ margin: '12px 0 8px', fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Consent Status</p>
+                                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                            {[
+                                                                                { key: 'procedure_consent', label: 'Procedure Consent', required: true },
+                                                                                { key: 'payment_consent', label: 'Payment Consent', required: true },
+                                                                                { key: 'health_data_consent', label: 'Health Data Consent', required: true },
+                                                                                { key: 'marketing_consent', label: 'Marketing Consent', required: false },
+                                                                                { key: 'photo_consent', label: 'Photo & Media Consent', required: false }
+                                                                            ].map(item => (
+                                                                                <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                                        <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#1e293b' }}>{item.label}</span>
+                                                                                        {item.required && <span style={{ fontSize: '0.68rem', background: '#fef3c7', color: '#92400e', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>Required</span>}
+                                                                                    </div>
+                                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                                        <span style={{ fontSize: '0.82rem', color: c[item.key] ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+                                                                                            {c[item.key] ? '✅ Granted' : '❌ Withdrawn'}
+                                                                                        </span>
+                                                                                        {!item.required && (
+                                                                                            <button
+                                                                                                onClick={(e) => { e.stopPropagation(); handleWithdrawConsent(c.id, item.key, c[item.key]); }}
+                                                                                                disabled={withdrawingId === c.id}
+                                                                                                style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: 'white', fontSize: '0.75rem', fontWeight: 600, cursor: withdrawingId === c.id ? 'not-allowed' : 'pointer', color: c[item.key] ? '#dc2626' : '#16a34a', opacity: withdrawingId === c.id ? 0.5 : 1 }}
+                                                                                            >
+                                                                                                {c[item.key] ? 'Withdraw' : 'Restore'}
+                                                                                            </button>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
                                         {message.text && (
                                             <div style={{ padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: message.type === 'success' ? '#dcfce7' : '#fee2e2', color: message.type === 'success' ? '#166534' : '#991b1b', border: `1px solid ${message.type === 'success' ? '#86efac' : '#fca5a5'}` }}>
                                                 {message.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}

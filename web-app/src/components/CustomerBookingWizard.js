@@ -22,6 +22,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const [waiverAccepted, setWaiverAccepted] = useState(false);
     const [showWaiverModal, setShowWaiverModal] = useState(false);
     const [waiverAcceptedAt, setWaiverAcceptedAt] = useState(null);
+    const [consentData, setConsentData] = useState(null);
     const [photoMarketingConsent, setPhotoMarketingConsent] = useState(true);
     const { executeRecaptcha } = useGoogleReCaptcha();
     
@@ -341,6 +342,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 guestPhone: !currentUser ? `${formData.phoneCode || '+63'}${formData.phone.replace(/^0+/, '')}` : null,
                 waiverAcceptedAt: waiverAcceptedAt || new Date().toISOString(),
                 photoMarketingConsent: photoMarketingConsent,
+                consentData: consentData,
                 piercingJewelry: (formData.piercingJewelry && formData.piercingJewelry.length > 0) ? formData.piercingJewelry : undefined
             });
 
@@ -1160,9 +1162,10 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             <WaiverFormModal
                 isOpen={showWaiverModal}
                 onClose={() => setShowWaiverModal(false)}
-                onAccept={() => {
+                onAccept={(capturedConsent) => {
                     setWaiverAccepted(true);
                     setWaiverAcceptedAt(new Date().toISOString());
+                    setConsentData(capturedConsent);
                     setShowWaiverModal(false);
                     if (errors.waiver) setErrors(prev => ({ ...prev, waiver: '' }));
                 }}

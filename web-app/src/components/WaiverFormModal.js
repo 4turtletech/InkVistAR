@@ -1,20 +1,37 @@
-import React from 'react';
-import { X, FileWarning, Asterisk } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, FileWarning, Asterisk, Shield, CheckCircle2 } from 'lucide-react';
+import axios from 'axios';
+import { API_URL } from '../config';
 import './WaiverFormModal.css';
 
 /**
  * WaiverFormModal — Official Service Waiver & Release of Liability
- * Mirrors the TermsOfServiceModal pattern but styled as a formal legal document.
- *
- * Props:
- *  - isOpen: boolean
- *  - onClose: () => void
- *  - onAccept: () => void
- *  - clientName: string (auto-filled from booking form)
- *  - photoConsent: boolean
- *  - onPhotoConsentChange: (checked: boolean) => void
  */
-export default function WaiverFormModal({ isOpen, onClose, onAccept, clientName, photoConsent, onPhotoConsentChange }) {
+export default function WaiverFormModal({ isOpen, onClose, onAccept, clientName, defaultPhotoConsent = false }) {
+    const [staffList, setStaffList] = useState([]);
+    
+    // Consent states
+    const [procedureConsent, setProcedureConsent] = useState(false);
+    const [paymentConsent, setPaymentConsent] = useState(false);
+    const [healthDataConsent, setHealthDataConsent] = useState(false);
+    const [marketingConsent, setMarketingConsent] = useState(false);
+    const [photoConsent, setPhotoConsent] = useState(defaultPhotoConsent);
+    
+    const [signature, setSignature] = useState('');
+    const [witnessId, setWitnessId] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            axios.get(`${API_URL}/api/public/staff`)
+                .then(res => {
+                    if (res.data.success) {
+                        setStaffList(res.data.staff);
+                    }
+                })
+                .catch(err => console.error('Failed to fetch staff:', err));
+        }
+    }, [isOpen]);
+
     if (!isOpen) return null;
 
     const sections = [
@@ -61,8 +78,26 @@ export default function WaiverFormModal({ isOpen, onClose, onAccept, clientName,
         }
     ];
 
-    // Photo consent is inserted between section 9 (Indemnification) and 10 (Accuracy)
-    const photoConsentAfterIndex = 8; // After section 9 (0-indexed = 8)
+    const canSubmit = procedureConsent && paymentConsent && healthDataConsent && signature.trim().length > 2;
+
+    const handleSubmit = () => {
+        if (!canSubmit) return;
+        
+        const witness = staffList.find(s => String(s.id) === String(witnessId));
+        const witnessName = witness ? witness.name : null;
+        
+        onAccept({
+            procedureConsent,
+            paymentConsent,
+            healthDataConsent,
+            marketingConsent,
+            photoConsent,
+            signatureEvidence: signature.trim(),
+            witnessName,
+            waiverVersion: '1.0',
+            waiverText: sections.map(s => s.title + ': ' + s.text).join('\n')
+        });
+    };
 
     return (
         <div className="waiver-modal-overlay" onClick={onClose}>
@@ -115,48 +150,87 @@ export default function WaiverFormModal({ isOpen, onClose, onAccept, clientName,
                                         </div>
                                     )}
                                 </div>
-
-                                {/* Photo consent checkbox after Indemnification */}
-                                {index === photoConsentAfterIndex && (
-                                    <div>
-                                        <h4 className="waiver-section-title">
-                                            <span className="waiver-section-number" style={{ background: '#64748b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Asterisk size={14} /></span>
-                                            Photo & Media Consent
-                                        </h4>
-                                        <div className="waiver-consent-toggle">
-                                            <label className="waiver-consent-label">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={photoConsent}
-                                                    onChange={(e) => onPhotoConsentChange(e.target.checked)}
-                                                    className="waiver-consent-checkbox"
-                                                />
-                                                <span className="waiver-consent-text">
-                                                    I consent to having photographs and/or videos taken during my session by Inkvictus and authorize their use in the studio's portfolio, website, and marketing materials.
-                                                </span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                )}
                             </React.Fragment>
                         ))}
                     </div>
 
+                    {/* Consents Area */}
+                    <div className="waiver-consents-area" style={{ marginTop: '24px', borderTop: '2px solid #e2e8f0', paddingTop: '20px' }}>
+                        <h4 style={{ marginBottom: '16px', color: '#1e293b' }}>Required Consents</h4>
+                        
+                        <label className="waiver-consent-label" style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '12px' }}>
+                            <input type="checkbox" checked={procedureConsent} onChange={(e) => setProcedureConsent(e.target.checked)} style={{ marginTop: '4px', width: '18px', height: '18px', accentColor: '#be9055' }} />
+                            <span><strong>Procedure Consent:</strong> I voluntarily consent to the procedure and assume all inherent risks.</span>
+                        </label>
+                        
+                        <label className="waiver-consent-label" style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '12px' }}>
+                            <input type="checkbox" checked={paymentConsent} onChange={(e) => setPaymentConsent(e.target.checked)} style={{ marginTop: '4px', width: '18px', height: '18px', accentColor: '#be9055' }} />
+                            <span><strong>Payment Consent:</strong> I agree to the No Refund Policy and understand that once a session starts, payment is due in full.</span>
+                        </label>
+                        
+                        <label className="waiver-consent-label" style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '24px' }}>
+                            <input type="checkbox" checked={healthDataConsent} onChange={(e) => setHealthDataConsent(e.target.checked)} style={{ marginTop: '4px', width: '18px', height: '18px', accentColor: '#be9055' }} />
+                            <span><strong>Health Data Consent:</strong> I confirm my health declaration is accurate and consent to the studio storing this information for my safety.</span>
+                        </label>
+
+                        <h4 style={{ marginBottom: '16px', color: '#1e293b' }}>Optional Consents</h4>
+                        
+                        <label className="waiver-consent-label" style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '12px' }}>
+                            <input type="checkbox" checked={photoConsent} onChange={(e) => setPhotoConsent(e.target.checked)} style={{ marginTop: '4px', width: '18px', height: '18px', accentColor: '#be9055' }} />
+                            <span><strong>Photo & Media Consent:</strong> I consent to having photographs/videos taken and authorize their use in the studio's portfolio and marketing materials.</span>
+                        </label>
+
+                        <label className="waiver-consent-label" style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '24px' }}>
+                            <input type="checkbox" checked={marketingConsent} onChange={(e) => setMarketingConsent(e.target.checked)} style={{ marginTop: '4px', width: '18px', height: '18px', accentColor: '#be9055' }} />
+                            <span><strong>Marketing Consent:</strong> I would like to receive promotional emails and updates from Inkvictus.</span>
+                        </label>
+                    </div>
+
                     {/* Electronic Acceptance Notice */}
-                    <div className="waiver-acceptance-box">
-                        <p>
+                    <div className="waiver-acceptance-box" style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <p style={{ marginBottom: '16px' }}>
                             <strong>Electronic Acceptance</strong><br />
-                            By clicking "I Accept" and submitting this booking request, I acknowledge that I have read, understood, and agree to all terms
+                            By typing your name below, you acknowledge that you have read, understood, and agree to all terms
                             of this Waiver and Release of Liability. This electronic acceptance shall have the same legal force and effect as a handwritten signature.
                         </p>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                            <label style={{ fontWeight: 600, fontSize: '0.9rem', color: '#475569' }}>Electronic Signature (Type your full name)<span style={{color: '#ef4444'}}>*</span></label>
+                            <input 
+                                type="text" 
+                                value={signature} 
+                                onChange={(e) => setSignature(e.target.value)}
+                                placeholder="E.g. Juan Dela Cruz"
+                                style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', width: '100%', boxSizing: 'border-box' }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <label style={{ fontWeight: 600, fontSize: '0.9rem', color: '#475569' }}>Artist / Staff Witness (Optional)</label>
+                            <select 
+                                value={witnessId}
+                                onChange={(e) => setWitnessId(e.target.value)}
+                                style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', width: '100%', boxSizing: 'border-box', background: 'white' }}
+                            >
+                                <option value="">Select Witness (if assisted in-studio)</option>
+                                {staffList.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name} ({s.user_type})</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
                 </div>
 
                 {/* Footer */}
-                <div className="waiver-modal-footer">
-                    <button className="waiver-btn-decline" onClick={onClose}>Cancel</button>
-                    <button className="waiver-btn-accept" onClick={onAccept}>
-                        <FileWarning size={16} />
+                <div className="waiver-modal-footer" style={{ padding: '20px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#f8fafc', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px' }}>
+                    <button className="waiver-btn-decline" onClick={onClose} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
+                    <button 
+                        className="waiver-btn-accept" 
+                        onClick={handleSubmit}
+                        disabled={!canSubmit}
+                        style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: canSubmit ? '#be9055' : '#cbd5e1', color: 'white', cursor: canSubmit ? 'pointer' : 'not-allowed', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}
+                    >
+                        <Shield size={18} />
                         I Accept the Waiver
                     </button>
                 </div>
