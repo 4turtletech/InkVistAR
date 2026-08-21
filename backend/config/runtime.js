@@ -39,6 +39,18 @@ function validateRuntimeConfiguration() {
       throw new Error('RECAPTCHA_SECRET_KEY is required in production.');
     }
 
+    const missingRecoveryValues = ['EMAIL_API_KEY', 'EMAIL_FROM', 'FRONTEND_URL']
+      .filter((name) => !process.env[name]);
+    if (missingRecoveryValues.length > 0) {
+      throw new Error(`Missing required production email/recovery configuration: ${missingRecoveryValues.join(', ')}`);
+    }
+    try {
+      const frontendUrl = new URL(process.env.FRONTEND_URL);
+      if (frontendUrl.protocol !== 'https:') throw new Error('not https');
+    } catch (error) {
+      throw new Error('FRONTEND_URL must be a valid HTTPS URL in production.');
+    }
+
     if (JWT_ACCESS_SECRET.length < 32) {
       throw new Error('JWT_ACCESS_SECRET must contain at least 32 characters in production.');
     }

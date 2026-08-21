@@ -19,9 +19,14 @@ const {
 } = require('./config/runtime');
 const { initializeControlledAccounts } = require('./utils/accountBootstrap');
 const { createTokenService } = require('./services/tokenService');
+const { createPasswordRecoveryService } = require('./services/passwordRecoveryService');
+const { isStrongPassword, PASSWORD_POLICY_MESSAGE } = require('./services/passwordPolicy');
+const { publicAccountType, isAdminCreatableAccountType } = require('./services/registrationPolicy');
 const { createAuthenticate } = require('./middleware/authenticate');
 const { createHighRiskProtection } = require('./middleware/highRiskProtection');
+const { createPaymongoWebhookVerifier } = require('./middleware/verifyPaymongoWebhook');
 const { createAuthRouter, safeUser } = require('./routes/auth');
+const { createPasswordRecoveryRouter } = require('./routes/passwordRecovery');
 const { deliverRefreshToken, isMobileLoginRequest } = require('./services/sessionTransport');
 const { createSocketAuthorizer } = require('./services/socketAuthorization');
 process.env.TZ = 'Asia/Manila'; // Global Node.js timezone localization
@@ -197,6 +202,7 @@ const db = mysql.createPool({
   maxAllowedPacket: 50 * 1024 * 1024 // 50MB - allows large base64 image data in queries
 });
 const tokenService = createTokenService(db);
+const passwordRecoveryService = createPasswordRecoveryService(db);
 const authenticate = createAuthenticate({ tokenService, pool: db });
 const socketAuthorizer = createSocketAuthorizer({ tokenService, pool: db });
 
@@ -337,6 +343,10 @@ db.getConnection((err, connection) => {
         console.log('[OK] Users table ready');
         tokenService.initialize().catch((tokenStoreError) => {
           console.error('[ERROR] Refresh token storage initialization failed:', tokenStoreError.message);
+          process.exit(1);
+        });
+        passwordRecoveryService.initialize().catch((recoveryStoreError) => {
+          console.error('[ERROR] Password recovery storage initialization failed:', recoveryStoreError.message);
           process.exit(1);
         });
         accountSchemaReady.users = true;
@@ -1702,7 +1712,7 @@ function buildEmailHtml(contentHtml) {
 async function sendEmail(to, subject, html) {
   if (!EMAIL_API_KEY) {
     console.log('[WARN] EMAIL_API_KEY missing. Email delivery skipped.');
-    return;
+    return false;
   }
 
   try {
@@ -1725,11 +1735,34 @@ async function sendEmail(to, subject, html) {
       throw new Error(`Resend API Error: ${response.status}`);
     } else {
       console.log('[OK] Email sent successfully.');
+      return true;
     }
   } catch (error) {
     console.error('[ERROR] Email Network Error:', error.message);
     throw error;
   }
+}
+
+const generateNumericOtp = () => crypto.randomInt(100000, 1000000).toString();
+
+async function sendPasswordRecoveryEmail({ email, token }) {
+  const recoveryUrl = new URL('/login', FRONTEND_URL);
+  recoveryUrl.hash = new URLSearchParams({ recoveryEmail: email, recoveryToken: token }).toString();
+  const html = buildEmailHtml(`
+    <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Reset Your Password</h2>
+    <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">A password recovery request was received</p>
+    <p style="margin:0 0 16px;">Use the recovery code below, or select the button to continue in your browser.</p>
+    <div style="margin:20px 0;padding:16px;background:#1a1a1a;border:2px solid rgba(193,154,107,0.3);border-radius:12px;text-align:center;word-break:break-all;">
+      <span style="font-size:20px;font-weight:800;letter-spacing:2px;color:#C19A6B;font-family:'Courier New',monospace;">${token}</span>
+    </div>
+    <p style="text-align:center;margin:22px 0;">
+      <a href="${recoveryUrl.toString()}" style="display:inline-block;background:#C19A6B;color:#111827;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700;">Continue Password Reset</a>
+    </p>
+    <p style="margin:0 0 8px;font-size:13px;color:#64748b;text-align:center;">This code expires in 30 minutes and can be used only once.</p>
+    <p style="margin:0;font-size:12px;color:#555;text-align:center;">If you did not request this, you can safely ignore this email. Your password has not changed.</p>
+  `);
+  const delivered = await sendEmail(email, 'Reset Your InkVistAR Password', html);
+  if (!delivered) throw new Error('Password recovery email delivery is not configured.');
 }
 
 // Helper: PayMongo auth header
@@ -1992,6 +2025,11 @@ const debugOnly = (req, res, next) => {
 };
 
 app.use('/api/auth', createAuthRouter({ tokenService, authenticate }));
+app.use('/api/password-recovery', createPasswordRecoveryRouter({
+  passwordRecoveryService,
+  sendRecoveryEmail: sendPasswordRecoveryEmail,
+  logPasswordReset: (userId, ip) => logAction(userId, 'PASSWORD_RESET', 'User completed token-based password recovery.', ip || '::1'),
+}));
 app.use(createHighRiskProtection({ authenticate, pool: db }));
 
 // ========== DEBUG ENDPOINTS ==========
@@ -2329,59 +2367,12 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ========== RESET PASSWORD ENDPOINT ==========
-app.post('/api/reset-password', async (req, res) => {
-  const { email, newPassword } = req.body;
-  console.log('[INFO] Password reset requested');
-
-  // 1. Validation and Sanitization
-  if (!email || !newPassword) {
-    return res.status(400).json({ success: false, message: 'Email and new password are required.' });
-  }
-
-  const passwordPolicy = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
-  if (!passwordPolicy.test(newPassword)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.'
-    });
-  }
-
-  // Find user
-  db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
-    if (err) {
-      console.error('[ERROR] DB error on password reset:', err.message);
-      return res.status(500).json({ success: false, message: 'Database error' });
-    }
-    if (results.length === 0) {
-      // Do not reveal if user exists or not for security.
-      return res.status(400).json({ success: false, message: 'If an account with that email exists, a password reset cannot be processed at this time.' });
-    }
-
-    const user = results[0];
-
-    // 2. Check if new password is same as old
-    const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
-    if (isSamePassword) {
-      return res.status(400).json({ success: false, message: 'New password cannot be the same as the old password.' });
-    }
-
-    // 3. Hash and update
-    const password_hash = await bcrypt.hash(newPassword, 10);
-
-    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, otp_code = NULL, otp_expires = NULL, failed_login_attempts = 0, lockout_until = NULL WHERE email = ?', [password_hash, email], async (updateErr, result) => {
-      if (updateErr) return res.status(500).json({ success: false, message: 'Database error during password update.' });
-      try {
-        await tokenService.revokeAllForUser(user.id);
-      } catch (revokeError) {
-        console.error('[AUTH] Password reset session revocation failed:', revokeError.message);
-        return res.status(500).json({ success: false, message: 'Password changed, but existing sessions could not be revoked. Please contact support.' });
-      }
-      logAction(user.id, 'PASSWORD_RESET', `User reset their password.`, req.ip || '::1');
-      res.json({ success: true, message: 'Password updated successfully' });
-    });
-  });
-});
+// Removed insecure email + new-password reset. Clients must use the one-time recovery flow.
+app.post('/api/reset-password', (req, res) => res.status(410).json({
+  success: false,
+  code: 'password_reset_endpoint_retired',
+  message: 'This password reset method has been retired. Request a recovery code first.',
+}));
 
 // ========== CUSTOMER CHANGE PASSWORD ENDPOINT ==========
 app.post('/api/customer/change-password', async (req, res) => {
@@ -2568,7 +2559,7 @@ app.post('/api/request-email-change', (req, res) => {
 
       const user = results[0];
       // Generate 6-digit OTP + 5min expiry
-      const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
+      const otp_code = generateNumericOtp();
       const otp_expires = new Date(Date.now() + 5 * 60 * 1000);
 
       db.query(
@@ -2724,7 +2715,7 @@ app.post('/api/send-otp', (req, res) => {
     }
 
     // Generate 6-digit OTP + 5min expiry
-    const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp_code = generateNumericOtp();
     const otp_expires = new Date(Date.now() + 5 * 60 * 1000);
 
     db.query(
@@ -2963,7 +2954,9 @@ app.post('/api/register', async (req, res) => {
   try {
     console.log('\n[INFO] ========== REGISTER REQUEST ==========');
 
-    const { firstName, lastName, suffix, name, email, password, type, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent, captchaToken, health_conditions, allergens } = req.body;
+    const { firstName, lastName, suffix, name, email, password, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent, captchaToken, health_conditions, allergens } = req.body;
+    const accountType = publicAccountType();
+    const normalizedEmail = String(email || '').trim().toLowerCase();
 
     // Verify reCAPTCHA
     const captchaValid = await verifyCaptcha(captchaToken);
@@ -2977,16 +2970,22 @@ app.post('/api/register', async (req, res) => {
       : (name || 'Unknown User');
 
     // Validation
-    if (!fullName || !email || !password || !type) {
+    if (!String(fullName).trim() || !normalizedEmail || !password) {
       console.log('[ERROR] Missing fields');
       return res.status(400).json({
         success: false,
         message: 'All fields are required'
       });
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return res.status(400).json({ success: false, message: 'Enter a valid email address.' });
+    }
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ success: false, message: PASSWORD_POLICY_MESSAGE });
+    }
 
     // Check if user already exists
-    db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
+    db.query('SELECT * FROM users WHERE email = ?', [normalizedEmail], async (err, results) => {
       if (err) {
         console.error('[ERROR] Database error checking user:', err.message);
         return res.status(500).json({
@@ -3018,7 +3017,7 @@ app.post('/api/register', async (req, res) => {
       const insertQuery = 'INSERT INTO users (name, email, password_hash, user_type, is_verified, verification_token, photo_marketing_consent, email_promo_consent) VALUES (?, ?, ?, ?, 0, ?, ?, ?)';
       console.log('[DEBUG] Executing query:', insertQuery);
 
-      db.query(insertQuery, [fullName, email, password_hash, type, verification_token, photoConsent, emailConsent], (insertErr, result) => {
+      db.query(insertQuery, [String(fullName).trim(), normalizedEmail, password_hash, accountType, verification_token, photoConsent, emailConsent], (insertErr, result) => {
         if (insertErr) {
           console.error('[ERROR] Error inserting user:', insertErr.message);
           return res.status(500).json({
@@ -3030,13 +3029,13 @@ app.post('/api/register', async (req, res) => {
         console.log('[OK] User inserted successfully!');
         console.log('[OK] Insert ID:', result.insertId);
 
-        logAction(result.insertId, 'REGISTER', `New ${type} account registered: ${email}`, req.ip || '::1');
+        logAction(result.insertId, 'REGISTER', `New ${accountType} account registered: ${normalizedEmail}`, req.ip || '::1');
 
         const newUserId = result.insertId;
         // Send Verification Email
         // Generate OTP at registration time so the user has it immediately
         // (avoids a second email when they try to login unverified)
-        const reg_otp_code = Math.floor(100000 + Math.random() * 900000).toString();
+        const reg_otp_code = generateNumericOtp();
         const reg_otp_expires = new Date(Date.now() + 5 * 60 * 1000); // 5 min for registration OTP
         db.query('UPDATE users SET otp_code = ?, otp_expires = ? WHERE id = ?', [reg_otp_code, reg_otp_expires, newUserId]);
 
@@ -3052,38 +3051,21 @@ app.post('/api/register', async (req, res) => {
               <p style="margin:0 0 16px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#334155;">5 minutes</strong>.</p>
               <p style="margin:16px 0 0;font-size:11px;color:#555;text-align:center;">Do not share this code with anyone. InkVistAR will never ask for your code via phone or message.</p>
         `);
-        sendEmail(email, 'Verify Your InkVistAR Account', html);
+        sendEmail(normalizedEmail, 'Verify Your InkVistAR Account', html);
 
-        // If the user is an artist, create a corresponding entry in the 'artists' table
-        if (type === 'artist') {
-          const artistQuery = 'INSERT INTO artists (user_id, studio_name, experience_years, specialization, hourly_rate) VALUES (?, ?, ?, ?, ?)';
-          // Using some default values
-          db.query(artistQuery, [newUserId, `${fullName}'s Studio`, 0, 'New Artist', 50.00], (artistErr, artistResult) => {
-            if (artistErr) {
-              console.error('[ERROR] Error creating artist profile:', artistErr.message);
-              // Rollback: Delete the user if artist profile creation fails
-              db.query('DELETE FROM users WHERE id = ?', [newUserId]);
-              return res.status(500).json({ success: false, message: 'Failed to create artist profile. Please try again.' });
-            }
-            console.log('[OK] Artist profile created for user ID:', newUserId);
-            sendSuccessResponse(newUserId);
-          });
-        } else if (type === 'customer') {
-          // Create customer profile with phone, preferences, and optional health data
-          const safeHealthConditions = Array.isArray(health_conditions) ? JSON.stringify(health_conditions) : '[]';
-          const safeAllergens = Array.isArray(allergens) ? JSON.stringify(allergens) : '[]';
-          const customerQuery = 'INSERT INTO customers (user_id, phone, notes, health_conditions, allergens) VALUES (?, ?, ?, ?, ?)';
-          db.query(customerQuery, [newUserId, phone || '', preferences || '', safeHealthConditions, safeAllergens], (custErr) => {
-            if (custErr) {
-              console.error('[ERROR] Error creating customer profile:', custErr.message);
-            } else {
-              console.log('[OK] Customer profile created for user ID:', newUserId);
-            }
-            sendSuccessResponse(newUserId);
-          });
-        } else {
+        // Public registration always creates the matching customer profile.
+        const safeHealthConditions = Array.isArray(health_conditions) ? JSON.stringify(health_conditions) : '[]';
+        const safeAllergens = Array.isArray(allergens) ? JSON.stringify(allergens) : '[]';
+        const customerQuery = 'INSERT INTO customers (user_id, phone, notes, health_conditions, allergens) VALUES (?, ?, ?, ?, ?)';
+        db.query(customerQuery, [newUserId, phone || '', preferences || '', safeHealthConditions, safeAllergens], (custErr) => {
+          if (custErr) {
+            console.error('[ERROR] Error creating customer profile:', custErr.message);
+            db.query('UPDATE users SET is_deleted = 1 WHERE id = ?', [newUserId]);
+            return res.status(500).json({ success: false, message: 'Failed to create customer profile. Please try again.' });
+          }
+          console.log('[OK] Customer profile created for user ID:', newUserId);
           sendSuccessResponse(newUserId);
-        }
+        });
 
         function sendSuccessResponse(userId) {
           // Claim a specific orphan appointment (from session storage)
@@ -3102,7 +3084,7 @@ app.post('/api/register', async (req, res) => {
           // ═══ Migrate ALL orphan appointments by guest_email match ═══
           db.query(
             'UPDATE appointments SET customer_id = ?, is_guest_placeholder = 0 WHERE guest_email = ? AND customer_id != ? AND is_deleted = 0',
-            [userId, email, userId],
+            [userId, normalizedEmail, userId],
             (migErr, migResult) => {
               const migratedCount = migResult ? migResult.affectedRows : 0;
               if (migratedCount > 0) {
@@ -3116,8 +3098,8 @@ app.post('/api/register', async (req, res) => {
                 user: {
                   id: userId,
                   name: fullName,
-                  email: email,
-                  type: type
+                  email: normalizedEmail,
+                  type: accountType
                 },
                 migratedCount: migratedCount
               });
@@ -8135,47 +8117,10 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
   }
 });
 
-app.post('/api/payments/webhook', (req, res) => {
-  if (!PAYMONGO_WEBHOOK_SECRET) {
-    console.error('[PAYMENT] PAYMONGO_WEBHOOK_SECRET is not configured; webhook rejected.');
-    return res.status(503).json({ success: false, message: 'Webhook verification is not configured.' });
-  }
-
-  const signatureHeader = req.headers['paymongo-signature'];
-  const rawBody = req.rawBody ? req.rawBody.toString() : JSON.stringify(req.body || {});
-
-  if (!signatureHeader) {
-    return res.status(400).json({ success: false, message: 'Missing Paymongo-Signature header' });
-  }
-
-  const parts = signatureHeader.split(',').reduce((acc, part) => {
-    const [k, v] = part.split('=');
-    if (k && v) acc[k.trim()] = v.trim();
-    return acc;
-  }, {});
-
-  const timestamp = parts.t;
-  const signature = parts.v1 || parts.li || parts.te;
-
-  if (!timestamp || !signature) {
-    return res.status(400).json({ success: false, message: 'Invalid signature header' });
-  }
-
-  const timestampMs = Number(timestamp) * 1000;
-  if (!Number.isFinite(timestampMs) || Math.abs(Date.now() - timestampMs) > 5 * 60 * 1000) {
-    return res.status(400).json({ success: false, message: 'Webhook signature timestamp is outside the allowed window.' });
-  }
-
-  const expected = crypto.createHmac('sha256', PAYMONGO_WEBHOOK_SECRET)
-    .update(`${timestamp}.${rawBody}`)
-    .digest('hex');
-  const expectedBuffer = Buffer.from(expected, 'utf8');
-  const suppliedBuffer = Buffer.from(signature, 'utf8');
-  if (expectedBuffer.length !== suppliedBuffer.length || !crypto.timingSafeEqual(expectedBuffer, suppliedBuffer)) {
-    console.error('[ERROR] Webhook signature mismatch');
-    return res.status(400).json({ success: false, message: 'Signature mismatch' });
-  }
-
+app.post('/api/payments/webhook', createPaymongoWebhookVerifier({
+  secret: PAYMONGO_WEBHOOK_SECRET,
+  mode: PAYMONGO_MODE,
+}), (req, res) => {
   const event = req.body;
   const eventType = event?.data?.attributes?.type;
   const resource = event?.data?.attributes?.data;
@@ -9061,7 +9006,6 @@ app.get('/api/admin/users', (req, res) => {
 app.post('/api/admin/users', async (req, res) => {
   const { name, email, password, type, phone, status, profileImage, age, gender, is_verified } = req.body;
   const normalizedEmail = String(email || '').trim().toLowerCase();
-  const allowedTypes = ['admin', 'customer', 'artist'];
 
   if (!String(name || '').trim() || !normalizedEmail || !password || !phone || !type) {
     return res.status(400).json({ success: false, message: 'Name, email, phone, password, and role are required' });
@@ -9069,8 +9013,8 @@ app.post('/api/admin/users', async (req, res) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
     return res.status(400).json({ success: false, message: 'Enter a valid email address' });
   }
-  if (!allowedTypes.includes(type)) {
-    return res.status(400).json({ success: false, message: 'Role must be Admin, Customer, or Artist' });
+  if (!isAdminCreatableAccountType(type)) {
+    return res.status(400).json({ success: false, message: 'Role must be Admin, Manager, Artist, or Customer' });
   }
   if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/.test(password)) {
     return res.status(400).json({ success: false, message: 'Password must be at least 8 characters and include uppercase, lowercase, number, and an allowed special character' });
@@ -9078,14 +9022,7 @@ app.post('/api/admin/users', async (req, res) => {
 
   try {
     if (type === 'admin') {
-      const requestorEmail = req.headers['x-user-email'] || '';
-      const canCreateAdmin = await new Promise((resolve, reject) => {
-        db.query('SELECT is_superadmin FROM users WHERE email = ?', [requestorEmail], (lookupErr, rows) => {
-          if (lookupErr) return reject(lookupErr);
-          resolve(Boolean(rows[0]?.is_superadmin));
-        });
-      });
-      if (!canCreateAdmin) {
+      if (!req.auth?.isSuperAdmin) {
         return res.status(403).json({ success: false, message: 'Only the super admin can create administrator accounts' });
       }
     }
@@ -10665,7 +10602,7 @@ app.post('/api/resend-verification', (req, res) => {
       return res.status(400).json({ success: false, message: 'Account already verified. Please login.' });
     }
 
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpCode = generateNumericOtp();
     const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
     db.query('UPDATE users SET otp_code = ?, otp_expires = ? WHERE id = ?', [otpCode, otpExpires, user.id], (updateErr) => {

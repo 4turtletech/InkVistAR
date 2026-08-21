@@ -13,14 +13,22 @@ import { Lock, Eye, EyeOff } from 'lucide-react-native';
 import { colors, typography, borderRadius, shadows } from '../src/theme';
 
 export function ResetPasswordPage({ email, onSubmit }) {
+  const [recoveryToken, setRecoveryToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const recoveryTokenRef = useRef(null);
   const passwordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
+
+  const getRecoveryTokenError = (text) => {
+    if (!text) return 'Recovery code is required';
+    if (!/^[a-fA-F0-9]{32}$/.test(text.trim())) return 'Enter the 32-character code from your email';
+    return '';
+  };
 
   const getPasswordError = (text) => {
     if (!text) return 'Password is required';
@@ -66,19 +74,21 @@ export function ResetPasswordPage({ email, onSubmit }) {
   };
 
   const handleSubmit = async () => {
+    recoveryTokenRef.current?.blur();
     passwordRef.current?.blur();
     confirmPasswordRef.current?.blur();
     Keyboard.dismiss();
     setSubmitAttempted(true);
     const nextErrors = {
+      recoveryToken: getRecoveryTokenError(recoveryToken),
       password: getPasswordError(newPassword),
       confirmPassword: getConfirmPasswordError(newPassword, confirmPassword),
     };
     setErrors(nextErrors);
-    if (nextErrors.password || nextErrors.confirmPassword) return;
+    if (nextErrors.recoveryToken || nextErrors.password || nextErrors.confirmPassword) return;
     setLoading(true);
     try {
-      await onSubmit(newPassword);
+      await onSubmit(recoveryToken.trim(), newPassword);
     } finally {
       setLoading(false);
     }
@@ -99,7 +109,33 @@ export function ResetPasswordPage({ email, onSubmit }) {
           <Lock size={28} color="#ffffff" />
         </LinearGradient>
         <Text style={styles.title}>Reset Password</Text>
-        <Text style={styles.subtitle}>Enter a new password for {email}</Text>
+        <Text style={styles.subtitle}>Enter the recovery code sent to {email}, then choose a new password. The code expires after 30 minutes and works once.</Text>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Recovery Code</Text>
+          <View style={[styles.passwordWrap, errors.recoveryToken && styles.inputError]}>
+            <TextInput
+              ref={recoveryTokenRef}
+              style={styles.input}
+              placeholder="32-character code"
+              placeholderTextColor={colors.textTertiary}
+              value={recoveryToken}
+              onChangeText={(text) => {
+                setRecoveryToken(text.replace(/\s/g, ''));
+                if (submitAttempted || errors.recoveryToken) {
+                  setErrors(prev => ({ ...prev, recoveryToken: getRecoveryTokenError(text) }));
+                }
+              }}
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={32}
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              blurOnSubmit={false}
+            />
+          </View>
+          {errors.recoveryToken ? <Text style={styles.errorText}>{errors.recoveryToken}</Text> : null}
+        </View>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>New Password</Text>

@@ -344,7 +344,7 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
                   <X size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.modalText}>Enter your email to receive a verification code.</Text>
+              <Text style={styles.modalText}>Enter your email to receive a one-time password recovery code.</Text>
               <View style={[styles.inputWrap, { marginBottom: resetEmailError ? 6 : 16 }, resetEmailError && styles.inputError]}>
                 <Mail size={18} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
@@ -370,7 +370,7 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
               ) : null}
                 <TouchableOpacity onPress={handleResetSubmit} activeOpacity={0.8}>
                   <View style={styles.button}>
-                    <Text style={styles.buttonText}>SEND CODE</Text>
+                    <Text style={styles.buttonText}>SEND RECOVERY CODE</Text>
                   </View>
                 </TouchableOpacity>
             </View>

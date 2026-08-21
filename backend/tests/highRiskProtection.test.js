@@ -6,6 +6,7 @@ const users = {
   admin: { userId: 1, role: 'admin' },
   manager: { userId: 2, role: 'manager' },
   artist: { userId: 3, role: 'artist' },
+  otherArtist: { userId: 6, role: 'artist' },
   customer: { userId: 4, role: 'customer' },
   otherCustomer: { userId: 5, role: 'customer' },
 };
@@ -103,6 +104,9 @@ test('appointment authorization loads ownership from the database', async () => 
 
   const otherCustomer = await invoke(middleware, { path: '/api/appointments/42/transactions', token: 'otherCustomer' });
   assert.equal(otherCustomer.status, 403);
+
+  const unassignedArtist = await invoke(middleware, { method: 'PUT', path: '/api/appointments/42/status', token: 'otherArtist' });
+  assert.equal(unassignedArtist.status, 403);
 });
 
 test('request-body identity cannot override the authenticated identity', async () => {

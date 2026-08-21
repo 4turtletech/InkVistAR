@@ -120,6 +120,41 @@ test('detects refresh-token reuse and revokes the entire token family', async ()
   assert.ok(queries.some(({ sql, params }) => sql.includes('WHERE family_id = ?') && params[0] === 'compromised-family'));
 });
 
+test('rejects an expired refresh token with HTTP 401 semantics', async () => {
+  const queries = [];
+  const connection = {
+    async beginTransaction() {},
+    async commit() {},
+    async rollback() { throw new Error('A committed expiry response must not roll back.'); },
+    release() {},
+    async query(sql, params = []) {
+      queries.push({ sql, params });
+      if (sql.includes('FROM refresh_tokens rt')) {
+        return [[{
+          id: 12,
+          user_id: 42,
+          family_id: 'expired-family',
+          expires_at: new Date(Date.now() - 60_000),
+          revoked_at: null,
+        }]];
+      }
+      return [{}];
+    },
+  };
+  const service = createTokenService({
+    promise: () => ({
+      async query() { return [{}]; },
+      async getConnection() { return connection; },
+    }),
+  });
+
+  await assert.rejects(
+    () => service.rotateRefreshToken('c'.repeat(64)),
+    (error) => error.code === 'refresh_token_expired' && error.status === 401
+  );
+  assert.ok(queries.some(({ sql }) => sql.includes('UPDATE refresh_tokens SET revoked_at = NOW() WHERE id = ?')));
+});
+
 test('role and ownership middleware deny unauthorized access', async () => {
   const deniedRole = await invokeMiddleware(authorize('admin'), { auth: { role: 'artist', userId: 5 } });
   assert.equal(deniedRole.status, 403);

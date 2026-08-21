@@ -230,7 +230,6 @@ function Register() {
         email: formData.email.trim(),
         phone: formData.countryCode + rawPhone,
         password: formData.password,
-        type: 'customer',
         orphanAppointmentId: orphanAppointmentId,
         photo_marketing_consent: photoMarketingConsent,
         email_promo_consent: emailPromoConsent,

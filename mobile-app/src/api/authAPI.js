@@ -18,9 +18,12 @@ export const login = async (email, password, userType) => {
 
 // Register new user
 export const register = async (userData) => {
-  const result = await fetchAPI('/auth/register', {
+  const publicRegistrationData = { ...userData };
+  delete publicRegistrationData.type;
+  delete publicRegistrationData.user_type;
+  const result = await fetchAPI('/register', {
     method: 'POST',
-    body: JSON.stringify(userData),
+    body: JSON.stringify(publicRegistrationData),
   });
   
   if (result.success && result.accessToken && result.refreshToken) {
@@ -53,17 +56,17 @@ export const verifyEmail = async (token) => {
 
 // Request password reset
 export const requestPasswordReset = async (email) => {
-  return fetchAPI('/auth/request-password-reset', {
+  return fetchAPI('/password-recovery/request', {
     method: 'POST',
     body: JSON.stringify({ email }),
   });
 };
 
 // Reset password
-export const resetPassword = async (token, newPassword) => {
-  return fetchAPI('/auth/reset-password', {
+export const resetPassword = async (email, token, newPassword) => {
+  return fetchAPI('/password-recovery/confirm', {
     method: 'POST',
-    body: JSON.stringify({ token, newPassword }),
+    body: JSON.stringify({ email, token, newPassword }),
   });
 };
 

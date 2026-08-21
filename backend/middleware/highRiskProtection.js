@@ -60,14 +60,14 @@ function classifyRequest(req) {
   // Authentication, verification, public browsing, guest consultation booking,
   // webhook delivery, and the public chatbot are intentionally outside Task 3.
   const publicExact = new Set([
-    '/api/test', '/api/login', '/api/reset-password', '/api/send-otp',
+    '/api/test', '/api/login', '/api/send-otp',
     '/api/verify-otp', '/api/verify', '/api/register', '/api/resend-verification',
     '/api/gallery/categories', '/api/gallery/works', '/api/gallery/art-of-the-day',
     '/api/customer/artists', '/api/public/calendar-availability',
     '/api/inventory/jewelry', '/api/testimonials', '/api/ar/config',
     '/api/contact', '/api/chat', '/api/payments/webhook',
   ]);
-  if (path.startsWith('/api/auth/') || publicExact.has(path)) return null;
+  if (path.startsWith('/api/auth/') || path.startsWith('/api/password-recovery/') || publicExact.has(path)) return null;
   if (method === 'GET' && /^\/api\/artist\/\d+\/availability$/.test(path)) return null;
   if (method === 'GET' && /^\/api\/artists\/\d+\/(?:public|reviews)$/.test(path)) return null;
   if (method === 'GET' && path === '/api/reviews') return null;

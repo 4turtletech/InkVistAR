@@ -181,9 +181,11 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `POST /api/auth/refresh` - Rotate a refresh token and return a new short-lived access token
 - `POST /api/auth/logout` - Revoke refresh sessions and clear the web refresh cookie
 - `GET /api/auth/me` - Return the authenticated safe user object
-- `POST /api/register` - User registration (auto-migrates orphan appointments where `guest_email` matches; response includes `migratedCount`)
+- `POST /api/register` - Public customer registration only (auto-migrates orphan appointments where `guest_email` matches; response includes `migratedCount`)
 - `POST /api/send-otp` / `/api/verify-otp` - OTP verification
-- `POST /api/reset-password` - Password reset
+- `POST /api/password-recovery/request` - Request a generic, rate-limited recovery response and email a one-time code when the account exists
+- `POST /api/password-recovery/confirm` - Consume the one-time recovery code, change the password, and revoke active sessions
+- `POST /api/reset-password` - Retired insecure endpoint; always returns HTTP 410
 - `POST /api/customer/change-password` - Customer password change (requires currentPassword)
 - `POST /api/artist/change-password` - Artist password change (requires currentPassword)
 - `POST /api/request-email-change` - Request email change OTP (sends code to current email)
@@ -331,6 +333,8 @@ BACKEND_URL=https://inkvistar-api.onrender.com
 - **High-Risk HTTP Routes:** `backend/middleware/highRiskProtection.js` protects admin, payment/payout, customer health/profile, appointment/project, artist earnings/session, notification/report, inventory/POS, and invoice routes. Authorization identity always comes from `req.auth`, never a request-body user ID or the legacy `X-Admin-Id` header. Resource ownership is loaded from the database before access is granted.
 - **Socket.IO Rooms:** `backend/services/socketAuthorization.js` requires admin/manager authentication for admin tracking, verifies artist assignment before joining session rooms, limits customers to their own support room, and binds anonymous live-support sockets to one guest room.
 - **Payment Webhook:** `/api/payments/webhook` is the only unauthenticated payment endpoint. It requires `PAYMONGO_WEBHOOK_SECRET`, a valid HMAC signature, and a timestamp within five minutes.
+- **Security Regression Suite:** Run `npm test` from `backend/` before deploying authentication, authorization, recovery, or payment changes. The suite covers unauthenticated and wrong-role admin access, cross-customer profile access, artist appointment assignment, public role escalation, expired/reused tokens, and unsigned PayMongo webhooks.
+- **Deferred Native Registration Follow-up:** Native mobile registration still needs a production-compatible CAPTCHA flow. Do not add a CAPTCHA bypass or place `RECAPTCHA_SECRET_KEY` in the app. Resolve this after Task 5; until then, production mobile registration requests without a valid CAPTCHA token are expected to be rejected by the backend.
 
 ## Important Patterns
 

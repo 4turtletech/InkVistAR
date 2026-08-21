@@ -253,16 +253,24 @@ export const loginUser = async (email, password, userType) => {
   return result;
 };
 
-// Reset Password
-export const resetUserPassword = async (email, newPassword) => {
-  return fetchAPI('/reset-password', {
+// Password recovery request (response is deliberately generic to prevent account discovery)
+export const requestPasswordRecovery = async (email) => {
+  return fetchAPI('/password-recovery/request', {
     method: 'POST',
-    body: JSON.stringify({ email, newPassword })
+    body: JSON.stringify({ email: sanitizeInput(email) })
+  });
+};
+
+// Confirm Password Recovery
+export const resetUserPassword = async (email, token, newPassword) => {
+  return fetchAPI('/password-recovery/confirm', {
+    method: 'POST',
+    body: JSON.stringify({ email: sanitizeInput(email), token: String(token || '').trim(), newPassword })
   });
 };
 
 // Register user
-export const registerUser = async (name, email, password, userType, phone, orphanAppointmentId, healthConditions = [], healthAllergens = []) => {
+export const registerUser = async (name, email, password, _userType, phone, orphanAppointmentId, healthConditions = [], healthAllergens = []) => {
   if (!name || !email || !password) {
     return { success: false, message: 'All fields are required' };
   }
@@ -279,7 +287,6 @@ export const registerUser = async (name, email, password, userType, phone, orpha
       name: sanitizeInput(name),
       email: sanitizeInput(email),
       password,
-      type: userType,
       phone: phone ? sanitizeInput(phone) : undefined,
       orphanAppointmentId,
       health_conditions: healthConditions.length > 0 ? healthConditions : undefined,

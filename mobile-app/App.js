@@ -65,7 +65,7 @@ import PlaceholderScreen from './components/PlaceholderScreen.jsx';
 
 // API utilities
 import {
-  loginUser, registerUser, sendOTP, resetUserPassword,
+  loginUser, registerUser, sendOTP, requestPasswordRecovery, resetUserPassword,
   updatePushToken, logoutUser,
 } from './src/utils/api';
 import { registerForPushNotifications } from './src/utils/pushNotifications';
@@ -331,14 +331,15 @@ function AppContent() {
 
   const handleForgotPassword = useCallback(async (email, type) => {
     const selectedType = type || 'customer';
-    const result = await sendOTP(email, selectedType);
+    const result = await requestPasswordRecovery(email);
     if (result.success) {
       setLoginEmail(email);
       setLoginUserType(selectedType);
       setIsResetMode(true);
-      setShowOTP(true);
+      setShowOTP(false);
+      setShowResetPassword(true);
     } else {
-      Alert.alert('Error', result.message || 'Failed to send OTP.');
+      Alert.alert('Error', result.message || 'Failed to start password recovery.');
     }
   }, []);
 
@@ -352,8 +353,8 @@ function AppContent() {
     }
   }, [isResetMode]);
 
-  const handlePasswordReset = useCallback(async (newPassword) => {
-    const result = await resetUserPassword(loginEmail, newPassword);
+  const handlePasswordReset = useCallback(async (recoveryToken, newPassword) => {
+    const result = await resetUserPassword(loginEmail, recoveryToken, newPassword);
     if (result.success) {
       Alert.alert('Success', 'Password updated successfully! Please login.');
       setShowResetPassword(false);

@@ -40,9 +40,10 @@ function Login() {
     const [loading, setLoading] = useState(false);
     
     // Forgot Password States
-    const [view, setView] = useState('login'); // 'login', 'forgot-email', 'forgot-otp', 'reset-password', 'verify-account'
+    const [view, setView] = useState('login'); // 'login', 'forgot-email', 'reset-password', 'verify-account'
     const [verificationEmail, setVerificationEmail] = useState('');
     const [resetEmail, setResetEmail] = useState("");
+    const [recoveryToken, setRecoveryToken] = useState("");
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [otpError, setOtpError] = useState('');
     const otpRefs = useRef([]);
@@ -73,6 +74,18 @@ function Login() {
             return () => clearInterval(interval);
         }
     }, [view, resendTimer]);
+
+    useEffect(() => {
+        const recoveryParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const linkedEmail = recoveryParams.get('recoveryEmail');
+        const linkedToken = recoveryParams.get('recoveryToken');
+        if (linkedEmail && linkedToken) {
+            setResetEmail(linkedEmail);
+            setRecoveryToken(linkedToken);
+            setView('reset-password');
+            window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+        }
+    }, []);
     
     const navigate = useNavigate();
 
@@ -90,6 +103,10 @@ function Login() {
         }
         if (name === 'newPassword') {
             errorMsg = getResetPasswordError(value);
+        }
+        if (name === 'recoveryToken') {
+            if (!value) errorMsg = 'Recovery code is required';
+            else if (!/^[a-fA-F0-9]{32}$/.test(value.trim())) errorMsg = 'Enter the 32-character code from your email';
         }
         if (name === 'confirmPassword') {
             if (!value) errorMsg = "Please confirm your new password";
@@ -301,18 +318,17 @@ function Login() {
         if (!resetEmailValid) return;
         setLoading(true);
         try {
-            const response = await Axios.post(`${API_URL}/api/send-otp`, {
+            const response = await Axios.post(`${API_URL}/api/password-recovery/request`, {
                 email: resetEmail
             });
             if (response.data.success) {
-                beginOtpWindow(response);
-                setResendAttempts(0);
-                setView('forgot-otp');
+                setRecoveryToken('');
+                setView('reset-password');
             } else {
-                setErrors(prev => ({ ...prev, resetEmail: response.data.message || 'Unable to send a verification code to this email.' }));
+                setErrors(prev => ({ ...prev, resetEmail: response.data.message || 'Unable to start password recovery.' }));
             }
         } catch (error) {
-            const message = error.response?.data?.message || "Error sending OTP";
+            const message = error.response?.data?.message || "Error starting password recovery";
             const normalizedMessage = message.toLowerCase();
             if (error.response && (normalizedMessage.includes('email') || normalizedMessage.includes('account') || normalizedMessage.includes('user'))) {
                 setErrors(prev => ({ ...prev, resetEmail: message }));
@@ -379,16 +395,19 @@ function Login() {
         
         const newPasswordValid = validateField('newPassword', newPassword);
         const confirmPasswordValid = validateField('confirmPassword', confirmPassword);
-        if (!newPasswordValid || !confirmPasswordValid) return;
+        const recoveryTokenValid = validateField('recoveryToken', recoveryToken);
+        if (!newPasswordValid || !confirmPasswordValid || !recoveryTokenValid) return;
 
         setLoading(true);
         try {
-            const response = await Axios.post(`${API_URL}/api/reset-password`, {
+            const response = await Axios.post(`${API_URL}/api/password-recovery/confirm`, {
                 email: resetEmail,
+                token: recoveryToken.trim(),
                 newPassword: newPassword
             });
             if (response.data.success) {
                 setResetEmail("");
+                setRecoveryToken("");
                 setOtp(['', '', '', '', '', '']);
                 setNewPassword("");
                 setConfirmPassword("");
@@ -509,7 +528,7 @@ function Login() {
                             <input type="email" name="resetEmail" className={`form-input ${errors.resetEmail ? 'error' : ''}`} placeholder="Enter your email" value={resetEmail} onChange={handleChange(setResetEmail, 'resetEmail')} onBlur={handleBlur} required maxLength={254} />
                             {errors.resetEmail && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.resetEmail}</small>}
                         </div>
-                        <button type="submit" className="login-btn" disabled={loading}>{loading ? 'Sending...' : 'Send OTP'}</button>
+                        <button type="submit" className="login-btn" disabled={loading}>{loading ? 'Sending...' : 'Send Recovery Code'}</button>
                         <div className="login-footer">
                             <button type="button" onClick={() => { setView('login'); setError(''); }} style={{background: 'none', border: 'none', color: '#999', cursor: 'pointer'}}>Back to Login</button>
                         </div>
@@ -610,8 +629,15 @@ function Login() {
                 {view === 'reset-password' && (
                     <>
                     <h2 className="login-title" style={{ fontSize: '1.1rem', marginTop: '1.5rem' }}>New Password</h2>
+                    <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>
+                        Enter the recovery code sent to <strong>{resetEmail}</strong>. It expires after 30 minutes and works once.
+                    </p>
                     {error && <p className="error-message">{error}</p>}
                     <form onSubmit={handlePasswordReset} className="login-form">
+                        <div className="form-group" style={{ position: 'relative' }}>
+                            <input type="text" name="recoveryToken" className={`form-input ${errors.recoveryToken ? 'error' : ''}`} placeholder="32-character recovery code" value={recoveryToken} onChange={handleChange(setRecoveryToken, 'recoveryToken')} onBlur={handleBlur} autoCapitalize="none" autoComplete="one-time-code" required maxLength={32} />
+                            {errors.recoveryToken && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.recoveryToken}</small>}
+                        </div>
                         <div className="form-group" style={{ position: 'relative' }}>
                             <input type={showNewPassword ? 'text' : 'password'} name="newPassword" className={`form-input ${errors.newPassword ? 'error' : ''}`} placeholder="New Password" value={newPassword} onChange={handleChange(setNewPassword, 'newPassword')} onFocus={() => setResetPasswordFocused(true)} onBlur={(e) => { handleBlur(e); if (!newPassword) setResetPasswordFocused(false); }} onPaste={(e) => e.preventDefault()} required maxLength={128} />
                             <div className="password-toggle" onClick={() => setShowNewPassword(!showNewPassword)}>
