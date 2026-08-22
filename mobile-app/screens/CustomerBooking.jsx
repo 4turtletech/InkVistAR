@@ -135,7 +135,17 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
   const handleInput = (field, val) => {
     const nextValue = field === 'placementNotes' ? val.slice(0, 150) : val;
     setFormData(p => ({ ...p, [field]: nextValue }));
-    if (errors[field]) setErrors(p => ({ ...p, [field]: '' }));
+    if (field === 'placementNotes') {
+      const trimmedLength = nextValue.trim().length;
+      setErrors(p => ({
+        ...p,
+        placementNotes: trimmedLength > 0 && trimmedLength < 5
+          ? 'Location notes must be at least 5 characters.'
+          : ''
+      }));
+    } else if (errors[field]) {
+      setErrors(p => ({ ...p, [field]: '' }));
+    }
   };
 
   const toggleArrayField = (field, item) => {
@@ -194,7 +204,9 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
       }
     } else if (step === 3) {
       if (formData.placement.length === 0) newErrors.placement = "Select at least one placement.";
-      if (formData.placement.includes('Other') && !formData.placementNotes.trim()) newErrors.placementNotes = "Specify location notes.";
+      const placementNotesLength = formData.placementNotes.trim().length;
+      if (formData.placement.includes('Other') && placementNotesLength === 0) newErrors.placementNotes = "Specify location notes.";
+      else if (formData.placement.includes('Other') && placementNotesLength < 5) newErrors.placementNotes = "Location notes must be at least 5 characters.";
       else if (formData.placement.includes('Other') && formData.placementNotes.length > 150) newErrors.placementNotes = "Location notes must not exceed 150 characters.";
     } else if (step === 4) {
       if (!formData.date) newErrors.date = "Select a date.";
@@ -489,6 +501,15 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
             placeholderTextColor={colors.textTertiary} 
             value={formData.placementNotes} 
             onChangeText={(v) => handleInput('placementNotes', v)}
+            onBlur={() => {
+              const length = formData.placementNotes.trim().length;
+              setErrors(prev => ({
+                ...prev,
+                placementNotes: length === 0
+                  ? 'Specify location notes.'
+                  : (length < 5 ? 'Location notes must be at least 5 characters.' : '')
+              }));
+            }}
             maxLength={150}
             returnKeyType="done"
             onSubmitEditing={Keyboard.dismiss}

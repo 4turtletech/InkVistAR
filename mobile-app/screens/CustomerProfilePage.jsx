@@ -82,6 +82,8 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const [otpStep, setOtpStep] = useState(false);
   const [otp, setOtp] = useState('');
   const [otpMethod, setOtpMethod] = useState('email');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const passwordRequestRef = useRef(0);
   
   const [alertModal, setAlertModal] = useState({ visible: false, title: '', message: '', buttons: [] });
   const customAlert = (title, message, buttons = []) => {
@@ -268,7 +270,33 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   };
   const completionScore = calculateCompletion();
 
+  const openPasswordModal = () => {
+    passwordRequestRef.current += 1;
+    setPasswordForm({ current: '', new: '', confirm: '' });
+    setPasswordError('');
+    setPasswordFieldErrors({});
+    setShowPassword({ current: false, new: false, confirm: false });
+    setOtp('');
+    setOtpStep(false);
+    setPasswordLoading(false);
+    setPasswordVisible(true);
+  };
+
+  const closePasswordModal = () => {
+    passwordRequestRef.current += 1;
+    Keyboard.dismiss();
+    setPasswordVisible(false);
+    setPasswordLoading(false);
+    setPasswordError('');
+    setPasswordFieldErrors({});
+    setPasswordForm({ current: '', new: '', confirm: '' });
+    setShowPassword({ current: false, new: false, confirm: false });
+    setOtp('');
+    setOtpStep(false);
+  };
+
   const handlePasswordSave = async () => {
+    if (passwordLoading) return;
     setPasswordError('');
     if (!otpStep) {
       const fieldErrors = {};
@@ -289,17 +317,22 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
         return;
       }
 
-      setLoading(true);
+      const requestId = ++passwordRequestRef.current;
+      setPasswordLoading(true);
       try {
         const res = await sendOtp(profile.email, 'email');
+        if (requestId !== passwordRequestRef.current) return;
         if (res.success) {
           setOtpStep(true);
         } else {
           setPasswordError(res.message || 'Failed to send OTP'); triggerShake();
         }
       } catch (e) {
+        if (requestId !== passwordRequestRef.current) return;
         setPasswordError('Server error sending OTP'); triggerShake();
-      } finally { setLoading(false); }
+      } finally {
+        if (requestId === passwordRequestRef.current) setPasswordLoading(false);
+      }
       return;
     }
 
@@ -308,18 +341,17 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
       setPasswordFieldErrors({ otp: 'Verification code is required' }); triggerShake(); return;
     }
 
-    setLoading(true);
+    const requestId = ++passwordRequestRef.current;
+    setPasswordLoading(true);
     try {
       const verifyRes = await verifyOtp(profile.email, otp);
+      if (requestId !== passwordRequestRef.current) return;
       if (verifyRes.success) {
         const res = await changeCustomerPassword(userId, passwordForm.current, passwordForm.new);
+        if (requestId !== passwordRequestRef.current) return;
         if (res.success) {
           customAlert('Success', 'Password updated successfully');
-          setPasswordVisible(false);
-          setOtpStep(false);
-          setOtp('');
-          setPasswordForm({ current: '', new: '', confirm: '' });
-          setPasswordFieldErrors({});
+          closePasswordModal();
         } else {
           setPasswordError(res.message || 'Failed to update password'); triggerShake();
         }
@@ -327,8 +359,11 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
         setPasswordError(verifyRes.message || 'Invalid OTP'); triggerShake();
       }
     } catch (e) {
+      if (requestId !== passwordRequestRef.current) return;
       setPasswordError('Incorrect current password or server error'); triggerShake();
-    } finally { setLoading(false); }
+    } finally {
+      if (requestId === passwordRequestRef.current) setPasswordLoading(false);
+    }
   };
 
   const togglePasswordVisibility = (field) => {
@@ -492,7 +527,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
               <Switch value={hapticsEnabled} onValueChange={toggleHaptics} trackColor={{ false: theme.border, true: theme.gold }} thumbColor={'#fff'} />
             </View>
             
-            <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]} onPress={() => { setPasswordFieldErrors({}); setPasswordError(''); setPasswordVisible(true); }}>
+            <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]} onPress={openPasswordModal}>
               <View style={styles.rowLeft}>
                 <View style={styles.statIconWrapSmall}><Lock size={16} color={theme.gold} /></View>
                 <Text style={styles.rowLabel}>Change Password</Text>
@@ -549,12 +584,12 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
       </Modal>
 
       {/* Change Password Modal */}
-      <Modal visible={isPasswordVisible} animationType="fade" transparent>
+      <Modal visible={isPasswordVisible} animationType="fade" transparent onRequestClose={closePasswordModal}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{otpStep ? 'Verify OTP' : 'Change Password'}</Text>
-              <TouchableOpacity onPress={() => { setPasswordVisible(false); setPasswordError(''); setPasswordFieldErrors({}); setOtpStep(false); }}>
+              <TouchableOpacity onPress={closePasswordModal} accessibilityRole="button" accessibilityLabel="Close change password">
                 <X size={24} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
@@ -649,10 +684,15 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
               )}
             </Animated.View>
 
-            <AnimatedTouchable style={styles.saveBtn} onPress={handlePasswordSave}>
-              <Text style={styles.saveBtnText}>{otpStep ? 'Verify & Save' : 'Send Verification OTP'}</Text>
-              <Lock size={18} color={theme.backgroundDeep} style={{ marginLeft: 8 }} />
-            </AnimatedTouchable>
+            <View style={styles.passwordActions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={closePasswordModal} activeOpacity={0.8}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <AnimatedTouchable style={[styles.saveBtn, styles.passwordSaveBtn, passwordLoading && { opacity: 0.65 }]} onPress={handlePasswordSave} activeOpacity={0.8}>
+                <Text style={styles.saveBtnText}>{passwordLoading ? 'Please wait...' : (otpStep ? 'Verify & Save' : 'Send Verification OTP')}</Text>
+                <Lock size={18} color={theme.backgroundDeep} style={{ marginLeft: 8 }} />
+              </AnimatedTouchable>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -918,6 +958,13 @@ const getStyles = (theme) => StyleSheet.create({
     shadowColor: theme.gold, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4
   },
   saveBtnText: { ...typography.button, color: theme.backgroundDeep, fontSize: 16 },
+  passwordActions: { flexDirection: 'row', gap: 12, marginTop: 32 },
+  passwordSaveBtn: { flex: 1, marginTop: 0 },
+  cancelBtn: {
+    flex: 0.45, paddingVertical: 16, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border,
+  },
+  cancelBtnText: { ...typography.button, color: theme.textPrimary, fontSize: 16 },
 
   progressContainer: { width: '100%', paddingHorizontal: 4, marginTop: 24 },
   progressBarBg: { height: 6, backgroundColor: theme.border, borderRadius: 3, overflow: 'hidden' },
