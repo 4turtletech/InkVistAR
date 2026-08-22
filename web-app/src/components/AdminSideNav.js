@@ -22,7 +22,9 @@ import {
     ChevronUp,
     AppWindow,
     Bell,
-    FileText
+    FileText,
+    ShieldCheck,
+    ShieldAlert
 } from 'lucide-react';
 import io from 'socket.io-client';
 import Axios from 'axios';
@@ -201,6 +203,8 @@ function AdminSideNav() {
         { label: 'Appointments', icon: Calendar, path: '/admin/appointments', description: 'View appointments' },
         { label: 'Chat', icon: MessageSquare, path: '/admin/chat', description: 'Chat with customers' },
         { label: 'Inventory', icon: Package, path: '/admin/inventory', description: 'Manage inventory' },
+        { label: 'Sanitation', icon: ShieldCheck, path: '/admin/sanitation', description: 'Hygiene & Compliance' },
+        { label: 'Incidents', icon: ShieldAlert, path: '/admin/incidents', description: 'Health & Safety Reports' },
         { label: 'POS System', icon: ShoppingCart, path: '/admin/pos', description: 'Point of Sale' },
         { label: 'Reports', icon: FileText, path: '/admin/reports', description: 'Generate Reports' },
         { label: 'Analytics', icon: BarChart3, path: '/admin/analytics', description: 'View reports' },

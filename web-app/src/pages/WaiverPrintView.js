@@ -5,24 +5,6 @@ import { Printer, ArrowLeft } from 'lucide-react';
 import { API_URL } from '../config';
 import { getDisplayCode } from '../utils/formatters';
 
-/**
- * WaiverPrintView — Shared print/view page for signed Service Waivers.
- * Works for both admin (/admin/appointments/:id/waiver) and customer (/customer/waiver/:id) routes.
- */
-
-const WAIVER_SECTIONS = [
-    { title: 'Voluntary Consent', text: 'I voluntarily consent to the tattoo and/or piercing procedure(s) discussed during my consultation. I understand that these procedures involve permanent or semi-permanent modification to my body and that I am proceeding of my own free will.' },
-    { title: 'Assumption of Risk', text: 'I acknowledge that tattoo and piercing procedures carry inherent risks including but not limited to: infection, scarring, keloid formation, allergic reactions to ink or metals, nerve damage, prolonged healing, and unsatisfactory aesthetic results. I assume full responsibility for these risks.' },
-    { title: 'Release of Liability', text: 'I hereby release, waive, and discharge Inkvictus Tattoo & Piercing Studio, its owners, artists, employees, and agents from any and all liability, claims, demands, or causes of action that may arise from or relate to any complications, adverse reactions, or issues occurring during or after the procedure.', highlight: 'The studio shall not be held liable for any issues, complications, or adverse outcomes arising during or as a result of the procedure.' },
-    { title: 'Age Verification', text: 'I confirm that I am at least 18 years of age, or I have obtained the written consent of my parent or legal guardian who is present at the time of the procedure.' },
-    { title: 'Health Declaration', text: 'I confirm that I am in good health, I am not under the influence of alcohol or drugs, and I do not have any medical conditions (including but not limited to blood disorders, heart conditions, diabetes, skin conditions, or immunodeficiency) that have not been disclosed to the studio. I understand it is my responsibility to disclose all relevant health information.' },
-    { title: 'Allergies & Materials', text: 'I acknowledge that Inkvictus uses professional-grade materials but cannot guarantee against allergic reactions to inks, pigments, metals, or cleaning solutions. I agree that the studio cannot be held responsible for allergic reactions that were not previously known or disclosed.' },
-    { title: 'Aftercare Responsibility', text: 'I understand that proper aftercare is essential for healing and final results. I agree to follow all aftercare instructions provided by the studio. I acknowledge that failure to follow aftercare instructions may result in infection, poor healing, or unsatisfactory results, for which the studio shall not be liable.' },
-    { title: 'No Refund Policy', text: 'I acknowledge that Inkvictus does not offer refunds for completed services. I understand that the required sessions may vary, and any additional sessions beyond the agreed number will incur a fee for set up. Once a tattoo session has started, the total payment for that session becomes due in full.' },
-    { title: 'Indemnification', text: 'I agree to indemnify and hold harmless Inkvictus Tattoo & Piercing Studio, its owners, artists, employees, and agents against any and all claims, expenses, damages, and liabilities arising from or related to the services provided to me.' },
-    { title: 'Accuracy of Information', text: 'I confirm that all information provided in this waiver and during my consultation is accurate and truthful. I understand that providing false or misleading information may affect my safety and the outcome of the procedure.' }
-];
-
 export default function WaiverPrintView() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -30,6 +12,8 @@ export default function WaiverPrintView() {
     const isAdmin = location.pathname.startsWith('/admin');
 
     const [appointment, setAppointment] = useState(null);
+    const [consentRecord, setConsentRecord] = useState(null);
+    const [healthScreening, setHealthScreening] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -37,11 +21,24 @@ export default function WaiverPrintView() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const res = await Axios.get(`${API_URL}/api/admin/appointments/${id}`);
-                if (res.data.success && res.data.appointment) {
-                    setAppointment(res.data.appointment);
+                const [apptRes, consentRes, healthRes] = await Promise.all([
+                    Axios.get(`${API_URL}/api/admin/appointments/${id}`),
+                    Axios.get(`${API_URL}/api/consents/appointment/${id}`).catch(err => ({ data: { success: false } })),
+                    Axios.get(`${API_URL}/api/health-screenings/appointment/${id}`).catch(err => ({ data: { success: false } }))
+                ]);
+                
+                if (apptRes.data.success && apptRes.data.appointment) {
+                    setAppointment(apptRes.data.appointment);
                 } else {
                     setError('Appointment not found.');
+                }
+                
+                if (consentRes && consentRes.data && consentRes.data.success) {
+                    setConsentRecord(consentRes.data.consent);
+                }
+
+                if (healthRes && healthRes.data && healthRes.data.success) {
+                    setHealthScreening(healthRes.data.screening);
                 }
             } catch (err) {
                 console.error('Error fetching waiver data:', err);
@@ -74,19 +71,38 @@ export default function WaiverPrintView() {
     }
 
     const a = appointment;
+    const c = consentRecord;
+    const hs = healthScreening;
+    
     const bookingCode = getDisplayCode(a.booking_code, a.id);
-    const clientName = a.customer_name || a.client_name || a.guest_email || 'Client';
-    const waiverDate = a.waiver_accepted_at
-        ? new Date(a.waiver_accepted_at.replace(' ', 'T') + '+08:00').toLocaleString('en-US', { 
+    const clientName = c?.customer_name || a.customer_name || a.client_name || a.guest_email || 'Client';
+    
+    const acceptedAtStr = c?.accepted_at || a.waiver_accepted_at;
+    const waiverDate = acceptedAtStr
+        ? new Date(acceptedAtStr.replace(' ', 'T') + (acceptedAtStr.includes('Z') ? '' : '+08:00')).toLocaleString('en-US', { 
             dateStyle: 'long', 
             timeStyle: 'short',
             timeZone: 'Asia/Manila'
           })
         : null;
+        
     const appointmentDate = a.appointment_date
         ? new Date(a.appointment_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })
         : 'N/A';
     const printDate = new Date().toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Manila' });
+
+    const waiverTextSections = c?.waiver_text ? c.waiver_text.split('\n') : [
+        "Voluntary Consent: I voluntarily consent to the procedure.",
+        "Assumption of Risk: I acknowledge the inherent risks.",
+        "Release of Liability: I release the studio from liability.",
+        "Age Verification: I confirm I am 18+ or have guardian consent.",
+        "Health Declaration: I confirm my health declaration is accurate.",
+        "Allergies & Materials: I acknowledge allergy risks.",
+        "Aftercare Responsibility: I agree to follow aftercare instructions.",
+        "No Refund Policy: I acknowledge the no refund policy.",
+        "Indemnification: I agree to indemnify the studio.",
+        "Accuracy of Information: I confirm my information is truthful."
+    ];
 
     return (
         <div style={s.pageWrapper}>
@@ -131,25 +147,23 @@ export default function WaiverPrintView() {
 
                 {/* Waiver Sections */}
                 <div style={{ padding: '24px 36px' }}>
-                    {WAIVER_SECTIONS.map((section, idx) => (
-                        <div key={idx} style={{ marginBottom: '18px' }}>
-                            <h4 style={s.sectionTitle}>
-                                <span style={s.sectionNum}>{idx + 1}</span>
-                                {section.title}
-                            </h4>
-                            <p style={s.sectionText}>{section.text}</p>
-                            {section.highlight && (
-                                <div style={s.highlightBox}>
-                                    <p style={{ margin: 0, fontSize: '0.88rem', color: '#991b1b', fontWeight: 600, lineHeight: 1.6 }}>
-                                        IMPORTANT: {section.highlight}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                    {waiverTextSections.map((section, idx) => {
+                        const splitIdx = section.indexOf(':');
+                        const title = splitIdx > -1 ? section.substring(0, splitIdx).trim() : `Section ${idx + 1}`;
+                        const text = splitIdx > -1 ? section.substring(splitIdx + 1).trim() : section;
+                        return (
+                            <div key={idx} style={{ marginBottom: '18px' }}>
+                                <h4 style={s.sectionTitle}>
+                                    <span style={s.sectionNum}>{idx + 1}</span>
+                                    {title}
+                                </h4>
+                                <p style={s.sectionText}>{text}</p>
+                            </div>
+                        );
+                    })}
                 </div>
 
-                {/* Signature / Acceptance Block */}
+                {/* Signature / Acceptance & Identification Block */}
                 <div style={s.acceptanceBlock}>
                     <h3 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>Electronic Acceptance Record</h3>
                     <div style={s.sigGrid}>
@@ -158,21 +172,72 @@ export default function WaiverPrintView() {
                             <span style={s.sigValue}>{clientName}</span>
                         </div>
                         <div style={s.sigField}>
+                            <span style={s.sigLabel}>Electronic Signature</span>
+                            <span style={s.sigValue}>{c?.signature_evidence || 'N/A'}</span>
+                        </div>
+                        <div style={s.sigField}>
+                            <span style={s.sigLabel}>Date of Birth / Age</span>
+                            <span style={s.sigValue}>
+                                {c?.date_of_birth ? `${c.date_of_birth} (${c.calculated_age} yrs)` : 'N/A'}
+                            </span>
+                        </div>
+                        <div style={s.sigField}>
+                            <span style={s.sigLabel}>ID Verification</span>
+                            <span style={s.sigValue}>
+                                {c?.id_type || 'ID'}: ****{c?.id_last_four || 'N/A'} ({c?.id_verification_status === 'verified' ? '✅ Verified' : '⏳ Unverified'})
+                            </span>
+                        </div>
+
+                        {/* Guardian details if client is minor */}
+                        {c?.guardian_name && (
+                            <div style={{ gridColumn: '1 / -1', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '12px', marginTop: '8px' }}>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>Parent / Guardian Verification</span>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '6px', fontSize: '0.85rem', color: '#78350f' }}>
+                                    <div><strong>Guardian Name:</strong> {c.guardian_name} ({c.guardian_relationship})</div>
+                                    <div><strong>Guardian ID:</strong> {c.guardian_id_info}</div>
+                                    <div><strong>Signature:</strong> {c.guardian_signature}</div>
+                                    <div><strong>In-Person Presence:</strong> {c.guardian_present ? '✅ Confirmed Present' : '❌ Not Verified'}</div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div style={s.sigField}>
                             <span style={s.sigLabel}>Booking Reference</span>
                             <span style={{ ...s.sigValue, color: '#be9055', fontFamily: 'monospace' }}>{bookingCode}</span>
                         </div>
                         <div style={s.sigField}>
-                            <span style={s.sigLabel}>Service Type</span>
-                            <span style={s.sigValue}>{a.service_type || 'Consultation'}</span>
+                            <span style={s.sigLabel}>Witness</span>
+                            <span style={s.sigValue}>{c?.witness_name || 'N/A'}</span>
                         </div>
-                        <div style={s.sigField}>
-                            <span style={s.sigLabel}>Appointment Date</span>
-                            <span style={s.sigValue}>{appointmentDate}</span>
-                        </div>
-                        <div style={{ ...s.sigField, gridColumn: '1 / -1' }}>
+
+                        {/* Health Screening Snapshot Summary */}
+                        {hs && (
+                            <div style={{ gridColumn: '1 / -1', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '12px', marginTop: '8px' }}>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>Per-Session Health Clearance Record</span>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '6px', fontSize: '0.82rem', color: '#14532d' }}>
+                                    <div><strong>Status:</strong> {hs.screening_status?.toUpperCase()}</div>
+                                    <div><strong>Site Condition:</strong> {hs.site_skin_condition || 'Normal'}</div>
+                                    <div><strong>Blood Thinners:</strong> {hs.medications_blood_thinners || 'None'}</div>
+                                    <div><strong>Alcohol/Drugs (24h):</strong> {hs.substance_influence ? '⚠️ Yes' : 'No'}</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Consent Checkboxes Visualized */}
+                        {c && (
+                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '12px' }}>
+                                <div style={s.tag}>Procedure: {c.procedure_consent ? '✅' : '❌'}</div>
+                                <div style={s.tag}>Payment: {c.payment_consent ? '✅' : '❌'}</div>
+                                <div style={s.tag}>Health Data: {c.health_data_consent ? '✅' : '❌'}</div>
+                                <div style={s.tag}>Marketing: {c.marketing_consent ? '✅' : '❌'}</div>
+                                <div style={s.tag}>Photo: {c.photo_consent ? '✅' : '❌'}</div>
+                            </div>
+                        )}
+
+                        <div style={{ ...s.sigField, gridColumn: '1 / -1', marginTop: '8px' }}>
                             <span style={s.sigLabel}>Waiver Accepted</span>
                             {waiverDate ? (
-                                <span style={{ ...s.sigValue, color: '#16a34a' }}>Electronically accepted on {waiverDate}</span>
+                                <span style={{ ...s.sigValue, color: '#16a34a' }}>Electronically accepted on {waiverDate} (v{c?.waiver_version || '1.0'})</span>
                             ) : (
                                 <span style={{ ...s.sigValue, color: '#dc2626' }}>No waiver acceptance on record</span>
                             )}
@@ -227,5 +292,6 @@ const s = {
     sigField: { display: 'flex', flexDirection: 'column', gap: '4px' },
     sigLabel: { fontSize: '0.72rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' },
     sigValue: { fontSize: '0.92rem', fontWeight: 600, color: '#1e293b', padding: '8px 0', borderBottom: '1px solid #e2e8f0' },
-    docFooter: { padding: '20px 36px', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }
+    docFooter: { padding: '20px 36px', background: '#f8fafc', borderTop: '1px solid #e2e8f0' },
+    tag: { background: '#fff', border: '1px solid #e2e8f0', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600, color: '#475569' }
 };

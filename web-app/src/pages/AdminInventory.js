@@ -134,7 +134,17 @@ function AdminInventory() {
         retailPrice: 0,
         minStock: 5,
         maxStock: 100,
-        supplier: ''
+        supplier: '',
+        manufacturer: '',
+        lot_number: '',
+        batch_number: '',
+        serial_number: '',
+        manufacture_date: '',
+        expiration_date: '',
+        date_opened: '',
+        is_single_use: true,
+        recall_status: 'none',
+        storage_requirements: ''
     });
     const [transactionData, setTransactionData] = useState({
         type: 'in',
@@ -497,7 +507,17 @@ function AdminInventory() {
             retailPrice: item.retailPrice || 0,
             minStock: item.minStock || 0,
             maxStock: item.maxStock || 0,
-            supplier: item.supplier || ''
+            supplier: item.supplier || '',
+            manufacturer: item.manufacturer || '',
+            lot_number: item.lot_number || '',
+            batch_number: item.batch_number || '',
+            serial_number: item.serial_number || '',
+            manufacture_date: item.manufacture_date || '',
+            expiration_date: item.expiration_date || '',
+            date_opened: item.date_opened || '',
+            is_single_use: item.is_single_use !== undefined ? Boolean(item.is_single_use) : true,
+            recall_status: item.recall_status || 'none',
+            storage_requirements: item.storage_requirements || ''
         });
         openModal(setAddEditModal);
     };
@@ -560,7 +580,17 @@ function AdminInventory() {
             retailPrice: 0,
             minStock: 5,
             maxStock: 100,
-            supplier: ''
+            supplier: '',
+            manufacturer: '',
+            lot_number: '',
+            batch_number: '',
+            serial_number: '',
+            manufacture_date: '',
+            expiration_date: '',
+            date_opened: '',
+            is_single_use: true,
+            recall_status: 'none',
+            storage_requirements: ''
         });
         openModal(setAddEditModal);
     };
@@ -1131,6 +1161,95 @@ function AdminInventory() {
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <div className="glass-panel" style={{ marginTop: '16px', background: 'rgba(59, 130, 246, 0.05)', borderColor: 'rgba(59, 130, 246, 0.2)' }}>
+                                            <span className="panel-title" style={{ color: '#2563eb' }}>Traceability & Compliance</span>
+                                            
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                <div>
+                                                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '4px', display: 'block' }}>Manufacturer / Supplier</label>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Manufacturer"
+                                                            value={formData.manufacturer || ''}
+                                                            onChange={(e) => setFormData({...formData, manufacturer: e.target.value})}
+                                                            className="form-input"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Supplier"
+                                                            value={formData.supplier || ''}
+                                                            onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+                                                            className="form-input"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '4px', display: 'block' }}>Batch / Lot Tracking</label>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Batch No."
+                                                            value={formData.batch_number || ''}
+                                                            onChange={(e) => setFormData({...formData, batch_number: e.target.value})}
+                                                            className="form-input"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Lot No."
+                                                            value={formData.lot_number || ''}
+                                                            onChange={(e) => setFormData({...formData, lot_number: e.target.value})}
+                                                            className="form-input"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Serial No."
+                                                            value={formData.serial_number || ''}
+                                                            onChange={(e) => setFormData({...formData, serial_number: e.target.value})}
+                                                            className="form-input"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '4px', display: 'block' }}>Dates</label>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                                        <div>
+                                                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Mfg. Date</span>
+                                                            <input
+                                                                type="date"
+                                                                value={formData.manufacture_date || ''}
+                                                                onChange={(e) => setFormData({...formData, manufacture_date: e.target.value})}
+                                                                className="form-input"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Exp. Date</span>
+                                                            <input
+                                                                type="date"
+                                                                value={formData.expiration_date || ''}
+                                                                onChange={(e) => setFormData({...formData, expiration_date: e.target.value})}
+                                                                className="form-input"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
+                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={formData.is_single_use} 
+                                                            onChange={(e) => setFormData({...formData, is_single_use: e.target.checked})} 
+                                                        />
+                                                        Single-use item
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                     </div>
                                 </div>
                             </div>
