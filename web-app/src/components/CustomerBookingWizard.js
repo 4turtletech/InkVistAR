@@ -23,7 +23,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const [showWaiverModal, setShowWaiverModal] = useState(false);
     const [waiverAcceptedAt, setWaiverAcceptedAt] = useState(null);
     const [consentData, setConsentData] = useState(null);
-    const [photoMarketingConsent, setPhotoMarketingConsent] = useState(true);
+    const [photoMarketingConsent, setPhotoMarketingConsent] = useState(false);
     const { executeRecaptcha } = useGoogleReCaptcha();
     
     const user = JSON.parse(localStorage.getItem('user'));
@@ -1252,12 +1252,11 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     setWaiverAccepted(true);
                     setWaiverAcceptedAt(new Date().toISOString());
                     setConsentData(capturedConsent);
+                    setPhotoMarketingConsent(Boolean(capturedConsent.photoConsent));
                     setShowWaiverModal(false);
                     if (errors.waiver) setErrors(prev => ({ ...prev, waiver: '' }));
                 }}
                 clientName={`${formData.firstName} ${formData.lastName}`.trim() || undefined}
-                photoConsent={photoMarketingConsent}
-                onPhotoConsentChange={setPhotoMarketingConsent}
             />
 
             <p style={{ marginTop: '12px', color: '#94a3b8', fontSize: '0.78rem', textAlign: 'center' }}>

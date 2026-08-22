@@ -29,6 +29,11 @@ const { createAuthRouter, safeUser } = require('./routes/auth');
 const { createPasswordRecoveryRouter } = require('./routes/passwordRecovery');
 const { deliverRefreshToken, isMobileLoginRequest } = require('./services/sessionTransport');
 const { createSocketAuthorizer } = require('./services/socketAuthorization');
+const { createMigrationService } = require('./services/migrationService');
+const { createOperationAccessService } = require('./services/operationAccessService');
+const { createConsentService } = require('./services/consentService');
+const { CONSENT_EXISTS_SQL } = require('./services/checkoutConsentPolicy');
+const { createConsentRouter } = require('./routes/consents');
 process.env.TZ = 'Asia/Manila'; // Global Node.js timezone localization
 
 const app = express();
@@ -213,6 +218,9 @@ const tokenService = createTokenService(db);
 const passwordRecoveryService = createPasswordRecoveryService(db);
 const authenticate = createAuthenticate({ tokenService, pool: db });
 const socketAuthorizer = createSocketAuthorizer({ tokenService, pool: db });
+const consentMigrationService = createMigrationService(db, ['004_consent_audit_events.sql']);
+const operationAccessService = createOperationAccessService(db);
+const consentService = createConsentService(db, operationAccessService);
 
 // Health check endpoint for Railway/Render
 app.get('/health', (req, res) => {
@@ -487,7 +495,7 @@ db.getConnection((err, connection) => {
       db.query("SHOW COLUMNS FROM users LIKE 'photo_marketing_consent'", (err, results) => {
         if (!err && results.length === 0) {
           console.log('[MIGRATE] Migrating users table: Adding photo_marketing_consent column...');
-          db.query("ALTER TABLE users ADD COLUMN photo_marketing_consent TINYINT DEFAULT 1");
+          db.query("ALTER TABLE users ADD COLUMN photo_marketing_consent TINYINT DEFAULT 0");
         }
       });
 
@@ -1675,17 +1683,6 @@ db.getConnection((err, connection) => {
         health_data_consent TINYINT(1) DEFAULT 0,
         marketing_consent TINYINT(1) DEFAULT 0,
         photo_consent TINYINT(1) DEFAULT 0,
-        date_of_birth DATE NULL,
-        calculated_age INT NULL,
-        id_verification_status VARCHAR(50) DEFAULT 'unverified',
-        id_type VARCHAR(100) NULL,
-        id_last_four VARCHAR(10) NULL,
-        id_verified_by VARCHAR(255) NULL,
-        guardian_name VARCHAR(255) NULL,
-        guardian_relationship VARCHAR(100) NULL,
-        guardian_id_info VARCHAR(255) NULL,
-        guardian_signature VARCHAR(255) NULL,
-        guardian_present TINYINT(1) DEFAULT 0,
         ip_address VARCHAR(45) NULL,
         device_info TEXT NULL,
         withdrawal_history JSON NULL,
@@ -1695,27 +1692,13 @@ db.getConnection((err, connection) => {
     `;
     db.query(consentRecordsTableQuery, (err) => { 
       if (err) console.error('[WARN] Error checking consent_records table:', err.message); 
-      else console.log('[OK] Consent Records table ready'); 
-    });
-
-    // Ensure Age & Guardian columns exist if consent_records table was created prior
-    const consentAlterColumns = [
-      "ADD COLUMN IF NOT EXISTS date_of_birth DATE NULL",
-      "ADD COLUMN IF NOT EXISTS calculated_age INT NULL",
-      "ADD COLUMN IF NOT EXISTS id_verification_status VARCHAR(50) DEFAULT 'unverified'",
-      "ADD COLUMN IF NOT EXISTS id_type VARCHAR(100) NULL",
-      "ADD COLUMN IF NOT EXISTS id_last_four VARCHAR(10) NULL",
-      "ADD COLUMN IF NOT EXISTS id_verified_by VARCHAR(255) NULL",
-      "ADD COLUMN IF NOT EXISTS guardian_name VARCHAR(255) NULL",
-      "ADD COLUMN IF NOT EXISTS guardian_relationship VARCHAR(100) NULL",
-      "ADD COLUMN IF NOT EXISTS guardian_id_info VARCHAR(255) NULL",
-      "ADD COLUMN IF NOT EXISTS guardian_signature VARCHAR(255) NULL",
-      "ADD COLUMN IF NOT EXISTS guardian_present TINYINT(1) DEFAULT 0"
-    ];
-    consentAlterColumns.forEach(colSql => {
-      db.query(`ALTER TABLE consent_records ${colSql}`, (err) => {
-        // Ignore column exists errors in MySQL variants
-      });
+      else {
+        console.log('[OK] Consent Records table ready');
+        consentMigrationService.initialize().catch((migrationError) => {
+          console.error('[ERROR] Consent database migration failed:', migrationError.message);
+          process.exit(1);
+        });
+      }
     });
 
     // Create Session Health Screenings Table
@@ -2257,6 +2240,9 @@ app.use('/api/password-recovery', createPasswordRecoveryRouter({
   logPasswordReset: (userId, ip) => logAction(userId, 'PASSWORD_RESET', 'User completed token-based password recovery.', ip || '::1'),
 }));
 app.use(createHighRiskProtection({ authenticate, pool: db }));
+// These modular routes are registered before the legacy monolith routes below.
+// Express therefore cannot fall through to the older, unprotected consent handlers.
+app.use('/api', createConsentRouter({ authenticate, consentService }));
 
 // ========== DEBUG ENDPOINTS ==========
 
@@ -3236,8 +3222,8 @@ app.post('/api/register', async (req, res) => {
       // Insert user
       const verification_token = crypto.randomBytes(32).toString('hex');
 
-      // Consent defaults: photo=1 (opted-in unless unchecked), email_promo=0 (opted-out unless checked)
-      const photoConsent = photo_marketing_consent !== undefined ? (photo_marketing_consent ? 1 : 0) : 1;
+      // Optional communications and photo use are opt-in. Missing values always mean declined.
+      const photoConsent = photo_marketing_consent === true ? 1 : 0;
       const emailConsent = email_promo_consent !== undefined ? (email_promo_consent ? 1 : 0) : 0;
 
       const insertQuery = 'INSERT INTO users (name, email, password_hash, user_type, is_verified, verification_token, photo_marketing_consent, email_promo_consent) VALUES (?, ?, ?, ?, 0, ?, ?, ?)';
@@ -5427,6 +5413,17 @@ app.post('/api/admin/appointments', async (req, res) => {
 
         const handleCommit = (emailAddr, htmlBody) => {
           if (consentData) {
+            const c = consentData;
+            const waiverText = String(c.waiverText || '').trim();
+            const signatureEvidence = String(c.signatureEvidence || '').trim();
+            if (c.ageConfirmed !== true || !c.paymentConsent || !c.procedureConsent || !c.healthDataConsent
+              || waiverText.length < 20 || !/(?:at least 18 years old|18 years old or older)/i.test(waiverText)
+              || signatureEvidence.length < 3) {
+              return conn.rollback(() => {
+                conn.release();
+                res.status(400).json({ success: false, message: 'Age confirmation and a complete signed waiver are required.' });
+              });
+            }
             const consentQuery = `
               INSERT INTO consent_records (
                 appointment_id, customer_id, customer_name, procedure_type, waiver_version, 
@@ -5435,16 +5432,22 @@ app.post('/api/admin/appointments', async (req, res) => {
                 ip_address, device_info, accepted_at
               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
-            const c = consentData;
-            const acceptedAt = waiverAcceptedAt || getLocalDatetime();
+            const acceptedAt = getLocalDatetime();
+            const waiverHash = crypto.createHash('sha256').update(waiverText, 'utf8').digest('hex');
             conn.query(consentQuery, [
-              appointmentId, customerId || null, customerName || clientNameStr, c.procedureType || 'General Service',
-              c.waiverVersion || '1.0', c.waiverText || 'No text provided', c.waiverHash || 'N/A', c.signatureEvidence || 'N/A', c.witnessName || null,
+              appointmentId, customerId || null, customerName || clientNameStr, serviceType || 'Consultation',
+              String(c.waiverVersion || '1.0').slice(0, 50), waiverText, waiverHash, signatureEvidence.slice(0, 255), null,
               c.paymentConsent ? 1 : 0, c.procedureConsent ? 1 : 0, c.healthDataConsent ? 1 : 0,
               c.marketingConsent ? 1 : 0, c.photoConsent ? 1 : 0, c.ipAddress || req.ip || null,
               c.deviceInfo || req.headers['user-agent'] || null, acceptedAt
             ], (consentErr) => {
-               if (consentErr) console.error('[WARN] Failed to insert consent record:', consentErr);
+               if (consentErr) {
+                 console.error('[ERROR] Failed to insert consent record:', consentErr.message);
+                 return conn.rollback(() => {
+                   conn.release();
+                   res.status(500).json({ success: false, message: 'Could not securely record the signed waiver.' });
+                 });
+               }
                commitAndRespond(emailAddr, htmlBody);
             });
           } else {
@@ -7259,6 +7262,31 @@ app.put('/api/appointments/:id/status', async (req, res) => {
   const { id } = req.params;
   const { status, price, isFullyComplete, sessionDuration, auditLog } = req.body;
 
+  if (status === 'in_progress' || status === 'completed') {
+    try {
+      const procedureRows = await queryAsync(
+        db,
+        `SELECT ap.service_type, ${CONSENT_EXISTS_SQL} AS has_valid_consent
+         FROM appointments ap WHERE ap.id = ? AND COALESCE(ap.is_deleted, 0) = 0 LIMIT 1`,
+        [id]
+      );
+      if (!procedureRows.length) {
+        return res.status(404).json({ success: false, message: 'Appointment not found.' });
+      }
+      const isConsultation = String(procedureRows[0].service_type || '').toLowerCase().includes('consultation');
+      if (!isConsultation && !procedureRows[0].has_valid_consent) {
+        return res.status(409).json({
+          success: false,
+          code: 'consent_required',
+          message: 'A valid signed consent record is required before the procedure can start or be completed.'
+        });
+      }
+    } catch (error) {
+      console.error('[CONSENT] Procedure gate failed:', error.message);
+      return res.status(500).json({ success: false, message: 'Unable to verify the procedure consent record.' });
+    }
+  }
+
   if (status === 'completed') {
     try {
       const activeHolds = await queryAsync(db, 'SELECT COUNT(*) as count FROM session_materials WHERE appointment_id = ? AND status = "hold"', [id]);
@@ -8000,7 +8028,7 @@ app.get('/api/appointments/:id/details', (req, res) => {
 
 // Create a PayMongo Checkout Session
 app.post('/api/payments/create-checkout-session', async (req, res) => {
-  const { appointmentId, price: providedPrice, paymentType, customAmount, agreedToWaiver } = req.body; // paymentType: 'full', 'deposit', or 'custom'
+  const { appointmentId, price: providedPrice, paymentType, customAmount } = req.body; // paymentType: 'full', 'deposit', or 'custom'
 
   if (!appointmentId) {
     return res.status(400).json({ success: false, message: 'appointmentId is required' });
@@ -8015,7 +8043,8 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
     const checkoutQuery = `
       SELECT 
         ap.id, ap.price, ap.customer_id, ap.artist_id, ap.status, ap.design_title, ap.service_type, ap.booking_code,
-        (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') + (COALESCE(ap.manual_paid_amount, 0) * 100) as total_paid_centavos
+        (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') + (COALESCE(ap.manual_paid_amount, 0) * 100) as total_paid_centavos,
+        ${CONSENT_EXISTS_SQL} AS has_valid_consent
       FROM appointments ap
       WHERE ap.id = ? AND ap.is_deleted = 0
     `;
@@ -8031,6 +8060,14 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
       }
 
       const appointment = results[0];
+
+      if (!appointment.has_valid_consent) {
+        return res.status(409).json({
+          success: false,
+          code: 'consent_required',
+          message: 'A valid signed consent record is required before checkout can be created.'
+        });
+      }
 
       // Strict enforcement: block payment if booking_code is missing
       if (!appointment.booking_code) {
@@ -8165,26 +8202,6 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
               if (payErr) console.error('[WARN] Could not log pending payment:', payErr.message);
             }
           );
-
-          // Log waiver acceptance if provided
-          if (agreedToWaiver) {
-            db.query(
-              `UPDATE appointments SET waiver_accepted_at = ? WHERE id = ? AND waiver_accepted_at IS NULL`,
-              [getLocalDatetime(), appointmentId],
-              (waiverErr) => {
-                if (waiverErr) {
-                  // Fallback for older schema if column missing
-                  if (waiverErr.code === 'ER_BAD_FIELD_ERROR' && waiverErr.message.includes('waiver_accepted_at')) {
-                    console.warn('[WARN] waiver_accepted_at column missing, skipping waiver log.');
-                  } else {
-                    console.error('[WARN] Could not log waiver acceptance:', waiverErr.message);
-                  }
-                } else {
-                  console.log(`[INFO] Waiver acceptance logged for Appt #${appointmentId}`);
-                }
-              }
-            );
-          }
 
           res.json({ success: true, checkoutUrl, sessionId });
         } catch (err) {
@@ -9114,187 +9131,7 @@ app.put('/api/appointments/:id/after-photo', (req, res) => {
   });
 });
 
-// ========== CONSENT & WAIVER ENDPOINTS ==========
-
-// Get active consent for an appointment
-app.get('/api/consents/appointment/:id', (req, res) => {
-  const { id } = req.params;
-  db.query('SELECT * FROM consent_records WHERE appointment_id = ? ORDER BY accepted_at DESC LIMIT 1', [id], (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    if (!results.length) return res.status(404).json({ success: false, message: 'No consent record found' });
-    res.json({ success: true, consent: results[0] });
-  });
-});
-
-// Helper: Calculate age on server side
-function calculateServerAge(dobString) {
-  if (!dobString) return null;
-  const dob = new Date(dobString);
-  if (isNaN(dob.getTime())) return null;
-  const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const m = today.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-    age--;
-  }
-  return age;
-}
-
-// Create a new consent record (includes Age, Guardian & ID Verification fields)
-app.post('/api/consents', (req, res) => {
-  const {
-    appointmentId, customerId, customerName, procedureType, waiverVersion, waiverText,
-    waiverHash, signatureEvidence, witnessName, paymentConsent, procedureConsent,
-    healthDataConsent, marketingConsent, photoConsent, ipAddress, deviceInfo,
-    dateOfBirth, idType, idLastFour, idVerificationStatus,
-    guardianName, guardianRelationship, guardianIdInfo, guardianSignature, guardianPresent
-  } = req.body;
-
-  const serverCalculatedAge = dateOfBirth ? calculateServerAge(dateOfBirth) : null;
-
-  const query = `
-    INSERT INTO consent_records (
-      appointment_id, customer_id, customer_name, procedure_type, waiver_version, 
-      waiver_text, waiver_hash, signature_evidence, witness_name, payment_consent, 
-      procedure_consent, health_data_consent, marketing_consent, photo_consent, 
-      date_of_birth, calculated_age, id_verification_status, id_type, id_last_four,
-      guardian_name, guardian_relationship, guardian_id_info, guardian_signature, guardian_present,
-      ip_address, device_info, accepted_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
-  const acceptedAt = getLocalDatetime();
-
-  db.query(query, [
-    appointmentId || null, customerId || null, customerName, procedureType || 'General Service', 
-    waiverVersion || '1.0', waiverText || 'No text provided', waiverHash || 'N/A', signatureEvidence || 'N/A', witnessName || null,
-    paymentConsent ? 1 : 0, procedureConsent ? 1 : 0, healthDataConsent ? 1 : 0, 
-    marketingConsent ? 1 : 0, photoConsent ? 1 : 0,
-    dateOfBirth || null, serverCalculatedAge, idVerificationStatus || 'unverified', idType || null, idLastFour || null,
-    guardianName || null, guardianRelationship || null, guardianIdInfo || null, guardianSignature || null, guardianPresent ? 1 : 0,
-    ipAddress || req.ip || null, deviceInfo || req.headers['user-agent'] || null, acceptedAt
-  ], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
-    
-    if (appointmentId) {
-      db.query('UPDATE appointments SET waiver_accepted_at = ? WHERE id = ?', [acceptedAt, appointmentId]);
-    }
-    
-    res.json({ 
-      success: true, 
-      consentId: result.insertId, 
-      calculatedAge: serverCalculatedAge,
-      message: 'Consent record saved successfully' 
-    });
-  });
-});
-
-// Staff endpoint: Verify Customer ID for a consent record
-app.put('/api/consents/:id/verify-id', (req, res) => {
-  const { id } = req.params;
-  const { idType, idLastFour, idVerificationStatus, verifiedBy } = req.body;
-  
-  const query = `
-    UPDATE consent_records 
-    SET id_type = COALESCE(?, id_type),
-        id_last_four = COALESCE(?, id_last_four),
-        id_verification_status = ?,
-        id_verified_by = ?
-    WHERE id = ?
-  `;
-  db.query(query, [idType || null, idLastFour || null, idVerificationStatus || 'verified', verifiedBy || 'Staff', id], (err) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    res.json({ success: true, message: 'ID verification status updated successfully' });
-  });
-});
-
-// Withdraw specific consents
-app.put('/api/consents/:id/withdraw', (req, res) => {
-  const { id } = req.params;
-  const { withdrawnConsents, reason, updatedBy } = req.body;
-  
-  db.query('SELECT * FROM consent_records WHERE id = ?', [id], (err, results) => {
-    if (err || !results.length) return res.status(404).json({ success: false, message: 'Consent record not found' });
-    
-    let record = results[0];
-    let history = record.withdrawal_history ? JSON.parse(record.withdrawal_history) : [];
-    
-    history.push({
-      timestamp: getLocalDatetime(),
-      withdrawn_fields: withdrawnConsents,
-      reason: reason || 'User requested',
-      updated_by: updatedBy || 'user'
-    });
-    
-    let updates = [];
-    let params = [];
-    for (const [key, value] of Object.entries(withdrawnConsents)) {
-      updates.push(`${key} = ?`);
-      params.push(value ? 1 : 0);
-    }
-    
-    if (updates.length === 0) return res.json({ success: true, message: 'No changes made' });
-    
-    params.push(JSON.stringify(history), id);
-    
-    const updateQuery = `UPDATE consent_records SET ${updates.join(', ')}, withdrawal_history = ? WHERE id = ?`;
-    db.query(updateQuery, params, (updateErr) => {
-      if (updateErr) return res.status(500).json({ success: false, message: 'Failed to update consent' });
-      res.json({ success: true, message: 'Consent updated successfully' });
-    });
-  });
-});
-
-// Get all consent records for a customer
-app.get('/api/consents/customer/:customerId', (req, res) => {
-  const { customerId } = req.params;
-  db.query(
-    `SELECT cr.*, a.booking_code, a.appointment_date, a.service_type
-     FROM consent_records cr
-     LEFT JOIN appointments a ON cr.appointment_id = a.id
-     WHERE cr.customer_id = ?
-     ORDER BY cr.accepted_at DESC`,
-    [customerId],
-    (err, results) => {
-      if (err) return res.status(500).json({ success: false, message: 'Database error' });
-      res.json({ success: true, consents: results });
-    }
-  );
-});
-
-// ========== STUDIO AGE POLICY ENDPOINTS ==========
-
-app.get('/api/studio/age-policy', (req, res) => {
-  db.query("SELECT data FROM app_settings WHERE section = 'age_policy'", (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    const defaultPolicy = {
-      allow_minors: true,
-      min_age_without_guardian: 18,
-      min_age_with_guardian: 16,
-      require_id_online: true
-    };
-    if (!results.length || !results[0].data) {
-      return res.json({ success: true, policy: defaultPolicy });
-    }
-    try {
-      const data = typeof results[0].data === 'string' ? JSON.parse(results[0].data) : results[0].data;
-      res.json({ success: true, policy: { ...defaultPolicy, ...data } });
-    } catch (e) {
-      res.json({ success: true, policy: defaultPolicy });
-    }
-  });
-});
-
-app.put('/api/studio/age-policy', (req, res) => {
-  const policy = req.body;
-  const query = `
-    INSERT INTO app_settings (section, data) VALUES ('age_policy', ?)
-    ON DUPLICATE KEY UPDATE data = VALUES(data)
-  `;
-  db.query(query, [JSON.stringify(policy)], (err) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    res.json({ success: true, message: 'Age policy updated successfully' });
-  });
-});
+// Consent and waiver endpoints are provided by routes/consents.js.
 
 // ========== PER-SESSION HEALTH SCREENING ENDPOINTS ==========
 

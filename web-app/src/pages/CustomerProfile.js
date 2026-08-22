@@ -457,7 +457,13 @@ function CustomerProfile() {
                                                         const acceptedDate = c.accepted_at
                                                             ? new Date(c.accepted_at.replace(' ', 'T') + (c.accepted_at.includes('Z') ? '' : '+08:00')).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' })
                                                             : 'Unknown';
-                                                        const hasWithdrawals = c.withdrawal_history && JSON.parse(c.withdrawal_history || '[]').length > 0;
+                                                        const withdrawalHistory = Array.isArray(c.withdrawal_history)
+                                                            ? c.withdrawal_history
+                                                            : (() => {
+                                                                try { return JSON.parse(c.withdrawal_history || '[]'); }
+                                                                catch (_) { return []; }
+                                                            })();
+                                                        const hasWithdrawals = withdrawalHistory.length > 0;
                                                         return (
                                                             <div key={c.id} style={{ background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
                                                                 <div

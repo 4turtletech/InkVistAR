@@ -7,6 +7,10 @@ import '../pages/AdminSettings.css';
 import '../pages/AdminStyles.css';
 import { API_URL } from '../config';
 
+const normalizeAdultOnlyWaiverText = (value) => typeof value === 'string'
+    ? value.replace('I am at least 18 years old or have a legal guardian consent.', 'I confirm that I am at least 18 years old.')
+    : value;
+
 function AdminSettingsTab({ initialTab = 'studio' }) {
     const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
     const isSuperAdmin = currentUser?.is_superadmin === true;
@@ -28,7 +32,7 @@ function AdminSettingsTab({ initialTab = 'studio' }) {
             terms: 'By booking an appointment, you agree to our terms of service regarding hygiene, conduct, and payment.',
             deposit: 'A non-refundable deposit of 20% is required to secure your booking. This amount will be deducted from the final price.',
             cancellation: 'Cancellations must be made at least 48 hours in advance. Late cancellations may result in forfeiture of the deposit.',
-            waiverClauses: "I am at least 18 years old or have a legal guardian consent.\nI understand that this procedure is a permanent change to my skin and body.\nI consent to having photographs and/or videos taken by Inkvictus and be used in their portfolio. (Optional — you may opt out during booking.)\nI acknowledge that Inkvictus does not offer refund.\nI do not have any medical or skin conditions that might agitate the process of tattoo.\nI agree that Inkvictus does not have a way of identifying if I am allergic to the elements or ingredients that will be used for my tattoo.\nI understand that the required sessions may vary, and any additional sessions beyond the agreed number will incur fee for set up.\nI understand that I need to take good care of the tattoo or piercing by following instructions given to me by Inkvictus.\nI understand that I might get an infection if I don't follow the instructions given to me by Inkvictus.\nI indemnify and hold harmless Inkvictus against any claims, expenses, damages and liabilities.\nI confirm that the information I provided in this document is accurate and true.\nI understand and agree that once my tattoo session has started, the total payment for that session becomes due in full. Any reservation fee or down payment made will be applied and deducted on the final session. This policy applies only to tattoos requiring multiple or series of sessions.",
+            waiverClauses: "I confirm that I am at least 18 years old.\nI understand that this procedure is a permanent change to my skin and body.\nI consent to having photographs and/or videos taken by Inkvictus and be used in their portfolio. (Optional — you may opt out during booking.)\nI acknowledge that Inkvictus does not offer refund.\nI do not have any medical or skin conditions that might agitate the process of tattoo.\nI agree that Inkvictus does not have a way of identifying if I am allergic to the elements or ingredients that will be used for my tattoo.\nI understand that the required sessions may vary, and any additional sessions beyond the agreed number will incur fee for set up.\nI understand that I need to take good care of the tattoo or piercing by following instructions given to me by Inkvictus.\nI understand that I might get an infection if I don't follow the instructions given to me by Inkvictus.\nI indemnify and hold harmless Inkvictus against any claims, expenses, damages and liabilities.\nI confirm that the information I provided in this document is accurate and true.\nI understand and agree that once my tattoo session has started, the total payment for that session becomes due in full. Any reservation fee or down payment made will be applied and deducted on the final session. This policy applies only to tattoos requiring multiple or series of sessions.",
             pageSubtitle: "Please review the following terms, policies, and service waiver before booking with Inkvictus Tattoo Studio.",
             lastUpdated: "April 2026",
             waiverIntro: "By proceeding with any tattoo or piercing service at Inkvictus Tattoo and Piercing shop, you acknowledge and agree to the following:",
@@ -129,7 +133,16 @@ function AdminSettingsTab({ initialTab = 'studio' }) {
             const res = await Axios.get(`${API_URL}/api/admin/settings`);
             if (res.data.success && res.data.data) {
                 // Merge fetched settings with defaults
-                setSettings(prev => ({ ...prev, ...res.data.data }));
+                const fetched = res.data.data;
+                setSettings(prev => ({
+                    ...prev,
+                    ...fetched,
+                    policies: {
+                        ...prev.policies,
+                        ...(fetched.policies || {}),
+                        waiverClauses: normalizeAdultOnlyWaiverText(fetched.policies?.waiverClauses || prev.policies.waiverClauses),
+                    },
+                }));
             }
         } catch (error) {
             console.error("Error fetching settings:", error);

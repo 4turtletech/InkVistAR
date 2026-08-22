@@ -6,7 +6,7 @@ export default function TermsOfServiceModal({ isOpen, onClose, onAccept, photoCo
     if (!isOpen) return null;
 
     const waiverClauses = [
-        "I am at least 18 years old or have a legal guardian consent.",
+        "I confirm that I am at least 18 years old.",
         "I understand that this procedure is a permanent change to my skin and body.",
         // Clause 3 (photo consent) is rendered as the checkbox below
         "I acknowledge that Inkvictus does not offer refund.",

@@ -55,8 +55,7 @@ function ArtistSessions() {
     const [isSaving, setIsSaving] = useState(false);
     const [showHealthAlert, setShowHealthAlert] = useState(false);
     
-    // Consent & Health Screening State
-    const [consentRecord, setConsentRecord] = useState(null);
+    // Health Screening State
     const [sessionHealthScreening, setSessionHealthScreening] = useState(null);
     const [showRefusalModal, setShowRefusalModal] = useState(false);
     const [refusalReasonText, setRefusalReasonText] = useState('');
@@ -156,33 +155,13 @@ function ArtistSessions() {
 
     useEffect(() => {
         if (activeSession && activeSession.id) {
-            Axios.get(`${API_URL}/api/consents/appointment/${activeSession.id}`)
-                .then(res => { if (res.data.success) setConsentRecord(res.data.consent); else setConsentRecord(null); })
-                .catch(() => setConsentRecord(null));
-
             Axios.get(`${API_URL}/api/health-screenings/appointment/${activeSession.id}`)
                 .then(res => { if (res.data.success) setSessionHealthScreening(res.data.screening); else setSessionHealthScreening(null); })
                 .catch(() => setSessionHealthScreening(null));
         } else {
-            setConsentRecord(null);
             setSessionHealthScreening(null);
         }
     }, [activeSession ? activeSession.id : null]);
-
-    const handleVerifyCustomerId = async () => {
-        if (!consentRecord?.id) return;
-        try {
-            await Axios.put(`${API_URL}/api/consents/${consentRecord.id}/verify-id`, {
-                idVerificationStatus: 'verified',
-                verifiedBy: user?.name || 'Artist Staff'
-            });
-            const res = await Axios.get(`${API_URL}/api/consents/appointment/${activeSession.id}`);
-            if (res.data.success) setConsentRecord(res.data.consent);
-            alert('Customer ID marked as Verified.');
-        } catch (e) {
-            alert('Failed to update ID verification');
-        }
-    };
 
     const handleReviewHealthScreening = async (approved, status = 'approved', reason = '') => {
         if (!sessionHealthScreening?.id) return;
@@ -1228,46 +1207,6 @@ function ArtistSessions() {
                                 if (!hasHealthData) return null;
                                 return (
                                     <div style={{ marginBottom: '16px' }}>
-                                        {/* ══ Age & ID Verification Card ══ */}
-                                        {consentRecord && (
-                                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                                        Client Identification &amp; Age Verification
-                                                    </span>
-                                                    <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, background: consentRecord.id_verification_status === 'verified' ? '#dcfce7' : '#fef3c7', color: consentRecord.id_verification_status === 'verified' ? '#166534' : '#92400e' }}>
-                                                        {consentRecord.id_verification_status === 'verified' ? '✅ ID Verified' : '⏳ ID Unverified'}
-                                                    </span>
-                                                </div>
-
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.85rem', color: '#1e293b', marginBottom: '10px' }}>
-                                                    <div><strong>Date of Birth:</strong> {consentRecord.date_of_birth || 'N/A'}</div>
-                                                    <div><strong>Calculated Age:</strong> {consentRecord.calculated_age !== null ? `${consentRecord.calculated_age} yrs` : 'N/A'}</div>
-                                                    <div><strong>ID Type:</strong> {consentRecord.id_type || 'N/A'}</div>
-                                                    <div><strong>Last 4 Digits:</strong> ****{consentRecord.id_last_four || 'N/A'}</div>
-                                                </div>
-
-                                                {/* Guardian Verification Info */}
-                                                {consentRecord.guardian_name && (
-                                                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px', marginTop: '8px', fontSize: '0.82rem', color: '#78350f' }}>
-                                                        <strong>Parent/Guardian Consent:</strong> {consentRecord.guardian_name} ({consentRecord.guardian_relationship})<br />
-                                                        <strong>ID Details:</strong> {consentRecord.guardian_id_info} | <strong>Signature:</strong> {consentRecord.guardian_signature}<br />
-                                                        <strong>In-Person Presence:</strong> {consentRecord.guardian_present ? '✅ Verified Present' : '❌ Not Verified'}
-                                                    </div>
-                                                )}
-
-                                                {consentRecord.id_verification_status !== 'verified' && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleVerifyCustomerId}
-                                                        style={{ marginTop: '10px', width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #16a34a', background: '#f0fdf4', color: '#166534', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}
-                                                    >
-                                                        Confirm &amp; Mark Customer ID as Verified
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
-
                                         {/* ══ Per-Session Health Screening Review Card ══ */}
                                         {sessionHealthScreening && (
                                             <div style={{ background: sessionHealthScreening.screening_status === 'approved' ? '#f0fdf4' : sessionHealthScreening.screening_status === 'postponed' || sessionHealthScreening.screening_status === 'refused' ? '#fef2f2' : '#fffbeb', border: '1.5px solid #cbd5e1', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' }}>

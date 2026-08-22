@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  SafeAreaView, ActivityIndicator, Modal, Platform, RefreshControl, Animated, Image, Alert
+  SafeAreaView, ActivityIndicator, Modal, Platform, RefreshControl, Animated, Image, Alert, TextInput
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -19,9 +19,17 @@ import { useTheme } from '../src/context/ThemeContext';
 import { colors, typography, borderRadius, shadows } from '../src/theme';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
-import { getCustomerAppointments, updateAppointmentStatus, createCheckoutSession, getPaymentStatus, getCustomerTransactions, API_URL } from '../src/utils/api';
+import { getCustomerAppointments, updateAppointmentStatus, createCheckoutSession, createConsentRecord, getAppointmentConsent, getPaymentStatus, getCustomerTransactions, API_URL } from '../src/utils/api';
 
 const ITEMS_PER_PAGE = 5;
+const PAYMENT_WAIVER_TEXT = [
+  'I confirm that I am at least 18 years old.',
+  'I voluntarily consent to the tattoo or piercing procedure discussed with the studio.',
+  'I understand the inherent risks, including infection, scarring, and allergic reaction.',
+  'I confirm that the health information I provided is accurate and complete.',
+  'I agree to follow the aftercare instructions supplied by the studio.',
+  'I understand the payment and no-refund policy for services already started.'
+].join('\n');
 
 const isAppointmentFullyPaid = (appointment) => {
   if (!appointment) return false;
@@ -84,6 +92,13 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
   const [paymentUrl, setPaymentUrl] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState(null);
+  const [consentForm, setConsentForm] = useState({
+    ageConfirmed: false, signatureEvidence: '', procedureConsent: false,
+    paymentConsent: false, healthDataConsent: false,
+    photoConsent: false, marketingConsent: false
+  });
   const [modalTab, setModalTab] = useState('details');
   const [apptTransactions, setApptTransactions] = useState([]);
   const fabPulse = useRef(new Animated.Value(1)).current;
@@ -173,6 +188,68 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
       return;
     }
     setShowPaymentOptions(true);
+  };
+
+  const reviewConsentForPayment = (type, customAmt = null) => {
+    setPendingPayment({ type, customAmt });
+    setConsentForm({
+      ageConfirmed: false, signatureEvidence: '', procedureConsent: false,
+      paymentConsent: false, healthDataConsent: false,
+      photoConsent: false, marketingConsent: false
+    });
+    setShowPaymentOptions(false);
+    setShowConsentModal(true);
+  };
+
+  const continueExistingPaymentFlow = async (type, customAmt = null) => {
+    if (!selectedAppointment) return;
+    setPaymentLoading(true);
+    const response = await getAppointmentConsent(selectedAppointment.id);
+    const consent = response?.consent;
+    const hasValidConsent = response.success
+      && consent?.procedure_consent && consent?.payment_consent && consent?.health_data_consent
+      && /^[a-f0-9]{64}$/.test(String(consent?.waiver_hash || ''))
+      && String(consent?.signature_evidence || '').trim().length >= 3;
+    setPaymentLoading(false);
+    if (hasValidConsent) {
+      await triggerPayment(type, customAmt);
+      return;
+    }
+    reviewConsentForPayment(type, customAmt);
+  };
+
+  const submitConsentAndPay = async () => {
+    if (!selectedAppointment || !pendingPayment) return;
+    if (!consentForm.ageConfirmed) {
+      Alert.alert('Age Confirmation Required', 'Confirm that you are 18 years old or older.');
+      return;
+    }
+    if (consentForm.signatureEvidence.trim().length < 3) {
+      Alert.alert('Signature Required', 'Type your full name as your electronic signature.');
+      return;
+    }
+    if (!consentForm.procedureConsent || !consentForm.paymentConsent || !consentForm.healthDataConsent) {
+      Alert.alert('Required Consent', 'Procedure, payment, and health-data consent must each be accepted.');
+      return;
+    }
+
+    setPaymentLoading(true);
+    const result = await createConsentRecord(selectedAppointment.id, {
+      ...consentForm,
+      waiverVersion: '1.3-adult-confirmation-mobile-payment',
+      waiverText: PAYMENT_WAIVER_TEXT
+    });
+    if (!result.success) {
+      setPaymentLoading(false);
+      Alert.alert('Consent Not Saved', result.message || 'Please review the form and try again.');
+      return;
+    }
+
+    const payment = pendingPayment;
+    setShowConsentModal(false);
+    setPendingPayment(null);
+    setPaymentLoading(false);
+    await triggerPayment(payment.type, payment.customAmt);
   };
 
   const triggerPayment = async (type, customAmt = null) => {
@@ -430,7 +507,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
       </View>
 
       {/* Detail Modal */}
-      <Modal visible={!!selectedAppointment && !showPaymentModal && !showPaymentOptions && !paymentLoading} transparent animationType="slide" onRequestClose={() => handleSelectAppointment(null)}>
+      <Modal visible={!!selectedAppointment && !showPaymentModal && !showPaymentOptions && !showConsentModal && !paymentLoading} transparent animationType="slide" onRequestClose={() => handleSelectAppointment(null)}>
         <View style={modalS.overlay}>
           <View style={modalS.content}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -601,6 +678,64 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
         </SafeAreaView>
       </Modal>
 
+      {/* Consent Review Modal: kept inside the mobile payment flow. */}
+      <Modal visible={showConsentModal} animationType="slide" transparent onRequestClose={() => { if (!paymentLoading) setShowConsentModal(false); }}>
+        <View style={modalS.overlay}>
+          <View style={modalS.content}>
+            <View style={modalS.header}>
+              <Text style={modalS.title}>Consent &amp; Waiver</Text>
+              {!paymentLoading && <AnimatedTouchable onPress={() => setShowConsentModal(false)}><X size={22} color={theme.textSecondary} /></AnimatedTouchable>}
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={{ ...typography.bodySmall, color: theme.textSecondary, lineHeight: 20, marginBottom: 16 }}>
+                {PAYMENT_WAIVER_TEXT}
+              </Text>
+
+              {[
+                ['ageConfirmed', 'I confirm that I am 18 years old or older', true],
+                ['procedureConsent', 'Procedure consent', true],
+                ['paymentConsent', 'Payment and no-refund policy consent', true],
+                ['healthDataConsent', 'Health-data storage consent', true],
+                ['photoConsent', 'Photo and portfolio consent (optional)', false],
+                ['marketingConsent', 'Marketing messages consent (optional)', false]
+              ].map(([field, label, required]) => (
+                <TouchableOpacity
+                  key={field}
+                  onPress={() => setConsentForm(current => ({ ...current, [field]: !current[field] }))}
+                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10 }}
+                >
+                  {consentForm[field]
+                    ? <CheckCircle size={21} color={theme.success} />
+                    : <Circle size={21} color={theme.textTertiary} />}
+                  <Text style={{ ...typography.bodySmall, color: theme.textPrimary, flex: 1 }}>
+                    {label}{required ? ' *' : ''}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+
+              <Text style={[modalS.label, { marginTop: 12 }]}>Electronic Signature</Text>
+              <TextInput
+                value={consentForm.signatureEvidence}
+                onChangeText={(value) => setConsentForm(current => ({ ...current, signatureEvidence: value }))}
+                placeholder="Type your full legal name"
+                placeholderTextColor={theme.textTertiary}
+                style={{ color: theme.textPrimary, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.md, padding: 12, marginBottom: 18 }}
+              />
+
+              <AnimatedTouchable
+                onPress={submitConsentAndPay}
+                disabled={paymentLoading}
+                style={[modalS.payBtn, { backgroundColor: theme.gold, alignItems: 'center', paddingVertical: 14, opacity: paymentLoading ? 0.6 : 1 }]}
+              >
+                {paymentLoading
+                  ? <ActivityIndicator color={theme.backgroundDeep} />
+                  : <Text style={[modalS.payText, { color: theme.backgroundDeep }]}>Sign &amp; Continue to Payment</Text>}
+              </AnimatedTouchable>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Payment Options Modal */}
       <Modal visible={showPaymentOptions} animationType="fade" transparent onRequestClose={() => { if (!paymentLoading) setShowPaymentOptions(false); }}>
         <View style={[modalS.overlay, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -620,14 +755,14 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
                 <Text style={{ ...typography.body, color: theme.textSecondary, marginBottom: 16 }}>Choose how you'd like to pay for your session.</Text>
                 <AnimatedTouchable 
                   style={{ backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, marginBottom: 12, borderWidth: 1, borderColor: theme.border }}
-                  onPress={() => triggerPayment('balance')}
+                  onPress={() => continueExistingPaymentFlow('balance')}
                 >
                   <Text style={{ ...typography.h4, color: theme.textPrimary, marginBottom: 4 }}>Pay Full Balance</Text>
                   <Text style={{ ...typography.bodySmall, color: theme.textSecondary }}>Settle the remaining amount for this session.</Text>
                 </AnimatedTouchable>
                 <AnimatedTouchable 
                   style={{ backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, marginBottom: 12, borderWidth: 1, borderColor: theme.border }}
-                  onPress={() => triggerPayment('deposit')}
+                  onPress={() => continueExistingPaymentFlow('deposit')}
                 >
                   <Text style={{ ...typography.h4, color: theme.textPrimary, marginBottom: 4 }}>Pay Downpayment</Text>
                   <Text style={{ ...typography.bodySmall, color: theme.textSecondary }}>Pay a standard ₱5,000 to secure or maintain your spot.</Text>
@@ -639,9 +774,9 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
                     setTimeout(() => {
                       Alert.alert('Custom Payment', 'Please select the amount you wish to pay.', [
                         { text: 'Cancel', style: 'cancel' },
-                        { text: '\u20b1500', onPress: () => triggerPayment('custom', 500) },
-                        { text: '\u20b11,000', onPress: () => triggerPayment('custom', 1000) },
-                        { text: '\u20b12,500', onPress: () => triggerPayment('custom', 2500) }
+                        { text: '\u20b1500', onPress: () => continueExistingPaymentFlow('custom', 500) },
+                        { text: '\u20b11,000', onPress: () => continueExistingPaymentFlow('custom', 1000) },
+                        { text: '\u20b12,500', onPress: () => continueExistingPaymentFlow('custom', 2500) }
                       ]);
                     }, 350);
                   }}

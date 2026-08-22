@@ -83,7 +83,7 @@ function Register() {
   // Consent state
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [emailPromoConsent, setEmailPromoConsent] = useState(false);
-  const [photoMarketingConsent, setPhotoMarketingConsent] = useState(true);
+  const [photoMarketingConsent, setPhotoMarketingConsent] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const { executeRecaptcha } = useGoogleReCaptcha();
 

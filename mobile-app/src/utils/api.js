@@ -465,6 +465,18 @@ export const createCustomerAppointment = async (appointmentData) => {
   });
 };
 
+// Customer: store a signed, immutable consent record before payment/procedure.
+export const createConsentRecord = async (appointmentId, consentData) => {
+  return fetchAPI('/consents', {
+    method: 'POST',
+    body: JSON.stringify({ appointmentId, ...consentData })
+  });
+};
+
+export const getAppointmentConsent = async (appointmentId) => {
+  return fetchAPI(`/consents/appointment/${appointmentId}`);
+};
+
 // Customer: Create Checkout Session
 export const createCheckoutSession = async (appointmentId, amount, paymentType = 'full', customAmount = null) => {
   return fetchAPI('/payments/create-checkout-session', {

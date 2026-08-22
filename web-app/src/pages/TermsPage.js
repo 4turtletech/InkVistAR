@@ -5,6 +5,10 @@ import Footer from '../components/Footer';
 import { Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import { API_URL } from '../config';
 
+const normalizeAdultOnlyWaiverText = (value) => typeof value === 'string'
+    ? value.replace('I am at least 18 years old or have a legal guardian consent.', 'I confirm that I am at least 18 years old.')
+    : value;
+
 // Helper to split content by newlines (handles both real \n and escaped \\n from DB)
 const splitLines = (text) => {
     if (!text) return [];
@@ -21,7 +25,14 @@ function TermsPage() {
             try {
                 const res = await Axios.get(`${API_URL}/api/admin/settings`);
                 if (res.data && res.data.success && res.data.data) {
-                    setSettings(res.data.data);
+                    const fetched = res.data.data;
+                    setSettings({
+                        ...fetched,
+                        policies: fetched.policies ? {
+                            ...fetched.policies,
+                            waiverClauses: normalizeAdultOnlyWaiverText(fetched.policies.waiverClauses),
+                        } : fetched.policies,
+                    });
                 }
             } catch (error) {
                 console.error("Failed to fetch settings for terms page:", error);
@@ -33,7 +44,7 @@ function TermsPage() {
     }, []);
 
     const defaultWaiverClauses = [
-        "I am at least 18 years old or have a legal guardian consent.",
+        "I confirm that I am at least 18 years old.",
         "I understand that this procedure is a permanent change to my skin and body.",
         "I consent to having photographs and/or videos taken by Inkvictus and be used in their portfolio. (Optional — you may opt out during booking.)",
         "I acknowledge that Inkvictus does not offer refund.",

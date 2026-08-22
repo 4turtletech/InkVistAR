@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
@@ -15,11 +15,10 @@ const PayMongoPayment = () => {
 
 
 
-    const [status, setStatus] = useState(type === 'balance' ? 'initializing' : 'selection'); // selection, initializing, ready, processing, failed
+    const [status, setStatus] = useState(type === 'balance' ? 'ready' : 'selection'); // selection, ready, processing, failed
     const [paymentType, setPaymentType] = useState(type === 'balance' ? 'balance' : 'deposit');
     const [customAmount, setCustomAmount] = useState('');
     const [errors, setErrors] = useState({});
-    const [checkoutUrl, setCheckoutUrl] = useState(null);
     const [showWaiverModal, setShowWaiverModal] = useState(false);
 
     // Only use piercing deposit when service is EXCLUSIVELY piercing (not a Tattoo + Piercing bundle)
@@ -31,13 +30,20 @@ const PayMongoPayment = () => {
         ? 'Secure your piercing slot with a fixed ₱500 reservation fee.'
         : 'Secure your tattoo session slot with a fixed ₱5,000 reservation fee.';
 
-    useEffect(() => {
-        if (type === 'balance') {
-            initializeSession('balance');
+    const confirmSelection = () => {
+        if (paymentType === 'custom' && (!customAmount || Number(customAmount) < depositPrice)) {
+            setErrors({ customAmount: `The minimum custom payment is ${depositPrice.toLocaleString('en-PH')} pesos.` });
+            return;
         }
-    }, [type, appointmentId]);
+        if (paymentType === 'custom' && Number(customAmount) > remainingBalance) {
+            setErrors({ customAmount: `The amount exceeds the remaining balance of ${Number(remainingBalance).toLocaleString('en-PH')} pesos.` });
+            return;
+        }
+        setErrors({});
+        setStatus('ready');
+    };
 
-    const initializeSession = async (overrideType) => {
+    const initializeSession = async (overrideType, redirectToCheckout = false) => {
         const finalType = (typeof overrideType === 'string') ? overrideType : paymentType;
         if (!appointmentId) {
             alert('Error: No appointment ID found. Cannot proceed with payment.');
@@ -71,8 +77,11 @@ const PayMongoPayment = () => {
             const response = await axios.post(`${API_URL}/api/payments/create-checkout-session`, payload);
 
             if (response.data.success && response.data.checkoutUrl) {
-                setCheckoutUrl(response.data.checkoutUrl);
-                setStatus('ready');
+                if (redirectToCheckout) {
+                    window.location.assign(response.data.checkoutUrl);
+                } else {
+                    setStatus('ready');
+                }
             } else {
                 throw new Error(response.data.message || 'Failed to get checkout URL');
             }
@@ -85,11 +94,6 @@ const PayMongoPayment = () => {
     };
 
     const handlePayment = async (consentData) => {
-        if (!checkoutUrl) {
-            alert('Payment is not yet initialized. Please wait.');
-            return;
-        }
-
         setStatus('processing');
         
         try {
@@ -100,11 +104,11 @@ const PayMongoPayment = () => {
         } catch (error) {
             console.error('Failed to log consent:', error);
             alert('Failed to record consent. Please try again.');
-            setStatus('selection');
+            setStatus(type === 'balance' ? 'ready' : 'selection');
             return;
         }
 
-        window.location.href = checkoutUrl;
+        await initializeSession(paymentType, true);
     };
 
     const pageStyles = {
@@ -215,7 +219,7 @@ const PayMongoPayment = () => {
                         {optionCard('custom', 'Custom Amount', Number(customAmount) || 0, 'Enter a specific amount you wish to pay.')}
                         
                         <button 
-                            onClick={() => initializeSession()} 
+                            onClick={confirmSelection}
                             className="btn btn-primary"
                             style={{ ...btnBase, marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                         >
@@ -271,7 +275,7 @@ const PayMongoPayment = () => {
                             <p style={{ fontWeight: '600' }}>Payment initialization failed.</p>
                         </div>
                         <button 
-                            onClick={() => paymentType === 'balance' ? initializeSession('balance') : setStatus('selection')} 
+                            onClick={() => setStatus(type === 'balance' ? 'ready' : 'selection')}
                             className="btn btn-primary"
                             style={{ ...btnBase, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                         >

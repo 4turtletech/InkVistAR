@@ -95,7 +95,7 @@ export default function WaiverPrintView() {
         "Voluntary Consent: I voluntarily consent to the procedure.",
         "Assumption of Risk: I acknowledge the inherent risks.",
         "Release of Liability: I release the studio from liability.",
-        "Age Verification: I confirm I am 18+ or have guardian consent.",
+        "Age Verification: I confirm I am at least 18 years old.",
         "Health Declaration: I confirm my health declaration is accurate.",
         "Allergies & Materials: I acknowledge allergy risks.",
         "Aftercare Responsibility: I agree to follow aftercare instructions.",
@@ -163,7 +163,7 @@ export default function WaiverPrintView() {
                     })}
                 </div>
 
-                {/* Signature / Acceptance & Identification Block */}
+                {/* Signature / Acceptance Block */}
                 <div style={s.acceptanceBlock}>
                     <h3 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>Electronic Acceptance Record</h3>
                     <div style={s.sigGrid}>
@@ -175,32 +175,6 @@ export default function WaiverPrintView() {
                             <span style={s.sigLabel}>Electronic Signature</span>
                             <span style={s.sigValue}>{c?.signature_evidence || 'N/A'}</span>
                         </div>
-                        <div style={s.sigField}>
-                            <span style={s.sigLabel}>Date of Birth / Age</span>
-                            <span style={s.sigValue}>
-                                {c?.date_of_birth ? `${c.date_of_birth} (${c.calculated_age} yrs)` : 'N/A'}
-                            </span>
-                        </div>
-                        <div style={s.sigField}>
-                            <span style={s.sigLabel}>ID Verification</span>
-                            <span style={s.sigValue}>
-                                {c?.id_type || 'ID'}: ****{c?.id_last_four || 'N/A'} ({c?.id_verification_status === 'verified' ? '✅ Verified' : '⏳ Unverified'})
-                            </span>
-                        </div>
-
-                        {/* Guardian details if client is minor */}
-                        {c?.guardian_name && (
-                            <div style={{ gridColumn: '1 / -1', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '12px', marginTop: '8px' }}>
-                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>Parent / Guardian Verification</span>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '6px', fontSize: '0.85rem', color: '#78350f' }}>
-                                    <div><strong>Guardian Name:</strong> {c.guardian_name} ({c.guardian_relationship})</div>
-                                    <div><strong>Guardian ID:</strong> {c.guardian_id_info}</div>
-                                    <div><strong>Signature:</strong> {c.guardian_signature}</div>
-                                    <div><strong>In-Person Presence:</strong> {c.guardian_present ? '✅ Confirmed Present' : '❌ Not Verified'}</div>
-                                </div>
-                            </div>
-                        )}
-
                         <div style={s.sigField}>
                             <span style={s.sigLabel}>Booking Reference</span>
                             <span style={{ ...s.sigValue, color: '#be9055', fontFamily: 'monospace' }}>{bookingCode}</span>
