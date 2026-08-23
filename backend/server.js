@@ -29,7 +29,7 @@ const { createAuthRouter, safeUser } = require('./routes/auth');
 const { createPasswordRecoveryRouter } = require('./routes/passwordRecovery');
 const { deliverRefreshToken, isMobileLoginRequest } = require('./services/sessionTransport');
 const { createSocketAuthorizer } = require('./services/socketAuthorization');
-const { createMigrationService } = require('./services/migrationService');
+const { createMigrationService, ensureTableColumns } = require('./services/migrationService');
 const { createOperationAccessService } = require('./services/operationAccessService');
 const { createConsentService } = require('./services/consentService');
 const { CONSENT_EXISTS_SQL } = require('./services/checkoutConsentPolicy');
@@ -685,6 +685,18 @@ db.getConnection((err, connection) => {
         supplier VARCHAR(255),
         cost DECIMAL(10, 2) DEFAULT 0.00,
         retail_price DECIMAL(10, 2) DEFAULT 0.00,
+        manufacturer VARCHAR(255) NULL,
+        lot_number VARCHAR(100) NULL,
+        batch_number VARCHAR(100) NULL,
+        serial_number VARCHAR(100) NULL,
+        manufacture_date DATE NULL,
+        expiration_date DATE NULL,
+        date_opened DATE NULL,
+        is_single_use TINYINT(1) DEFAULT 1,
+        recall_status VARCHAR(50) DEFAULT 'none',
+        storage_requirements TEXT NULL,
+        cost_centavos INT DEFAULT 0,
+        retail_price_centavos INT DEFAULT 0,
         last_restocked DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
@@ -772,6 +784,23 @@ db.getConnection((err, connection) => {
             db.query("ALTER TABLE inventory ADD COLUMN is_deleted BOOLEAN DEFAULT 0");
             console.log('[OK] Added is_deleted column to inventory');
           }
+        });
+
+        ensureTableColumns(db, 'inventory', {
+          manufacturer: 'VARCHAR(255) NULL',
+          lot_number: 'VARCHAR(100) NULL',
+          batch_number: 'VARCHAR(100) NULL',
+          serial_number: 'VARCHAR(100) NULL',
+          manufacture_date: 'DATE NULL',
+          expiration_date: 'DATE NULL',
+          date_opened: 'DATE NULL',
+          is_single_use: 'TINYINT(1) DEFAULT 1',
+          recall_status: "VARCHAR(50) DEFAULT 'none'",
+          storage_requirements: 'TEXT NULL',
+          cost_centavos: 'INT DEFAULT 0',
+          retail_price_centavos: 'INT DEFAULT 0'
+        }).catch((columnError) => {
+          console.error('[ERROR] Inventory column migration failed:', columnError.message);
         });
       }
     });
@@ -1534,12 +1563,29 @@ db.getConnection((err, connection) => {
         inventory_id INT NOT NULL,
         quantity INT NOT NULL DEFAULT 1,
         status ENUM('hold', 'consumed', 'released') DEFAULT 'hold',
+        lot_number VARCHAR(100) NULL,
+        batch_number VARCHAR(100) NULL,
+        serial_number VARCHAR(100) NULL,
+        expiration_date DATE NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE,
         FOREIGN KEY (inventory_id) REFERENCES inventory(id) ON DELETE CASCADE
       )
     `;
-    db.query(sessionMaterialsTableQuery, (err) => { if (err) console.error('[WARN] Error checking session_materials table:', err.message); else console.log('[OK] Session Materials table ready'); });
+    db.query(sessionMaterialsTableQuery, (err) => {
+      if (err) console.error('[WARN] Error checking session_materials table:', err.message);
+      else {
+        console.log('[OK] Session Materials table ready');
+        ensureTableColumns(db, 'session_materials', {
+          lot_number: 'VARCHAR(100) NULL',
+          batch_number: 'VARCHAR(100) NULL',
+          serial_number: 'VARCHAR(100) NULL',
+          expiration_date: 'DATE NULL'
+        }).catch((columnError) => {
+          console.error('[ERROR] Session material column migration failed:', columnError.message);
+        });
+      }
+    });
 
     // Create Favorites table
     const favoritesTableQuery = `
@@ -1740,34 +1786,6 @@ db.getConnection((err, connection) => {
     db.query(healthScreeningTableQuery, (err) => {
       if (err) console.error('[WARN] Error checking session_health_screenings table:', err.message);
       else console.log('[OK] Session Health Screenings table ready');
-    });
-
-    // Ensure optional inventory traceability fields exist
-    const inventoryAlterColumns = [
-      "ADD COLUMN IF NOT EXISTS manufacturer VARCHAR(255) NULL",
-      "ADD COLUMN IF NOT EXISTS lot_number VARCHAR(100) NULL",
-      "ADD COLUMN IF NOT EXISTS batch_number VARCHAR(100) NULL",
-      "ADD COLUMN IF NOT EXISTS serial_number VARCHAR(100) NULL",
-      "ADD COLUMN IF NOT EXISTS manufacture_date DATE NULL",
-      "ADD COLUMN IF NOT EXISTS expiration_date DATE NULL",
-      "ADD COLUMN IF NOT EXISTS date_opened DATE NULL",
-      "ADD COLUMN IF NOT EXISTS is_single_use TINYINT(1) DEFAULT 1",
-      "ADD COLUMN IF NOT EXISTS recall_status VARCHAR(50) DEFAULT 'none'",
-      "ADD COLUMN IF NOT EXISTS storage_requirements TEXT NULL"
-    ];
-    inventoryAlterColumns.forEach(colSql => {
-      db.query(`ALTER TABLE inventory ${colSql}`, () => {});
-    });
-
-    // Ensure session_materials has batch/lot tracking
-    const sessionMatAlterColumns = [
-      "ADD COLUMN IF NOT EXISTS lot_number VARCHAR(100) NULL",
-      "ADD COLUMN IF NOT EXISTS batch_number VARCHAR(100) NULL",
-      "ADD COLUMN IF NOT EXISTS serial_number VARCHAR(100) NULL",
-      "ADD COLUMN IF NOT EXISTS expiration_date DATE NULL"
-    ];
-    sessionMatAlterColumns.forEach(colSql => {
-      db.query(`ALTER TABLE session_materials ${colSql}`, () => {});
     });
 
   }

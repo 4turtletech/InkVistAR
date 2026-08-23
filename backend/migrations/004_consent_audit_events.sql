@@ -1,7 +1,3 @@
-ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_marketing_consent TINYINT DEFAULT 0
--- migrate:split
-ALTER TABLE users MODIFY COLUMN photo_marketing_consent TINYINT DEFAULT 0
--- migrate:split
 UPDATE consent_records
 SET waiver_hash = LOWER(SHA2(waiver_text, 256))
 WHERE (waiver_hash IS NULL OR waiver_hash NOT REGEXP '^[a-f0-9]{64}$')

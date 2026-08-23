@@ -1,6 +1,25 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+const IDENTIFIER_PATTERN = /^[A-Za-z][A-Za-z0-9_]*$/;
+
+async function ensureTableColumns(pool, tableName, columns) {
+  if (!IDENTIFIER_PATTERN.test(tableName)) throw new Error('Invalid migration table name.');
+  for (const [columnName] of Object.entries(columns)) {
+    if (!IDENTIFIER_PATTERN.test(columnName)) throw new Error('Invalid migration column name.');
+  }
+
+  const database = pool.promise();
+  const [rows] = await database.query(`SHOW COLUMNS FROM \`${tableName}\``);
+  const existing = new Set(rows.map((row) => String(row.Field || row.field || '').toLowerCase()));
+
+  for (const [columnName, definition] of Object.entries(columns)) {
+    if (existing.has(columnName.toLowerCase())) continue;
+    await database.query(`ALTER TABLE \`${tableName}\` ADD COLUMN \`${columnName}\` ${definition}`);
+    existing.add(columnName.toLowerCase());
+  }
+}
+
 function createMigrationService(pool, migrationFiles) {
   const database = pool.promise();
   let initializationPromise;
@@ -37,4 +56,4 @@ function createMigrationService(pool, migrationFiles) {
   return { initialize };
 }
 
-module.exports = { createMigrationService };
+module.exports = { createMigrationService, ensureTableColumns };
