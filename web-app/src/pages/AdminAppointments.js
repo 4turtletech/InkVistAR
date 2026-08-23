@@ -26,6 +26,13 @@ const formatDuration = (totalSeconds) => {
     return `${mins}m`;
 };
 
+const formatMaterialTraceability = (material) => [
+    material.batch_number && `Batch ${material.batch_number}`,
+    material.lot_number && `Lot ${material.lot_number}`,
+    material.serial_number && `Serial ${material.serial_number}`,
+    material.expiration_date && `Expires ${String(material.expiration_date).slice(0, 10)}`,
+].filter(Boolean).join(' • ');
+
 function AdminAppointments() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -354,6 +361,7 @@ function AdminAppointments() {
                         referenceImage: apt.reference_image,
                         afterPhoto: apt.after_photo,
                         price: apt.price || 0,
+                        payablePrice: apt.payable_price ?? apt.price ?? 0,
                         tattooPrice: apt.tattoo_price || 0,
                         piercingPrice: apt.piercing_price || 0,
                         totalPaid: apt.total_paid || 0,
@@ -1116,7 +1124,7 @@ function AdminAppointments() {
     };
 
     const handleApplyManualPayment = async () => {
-        const remainingBalance = Math.max(0, formData.price - (selectedAppointment?.totalPaid || 0));
+        const remainingBalance = Math.max(0, (selectedAppointment?.payablePrice ?? formData.price) - (selectedAppointment?.totalPaid || 0));
         const inputAmount = parseFloat(manualPaymentModal.amount);
 
         if (!inputAmount || inputAmount <= 0) return;
@@ -1768,11 +1776,11 @@ function AdminAppointments() {
                                                             <span className="badge status-confirmed admin-st-4c344c9a">Fully Paid</span>
                                                         ) : appointment.paymentStatus === 'downpayment_paid' ? (
                                                             <span className="badge admin-st-4a6cc9f0">Downpayment</span>
-                                                        ) : appointment.price > 0 ? (
-                                                            appointment.totalPaid >= appointment.price ? (
+                                                        ) : appointment.payablePrice > 0 ? (
+                                                            appointment.totalPaid >= appointment.payablePrice ? (
                                                                 <span className="badge status-confirmed admin-st-4c344c9a">Fully Paid</span>
                                                             ) : appointment.totalPaid > 0 ? (
-                                                                <span className="badge admin-st-4a6cc9f0">Balance: ₱{(appointment.price - appointment.totalPaid).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                <span className="badge admin-st-4a6cc9f0">Balance: ₱{(appointment.payablePrice - appointment.totalPaid).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                             ) : (
                                                                 <span className="badge admin-st-07684bc7">Unpaid</span>
                                                             )
@@ -1994,6 +2002,9 @@ function AdminAppointments() {
                                                                 <div className="admin-st-19bd18ad">
                                                                     <span className="admin-st-34acc2e5">{mat.quantity}x {mat.item_name}</span>
                                                                     <span className="admin-st-fef01c14">Itemized Consumable</span>
+                                                                    {formatMaterialTraceability(mat) && (
+                                                                        <span className="admin-st-fef01c14">{formatMaterialTraceability(mat)}</span>
+                                                                    )}
                                                                 </div>
                                                                 <span className={`badge status-consumed admin-st-12e5feb7`} >{mat.status.toUpperCase()}</span>
                                                             </div>
@@ -2129,21 +2140,21 @@ function AdminAppointments() {
                                                 onClick={() => {
                                                     const fullyPaid = selectedAppointment && (
                                                         selectedAppointment.paymentStatus === 'paid'
-                                                        || (selectedAppointment.price > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.price))
+                                                        || (selectedAppointment.payablePrice > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.payablePrice))
                                                     );
                                                     if (!fullyPaid) setModalTab('pricing');
                                                 }}
                                                 disabled={selectedAppointment && (
                                                     selectedAppointment.paymentStatus === 'paid'
-                                                    || (selectedAppointment.price > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.price))
+                                                    || (selectedAppointment.payablePrice > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.payablePrice))
                                                 )}
                                                 title={selectedAppointment && (
                                                     selectedAppointment.paymentStatus === 'paid'
-                                                    || (selectedAppointment.price > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.price))
+                                                    || (selectedAppointment.payablePrice > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.payablePrice))
                                                 ) ? "Pricing is locked \u2014 this appointment is fully paid" : ""}
                                                 style={selectedAppointment && (
                                                     selectedAppointment.paymentStatus === 'paid'
-                                                    || (selectedAppointment.price > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.price))
+                                                    || (selectedAppointment.payablePrice > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.payablePrice))
                                                 ) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                                             >
                                                 <PhilippinePeso size={16} /> Pricing
@@ -2160,9 +2171,9 @@ function AdminAppointments() {
                                         <span className={`badge status-${getStatusColor(formData.status)}`}>{formData.status}</span>
                                         {selectedAppointment && selectedAppointment.price > 0 && (
                                             <div className="badge admin-st-d2713882">
-                                                <span>Paid: ₱{Number(selectedAppointment.totalPaid).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ₱{Number(formData.price).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                {selectedAppointment.totalPaid < formData.price && (
-                                                    <span className="admin-st-14a76a5d">(Bal: ₱{(Number(formData.price) - Number(selectedAppointment.totalPaid)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
+                                                <span>Paid: ₱{Number(selectedAppointment.totalPaid).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ₱{Number(selectedAppointment.payablePrice).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                {selectedAppointment.totalPaid < selectedAppointment.payablePrice && (
+                                                    <span className="admin-st-14a76a5d">(Bal: ₱{(Number(selectedAppointment.payablePrice) - Number(selectedAppointment.totalPaid)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
                                                 )}
                                             </div>
                                         )}
@@ -2807,7 +2818,7 @@ function AdminAppointments() {
                                 {modalTab === 'pricing' && (() => {
                                     const isPricingLocked = selectedAppointment && (
                                         selectedAppointment.paymentStatus === 'paid'
-                                        || (selectedAppointment.price > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.price))
+                                        || (selectedAppointment.payablePrice > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.payablePrice))
                                     );
                                     return (
                                         /* Pricing Tab View */
@@ -2917,7 +2928,7 @@ function AdminAppointments() {
                                                         </div>
                                                         <div className="admin-st-ddde571d">
                                                             <span className="admin-st-9e124000">Remaining Balance:</span>
-                                                            <span className="admin-st-da5d65cf">₱{Math.max(0, Number(formData.price) - Number(selectedAppointment.totalPaid)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                            <span className="admin-st-da5d65cf">₱{Math.max(0, Number(selectedAppointment.payablePrice) - Number(selectedAppointment.totalPaid)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                         </div>
                                                     </div>
                                                 )}
@@ -2938,7 +2949,7 @@ function AdminAppointments() {
                                                     )}
 
                                                     {selectedAppointment && (
-                                                        <button className="btn btn-primary admin-st-f9f5beee" onClick={() => setManualPaymentModal({ isOpen: true, amount: Math.max(0, formData.price - selectedAppointment.totalPaid), method: 'Cash' })}>
+                                                        <button className="btn btn-primary admin-st-f9f5beee" onClick={() => setManualPaymentModal({ isOpen: true, amount: Math.max(0, selectedAppointment.payablePrice - selectedAppointment.totalPaid), method: 'Cash' })}>
                                                             <PhilippinePeso size={20} /> Record Manual Payment
                                                         </button>
                                                     )}

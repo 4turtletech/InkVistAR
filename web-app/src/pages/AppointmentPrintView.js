@@ -87,7 +87,7 @@ function AppointmentPrintView() {
     const status = statusLabel(a.status);
     const payment = paymentLabel(a.payment_status);
     const totalPaid = Number(a.total_paid || 0);
-    const balance = Math.max(0, Number(a.price || 0) - totalPaid);
+    const balance = Math.max(0, Number(a.payable_price ?? a.price ?? 0) - totalPaid);
     const isDualService = a.service_type === 'Tattoo + Piercing';
     const hasSplitPricing = isDualService && (Number(a.tattoo_price) > 0 || Number(a.piercing_price) > 0);
     const printDate = new Date().toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });

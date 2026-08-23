@@ -4,3 +4,6 @@ require('./socketAuthorization.test');
 require('./passwordRecovery.test');
 require('./paymongoWebhook.test');
 require('./workflowEngine.test');
+require('./materialTraceability.test');
+require('./inventoryConsistency.test');
+require('./financialLedger.test');

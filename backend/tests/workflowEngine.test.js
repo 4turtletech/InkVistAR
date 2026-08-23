@@ -3,6 +3,7 @@ const crypto = require('node:crypto');
 const test = require('node:test');
 const { createConsentService } = require('../services/consentService');
 const { isValidStoredConsent } = require('../services/checkoutConsentPolicy');
+const { normalizeHealthScreeningInput } = require('../services/healthScreeningPolicy');
 const {
   validateConsentInput,
   validateWithdrawalChanges,
@@ -45,6 +46,23 @@ test('withdrawal events accept only optional consent fields', () => {
   ]);
   assert.equal(validateWithdrawalChanges({ procedure_consent: false }), null);
   assert.equal(validateWithdrawalChanges({ photo_consent: false, arbitrary_column: true }), null);
+});
+
+test('health screening snapshots are normalized without trusting account identity fields', () => {
+  const screening = normalizeHealthScreeningInput({
+    customerId: 999,
+    artistId: 999,
+    conditions: ['Diabetes', '<script>', 'Diabetes'],
+    allergens: ['Nickel'],
+    medicationsBloodThinners: '<b>Aspirin</b>',
+    siteSkinCondition: 'Normal',
+  }, '2026-08-22 12:00:00');
+  assert.deepEqual(screening.conditions, ['Diabetes', 'script']);
+  assert.deepEqual(screening.allergens, ['Nickel']);
+  assert.equal(screening.hasDiabetes, true);
+  assert.equal(screening.medicationsBloodThinners, 'bAspirin/b');
+  assert.equal(screening.customerId, undefined);
+  assert.equal(screening.artistId, undefined);
 });
 
 test('checkout accepts only complete, server-hashed consent records', () => {

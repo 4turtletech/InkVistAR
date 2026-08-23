@@ -64,6 +64,7 @@ test('highest-risk route groups are classified for protection', () => {
     ['/api/payments/create-checkout-session', 'appointment'],
     ['/api/customer/profile/4', 'identity-path'],
     ['/api/appointments/42/details', 'appointment'],
+    ['/api/health-screenings/appointment/42', 'appointment'],
     ['/api/artist/3/earnings-ledger', 'artist-path'],
     ['/api/notifications/4', 'self-path'],
     ['/api/admin/inventory', 'role'],
@@ -107,6 +108,12 @@ test('appointment authorization loads ownership from the database', async () => 
 
   const unassignedArtist = await invoke(middleware, { method: 'PUT', path: '/api/appointments/42/status', token: 'otherArtist' });
   assert.equal(unassignedArtist.status, 403);
+
+  assert.equal((await invoke(middleware, { path: '/api/health-screenings/appointment/42' })).status, 401);
+  assert.equal((await invoke(middleware, { path: '/api/health-screenings/appointment/42', token: 'customer' })).nextCalled, true);
+  assert.equal((await invoke(middleware, { path: '/api/health-screenings/appointment/42', token: 'otherCustomer' })).status, 403);
+  assert.equal((await invoke(middleware, { path: '/api/health-screenings/appointment/42', token: 'artist' })).nextCalled, true);
+  assert.equal((await invoke(middleware, { path: '/api/health-screenings/appointment/42', token: 'otherArtist' })).status, 403);
 });
 
 test('request-body identity cannot override the authenticated identity', async () => {
@@ -118,4 +125,29 @@ test('request-body identity cannot override the authenticated identity', async (
     body: { customer_id: 5, title: 'Spoofed report' },
   });
   assert.equal(result.status, 403);
+});
+
+test('the existing public booking wizard remains available without opening admin appointment creation', async () => {
+  const middleware = createHarness();
+  const guestWizard = await invoke(middleware, {
+    method: 'POST',
+    path: '/api/admin/appointments',
+    body: { isFromWizard: true, customerId: 'admin' },
+  });
+  assert.equal(guestWizard.nextCalled, true);
+
+  const ordinaryAdminCreate = await invoke(middleware, {
+    method: 'POST',
+    path: '/api/admin/appointments',
+    body: { customerId: 4 },
+  });
+  assert.equal(ordinaryAdminCreate.status, 401);
+
+  const spoofedCustomer = await invoke(middleware, {
+    method: 'POST',
+    path: '/api/admin/appointments',
+    token: 'customer',
+    body: { isFromWizard: true, customerId: 5 },
+  });
+  assert.equal(spoofedCustomer.status, 403);
 });

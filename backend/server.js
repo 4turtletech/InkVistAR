@@ -34,6 +34,9 @@ const { createOperationAccessService } = require('./services/operationAccessServ
 const { createConsentService } = require('./services/consentService');
 const { CONSENT_EXISTS_SQL } = require('./services/checkoutConsentPolicy');
 const { createConsentRouter } = require('./routes/consents');
+const { normalizeHealthScreeningInput } = require('./services/healthScreeningPolicy');
+const { createSessionInventoryService, InventoryOperationError } = require('./services/sessionInventoryService');
+const { createFinancialLedgerService, summarizeAppointmentFinances } = require('./services/financialLedgerService');
 process.env.TZ = 'Asia/Manila'; // Global Node.js timezone localization
 
 const app = express();
@@ -221,6 +224,16 @@ const socketAuthorizer = createSocketAuthorizer({ tokenService, pool: db });
 const consentMigrationService = createMigrationService(db, ['004_consent_audit_events.sql']);
 const operationAccessService = createOperationAccessService(db);
 const consentService = createConsentService(db, operationAccessService);
+const sessionInventoryService = createSessionInventoryService(db);
+const financialLedgerService = createFinancialLedgerService(db);
+
+const sendInventoryOperationError = (res, error, fallbackMessage) => {
+  if (error instanceof InventoryOperationError) {
+    return res.status(error.statusCode).json({ success: false, code: error.code, message: error.message });
+  }
+  console.error(`[INVENTORY] ${fallbackMessage}:`, error.message);
+  return res.status(500).json({ success: false, message: fallbackMessage });
+};
 
 // Health check endpoint for Railway/Render
 app.get('/health', (req, res) => {
@@ -1718,13 +1731,7 @@ db.getConnection((err, connection) => {
         recent_illness_infection TEXT NULL,
         substance_influence TINYINT(1) DEFAULT 0,
         site_skin_condition TEXT NULL,
-        medical_clearance_required TINYINT(1) DEFAULT 0,
-        medical_clearance_notes TEXT NULL,
-        artist_reviewed TINYINT(1) DEFAULT 0,
-        artist_approved TINYINT(1) DEFAULT 0,
-        artist_review_at DATETIME NULL,
-        rejection_reason TEXT NULL,
-        screening_status VARCHAR(50) DEFAULT 'pending_review',
+        screening_status VARCHAR(50) DEFAULT 'recorded',
         screening_snapshot JSON NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE
@@ -1735,7 +1742,7 @@ db.getConnection((err, connection) => {
       else console.log('[OK] Session Health Screenings table ready');
     });
 
-    // Ensure inventory batch/lot & sanitation fields exist
+    // Ensure optional inventory traceability fields exist
     const inventoryAlterColumns = [
       "ADD COLUMN IF NOT EXISTS manufacturer VARCHAR(255) NULL",
       "ADD COLUMN IF NOT EXISTS lot_number VARCHAR(100) NULL",
@@ -1762,100 +1769,6 @@ db.getConnection((err, connection) => {
     sessionMatAlterColumns.forEach(colSql => {
       db.query(`ALTER TABLE session_materials ${colSql}`, () => {});
     });
-
-    // Create Sanitation Checklist Logs Table
-    db.query(`
-      CREATE TABLE IF NOT EXISTS sanitation_checklist_logs (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        cleaner_name VARCHAR(255) NOT NULL,
-        area_name VARCHAR(255) NOT NULL,
-        checklist_data JSON NOT NULL,
-        verified_by VARCHAR(255) NULL,
-        logged_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `, () => console.log('[OK] Sanitation Checklist Logs table ready'));
-
-    // Create Waste Disposal Logs Table
-    db.query(`
-      CREATE TABLE IF NOT EXISTS waste_disposal_logs (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        disposal_type VARCHAR(100) NOT NULL,
-        waste_weight_kg DECIMAL(8,2) DEFAULT 0.00,
-        disposal_company VARCHAR(255) NOT NULL,
-        manifest_number VARCHAR(100) NOT NULL,
-        disposed_by VARCHAR(255) NOT NULL,
-        disposed_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `, () => console.log('[OK] Waste Disposal Logs table ready'));
-
-    // Create Staff Health Certificates Table
-    db.query(`
-      CREATE TABLE IF NOT EXISTS staff_health_certificates (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NULL,
-        staff_name VARCHAR(255) NOT NULL,
-        certificate_type VARCHAR(150) NOT NULL,
-        issued_date DATE NULL,
-        expiration_date DATE NULL,
-        document_url TEXT NULL,
-        status VARCHAR(50) DEFAULT 'valid',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `, () => console.log('[OK] Staff Health Certificates table ready'));
-
-    // Create Studio Sanitary Permits Table
-    db.query(`
-      CREATE TABLE IF NOT EXISTS studio_sanitary_permits (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        permit_type VARCHAR(150) NOT NULL,
-        permit_number VARCHAR(100) NOT NULL,
-        issuing_authority VARCHAR(255) NOT NULL,
-        issued_date DATE NULL,
-        expiration_date DATE NULL,
-        renewal_status VARCHAR(50) DEFAULT 'active',
-        document_url TEXT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `, () => console.log('[OK] Studio Sanitary Permits table ready'));
-
-    // Create Incident Reports Table
-    db.query(`
-      CREATE TABLE IF NOT EXISTS incident_reports (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        incident_code VARCHAR(50) NOT NULL UNIQUE,
-        customer_id INT NOT NULL,
-        appointment_id INT NULL,
-        reported_by VARCHAR(100) NOT NULL,
-        incident_type VARCHAR(100) NOT NULL,
-        severity VARCHAR(50) DEFAULT 'medium',
-        description TEXT NOT NULL,
-        photos JSON NULL,
-        staff_response TEXT NULL,
-        medical_referral_required TINYINT(1) DEFAULT 0,
-        emergency_escalation TINYINT(1) DEFAULT 0,
-        resolution_notes TEXT NULL,
-        status VARCHAR(50) DEFAULT 'open',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL
-      )
-    `, () => console.log('[OK] Incident Reports table ready'));
-
-    // Create Incident Messages/Updates Table
-    db.query(`
-      CREATE TABLE IF NOT EXISTS incident_messages (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        incident_id INT NOT NULL,
-        sender_id INT NULL,
-        sender_role VARCHAR(50) NOT NULL,
-        sender_name VARCHAR(255) NOT NULL,
-        message TEXT NOT NULL,
-        attachments JSON NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (incident_id) REFERENCES incident_reports(id) ON DELETE CASCADE
-      )
-    `, () => console.log('[OK] Incident Messages table ready'));
 
   }
 });
@@ -4407,6 +4320,7 @@ app.get('/api/customer/:customerId/appointments', (req, res) => {
   `;
   db.query(query, [customerId], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'DB Error: ' + err.message });
+    results.forEach(row => Object.assign(row, summarizeAppointmentFinances(row)));
     res.json({ success: true, appointments: results });
   });
 });
@@ -5075,6 +4989,7 @@ app.get('/api/admin/appointments', (req, res) => {
     }
     // Parse health JSON arrays on each row + extract guest names for placeholder bookings
     results.forEach(row => {
+      Object.assign(row, summarizeAppointmentFinances(row));
       try { row.client_health_conditions = JSON.parse(row.client_health_conditions || '[]'); } catch { row.client_health_conditions = []; }
       try { row.client_allergens = JSON.parse(row.client_allergens || '[]'); } catch { row.client_allergens = []; }
       // B1 fix: For guest placeholder bookings, extract the real guest name from the structured notes
@@ -5123,6 +5038,7 @@ app.get('/api/admin/appointments/:id', (req, res) => {
       return res.status(404).json({ success: false, message: 'Appointment not found' });
     }
     const row = results[0];
+    Object.assign(row, summarizeAppointmentFinances(row));
     // For guest placeholder bookings, extract the real guest name from structured notes
     if (row.is_guest_placeholder) {
       const nameMatch = (row.notes || '').match(/Name:\s*(.+)/i);
@@ -5137,7 +5053,7 @@ app.get('/api/admin/appointments/:id', (req, res) => {
 
 // POST create a new appointment (Admin)
 app.post('/api/admin/appointments', async (req, res) => {
-  let { customerId, clientEmail, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod, guestEmail, guestPhone, tattooPrice, piercingPrice, waiverAcceptedAt, photoMarketingConsent, piercingJewelry, totalSessions, sessionNumber, projectId, consentData } = req.body;
+  let { customerId, clientEmail, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod, guestEmail, guestPhone, tattooPrice, piercingPrice, waiverAcceptedAt, photoMarketingConsent, piercingJewelry, totalSessions, sessionNumber, projectId, consentData, healthScreeningData } = req.body;
 
   // Verify reCAPTCHA for public wizard submissions only
   if (isFromWizard) {
@@ -5412,7 +5328,8 @@ app.post('/api/admin/appointments', async (req, res) => {
         `);
 
         const handleCommit = (emailAddr, htmlBody) => {
-          if (consentData) {
+          const saveConsentAndCommit = () => {
+            if (consentData) {
             const c = consentData;
             const waiverText = String(c.waiverText || '').trim();
             const signatureEvidence = String(c.signatureEvidence || '').trim();
@@ -5450,9 +5367,40 @@ app.post('/api/admin/appointments', async (req, res) => {
                }
                commitAndRespond(emailAddr, htmlBody);
             });
-          } else {
-            commitAndRespond(emailAddr, htmlBody);
-          }
+            } else {
+              commitAndRespond(emailAddr, htmlBody);
+            }
+          };
+
+          const recordedAt = getLocalDatetime();
+          const health = normalizeHealthScreeningInput(healthScreeningData, recordedAt);
+          if (!health) return saveConsentAndCommit();
+
+          const healthQuery = `
+            INSERT INTO session_health_screenings (
+              appointment_id, customer_id, artist_id, allergies, medications_blood_thinners,
+              has_diabetes, has_skin_disorders, is_pregnant, has_bleeding_conditions,
+              has_immune_conditions, recent_illness_infection, substance_influence,
+              site_skin_condition, screening_status, screening_snapshot, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'recorded', ?, ?)
+          `;
+          conn.query(healthQuery, [
+            appointmentId, customerId || null, artistId || null, health.allergens.join(', ') || null,
+            health.medicationsBloodThinners || null, health.hasDiabetes ? 1 : 0,
+            health.hasSkinDisorders ? 1 : 0, health.isPregnant ? 1 : 0,
+            health.hasBleedingConditions ? 1 : 0, health.hasImmuneConditions ? 1 : 0,
+            health.recentIllnessInfection || null, health.substanceInfluence ? 1 : 0,
+            health.siteSkinCondition, JSON.stringify(health), recordedAt
+          ], (healthError) => {
+            if (healthError) {
+              console.error('[ERROR] Failed to save appointment health summary:', healthError.message);
+              return conn.rollback(() => {
+                conn.release();
+                res.status(500).json({ success: false, message: 'Could not securely save the appointment health information.' });
+              });
+            }
+            saveConsentAndCommit();
+          });
         };
 
         if (guestEmail) {
@@ -6853,7 +6801,7 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
 
   // Fetch current balance
   const checkQuery = `
-    SELECT ap.price, ap.design_title, ap.customer_id, ap.artist_id, ap.status, ap.appointment_date,
+    SELECT ap.price, ap.discount_amount, ap.discount_type, ap.design_title, ap.customer_id, ap.artist_id, ap.status, ap.appointment_date,
     ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ap.id AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0) as total_paid,
     u.name as client_name, u.email as cx_email
     FROM appointments ap
@@ -6865,7 +6813,11 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
     if (checkErr || !results.length) return res.status(500).json({ success: false, message: 'Database error' });
 
     const apptData = results[0];
-    const remaining = Math.max(0, apptData.price - apptData.total_paid);
+    const finances = summarizeAppointmentFinances(apptData);
+    const remaining = finances.remaining_balance;
+    if (remaining <= 0) {
+      return res.status(400).json({ success: false, message: 'This appointment is already fully paid.' });
+    }
     // Cap payment at remaining balance — excess is just change
     const actualPayment = Math.min(parseFloat(amount), remaining);
     const changeGiven = method === 'Cash' && cashTendered ? Math.max(0, parseFloat(cashTendered) - actualPayment) : 0;
@@ -6884,20 +6836,17 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
       [id, paymentId, amountCentavos, rawEvent], (err) => {
         if (err) return res.status(500).json({ success: false, message: 'Database error' });
 
+        const paymentStatus = actualPayment + 0.005 >= remaining ? 'paid' : 'downpayment_paid';
         const updateStatusQuery = `
         UPDATE appointments SET 
-          payment_status = CASE
-            WHEN price > 0 AND ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0) >= price THEN 'paid'
-            WHEN price = 0 OR price IS NULL THEN 'paid'
-            ELSE 'downpayment_paid'
-          END,
+          payment_status = ?,
           status = CASE
             WHEN status = 'pending' THEN 'confirmed'
             ELSE status
           END
         WHERE id = ?
       `;
-        db.query(updateStatusQuery, [id, id], (upErr) => {
+        db.query(updateStatusQuery, [paymentStatus, id], (upErr) => {
           // Generate auto-incrementing invoice number
           db.query('SELECT MAX(CAST(SUBSTRING(invoice_number, 5) AS UNSIGNED)) as maxNum FROM invoices WHERE invoice_number IS NOT NULL', (invErr, invRes) => {
             const nextNum = (invErr || !invRes[0]?.maxNum) ? 1 : invRes[0].maxNum + 1;
@@ -6948,7 +6897,7 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
                   paymentMethod: method || 'Cash',
                   cashTendered: cashTendered ? parseFloat(cashTendered) : actualPayment,
                   changeGiven,
-                  totalQuoted: apptData.price,
+                  totalQuoted: finances.payable_price,
                   totalPaid: apptData.total_paid + actualPayment,
                   remainingBalance: Math.max(0, remaining - actualPayment),
                   date: new Date().toISOString()
@@ -6990,7 +6939,7 @@ app.post('/api/admin/billing/record-payment', (req, res) => {
 
   // Fetch appointment + balance
   const checkQuery = `
-    SELECT ap.price, ap.design_title, ap.service_type, ap.customer_id, ap.artist_id, ap.status, ap.appointment_date,
+    SELECT ap.price, ap.discount_amount, ap.discount_type, ap.design_title, ap.service_type, ap.customer_id, ap.artist_id, ap.status, ap.appointment_date,
     ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ap.id AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0) as total_paid,
     u.name as client_name, u.email as cx_email
     FROM appointments ap
@@ -7003,7 +6952,8 @@ app.post('/api/admin/billing/record-payment', (req, res) => {
     if (!results.length) return res.status(404).json({ success: false, message: 'Appointment not found for this client.' });
 
     const apptData = results[0];
-    const remaining = Math.max(0, apptData.price - apptData.total_paid);
+    const finances = summarizeAppointmentFinances(apptData);
+    const remaining = finances.remaining_balance;
 
     if (remaining <= 0) {
       return res.status(400).json({ success: false, message: 'This appointment is already fully paid.' });
@@ -7026,20 +6976,17 @@ app.post('/api/admin/billing/record-payment', (req, res) => {
         if (payErr) return res.status(500).json({ success: false, message: 'Failed to record payment.' });
 
         // Update appointment payment_status
+        const paymentStatus = actualPayment + 0.005 >= remaining ? 'paid' : 'downpayment_paid';
         const updateStatusQuery = `
           UPDATE appointments SET
-            payment_status = CASE
-              WHEN price > 0 AND ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0) >= price THEN 'paid'
-              WHEN price = 0 OR price IS NULL THEN 'paid'
-              ELSE 'downpayment_paid'
-            END,
+            payment_status = ?,
             status = CASE
               WHEN status = 'pending' THEN 'confirmed'
               ELSE status
             END
           WHERE id = ?
         `;
-        db.query(updateStatusQuery, [appointmentId, appointmentId], (upErr) => {
+        db.query(updateStatusQuery, [paymentStatus, appointmentId], (upErr) => {
           // Generate sequential invoice number
           db.query('SELECT MAX(CAST(SUBSTRING(invoice_number, 5) AS UNSIGNED)) as maxNum FROM invoices WHERE invoice_number IS NOT NULL', (invErr, invRes) => {
             const nextNum = (invErr || !invRes[0]?.maxNum) ? 1 : invRes[0].maxNum + 1;
@@ -7079,7 +7026,7 @@ app.post('/api/admin/billing/record-payment', (req, res) => {
                   serviceType: serviceLabel,
                   amountPaid: actualPayment,
                   paymentMethod: method,
-                  totalQuoted: apptData.price,
+                  totalQuoted: finances.payable_price,
                   totalPaid: apptData.total_paid + actualPayment,
                   remainingBalance: Math.max(0, remaining - actualPayment),
                   date: new Date().toISOString()
@@ -7141,7 +7088,9 @@ app.delete('/api/admin/appointments/:id', (req, res) => {
 app.get('/api/appointments/:id/materials', (req, res) => {
   const { id } = req.params;
   const query = `
-    SELECT sm.id, sm.inventory_id, sm.quantity, sm.status, i.name as item_name, i.unit, i.cost, i.category 
+    SELECT sm.id, sm.inventory_id, sm.quantity, sm.status,
+           sm.batch_number, sm.lot_number, sm.serial_number, sm.expiration_date,
+           i.name as item_name, i.unit, i.cost, i.category, i.manufacturer, i.supplier
     FROM session_materials sm 
     JOIN inventory i ON sm.inventory_id = i.id 
     WHERE sm.appointment_id = ? AND sm.status != 'released'
@@ -7159,63 +7108,18 @@ app.get('/api/appointments/:id/materials', (req, res) => {
 // Quick Add a material to a session
 app.post('/api/appointments/:id/materials', async (req, res) => {
   const appointmentId = parseInt(req.params.id, 10);
-  const { inventory_id, quantity, batch_number, lot_number, serial_number, expiration_date } = req.body;
+  const { inventory_id, quantity } = req.body;
   const qty = parseInt(quantity, 10) || 1;
 
-  if (isNaN(appointmentId) || isNaN(inventory_id) || qty <= 0) {
+  if (!Number.isInteger(appointmentId) || !Number.isInteger(Number(inventory_id)) || qty <= 0) {
     return res.status(400).json({ success: false, message: 'Valid appointment_id, inventory_id, and positive quantity required.' });
   }
 
   try {
-    await queryAsync(db, 'START TRANSACTION');
-
-    const items = await queryAsync(db, 'SELECT * FROM inventory WHERE id = ? FOR UPDATE', [inventory_id]);
-    if (items.length === 0) {
-      await queryAsync(db, 'ROLLBACK');
-      return res.status(404).json({ success: false, message: 'Inventory item not found.' });
-    }
-
-    const item = items[0];
-
-    if (item.recall_status === 'recalled') {
-      await queryAsync(db, 'ROLLBACK');
-      return res.status(400).json({ success: false, message: `Cannot use item "${item.name}": Item is RECALLED by manufacturer.` });
-    }
-
-    if (item.expiration_date && new Date(item.expiration_date) < new Date()) {
-      await queryAsync(db, 'ROLLBACK');
-      return res.status(400).json({ success: false, message: `Cannot use item "${item.name}": Stock has EXPIRED (${item.expiration_date}).` });
-    }
-
-    if (item.current_stock < qty) {
-      await queryAsync(db, 'ROLLBACK');
-      return res.status(400).json({ success: false, message: `Insufficient stock for "${item.name}". Available: ${item.current_stock}, Requested: ${qty}` });
-    }
-
-    await queryAsync(db, 'UPDATE inventory SET current_stock = current_stock - ? WHERE id = ?', [qty, inventory_id]);
-
-    const existingHolds = await queryAsync(
-      db,
-      'SELECT id FROM session_materials WHERE appointment_id = ? AND inventory_id = ? AND status = "hold" AND IFNULL(batch_number, "") = ? FOR UPDATE',
-      [appointmentId, inventory_id, batch_number || ""]
-    );
-
-    if (existingHolds.length > 0) {
-      await queryAsync(db, 'UPDATE session_materials SET quantity = quantity + ? WHERE id = ?', [qty, existingHolds[0].id]);
-    } else {
-      await queryAsync(
-        db,
-        'INSERT INTO session_materials (appointment_id, inventory_id, quantity, status, batch_number, lot_number, serial_number, expiration_date) VALUES (?, ?, ?, "hold", ?, ?, ?, ?)',
-        [appointmentId, inventory_id, qty, batch_number || item.batch_number || null, lot_number || item.lot_number || null, serial_number || item.serial_number || null, expiration_date || item.expiration_date || null]
-      );
-    }
-
-    await queryAsync(db, 'COMMIT');
+    await sessionInventoryService.addMaterial({ appointmentId, inventoryId: Number(inventory_id), quantity: qty });
     res.json({ success: true, message: 'Material added to session successfully.' });
   } catch (error) {
-    await queryAsync(db, 'ROLLBACK');
-    console.error('[ERROR] Add material transaction failed:', error.message);
-    res.status(500).json({ success: false, message: 'Transaction error: ' + error.message });
+    return sendInventoryOperationError(res, error, 'Unable to add the material to this session.');
   }
 });
 
@@ -7229,31 +7133,10 @@ app.post('/api/appointments/:id/release-material', async (req, res) => {
   }
 
   try {
-    await queryAsync(db, 'START TRANSACTION');
-
-    const materials = await queryAsync(db, 'SELECT * FROM session_materials WHERE id = ? AND appointment_id = ? FOR UPDATE', [materialId, appointmentId]);
-
-    if (materials.length === 0) {
-      await queryAsync(db, 'ROLLBACK');
-      return res.status(404).json({ success: false, message: 'Material record not found for this appointment.' });
-    }
-
-    const mat = materials[0];
-
-    if (mat.status !== 'hold') {
-      await queryAsync(db, 'ROLLBACK');
-      return res.status(400).json({ success: false, message: `Material #${materialId} has already been ${mat.status}. Cannot release twice.` });
-    }
-
-    await queryAsync(db, 'UPDATE session_materials SET status = "released" WHERE id = ?', [materialId]);
-    await queryAsync(db, 'UPDATE inventory SET current_stock = current_stock + ? WHERE id = ?', [mat.quantity, mat.inventory_id]);
-    await queryAsync(db, 'COMMIT');
-    
+    await sessionInventoryService.releaseMaterial({ appointmentId, materialId });
     res.json({ success: true, message: 'Material returned to inventory successfully.' });
   } catch (error) {
-    await queryAsync(db, 'ROLLBACK');
-    console.error('[ERROR] Release material transaction failed:', error.message);
-    res.status(500).json({ success: false, message: 'Transaction error while releasing material: ' + error.message });
+    return sendInventoryOperationError(res, error, 'Unable to return the material to inventory.');
   }
 });
 
@@ -7287,163 +7170,19 @@ app.put('/api/appointments/:id/status', async (req, res) => {
     }
   }
 
-  if (status === 'completed') {
-    try {
-      const activeHolds = await queryAsync(db, 'SELECT COUNT(*) as count FROM session_materials WHERE appointment_id = ? AND status = "hold"', [id]);
-      if (activeHolds[0].count > 0) {
-        return res.status(400).json({
-          success: false,
-          message: `Cannot complete session: There are ${activeHolds[0].count} material(s) still on 'hold'. Return unused items to inventory or confirm consumption before completing.`
-        });
-      }
-    } catch (err) {
-      return res.status(500).json({ success: false, message: 'Database error checking material holds' });
-    }
+  let appointment;
+  try {
+    const transition = await sessionInventoryService.transitionStatus({
+      appointmentId: id,
+      status,
+      price,
+      sessionDuration,
+      auditLog,
+    });
+    appointment = transition.appointment;
+  } catch (error) {
+    return sendInventoryOperationError(res, error, 'Unable to update the appointment and its materials.');
   }
-
-  // Fetch appointment first to get user IDs and service_type for inventory logic
-  db.query('SELECT * FROM appointments WHERE id = ?', [id], (err, results) => {
-    if (err || results.length === 0) {
-      return res.status(err ? 500 : 404).json({ success: false, message: err ? 'Database error' : 'Appointment not found' });
-    }
-
-    const appointment = results[0];
-
-    // INVENTORY LOGIC
-
-    // ═══ CONFIRMED: Auto-hold piercing jewelry selections ═══
-    if (status === 'confirmed' && appointment.status !== 'confirmed') {
-      let jewelrySelections = [];
-      try {
-        if (appointment.piercing_jewelry) {
-          jewelrySelections = typeof appointment.piercing_jewelry === 'string'
-            ? JSON.parse(appointment.piercing_jewelry)
-            : appointment.piercing_jewelry;
-        }
-      } catch (e) {
-        console.warn('[WARN] Could not parse piercing_jewelry JSON:', e.message);
-      }
-
-      // Hold each studio-selected jewelry item
-      const studioItems = (jewelrySelections || []).filter(j => j.type === 'studio' && j.itemId);
-      if (studioItems.length > 0) {
-        studioItems.forEach(jewSel => {
-          db.query(
-            'SELECT id, name, cost, current_stock FROM inventory WHERE id = ? AND current_stock > 0',
-            [jewSel.itemId],
-            (jewErr, jewRows) => {
-              if (!jewErr && jewRows.length > 0) {
-                const item = jewRows[0];
-                db.query(
-                  'UPDATE inventory SET current_stock = current_stock - 1 WHERE id = ? AND current_stock >= 1',
-                  [item.id],
-                  (updErr, updRes) => {
-                    if (!updErr && updRes.affectedRows > 0) {
-                      // Check if already held for this appointment to prevent double-holds
-                      db.query(
-                        'SELECT id FROM session_materials WHERE appointment_id = ? AND inventory_id = ? AND status = "hold"',
-                        [id, item.id],
-                        (chkErr, chkRows) => {
-                          if (!chkErr && chkRows.length === 0) {
-                            db.query(
-                              'INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, 1, "hold")',
-                              [id, item.id]
-                            );
-                            db.query(
-                              'INSERT INTO inventory_transactions (inventory_id, type, quantity, reason) VALUES (?, "out", 1, ?)',
-                              [item.id, `Held for piercing [${jewSel.bodyPart}] on appointment #${id}`]
-                            );
-                            console.log(`[OK] Jewelry held: "${item.name}" for ${jewSel.bodyPart} on appointment #${id}`);
-                          } else {
-                            // Already held — restore the stock we just decremented
-                            db.query('UPDATE inventory SET current_stock = current_stock + 1 WHERE id = ?', [item.id]);
-                          }
-                        }
-                      );
-                    }
-                  }
-                );
-              }
-            }
-          );
-        });
-      }
-    }
-
-    if (status === 'in_progress' && appointment.status !== 'in_progress') {
-      // 1. Session Started: Load kit and HOLD inventory
-      const serviceType = appointment.service_type || 'General Session';
-
-      db.query('SELECT inventory_id, default_quantity FROM service_kits WHERE service_type = ?', [serviceType], (kitErr, kitItems) => {
-        if (!kitErr && kitItems.length > 0) {
-          kitItems.forEach(item => {
-            // Deduct stock
-            db.query('UPDATE inventory SET current_stock = current_stock - ? WHERE id = ? AND current_stock >= ?',
-              [item.default_quantity, item.inventory_id, item.default_quantity], (updErr, updRes) => {
-                if (!updErr && updRes.affectedRows > 0) {
-                  // Record hold
-                  db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, ?, ?)',
-                    [id, item.inventory_id, item.default_quantity, 'hold']);
-                }
-              });
-          });
-        }
-      });
-    } else if (status === 'completed' && appointment.status === 'in_progress') {
-      // 2. Session Completed: Finalize tracking and log material transaction out
-      db.query('SELECT sm.id, sm.inventory_id, sm.quantity, i.cost, i.name FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ? AND sm.status = \'hold\'', [id], (matErr, mats) => {
-        if (!matErr && mats.length > 0) {
-          mats.forEach(mat => {
-            db.query('UPDATE session_materials SET status = ? WHERE id = ?', ['consumed', mat.id]);
-            db.query('INSERT INTO inventory_transactions (inventory_id, type, quantity, reason) VALUES (?, ?, ?, ?)',
-              [mat.inventory_id, 'out', mat.quantity, `Consumed in session #${id}`]);
-          });
-        }
-      });
-    } else if (status === 'cancelled' && appointment.status === 'in_progress') {
-      // 3. Session Cancelled mid-way: Release hold and return to stock
-      db.query('SELECT id, inventory_id, quantity FROM session_materials WHERE appointment_id = ? AND status = \'hold\'', [id], (matErr, mats) => {
-        if (!matErr && mats.length > 0) {
-          mats.forEach(mat => {
-            db.query('UPDATE session_materials SET status = ? WHERE id = ?', ['released', mat.id]);
-            db.query('UPDATE inventory SET current_stock = current_stock + ? WHERE id = ?', [mat.quantity, mat.inventory_id]);
-          });
-        }
-      });
-    } else if (status === 'incomplete' && appointment.status === 'in_progress') {
-      // 4. Session Aborted/Incomplete: Consume used materials (they can't be reused)
-      db.query('SELECT sm.id, sm.inventory_id, sm.quantity, i.cost, i.name FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ? AND sm.status = \'hold\'', [id], (matErr, mats) => {
-        if (!matErr && mats.length > 0) {
-          mats.forEach(mat => {
-            db.query('UPDATE session_materials SET status = ? WHERE id = ?', ['consumed', mat.id]);
-            db.query('INSERT INTO inventory_transactions (inventory_id, type, quantity, reason) VALUES (?, ?, ?, ?)',
-              [mat.inventory_id, 'out', mat.quantity, `Consumed in incomplete session #${id}`]);
-          });
-        }
-      });
-    }
-
-    // UPDATE APPOINTMENT
-    let updateQuery = 'UPDATE appointments SET status = ?';
-    let queryParams = [status];
-
-    if (price !== undefined && price !== null) {
-      updateQuery += ', price = ?';
-      queryParams.push(price);
-    }
-    if (sessionDuration !== undefined && sessionDuration !== null) {
-      updateQuery += ', session_duration = ?';
-      queryParams.push(sessionDuration);
-    }
-    if (auditLog !== undefined && auditLog !== null) {
-      updateQuery += ', audit_log = ?';
-      queryParams.push(typeof auditLog === 'string' ? auditLog : JSON.stringify(auditLog));
-    }
-    updateQuery += ' WHERE id = ?';
-    queryParams.push(id);
-
-    db.query(updateQuery, queryParams, (updateErr, result) => {
-      if (updateErr) return res.status(500).json({ success: false, message: 'Database error' });
 
       // Send Notifications
       const dateStr = appointment.appointment_date ? new Date(appointment.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'your scheduled date';
@@ -7707,8 +7446,6 @@ app.put('/api/appointments/:id/status', async (req, res) => {
       }
 
       res.json({ success: true, message: 'Appointment status updated' });
-    });
-  });
 });
 
 // GET Admin pending payment alerts (for global overlay polling)
@@ -8028,7 +7765,7 @@ app.get('/api/appointments/:id/details', (req, res) => {
 
 // Create a PayMongo Checkout Session
 app.post('/api/payments/create-checkout-session', async (req, res) => {
-  const { appointmentId, price: providedPrice, paymentType, customAmount } = req.body; // paymentType: 'full', 'deposit', or 'custom'
+  const { appointmentId, paymentType, customAmount } = req.body; // paymentType: 'full', 'deposit', 'balance', or 'custom'
 
   if (!appointmentId) {
     return res.status(400).json({ success: false, message: 'appointmentId is required' });
@@ -8042,7 +7779,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
     // 1) Pull appointment to get authoritative price AND total already paid
     const checkoutQuery = `
       SELECT 
-        ap.id, ap.price, ap.customer_id, ap.artist_id, ap.status, ap.design_title, ap.service_type, ap.booking_code,
+        ap.id, ap.price, ap.discount_amount, ap.discount_type, ap.customer_id, ap.artist_id, ap.status, ap.design_title, ap.service_type, ap.booking_code,
         (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') + (COALESCE(ap.manual_paid_amount, 0) * 100) as total_paid_centavos,
         ${CONSENT_EXISTS_SQL} AS has_valid_consent
       FROM appointments ap
@@ -8077,9 +7814,16 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
       // booking_code is already in clean format (e.g. O-C-0012) since generation
       const displayCode = appointment.booking_code;
 
-      let priceNumber = Number(appointment.price);
-      if ((!priceNumber || priceNumber <= 0) && providedPrice) {
-        priceNumber = Number(providedPrice);
+      const totalPaidCentavos = Number(appointment.total_paid_centavos) || 0;
+      const finances = summarizeAppointmentFinances({
+        ...appointment,
+        total_paid: totalPaidCentavos / 100,
+      });
+      const priceNumber = finances.payable_price;
+      const remainingCentavos = Math.max(0, Math.round(finances.remaining_balance * 100));
+
+      if (remainingCentavos <= 0) {
+        return res.status(400).json({ success: false, message: 'This appointment is already fully paid.' });
       }
 
       const isLatePayment = (appointment.status === 'completed' || appointment.status === 'finished');
@@ -8089,8 +7833,11 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
 
       // Use custom amount if provided and paymentType is custom
       if (paymentType === 'custom' && customAmount) {
-        const customAmountPesos = Math.max(100, Math.round(Number(customAmount)));
-        await proceedWithSession(Math.round(customAmountPesos * 100), 'Partial Payment', description, displayCode);
+        const requestedCentavos = Math.round(Number(customAmount) * 100);
+        if (!Number.isFinite(requestedCentavos) || requestedCentavos <= 0) {
+          return res.status(400).json({ success: false, message: 'Please enter a valid payment amount.' });
+        }
+        await proceedWithSession(Math.min(requestedCentavos, remainingCentavos), 'Partial Payment', description, displayCode);
         return;
       }
 
@@ -8105,20 +7852,12 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
           const isPiercing = appointment.service_type && String(appointment.service_type).toLowerCase() === 'piercing';
           let tierPrice = isPiercing ? 500 : 5000;
           tierPrice = Math.min(tierPrice, priceNumber);
-          const depositPesos = Math.max(100, Math.round(tierPrice));
-          await proceedWithSession(Math.round(depositPesos * 100), itemName, description, displayCode);
+          const depositCentavos = Math.min(Math.max(10000, Math.round(tierPrice * 100)), remainingCentavos);
+          await proceedWithSession(depositCentavos, itemName, description, displayCode);
         } else if (paymentType === 'balance') {
-          const totalPaidCentavos = Number(appointment.total_paid_centavos) || 0;
-          const totalAmountCentavos = Math.round(priceNumber * 100);
-          const remainingCentavos = totalAmountCentavos - totalPaidCentavos;
-
-          if (remainingCentavos <= 0) {
-            return res.status(400).json({ success: false, message: 'This appointment is already fully paid.' });
-          }
-
           await proceedWithSession(remainingCentavos, 'Balance Payment', `Final balance payment for Booking ${displayCode}`, displayCode);
         } else {
-          await proceedWithSession(Math.round(priceNumber * 100), itemName, description, displayCode);
+          await proceedWithSession(remainingCentavos, itemName, description, displayCode);
         }
       } catch (innerError) {
         console.error('[ERROR] Error in proceedWithSession flow:', innerError.message);
@@ -8228,7 +7967,7 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
   try {
     // 1. Check DB first
     db.query(`
-      SELECT ap.payment_status, ap.status, ap.customer_id, ap.artist_id, ap.appointment_date, ap.start_time, ap.booking_code, ap.price,
+      SELECT ap.payment_status, ap.status, ap.customer_id, ap.artist_id, ap.appointment_date, ap.start_time, ap.booking_code, ap.price, ap.discount_amount, ap.discount_type,
         COALESCE(ap.manual_paid_amount, 0) as manual_paid_amount,
         (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') as online_paid_centavos,
         u.name as customer_name, u.email as cx_email 
@@ -8243,10 +7982,11 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
       let currentAptStatus = appt.status;
 
       // Compute price and totalPaid for the frontend banner
-      const apptPrice = Number(appt.price || 0);
       const onlinePaidPesos = Number(appt.online_paid_centavos || 0) / 100;
       const manualPaidPesos = Number(appt.manual_paid_amount || 0);
       const computedTotalPaid = onlinePaidPesos + manualPaidPesos;
+      const financeSummary = summarizeAppointmentFinances({ ...appt, total_paid: computedTotalPaid });
+      const apptPrice = financeSummary.payable_price;
 
       // Reconcile stale appointment flags against the payment ledger before responding.
       if (apptPrice > 0 && computedTotalPaid + 0.005 >= apptPrice && currentPaymentStatus !== 'paid') {
@@ -8309,7 +8049,8 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
 
             // Update DB so future polls are faster
             const paymentType = pmData?.data?.attributes?.metadata?.paymentType || 'full';
-            const newPaymentStatus = (paymentType === 'deposit' || paymentType === 'custom') ? 'downpayment_paid' : 'paid';
+            const updatedTotalPaid = computedTotalPaid + (Number(amountCentavos) || 0) / 100;
+            const newPaymentStatus = apptPrice <= 0 || updatedTotalPaid + 0.005 >= apptPrice ? 'paid' : 'downpayment_paid';
             const newAptStatus = (currentAptStatus?.toLowerCase() === 'pending') ? 'confirmed' : currentAptStatus;
 
             db.query("UPDATE appointments SET payment_status = ?, status = ? WHERE id = ?", [newPaymentStatus, newAptStatus, appointmentId], (updErr) => {
@@ -8365,7 +8106,7 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
               if (updErr) console.error(`[ERROR] Failed to update payments record to paid for ${sessionId}:`, updErr.message);
             });
 
-            return res.json({ success: true, payment_status: newPaymentStatus, booking_code: appt.booking_code || null, price: apptPrice, totalPaid: computedTotalPaid });
+            return res.json({ success: true, payment_status: newPaymentStatus, booking_code: appt.booking_code || null, price: apptPrice, totalPaid: updatedTotalPaid });
           } else {
             console.log(`[INFO] Polling result: Payment is still NOT detected as paid for Appt ${appointmentId}`);
           }
@@ -8508,98 +8249,36 @@ app.get('/api/payments/status', (req, res) => {
   });
 });
 
-// Get Customer Transaction History
-// Get transactions for a specific appointment
-app.get('/api/appointments/:id/transactions', (req, res) => {
-  const appointmentId = req.params.id;
-  const query = `
-    SELECT id, amount, status, created_at, session_id, raw_event 
-    FROM payments 
-    WHERE appointment_id = ? 
-    ORDER BY created_at DESC
-  `;
+// Transaction history uses one ledger service so every existing screen receives
+// the same centavo-based response for PayMongo, admin-recorded, and POS payments.
+app.get('/api/appointments/:id/transactions', async (req, res) => {
+  const appointmentId = parseInt(req.params.id, 10);
+  if (!Number.isInteger(appointmentId) || appointmentId <= 0) {
+    return res.status(400).json({ success: false, message: 'Valid appointment ID required.' });
+  }
 
-  db.query(query, [appointmentId], (err, results) => {
-    if (err) {
-      console.error('[ERROR] Error fetching appointment transactions:', err.message);
-      return res.status(500).json({ success: false, message: 'Database error' });
-    }
-    res.json({ success: true, transactions: results });
-  });
+  try {
+    const transactions = await financialLedgerService.getAppointmentTransactions(appointmentId);
+    return res.json({ success: true, transactions });
+  } catch (error) {
+    console.error('[ERROR] Error fetching appointment transactions:', error.message);
+    return res.status(500).json({ success: false, message: 'Database error fetching transactions.' });
+  }
 });
 
-// Update the transaction history endpoint for customers to include design_title
-app.get('/api/customer/:customerId/transactions', (req, res) => {
+app.get('/api/customer/:customerId/transactions', async (req, res) => {
   const customerId = parseInt(req.params.customerId, 10);
-  if (isNaN(customerId)) {
+  if (!Number.isInteger(customerId) || customerId <= 0) {
     return res.status(400).json({ success: false, message: 'Valid customer ID required.' });
   }
 
-  const formatCentavosToPHP = (centavos) => {
-    return (centavos / 100).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
-  };
-
-  const unifiedQuery = `
-    SELECT 
-      'digital' as payment_type,
-      CONCAT('PAYMONGO-', p.id) as reference_id,
-      p.amount_centavos,
-      (p.amount_centavos / 100.0) as amount,
-      p.status,
-      p.currency,
-      a.design_title as description,
-      p.created_at,
-      a.id as appointment_id
-    FROM payments p
-    JOIN appointments a ON p.appointment_id = a.id
-    WHERE a.customer_id = ? AND p.status IN ('paid', 'succeeded', 'successful')
-
-    UNION ALL
-
-    SELECT 
-      'manual_cash' as payment_type,
-      CONCAT('MANUAL-', a.id) as reference_id,
-      a.manual_paid_centavos as amount_centavos,
-      (a.manual_paid_centavos / 100.0) as amount,
-      'paid' as status,
-      'PHP' as currency,
-      CONCAT(a.design_title, ' (Cash Payment)') as description,
-      a.created_at,
-      a.id as appointment_id
-    FROM appointments a
-    WHERE a.customer_id = ? AND a.manual_paid_centavos > 0 AND a.is_deleted = 0
-
-    UNION ALL
-
-    SELECT 
-      l.transaction_type as payment_type,
-      COALESCE(l.reference_code, CONCAT('LEDGER-', l.id)) as reference_id,
-      l.amount_centavos,
-      (l.amount_centavos / 100.0) as amount,
-      'completed' as status,
-      'PHP' as currency,
-      CONCAT('Ledger Record: ', l.transaction_type, ' (', l.notes, ')') as description,
-      l.created_at,
-      l.appointment_id
-    FROM unified_financial_ledger l
-    WHERE l.customer_id = ?
-
-    ORDER BY created_at DESC
-  `;
-
-  db.query(unifiedQuery, [customerId, customerId, customerId], (err, results) => {
-    if (err) {
-      console.error('[ERROR] Consolidated ledger query failed:', err.message);
-      return res.status(500).json({ success: false, message: 'Database error fetching ledger.' });
-    }
-
-    const formatted = results.map(row => ({
-      ...row,
-      formatted_amount: formatCentavosToPHP(row.amount_centavos)
-    }));
-
-    res.json({ success: true, transactions: formatted });
-  });
+  try {
+    const transactions = await financialLedgerService.getCustomerTransactions(customerId);
+    return res.json({ success: true, transactions });
+  } catch (error) {
+    console.error('[ERROR] Error fetching customer transactions:', error.message);
+    return res.status(500).json({ success: false, message: 'Database error fetching transactions.' });
+  }
 });
 
 // ========== CUSTOMER DASHBOARD (SIMPLIFIED) ==========
@@ -9135,63 +8814,19 @@ app.put('/api/appointments/:id/after-photo', (req, res) => {
 
 // ========== PER-SESSION HEALTH SCREENING ENDPOINTS ==========
 
-// Submit a per-session health screening
-app.post('/api/health-screenings', (req, res) => {
-  const {
-    appointmentId, customerId, artistId, allergies, medicationsBloodThinners,
-    hasDiabetes, hasSkinDisorders, isPregnant, hasBleedingConditions,
-    hasImmuneConditions, recentIllnessInfection, substanceInfluence,
-    siteSkinCondition, medicalClearanceRequired, medicalClearanceNotes
-  } = req.body;
-
-  if (!appointmentId) {
-    return res.status(400).json({ success: false, message: 'Appointment ID is required' });
-  }
-
-  const snapshot = {
-    allergies: allergies || '',
-    medicationsBloodThinners: medicationsBloodThinners || '',
-    hasDiabetes: !!hasDiabetes,
-    hasSkinDisorders: !!hasSkinDisorders,
-    isPregnant: !!isPregnant,
-    hasBleedingConditions: !!hasBleedingConditions,
-    hasImmuneConditions: !!hasImmuneConditions,
-    recentIllnessInfection: recentIllnessInfection || '',
-    substanceInfluence: !!substanceInfluence,
-    siteSkinCondition: siteSkinCondition || 'Normal',
-    medicalClearanceRequired: !!medicalClearanceRequired,
-    medicalClearanceNotes: medicalClearanceNotes || '',
-    timestamp: getLocalDatetime()
-  };
-
-  const query = `
-    INSERT INTO session_health_screenings (
-      appointment_id, customer_id, artist_id, allergies, medications_blood_thinners,
-      has_diabetes, has_skin_disorders, is_pregnant, has_bleeding_conditions,
-      has_immune_conditions, recent_illness_infection, substance_influence,
-      site_skin_condition, medical_clearance_required, medical_clearance_notes,
-      screening_status, screening_snapshot, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', ?, ?)
-  `;
-  const createdAt = getLocalDatetime();
-
-  db.query(query, [
-    appointmentId, customerId || null, artistId || null, allergies || null, medicationsBloodThinners || null,
-    hasDiabetes ? 1 : 0, hasSkinDisorders ? 1 : 0, isPregnant ? 1 : 0, hasBleedingConditions ? 1 : 0,
-    hasImmuneConditions ? 1 : 0, recentIllnessInfection || null, substanceInfluence ? 1 : 0,
-    siteSkinCondition || 'Normal', medicalClearanceRequired ? 1 : 0, medicalClearanceNotes || null,
-    JSON.stringify(snapshot), createdAt
-  ], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
-    res.json({ success: true, screeningId: result.insertId, message: 'Health screening submitted successfully' });
-  });
-});
-
 // Get health screening record for an appointment
 app.get('/api/health-screenings/appointment/:appointmentId', (req, res) => {
-  const { appointmentId } = req.params;
+  const appointmentId = Number(req.params.appointmentId);
+  if (!Number.isInteger(appointmentId) || appointmentId <= 0) {
+    return res.status(400).json({ success: false, message: 'A valid appointment ID is required.' });
+  }
   db.query(
-    'SELECT * FROM session_health_screenings WHERE appointment_id = ? ORDER BY created_at DESC LIMIT 1',
+    `SELECT id, appointment_id, allergies, medications_blood_thinners, has_diabetes,
+            has_skin_disorders, is_pregnant, has_bleeding_conditions, has_immune_conditions,
+            recent_illness_infection, substance_influence, site_skin_condition,
+            screening_snapshot, created_at
+     FROM session_health_screenings
+     WHERE appointment_id = ? ORDER BY created_at DESC, id DESC LIMIT 1`,
     [appointmentId],
     (err, results) => {
       if (err) return res.status(500).json({ success: false, message: 'Database error' });
@@ -9199,445 +8834,6 @@ app.get('/api/health-screenings/appointment/:appointmentId', (req, res) => {
       res.json({ success: true, screening: results[0] });
     }
   );
-});
-
-// Artist/Admin review & approve or postpone/refuse session based on health screening
-app.put('/api/health-screenings/:id/review', (req, res) => {
-  const { id } = req.params;
-  const { artistApproved, rejectionReason, screeningStatus, siteSkinCondition } = req.body;
-  
-  const reviewedAt = getLocalDatetime();
-  const status = screeningStatus || (artistApproved ? 'approved' : 'postponed');
-
-  db.query('SELECT * FROM session_health_screenings WHERE id = ?', [id], (err, results) => {
-    if (err || !results.length) return res.status(404).json({ success: false, message: 'Screening record not found' });
-    
-    const screening = results[0];
-    const appointmentId = screening.appointment_id;
-
-    const query = `
-      UPDATE session_health_screenings
-      SET artist_reviewed = 1,
-          artist_approved = ?,
-          artist_review_at = ?,
-          rejection_reason = ?,
-          screening_status = ?,
-          site_skin_condition = COALESCE(?, site_skin_condition)
-      WHERE id = ?
-    `;
-
-    db.query(query, [artistApproved ? 1 : 0, reviewedAt, rejectionReason || null, status, siteSkinCondition || null, id], (updateErr) => {
-      if (updateErr) return res.status(500).json({ success: false, message: 'Failed to update screening review' });
-
-      // If postponed or refused, automatically update appointment status & notify customer
-      if (!artistApproved && appointmentId) {
-        const apptStatus = status === 'refused' ? 'cancelled' : 'postponed';
-        db.query('UPDATE appointments SET status = ? WHERE id = ?', [apptStatus, appointmentId], (apptErr) => {
-          if (apptErr) console.error('[WARN] Failed to update appointment status:', apptErr.message);
-
-          // Get appointment details to send notification
-          db.query('SELECT a.*, u.email as user_email, u.phone as user_phone, u.name as customer_name FROM appointments a LEFT JOIN users u ON a.customer_id = u.id WHERE a.id = ?', [appointmentId], (aErr, aResults) => {
-            if (!aErr && aResults.length) {
-              const appt = aResults[0];
-              const recipientEmail = appt.user_email || appt.guest_email;
-              const customerName = appt.customer_name || appt.client_name || 'Client';
-              const reasonText = rejectionReason || 'Health safety concerns during procedure screening';
-
-              // Send Notification in database
-              if (appt.customer_id) {
-                const notifTitle = `Appointment ${apptStatus === 'cancelled' ? 'Refused / Cancelled' : 'Postponed'}`;
-                const notifMsg = `Your appointment (${appt.booking_code || appointmentId}) has been ${apptStatus} due to health screening review: ${reasonText}`;
-                db.query('INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)', [appt.customer_id, notifTitle, notifMsg, 'alert']);
-              }
-
-              // Send Email if API Key is configured
-              if (recipientEmail && EMAIL_API_KEY) {
-                const emailHtml = buildEmailHtml(`
-                  <h2>Appointment Status Update: ${apptStatus.toUpperCase()}</h2>
-                  <p>Dear ${customerName},</p>
-                  <p>Your procedure session (Ref: <strong>${appt.booking_code || appointmentId}</strong>) scheduled for <strong>${appt.appointment_date}</strong> has been <strong>${apptStatus.toUpperCase()}</strong> following our pre-session health screening review.</p>
-                  <div style="background:#fef2f2; border:1px solid #fecaca; padding:16px; border-radius:8px; margin:16px 0;">
-                    <strong style="color:#dc2626;">Reason for ${apptStatus}:</strong>
-                    <p style="margin:8px 0 0 0; color:#475569;">${reasonText}</p>
-                  </div>
-                  <p>Safety is our top priority. Please contact the studio if you would like to reschedule or discuss medical clearance.</p>
-                `);
-                
-                Axios.post('https://api.resend.com/emails', {
-                  from: EMAIL_FROM,
-                  to: [recipientEmail],
-                  subject: `InkVistAR Appointment ${apptStatus.toUpperCase()} — Health Screening Notice`,
-                  html: emailHtml
-                }, { headers: { Authorization: `Bearer ${EMAIL_API_KEY}` } }).catch(e => console.error('Failed to send email:', e.message));
-              }
-            }
-          });
-        });
-      }
-
-      res.json({
-        success: true,
-        message: `Health screening review saved. Status: ${status}`
-      });
-    });
-  });
-});
-
-// ========== SANITATION & COMPLIANCE ENDPOINTS ==========
-
-// Get cleaning checklist logs
-app.get('/api/sanitation/checklists', (req, res) => {
-  db.query('SELECT * FROM sanitation_checklist_logs ORDER BY logged_at DESC LIMIT 50', (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    res.json({ success: true, logs: results });
-  });
-});
-
-// Post a cleaning checklist log
-app.post('/api/sanitation/checklists', (req, res) => {
-  const { cleanerName, areaName, checklistData, verifiedBy } = req.body;
-  const loggedAt = getLocalDatetime();
-  const query = `
-    INSERT INTO sanitation_checklist_logs (cleaner_name, area_name, checklist_data, verified_by, logged_at)
-    VALUES (?, ?, ?, ?, ?)
-  `;
-  db.query(query, [cleanerName || 'Staff', areaName || 'Workstation', JSON.stringify(checklistData || {}), verifiedBy || null, loggedAt], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    res.json({ success: true, logId: result.insertId, message: 'Cleaning checklist logged successfully' });
-  });
-});
-
-// Get waste disposal logs (sharps and biohazard waste)
-app.get('/api/sanitation/waste-disposal', (req, res) => {
-  db.query('SELECT * FROM waste_disposal_logs ORDER BY disposed_at DESC LIMIT 50', (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    res.json({ success: true, logs: results });
-  });
-});
-
-// Post a waste disposal log
-app.post('/api/sanitation/waste-disposal', (req, res) => {
-  const { disposalType, wasteWeightKg, disposalCompany, manifestNumber, disposedBy } = req.body;
-  const disposedAt = getLocalDatetime();
-  const query = `
-    INSERT INTO waste_disposal_logs (disposal_type, waste_weight_kg, disposal_company, manifest_number, disposed_by, disposed_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `;
-  db.query(query, [
-    disposalType || 'sharps', wasteWeightKg ? Number(wasteWeightKg) : 0.00,
-    disposalCompany || 'Biohazard Waste Co.', manifestNumber || `MAN-${Date.now()}`,
-    disposedBy || 'Staff', disposedAt
-  ], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    res.json({ success: true, logId: result.insertId, message: 'Waste disposal log created' });
-  });
-});
-
-// Get staff health certificates
-app.get('/api/sanitation/health-certificates', (req, res) => {
-  db.query('SELECT * FROM staff_health_certificates ORDER BY expiration_date ASC', (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    res.json({ success: true, certificates: results });
-  });
-});
-
-// Post a staff health certificate
-app.post('/api/sanitation/health-certificates', (req, res) => {
-  const { userId, staffName, certificateType, issuedDate, expirationDate, documentUrl } = req.body;
-  const query = `
-    INSERT INTO staff_health_certificates (user_id, staff_name, certificate_type, issued_date, expiration_date, document_url, status)
-    VALUES (?, ?, ?, ?, ?, ?, 'valid')
-  `;
-  db.query(query, [userId || null, staffName, certificateType || 'Medical Clearance', issuedDate || null, expirationDate || null, documentUrl || null], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    res.json({ success: true, certificateId: result.insertId, message: 'Health certificate recorded' });
-  });
-});
-
-// Update staff health certificate status
-app.put('/api/sanitation/health-certificates/:id', (req, res) => {
-  const { id } = req.params;
-  const { status, expirationDate } = req.body;
-  db.query('UPDATE staff_health_certificates SET status = COALESCE(?, status), expiration_date = COALESCE(?, expiration_date) WHERE id = ?', [status || null, expirationDate || null, id], (err) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    res.json({ success: true, message: 'Certificate updated' });
-  });
-});
-
-// Get studio sanitary permits
-app.get('/api/sanitation/studio-permits', (req, res) => {
-  db.query('SELECT * FROM studio_sanitary_permits ORDER BY expiration_date ASC', (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    res.json({ success: true, permits: results });
-  });
-});
-
-// Post a studio sanitary permit
-app.post('/api/sanitation/studio-permits', (req, res) => {
-  const { permitType, permitNumber, issuingAuthority, issuedDate, expirationDate, documentUrl } = req.body;
-  const query = `
-    INSERT INTO studio_sanitary_permits (permit_type, permit_number, issuing_authority, issued_date, expiration_date, renewal_status, document_url)
-    VALUES (?, ?, ?, ?, ?, 'active', ?)
-  `;
-  db.query(query, [permitType || 'Sanitary License', permitNumber || 'N/A', issuingAuthority || 'City Health Dept', issuedDate || null, expirationDate || null, documentUrl || null], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    res.json({ success: true, permitId: result.insertId, message: 'Sanitary permit recorded' });
-  });
-});
-
-// ========== INCIDENT & AFTERCARE MANAGEMENT ENDPOINTS ==========
-
-// Report an incident / health problem
-app.post('/api/incidents', (req, res) => {
-  const {
-    customerId, appointmentId, reportedBy, incidentType, severity,
-    description, photos, medicalReferralRequired
-  } = req.body;
-
-  if (!customerId || !description) {
-    return res.status(400).json({ success: false, message: 'Customer ID and description are required' });
-  }
-
-  const incidentCode = `INC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-  const isEmergency = severity === 'high' || severity === 'critical';
-  const createdAt = getLocalDatetime();
-
-  const query = `
-    INSERT INTO incident_reports (
-      incident_code, customer_id, appointment_id, reported_by, incident_type,
-      severity, description, photos, medical_referral_required, emergency_escalation,
-      status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)
-  `;
-
-  db.query(query, [
-    incidentCode, customerId, appointmentId || null, reportedBy || 'Customer',
-    incidentType || 'allergic_reaction', severity || 'medium', description,
-    JSON.stringify(photos || []), medicalReferralRequired ? 1 : 0, isEmergency ? 1 : 0,
-    createdAt, createdAt
-  ], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
-    
-    const incidentId = result.insertId;
-
-    // Send urgent push & email notification if high/critical severity
-    if (isEmergency) {
-      // Create admin notification
-      db.query("INSERT INTO notifications (user_id, title, message, type) SELECT id, ?, ?, 'alert' FROM users WHERE role IN ('admin', 'manager', 'owner')", [
-        `🚨 URGENT INCIDENT: ${incidentCode}`,
-        `Critical incident reported (${incidentType}, ${severity} severity): ${description.substring(0, 100)}...`
-      ]);
-
-      // Send email alert to admin email if configured
-      if (EMAIL_API_KEY) {
-        const alertEmailHtml = buildEmailHtml(`
-          <h2 style="color:#dc2626;">🚨 URGENT HEALTH/SAFETY INCIDENT REPORTED</h2>
-          <p><strong>Incident Reference:</strong> ${incidentCode}</p>
-          <p><strong>Severity:</strong> <span style="background:#fee2e2; color:#991b1b; padding:2px 8px; border-radius:4px; font-weight:bold;">${severity.toUpperCase()}</span></p>
-          <p><strong>Incident Type:</strong> ${incidentType}</p>
-          <p><strong>Reported By:</strong> ${reportedBy || 'Customer'}</p>
-          <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:14px; border-radius:8px; margin:16px 0;">
-            <strong style="color:#1e293b;">Description:</strong>
-            <p style="margin:8px 0 0 0; color:#475569;">${description}</p>
-          </div>
-          <p>Please log into the InkVistAR Admin Incident Dashboard immediately to review and coordinate medical response.</p>
-        `);
-
-        Axios.post('https://api.resend.com/emails', {
-          from: EMAIL_FROM,
-          to: [process.env.ADMIN_ALERT_EMAIL || EMAIL_FROM],
-          subject: `🚨 URGENT INCIDENT ALERT [${incidentCode}] — ${severity.toUpperCase()} Severity`,
-          html: alertEmailHtml
-        }, { headers: { Authorization: `Bearer ${EMAIL_API_KEY}` } }).catch(e => console.error('Failed to send incident email:', e.message));
-      }
-    }
-
-    res.json({
-      success: true,
-      incidentId,
-      incidentCode,
-      message: 'Incident reported successfully. Staff will review immediately.'
-    });
-  });
-});
-
-// Get customer's reported incidents
-app.get('/api/incidents/customer/:customerId', (req, res) => {
-  const { customerId } = req.params;
-  db.query(
-    `SELECT ir.*, a.booking_code, a.service_type
-     FROM incident_reports ir
-     LEFT JOIN appointments a ON ir.appointment_id = a.id
-     WHERE ir.customer_id = ?
-     ORDER BY ir.created_at DESC`,
-    [customerId],
-    (err, results) => {
-      if (err) return res.status(500).json({ success: false, message: 'Database error' });
-      res.json({ success: true, incidents: results });
-    }
-  );
-});
-
-// Get all incidents for Admin Portal
-app.get('/api/incidents/admin', (req, res) => {
-  const { status, severity } = req.query;
-  let conditions = [];
-  let params = [];
-
-  if (status) {
-    conditions.push('ir.status = ?');
-    params.push(status);
-  }
-  if (severity) {
-    conditions.push('ir.severity = ?');
-    params.push(severity);
-  }
-
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-  const query = `
-    SELECT ir.*, u.name as customer_name, u.email as customer_email, u.phone as customer_phone,
-           a.booking_code, a.service_type, a.appointment_date
-    FROM incident_reports ir
-    JOIN users u ON ir.customer_id = u.id
-    LEFT JOIN appointments a ON ir.appointment_id = a.id
-    ${whereClause}
-    ORDER BY ir.emergency_escalation DESC, ir.created_at DESC
-  `;
-
-  db.query(query, params, (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    res.json({ success: true, incidents: results });
-  });
-});
-
-// Get single incident details & message thread
-app.get('/api/incidents/:id', (req, res) => {
-  const { id } = req.params;
-  db.query(`
-    SELECT ir.*, u.name as customer_name, u.email as customer_email, u.phone as customer_phone,
-           a.booking_code, a.service_type, a.appointment_date, artist.name as artist_name
-    FROM incident_reports ir
-    JOIN users u ON ir.customer_id = u.id
-    LEFT JOIN appointments a ON ir.appointment_id = a.id
-    LEFT JOIN users artist ON a.artist_id = artist.id
-    WHERE ir.id = ?
-  `, [id], (err, results) => {
-    if (err || !results.length) return res.status(404).json({ success: false, message: 'Incident not found' });
-    
-    const incident = results[0];
-
-    db.query('SELECT * FROM incident_messages WHERE incident_id = ? ORDER BY created_at ASC', [id], (msgErr, msgResults) => {
-      res.json({
-        success: true,
-        incident: {
-          ...incident,
-          messages: msgResults || []
-        }
-      });
-    });
-  });
-});
-
-// Staff response & resolution for incident
-app.put('/api/incidents/:id/respond', (req, res) => {
-  const { id } = req.params;
-  const { staffResponse, status, severity, medicalReferralRequired, emergencyEscalation, resolutionNotes } = req.body;
-  const updatedAt = getLocalDatetime();
-
-  const query = `
-    UPDATE incident_reports
-    SET staff_response = COALESCE(?, staff_response),
-        status = COALESCE(?, status),
-        severity = COALESCE(?, severity),
-        medical_referral_required = COALESCE(?, medical_referral_required),
-        emergency_escalation = COALESCE(?, emergency_escalation),
-        resolution_notes = COALESCE(?, resolution_notes),
-        updated_at = ?
-    WHERE id = ?
-  `;
-
-  db.query(query, [
-    staffResponse || null, status || null, severity || null,
-    medicalReferralRequired !== undefined ? (medicalReferralRequired ? 1 : 0) : null,
-    emergencyEscalation !== undefined ? (emergencyEscalation ? 1 : 0) : null,
-    resolutionNotes || null, updatedAt, id
-  ], (err) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-
-    // Notify customer
-    db.query('SELECT customer_id, incident_code FROM incident_reports WHERE id = ?', [id], (cErr, cResults) => {
-      if (!cErr && cResults.length) {
-        const inc = cResults[0];
-        db.query('INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)', [
-          inc.customer_id,
-          `Incident Update [${inc.incident_code}]`,
-          `Studio staff updated your incident report status to: ${status || 'updated'}.`,
-          'info'
-        ]);
-      }
-    });
-
-    res.json({ success: true, message: 'Incident response updated' });
-  });
-});
-
-// Add message thread update for an incident
-app.post('/api/incidents/:id/messages', (req, res) => {
-  const { id } = req.params;
-  const { senderId, senderRole, senderName, message, attachments } = req.body;
-  
-  if (!message) return res.status(400).json({ success: false, message: 'Message is required' });
-
-  const query = `
-    INSERT INTO incident_messages (incident_id, sender_id, sender_role, sender_name, message, attachments, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `;
-  const createdAt = getLocalDatetime();
-
-  db.query(query, [
-    id, senderId || null, senderRole || 'staff', senderName || 'Staff',
-    message, JSON.stringify(attachments || []), createdAt
-  ], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    
-    db.query('UPDATE incident_reports SET updated_at = ? WHERE id = ?', [createdAt, id]);
-    res.json({ success: true, messageId: result.insertId, message: 'Message added to incident thread' });
-  });
-});
-
-// Dynamic Aftercare Recommendations
-app.get('/api/aftercare/recommendations', (req, res) => {
-  const { procedureType, bodyLocation, material } = req.query;
-
-  const isPiercing = procedureType && String(procedureType).toLowerCase().includes('piercing');
-
-  const aftercare = {
-    procedureType: isPiercing ? 'Piercing' : 'Tattoo',
-    bodyLocation: bodyLocation || 'General',
-    materialUsed: material || 'Standard Hygiene',
-    cleaningInstructions: isPiercing ? [
-      'Clean 2-3 times daily with sterile saline solution (0.9% sodium chloride).',
-      'Do NOT use alcohol, hydrogen peroxide, or harsh antiseptic soaps.',
-      'Gently dab dry with clean paper towels — do not rub with cloth towels.'
-    ] : [
-      'Wash gently after 2-4 hours with antibacterial unscented soap and warm water.',
-      'Apply a thin layer of recommended tattoo aftercare ointment (Bepanthen or Aquaphor).',
-      'Wash 2-3 times daily and avoid soaking in water (baths, pools, ocean) for 2-3 weeks.'
-    ],
-    prohibitedActivities: [
-      'No swimming in pools, ocean, or hot tubs for 14-21 days.',
-      'Do not pick, scratch, or peel scabs or flaking skin.',
-      'Avoid direct sunlight and tanning beds until fully healed.'
-    ],
-    warningSigns: [
-      'Severe, spreading redness or hot sensation around the procedure site.',
-      'Yellow or green pus discharge accompanied by foul odor.',
-      'Fever, chills, or systemic illness.'
-    ]
-  };
-
-  res.json({ success: true, aftercare });
 });
 
 // ========== NOTIFICATION ENDPOINTS ==========
@@ -10335,11 +9531,15 @@ app.get('/api/admin/inventory', (req, res) => {
 // Admin: Add Inventory Item
 app.post('/api/admin/inventory', (req, res) => {
   const { name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice, image, manufacturer, lot_number, batch_number, serial_number, manufacture_date, expiration_date, date_opened, is_single_use, recall_status, storage_requirements } = req.body;
+  const normalizedCurrentStock = Number(currentStock);
+  if (!Number.isInteger(normalizedCurrentStock) || normalizedCurrentStock < 0) {
+    return res.status(400).json({ success: false, message: 'Current stock must be a non-negative whole number.' });
+  }
   const costCentavos = Math.round((parseFloat(cost) || 0) * 100);
   const retailCentavos = Math.round((parseFloat(retailPrice) || 0) * 100);
 
   const query = 'INSERT INTO inventory (name, category, current_stock, min_stock, max_stock, unit, supplier, cost, retail_price, image, last_restocked, manufacturer, lot_number, batch_number, serial_number, manufacture_date, expiration_date, date_opened, is_single_use, recall_status, storage_requirements, cost_centavos, retail_price_centavos) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
-  db.query(query, [name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice || 0, image || null, getLocalDatetime(), manufacturer || null, lot_number || null, batch_number || null, serial_number || null, manufacture_date || null, expiration_date || null, date_opened || null, is_single_use !== undefined ? is_single_use : true, recall_status || 'none', storage_requirements || null, costCentavos, retailCentavos], (err, result) => {
+  db.query(query, [name, category, normalizedCurrentStock, minStock, maxStock, unit, supplier, cost, retailPrice || 0, image || null, getLocalDatetime(), manufacturer || null, lot_number || null, batch_number || null, serial_number || null, manufacture_date || null, expiration_date || null, date_opened || null, is_single_use !== undefined ? is_single_use : true, recall_status || 'none', storage_requirements || null, costCentavos, retailCentavos], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     logAction(getAdminId(req), 'CREATE_INVENTORY', `Added item: ${name}`, req.ip);
     res.json({ success: true, message: 'Item added', id: result.insertId });
@@ -10350,6 +9550,10 @@ app.post('/api/admin/inventory', (req, res) => {
 app.put('/api/admin/inventory/:id', (req, res) => {
   const { id } = req.params;
   const { name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice, image, manufacturer, lot_number, batch_number, serial_number, manufacture_date, expiration_date, date_opened, is_single_use, recall_status, storage_requirements } = req.body;
+  const normalizedCurrentStock = Number(currentStock);
+  if (!Number.isInteger(normalizedCurrentStock) || normalizedCurrentStock < 0) {
+    return res.status(400).json({ success: false, message: 'Current stock must be a non-negative whole number.' });
+  }
   const user_id = req.auth.userId;
 
   // First, fetch the current item to detect price changes
@@ -10368,7 +9572,7 @@ app.put('/api/admin/inventory/:id', (req, res) => {
 
     // Perform the update
     const query = 'UPDATE inventory SET name=?, category=?, current_stock=?, min_stock=?, max_stock=?, unit=?, supplier=?, cost=?, retail_price=?, image=?, manufacturer=?, lot_number=?, batch_number=?, serial_number=?, manufacture_date=?, expiration_date=?, date_opened=?, is_single_use=?, recall_status=?, storage_requirements=?, cost_centavos=?, retail_price_centavos=? WHERE id=?';
-    db.query(query, [name, category, currentStock, minStock, maxStock, unit, supplier, newCost, newRetail, image || null, manufacturer || null, lot_number || null, batch_number || null, serial_number || null, manufacture_date || null, expiration_date || null, date_opened || null, is_single_use !== undefined ? is_single_use : true, recall_status || 'none', storage_requirements || null, costCentavos, retailCentavos, id], (err) => {
+    db.query(query, [name, category, normalizedCurrentStock, minStock, maxStock, unit, supplier, newCost, newRetail, image || null, manufacturer || null, lot_number || null, batch_number || null, serial_number || null, manufacture_date || null, expiration_date || null, date_opened || null, is_single_use !== undefined ? is_single_use : true, recall_status || 'none', storage_requirements || null, costCentavos, retailCentavos, id], (err) => {
       if (err) return res.status(500).json({ success: false, message: err.message });
 
       // Log price changes as transactions
@@ -10433,51 +9637,36 @@ app.put('/api/admin/inventory/:id/restore', (req, res) => {
 });
 
 // Admin: Permanent Delete Inventory Item
-app.delete('/api/admin/inventory/:id/permanent', (req, res) => {
+app.delete('/api/admin/inventory/:id/permanent', async (req, res) => {
   const { id } = req.params;
-  db.query('DELETE FROM inventory WHERE id=?', [id], (err) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
+  try {
+    await sessionInventoryService.permanentlyDeleteInventory(id);
     logAction(getAdminId(req), 'PERMANENT_DELETE_INVENTORY', `Permanently deleted item ID ${id}`, req.ip);
     res.json({ success: true, message: 'Item permanently deleted' });
-  });
+  } catch (error) {
+    return sendInventoryOperationError(res, error, 'Unable to permanently delete the inventory item.');
+  }
 });
 
 // Admin: Stock Transaction (In/Out)
-app.post('/api/admin/inventory/:id/transaction', (req, res) => {
+app.post('/api/admin/inventory/:id/transaction', async (req, res) => {
   const { id } = req.params;
   const { type, quantity, reason } = req.body; // type: 'in' or 'out'
 
   if (!['in', 'out'].includes(type)) return res.status(400).json({ success: false, message: 'Invalid type' });
-
-  // First, fetch the current item price/cost
-  db.query('SELECT cost, retail_price FROM inventory WHERE id = ?', [id], (err, invRes) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    if (invRes.length === 0) return res.status(404).json({ success: false, message: 'Item not found' });
-
-    const itemCost = invRes[0].cost || 0;
-    const itemRetailPrice = invRes[0].retail_price || itemCost;
-    // Use cost for stock-in (Expense), retail_price for stock-out (Revenue / Sale)
-    const item_price = type === 'in' ? itemCost : itemRetailPrice;
-
-    // Update stock
-    const updateQuery = type === 'in'
-      ? 'UPDATE inventory SET current_stock = current_stock + ?, last_restocked = ? WHERE id = ?'
-      : 'UPDATE inventory SET current_stock = GREATEST(0, current_stock - ?) WHERE id = ?';
-
-    db.query(updateQuery, type === 'in' ? [quantity, getLocalDatetime(), id] : [quantity, id], (err, result) => {
-      if (err) return res.status(500).json({ success: false, message: err.message });
-
-      // Log transaction with item_price
-      db.query('INSERT INTO inventory_transactions (inventory_id, type, quantity, reason, user_id, item_price) VALUES (?, ?, ?, ?, ?, ?)',
-        [id, type, quantity, reason, req.auth.userId, item_price],
-        (logErr) => {
-          if (logErr) console.error('Failed to log transaction:', logErr);
-          logAction(getAdminId(req), 'STOCK_TRANSACTION', `${type.toUpperCase()} ${quantity} for item ${id}: ${reason}`, req.ip);
-          res.json({ success: true, message: 'Stock updated' });
-        }
-      );
+  try {
+    const result = await sessionInventoryService.adjustStock({
+      inventoryId: Number(id),
+      type,
+      quantity,
+      reason,
+      userId: req.auth.userId,
     });
-  });
+    logAction(getAdminId(req), 'STOCK_TRANSACTION', `${type.toUpperCase()} ${result.quantity} for item ${id}: ${reason || ''}`, req.ip);
+    res.json({ success: true, message: 'Stock updated' });
+  } catch (error) {
+    return sendInventoryOperationError(res, error, 'Unable to update inventory stock.');
+  }
 });
 
 // Admin: Get Inventory Transactions (Usage Report)
@@ -13227,271 +12416,6 @@ function startPendingPaymentsCleanup() {
 }
 
 // ========== START SERVER ==========
-// ════════════════════════════════════════════════════════════════════
-// TASK 7: POS CASH DRAWER SESSION MANAGEMENT
-// ════════════════════════════════════════════════════════════════════
-app.get('/api/pos/drawer/active', (req, res) => {
-  const query = 'SELECT * FROM pos_drawer_sessions WHERE status = "open" ORDER BY opened_at DESC LIMIT 1';
-  db.query(query, (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, session: results[0] || null });
-  });
-});
-
-app.post('/api/pos/drawer/open', (req, res) => {
-  const { userId, startingFloat } = req.body;
-  const floatCentavos = Math.round((parseFloat(startingFloat) || 0) * 100);
-
-  const query = 'INSERT INTO pos_drawer_sessions (opened_by_user_id, starting_float_centavos, status) VALUES (?, ?, "open")';
-  db.query(query, [userId || 1, floatCentavos], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, message: 'Cash drawer opened', sessionId: result.insertId });
-  });
-});
-
-app.post('/api/pos/drawer/close', (req, res) => {
-  const { sessionId, userId, actualCash, closingNotes } = req.body;
-  const actualCentavos = Math.round((parseFloat(actualCash) || 0) * 100);
-
-  db.query('SELECT * FROM pos_drawer_sessions WHERE id = ? AND status = "open"', [sessionId], (err, results) => {
-    if (err || results.length === 0) {
-      return res.status(404).json({ success: false, message: 'Active drawer session not found' });
-    }
-
-    const sess = results[0];
-    const varianceCentavos = actualCentavos - sess.starting_float_centavos;
-
-    const updateQuery = `
-      UPDATE pos_drawer_sessions SET
-        closed_by_user_id = ?,
-        closed_at = NOW(),
-        actual_cash_centavos = ?,
-        variance_centavos = ?,
-        closing_notes = ?,
-        status = "closed"
-      WHERE id = ?
-    `;
-
-    db.query(updateQuery, [userId || 1, actualCentavos, varianceCentavos, closingNotes || null, sessionId], (updErr) => {
-      if (updErr) return res.status(500).json({ success: false, message: updErr.message });
-      res.json({ 
-        success: true, 
-        message: 'Cash drawer closed and reconciled', 
-        actualCash: actualCash, 
-        variance: varianceCentavos / 100 
-      });
-    });
-  });
-});
-
-// ════════════════════════════════════════════════════════════════════
-// TASK 7: DAILY SETTLEMENT RECONCILIATION
-// ════════════════════════════════════════════════════════════════════
-app.get('/api/pos/settlements', (req, res) => {
-  const query = 'SELECT * FROM daily_settlements ORDER BY settlement_date DESC LIMIT 30';
-  db.query(query, (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, settlements: results });
-  });
-});
-
-app.post('/api/pos/settlements', (req, res) => {
-  const { settlementDate, digitalCentavos, cashCentavos, discountsCentavos, refundsCentavos, userId, notes } = req.body;
-  const date = settlementDate || new Date().toISOString().split('T')[0];
-
-  const query = `
-    INSERT INTO daily_settlements (settlement_date, total_digital_centavos, total_cash_centavos, total_discounts_centavos, total_refunds_centavos, reconciled_by_user_id, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      total_digital_centavos = VALUES(total_digital_centavos),
-      total_cash_centavos = VALUES(total_cash_centavos),
-      total_discounts_centavos = VALUES(total_discounts_centavos),
-      total_refunds_centavos = VALUES(total_refunds_centavos),
-      notes = VALUES(notes)
-  `;
-
-  db.query(query, [date, digitalCentavos || 0, cashCentavos || 0, discountsCentavos || 0, refundsCentavos || 0, userId || 1, notes || null], (err) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, message: 'Daily settlement reconciled successfully.' });
-  });
-});
-
-// ════════════════════════════════════════════════════════════════════
-// TASK 7: PRINTABLE RECEIPT HISTORY
-// ════════════════════════════════════════════════════════════════════
-app.get('/api/billing/receipts/:appointmentId', (req, res) => {
-  const appointmentId = parseInt(req.params.appointmentId, 10);
-  const query = `
-    SELECT 
-      a.id as appointment_id,
-      a.design_title,
-      a.service_type,
-      a.price_centavos,
-      a.deposit_centavos,
-      a.manual_paid_centavos,
-      a.discount_centavos,
-      (a.price_centavos - a.deposit_centavos - a.manual_paid_centavos - a.discount_centavos) as balance_due_centavos,
-      u.name as customer_name,
-      u.email as customer_email,
-      a.created_at
-    FROM appointments a
-    JOIN users u ON a.customer_id = u.id
-    WHERE a.id = ?
-  `;
-
-  db.query(query, [appointmentId], (err, results) => {
-    if (err || results.length === 0) {
-      return res.status(404).json({ success: false, message: 'Receipt not found' });
-    }
-
-    const r = results[0];
-    const formatCentavosToPHP = (centavos) => {
-      return (centavos / 100).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
-    };
-
-    res.json({
-      success: true,
-      receipt: {
-        ...r,
-        formatted_price: formatCentavosToPHP(r.price_centavos || 0),
-        formatted_deposit: formatCentavosToPHP(r.deposit_centavos || 0),
-        formatted_manual_paid: formatCentavosToPHP(r.manual_paid_centavos || 0),
-        formatted_discount: formatCentavosToPHP(r.discount_centavos || 0),
-        formatted_balance_due: formatCentavosToPHP(Math.max(0, r.balance_due_centavos || 0))
-      }
-    });
-  });
-});
-
-// ════════════════════════════════════════════════════════════════════
-// TASKS 4 & 5: SANITATION, TRACEABILITY, INCIDENTS
-// ════════════════════════════════════════════════════════════════════
-
-app.get('/api/sanitation/checklists', (req, res) => {
-  db.query('SELECT * FROM sanitation_checklist_logs ORDER BY logged_at DESC LIMIT 50', (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, logs: results });
-  });
-});
-
-app.post('/api/sanitation/checklists', (req, res) => {
-  const { cleanerName, areaName, checklistData, verifiedBy } = req.body;
-  const query = 'INSERT INTO sanitation_checklist_logs (cleaner_name, area_name, checklist_data, verified_by) VALUES (?, ?, ?, ?)';
-  db.query(query, [cleanerName, areaName, JSON.stringify(checklistData || {}), verifiedBy || null], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, message: 'Checklist logged', id: result.insertId });
-  });
-});
-
-app.get('/api/sanitation/waste-disposal', (req, res) => {
-  db.query('SELECT * FROM waste_disposal_logs ORDER BY disposed_at DESC LIMIT 50', (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, logs: results });
-  });
-});
-
-app.post('/api/sanitation/waste-disposal', (req, res) => {
-  const { disposalType, wasteWeightKg, disposalCompany, manifestNumber, disposedBy } = req.body;
-  const query = 'INSERT INTO waste_disposal_logs (disposal_type, waste_weight_kg, disposal_company, manifest_number, disposed_by) VALUES (?, ?, ?, ?, ?)';
-  db.query(query, [disposalType, wasteWeightKg, disposalCompany, manifestNumber, disposedBy], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, message: 'Waste disposal manifest logged', id: result.insertId });
-  });
-});
-
-app.get('/api/sanitation/health-certificates', (req, res) => {
-  db.query('SELECT * FROM staff_health_certificates ORDER BY expiration_date ASC', (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, certificates: results });
-  });
-});
-
-app.post('/api/sanitation/health-certificates', (req, res) => {
-  const { userId, staffName, certificateType, issuedDate, expirationDate, documentUrl } = req.body;
-  const query = 'INSERT INTO staff_health_certificates (user_id, staff_name, certificate_type, issued_date, expiration_date, document_url) VALUES (?, ?, ?, ?, ?, ?)';
-  db.query(query, [userId, staffName, certificateType, issuedDate, expirationDate, documentUrl || null], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, message: 'Health certificate added', id: result.insertId });
-  });
-});
-
-app.get('/api/sanitation/studio-permits', (req, res) => {
-  db.query('SELECT * FROM studio_sanitary_permits ORDER BY expiration_date ASC', (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, permits: results });
-  });
-});
-
-app.post('/api/sanitation/studio-permits', (req, res) => {
-  const { permitType, permitNumber, issuingAuthority, issuedDate, expirationDate, documentUrl } = req.body;
-  const query = 'INSERT INTO studio_sanitary_permits (permit_type, permit_number, issuing_authority, issued_date, expiration_date, document_url) VALUES (?, ?, ?, ?, ?, ?)';
-  db.query(query, [permitType, permitNumber, issuingAuthority, issuedDate, expirationDate, documentUrl || null], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, message: 'Sanitary permit logged', id: result.insertId });
-  });
-});
-
-app.post('/api/incidents', (req, res) => {
-  const { customerId, appointmentId, reportedBy, incidentType, severity, description, photos } = req.body;
-  const incidentCode = 'INC-' + Date.now().toString().slice(-6);
-  const emergencyEscalation = (severity === 'high' || severity === 'critical') ? 1 : 0;
-
-  const query = `
-    INSERT INTO incident_reports (
-      incident_code, customer_id, appointment_id, reported_by, incident_type, severity, description, photos, emergency_escalation
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
-
-  db.query(query, [incidentCode, customerId, appointmentId || null, reportedBy || 'Customer', incidentType, severity || 'medium', description, JSON.stringify(photos || []), emergencyEscalation], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, message: 'Incident reported successfully', incidentCode, id: result.insertId, emergencyEscalation: Boolean(emergencyEscalation) });
-  });
-});
-
-app.get('/api/incidents/admin', (req, res) => {
-  const query = `
-    SELECT ir.*, u.name as customer_name, u.email as customer_email, a.design_title
-    FROM incident_reports ir
-    LEFT JOIN users u ON ir.customer_id = u.id
-    LEFT JOIN appointments a ON ir.appointment_id = a.id
-    ORDER BY 
-      CASE ir.severity 
-        WHEN 'critical' THEN 1 
-        WHEN 'high' THEN 2 
-        WHEN 'medium' THEN 3 
-        ELSE 4 
-      END,
-      ir.created_at DESC
-  `;
-  db.query(query, (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, incidents: results });
-  });
-});
-
-app.get('/api/incidents/customer/:customerId', (req, res) => {
-  db.query('SELECT * FROM incident_reports WHERE customer_id = ? ORDER BY created_at DESC', [req.params.customerId], (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, incidents: results });
-  });
-});
-
-app.put('/api/incidents/:id/respond', (req, res) => {
-  const { staffResponse, medicalReferralRequired, status, resolutionNotes } = req.body;
-  const query = `
-    UPDATE incident_reports SET
-      staff_response = COALESCE(?, staff_response),
-      medical_referral_required = COALESCE(?, medical_referral_required),
-      status = COALESCE(?, status),
-      resolution_notes = COALESCE(?, resolution_notes)
-    WHERE id = ?
-  `;
-  db.query(query, [staffResponse || null, medicalReferralRequired !== undefined ? (medicalReferralRequired ? 1 : 0) : null, status || null, resolutionNotes || null, req.params.id], (err) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, message: 'Incident updated' });
-  });
-});
-
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
   console.log('\n' + '='.repeat(50));

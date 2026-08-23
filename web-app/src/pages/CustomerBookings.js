@@ -142,37 +142,6 @@ function CustomerBookings(){
     const [graceCancelModal, setGraceCancelModal] = useState({ isOpen: false, appointment: null, reason: '', customReason: '' });
     const [isGraceCancelling, setIsGraceCancelling] = useState(false);
 
-    // Incident Report states
-    const [showIncidentModal, setShowIncidentModal] = useState(false);
-    const [incidentType, setIncidentType] = useState('allergic_reaction');
-    const [incidentSeverity, setIncidentSeverity] = useState('medium');
-    const [incidentDescription, setIncidentDescription] = useState('');
-    const [isSubmittingIncident, setIsSubmittingIncident] = useState(false);
-
-    const handleSubmitIncident = async () => {
-        if (!incidentDescription.trim() || !selectedApt) return;
-        setIsSubmittingIncident(true);
-        try {
-            const res = await Axios.post(`${API_URL}/api/incidents`, {
-                customerId,
-                appointmentId: selectedApt.id,
-                reportedBy: 'Customer',
-                incidentType,
-                severity: incidentSeverity,
-                description: incidentDescription.trim()
-            });
-            if (res.data.success) {
-                showAlert('Incident Reported', `Your incident report (${res.data.incidentCode}) has been submitted. Studio staff will review and contact you shortly.`, 'info');
-                setShowIncidentModal(false);
-                setIncidentDescription('');
-            }
-        } catch (e) {
-            showAlert('Error', 'Failed to submit incident report. Please try again.', 'danger');
-        } finally {
-            setIsSubmittingIncident(false);
-        }
-    };
-
     const showAlert = (title, message, type = 'info') => {
         setConfirmModal({
             isOpen: true,
@@ -329,11 +298,12 @@ function CustomerBookings(){
             showAlert("Quotation Pending", "Price has not been set by the studio yet. Please wait for confirmation.", "info");
             return;
         }
-        const remainingBalance = appointment.price - (appointment.total_paid || 0);
+        const payablePrice = Number(appointment.payable_price ?? appointment.price ?? 0);
+        const remainingBalance = payablePrice - (appointment.total_paid || 0);
         navigate(`/pay-mongo?appointmentId=${appointment.id}&price=${appointment.price}`, { 
             state: { 
                 appointmentId: appointment.id, 
-                price: appointment.price,
+                price: payablePrice,
                 remainingBalance: remainingBalance,
                 type: type,
                 serviceType: appointment.service_type || 'Tattoo Session',
@@ -1509,7 +1479,7 @@ function CustomerBookings(){
                                         <div className="customer-st-4110ceca" >
                                             <span className="customer-st-e7b1617c" >Remaining Balance:</span>
                                             <span className="customer-st-58e71408" >
-                                                ₱{Math.max(0, selectedApt.price - (selectedApt.total_paid || 0)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                ₱{Math.max(0, Number(selectedApt.payable_price ?? selectedApt.price) - (selectedApt.total_paid || 0)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </div>
                                         
@@ -1576,17 +1546,6 @@ function CustomerBookings(){
                                     onClick={() => window.open(`/customer/waiver/${selectedApt.id}`, '_blank')}
                                 >
                                     <ShieldCheck size={16} /> View Waiver
-                                </button>
-                            )}
-
-                            {/* Report a Problem / Health Issue */}
-                            {['completed', 'finished', 'in_progress'].includes(selectedApt.status.toLowerCase()) && (
-                                <button
-                                    className="btn btn-secondary"
-                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#dc2626', borderColor: '#fecaca', background: '#fff5f5' }}
-                                    onClick={() => setShowIncidentModal(true)}
-                                >
-                                    <AlertTriangle size={16} /> Report a Problem
                                 </button>
                             )}
 
@@ -3098,79 +3057,6 @@ function CustomerBookings(){
         </div>
         <ImageLightbox src={lightboxSrc} alt="Reference image" onClose={() => setLightboxSrc(null)} />
 
-        {/* Incident Report Modal */}
-        {showIncidentModal && selectedApt && (
-            <div className="modal-overlay" onClick={() => setShowIncidentModal(false)}>
-                <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
-                    <div className="modal-header" style={{ borderBottom: '2px solid #fecaca' }}>
-                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#dc2626', margin: 0 }}>
-                            <AlertTriangle size={22} /> Report a Health / Safety Issue
-                        </h3>
-                        <button className="close-btn" onClick={() => setShowIncidentModal(false)}><X size={20} /></button>
-                    </div>
-                    <div className="modal-body">
-                        <p style={{ fontSize: '0.88rem', color: '#475569', marginBottom: '16px' }}>
-                            If you are experiencing any health concern related to your procedure — such as an infection, allergic reaction, excessive bleeding, or other complication — please describe it below.
-                        </p>
-
-                        <div style={{ marginBottom: '14px' }}>
-                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Issue Type</label>
-                            <select value={incidentType} onChange={e => setIncidentType(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                                <option value="infection">Infection (Redness, Swelling, Pus)</option>
-                                <option value="allergic_reaction">Allergic Reaction (Itching, Rash, Hives)</option>
-                                <option value="excessive_bleeding">Excessive Bleeding</option>
-                                <option value="skin_injury">Skin Injury or Scarring</option>
-                                <option value="fainting">Fainting or Dizziness</option>
-                                <option value="other">Other Health Concern</option>
-                            </select>
-                        </div>
-
-                        <div style={{ marginBottom: '14px' }}>
-                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Severity</label>
-                            <select value={incidentSeverity} onChange={e => setIncidentSeverity(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                                <option value="low">Low — Minor redness or flaking</option>
-                                <option value="medium">Medium — Noticeable swelling, irritation, or discomfort</option>
-                                <option value="high">High — Severe pain, spreading infection, or fever</option>
-                                <option value="critical">Critical — Medical emergency, seek help immediately</option>
-                            </select>
-                        </div>
-
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                                Describe the Issue <span style={{ color: '#ef4444' }}>*</span>
-                            </label>
-                            <textarea
-                                rows={4}
-                                value={incidentDescription}
-                                onChange={e => setIncidentDescription(e.target.value)}
-                                placeholder="Please describe what you are experiencing in detail (e.g., location on body, when symptoms started, what it looks like)..."
-                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
-                            />
-                        </div>
-
-                        {(incidentSeverity === 'high' || incidentSeverity === 'critical') && (
-                            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '12px', borderRadius: '8px', marginBottom: '16px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                                <AlertTriangle size={20} color="#dc2626" style={{ flexShrink: 0, marginTop: '2px' }} />
-                                <div style={{ fontSize: '0.82rem', color: '#991b1b' }}>
-                                    <strong>Urgent medical concern detected.</strong> If you are experiencing a medical emergency, please call emergency services or visit the nearest hospital immediately. Studio staff will be notified urgently.
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    <div className="modal-footer" style={{ borderTop: '1px solid #f1f5f9' }}>
-                        <button className="btn btn-secondary" onClick={() => setShowIncidentModal(false)}>Cancel</button>
-                        <button
-                            className="btn"
-                            disabled={incidentDescription.trim().length < 10 || isSubmittingIncident}
-                            onClick={handleSubmitIncident}
-                            style={{ background: '#dc2626', color: 'white', opacity: incidentDescription.trim().length >= 10 && !isSubmittingIncident ? 1 : 0.5, cursor: incidentDescription.trim().length >= 10 && !isSubmittingIncident ? 'pointer' : 'not-allowed' }}
-                        >
-                            {isSubmittingIncident ? 'Submitting...' : 'Submit Incident Report'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        )}
     </>);
 }
 

@@ -34,7 +34,7 @@ const PAYMENT_WAIVER_TEXT = [
 const isAppointmentFullyPaid = (appointment) => {
   if (!appointment) return false;
   if ((appointment.payment_status || '').toLowerCase() === 'paid') return true;
-  const price = Number(appointment.price || 0);
+  const price = Number(appointment.payable_price ?? appointment.price ?? 0);
   const totalPaid = Number(appointment.total_paid || 0);
   return price > 0 && totalPaid + 0.005 >= price;
 };
@@ -43,7 +43,7 @@ const normalizePaymentState = (appointment) => isAppointmentFullyPaid(appointmen
   ? { ...appointment, payment_status: 'paid' }
   : appointment;
 
-const getRemainingBalance = (appointment) => Math.max(0, Number(appointment?.price || 0) - Number(appointment?.total_paid || 0));
+const getRemainingBalance = (appointment) => Math.max(0, Number(appointment?.payable_price ?? appointment?.price ?? 0) - Number(appointment?.total_paid || 0));
 
 const AnimatedTouch = Animated.createAnimatedComponent(TouchableOpacity);
 

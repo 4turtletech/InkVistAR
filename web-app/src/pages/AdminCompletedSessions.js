@@ -20,6 +20,13 @@ const formatDuration = (totalSeconds) => {
     return `${mins}m`;
 };
 
+const formatMaterialTraceability = (material) => [
+    material.batch_number && `Batch ${material.batch_number}`,
+    material.lot_number && `Lot ${material.lot_number}`,
+    material.serial_number && `Serial ${material.serial_number}`,
+    material.expiration_date && `Expires ${String(material.expiration_date).slice(0, 10)}`,
+].filter(Boolean).join(' • ');
+
 function AdminCompletedSessions() {
     const navigate = useNavigate();
     const [sessions, setSessions] = useState([]);
@@ -475,6 +482,9 @@ function AdminCompletedSessions() {
                                                                 <div className="admin-st-19bd18ad">
                                                                     <span className="admin-st-34acc2e5">{mat.quantity}x {mat.item_name}</span>
                                                                     <span className="admin-st-fef01c14">Itemized Consumable</span>
+                                                                    {formatMaterialTraceability(mat) && (
+                                                                        <span className="admin-st-fef01c14">{formatMaterialTraceability(mat)}</span>
+                                                                    )}
                                                                 </div>
                                                                 <span className={`badge status-consumed admin-st-12e5feb7`} >{formatStatus(mat.status)}</span>
                                                             </div>

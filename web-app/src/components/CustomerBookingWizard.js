@@ -349,28 +349,19 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 waiverAcceptedAt: waiverAcceptedAt || new Date().toISOString(),
                 photoMarketingConsent: photoMarketingConsent,
                 consentData: consentData,
+                healthScreeningData: {
+                    conditions: selectedConditions,
+                    allergens: selectedAllergens,
+                    noKnownHealthConcerns: healthNoneConfirmed,
+                    medicationsBloodThinners,
+                    recentIllnessInfection,
+                    substanceInfluence,
+                    siteSkinCondition
+                },
                 piercingJewelry: (formData.piercingJewelry && formData.piercingJewelry.length > 0) ? formData.piercingJewelry : undefined
             });
 
             if (response.data.success) {
-                const newApptId = response.data.id || response.data.appointmentId;
-                if (newApptId) {
-                    Axios.post(`${API_URL}/api/health-screenings`, {
-                        appointmentId: newApptId,
-                        customerId: uid,
-                        allergies: selectedAllergens.join(', '),
-                        medicationsBloodThinners: medicationsBloodThinners,
-                        hasDiabetes: selectedConditions.includes('Diabetes'),
-                        hasSkinDisorders: selectedConditions.includes('Skin Condition'),
-                        isPregnant: selectedConditions.includes('Pregnancy'),
-                        hasBleedingConditions: selectedConditions.includes('Blood Disorder'),
-                        hasImmuneConditions: selectedConditions.includes('Immunocompromised'),
-                        recentIllnessInfection: recentIllnessInfection,
-                        substanceInfluence: substanceInfluence,
-                        siteSkinCondition: siteSkinCondition
-                    }).catch(e => console.error('Failed to post health screening:', e));
-                }
-
                 if (!currentUser && response.data.id) {
                     sessionStorage.setItem('orphanAppointmentId', response.data.id);
                 }

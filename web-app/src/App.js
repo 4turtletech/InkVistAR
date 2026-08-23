@@ -26,8 +26,6 @@ import AdminBilling from './pages/AdminBilling';
 import AdminChat from './pages/AdminChat';
 import AdminNotifications from './pages/AdminNotifications';
 import AdminBusinessReports from './pages/AdminBusinessReports';
-import AdminSanitation from './pages/AdminSanitation';
-import AdminIncidents from './pages/AdminIncidents';
 import AppointmentPrintView from './pages/AppointmentPrintView';
 import WaiverPrintView from './pages/WaiverPrintView';
 
@@ -153,8 +151,6 @@ function App() {
             <Route path="/booking-confirmation" element={<ProtectedRoute allowedRoles={['customer']}><BookingConfirmation /></ProtectedRoute>} />
             <Route path="/admin/pos" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminPOS /></ProtectedRoute>} />
             <Route path="/admin/inventory" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminInventory /></ProtectedRoute>} />
-            <Route path="/admin/sanitation" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminSanitation /></ProtectedRoute>} />
-            <Route path="/admin/incidents" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminIncidents /></ProtectedRoute>} />
             <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminBusinessReports /></ProtectedRoute>} />
 

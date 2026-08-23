@@ -187,9 +187,9 @@ export default function WaiverPrintView() {
                         {/* Health Screening Snapshot Summary */}
                         {hs && (
                             <div style={{ gridColumn: '1 / -1', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '12px', marginTop: '8px' }}>
-                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>Per-Session Health Clearance Record</span>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>Booking Health Summary</span>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '6px', fontSize: '0.82rem', color: '#14532d' }}>
-                                    <div><strong>Status:</strong> {hs.screening_status?.toUpperCase()}</div>
+                                    <div><strong>Recorded:</strong> {hs.created_at ? new Date(hs.created_at).toLocaleString() : 'At booking'}</div>
                                     <div><strong>Site Condition:</strong> {hs.site_skin_condition || 'Normal'}</div>
                                     <div><strong>Blood Thinners:</strong> {hs.medications_blood_thinners || 'None'}</div>
                                     <div><strong>Alcohol/Drugs (24h):</strong> {hs.substance_influence ? '⚠️ Yes' : 'No'}</div>

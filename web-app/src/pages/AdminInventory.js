@@ -563,6 +563,7 @@ function AdminInventory() {
                     fetchInventory();
                 } catch (error) {
                     console.error("Error deleting item:", error);
+                    showAlert('Cannot Delete Item', error.response?.data?.message || 'The inventory item could not be permanently deleted.', 'warning');
                 }
             }
         });
@@ -697,7 +698,7 @@ function AdminInventory() {
             fetchInventory();
         } catch (error) {
             console.error("Error processing transaction:", error);
-            setTransactionError("Transaction failed. Please try again.");
+            setTransactionError(error.response?.data?.message || "Transaction failed. Please try again.");
         }
     };
 

@@ -13,6 +13,12 @@ import { API_URL, SOCKET_URL, getSocketAccessToken } from '../config';
 import { getSessionPaymentStatus, shouldShowInQueue } from '../utils/sessionPayment';
 import { formatTime12Hour, formatStatus, getStatusColor } from '../utils/formatters';
 
+const readHealthSnapshot = (screening) => {
+    if (!screening?.screening_snapshot) return {};
+    if (typeof screening.screening_snapshot === 'object') return screening.screening_snapshot;
+    try { return JSON.parse(screening.screening_snapshot); } catch (_) { return {}; }
+};
+
 function ArtistSessions() {
     const [sessions, setSessions] = useState([]);
     const [upcomingSessions, setUpcomingSessions] = useState([]);
@@ -33,7 +39,6 @@ function ArtistSessions() {
     const [serviceKits, setServiceKits] = useState({});
     const [addingMaterial, setAddingMaterial] = useState(false);
     const [inventorySearch, setInventorySearch] = useState('');
-    const [traceabilityModal, setTraceabilityModal] = useState({ visible: false, inventoryItem: null, batch_number: '', lot_number: '', serial_number: '', expiration_date: '' });
     const [isCompletingSession, setIsCompletingSession] = useState(false);
     const [isStartingProcedure, setIsStartingProcedure] = useState(false);
     const [showAbortModal, setShowAbortModal] = useState(false);
@@ -57,9 +62,6 @@ function ArtistSessions() {
     
     // Health Screening State
     const [sessionHealthScreening, setSessionHealthScreening] = useState(null);
-    const [showRefusalModal, setShowRefusalModal] = useState(false);
-    const [refusalReasonText, setRefusalReasonText] = useState('');
-    const [refusalActionType, setRefusalActionType] = useState('postponed'); // 'postponed' or 'refused'
     // Feature B: Project timeline for the active session (read-only for artist)
     const [projectTimeline, setProjectTimeline] = useState(null);
     const [projectTimelineLoading, setProjectTimelineLoading] = useState(false);
@@ -162,29 +164,6 @@ function ArtistSessions() {
             setSessionHealthScreening(null);
         }
     }, [activeSession ? activeSession.id : null]);
-
-    const handleReviewHealthScreening = async (approved, status = 'approved', reason = '') => {
-        if (!sessionHealthScreening?.id) return;
-        try {
-            await Axios.put(`${API_URL}/api/health-screenings/${sessionHealthScreening.id}/review`, {
-                artistApproved: approved,
-                screeningStatus: status,
-                rejectionReason: reason
-            });
-            const res = await Axios.get(`${API_URL}/api/health-screenings/appointment/${activeSession.id}`);
-            if (res.data.success) setSessionHealthScreening(res.data.screening);
-            if (!approved) {
-                setShowRefusalModal(false);
-                setRefusalReasonText('');
-                fetchSessions();
-                alert(`Procedure ${status}. Customer notification has been sent.`);
-            } else {
-                alert('Health screening approved for procedure.');
-            }
-        } catch (e) {
-            alert('Failed to update health screening review');
-        }
-    };
 
     useEffect(() => {
         if (activeSession) {
@@ -386,18 +365,7 @@ function ArtistSessions() {
         }
     };
 
-    const handleOpenTraceabilityModal = (item) => {
-        setTraceabilityModal({
-            visible: true,
-            inventoryItem: item,
-            batch_number: item.batch_number || '',
-            lot_number: item.lot_number || '',
-            serial_number: item.serial_number || '',
-            expiration_date: item.expiration_date ? new Date(item.expiration_date).toISOString().split('T')[0] : ''
-        });
-    };
-
-    const handleQuickAdd = async (inventoryId, quantity = 1, traceability = {}) => {
+    const handleQuickAdd = async (inventoryId, quantity = 1) => {
         if (!activeSession) return;
         
         const item = inventoryItems.find(i => i.id === inventoryId);
@@ -414,8 +382,7 @@ function ArtistSessions() {
         try {
             const res = await Axios.post(`${API_URL}/api/appointments/${activeSession.id}/materials`, {
                 inventory_id: inventoryId, 
-                quantity,
-                ...traceability
+                quantity
             });
             if (res.data.success) {
                 fetchSessionMaterials(activeSession.id);
@@ -528,19 +495,8 @@ function ArtistSessions() {
                     forceCloseSessionModal();
                 },
                 onClose: async () => {
-                    // Discard Changes: revert supplies and close
+                    // Discard only unsaved notes/photos. Session materials are already recorded.
                     setConfirmModal(prev => ({ ...prev, isOpen: false }));
-
-                    if (sessionMaterials && sessionMaterials.length > 0) {
-                        for (const mat of sessionMaterials) {
-                            try {
-                                await Axios.post(`${API_URL}/api/appointments/${activeSession.id}/release-material`, { materialId: mat.id });
-                            } catch (e) {
-                                console.error('Failed to release material on discard', e);
-                            }
-                        }
-                    }
-
                     forceCloseSessionModal();
                 }
             });
@@ -1199,23 +1155,24 @@ function ArtistSessions() {
 
                             {/* Health Alert Panel — collapsible, shown only when health data exists */}
                             {(() => {
+                                const snapshot = readHealthSnapshot(sessionHealthScreening);
                                 const rawConditions = activeSession.health_conditions || activeSession.client_health_conditions;
                                 const rawAllergens  = activeSession.allergens || activeSession.client_allergens;
-                                const conditions = Array.isArray(rawConditions) ? rawConditions : [];
-                                const allergens  = Array.isArray(rawAllergens)  ? rawAllergens  : [];
-                                const hasHealthData = conditions.length > 0 || allergens.length > 0;
+                                const conditions = Array.isArray(snapshot.conditions) ? snapshot.conditions : (Array.isArray(rawConditions) ? rawConditions : []);
+                                const allergens = Array.isArray(snapshot.allergens) ? snapshot.allergens : (Array.isArray(rawAllergens) ? rawAllergens : []);
+                                const hasHealthData = Boolean(sessionHealthScreening) || conditions.length > 0 || allergens.length > 0;
                                 if (!hasHealthData) return null;
                                 return (
                                     <div style={{ marginBottom: '16px' }}>
-                                        {/* ══ Per-Session Health Screening Review Card ══ */}
+                                        {/* Read-only appointment health summary */}
                                         {sessionHealthScreening && (
-                                            <div style={{ background: sessionHealthScreening.screening_status === 'approved' ? '#f0fdf4' : sessionHealthScreening.screening_status === 'postponed' || sessionHealthScreening.screening_status === 'refused' ? '#fef2f2' : '#fffbeb', border: '1.5px solid #cbd5e1', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' }}>
+                                            <div style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                                        Per-Session Health Screening
+                                                        Booking Health Summary
                                                     </span>
-                                                    <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, background: sessionHealthScreening.screening_status === 'approved' ? '#dcfce7' : sessionHealthScreening.screening_status === 'postponed' ? '#fee2e2' : '#fef3c7', color: sessionHealthScreening.screening_status === 'approved' ? '#166534' : sessionHealthScreening.screening_status === 'postponed' ? '#991b1b' : '#92400e' }}>
-                                                        Status: {sessionHealthScreening.screening_status?.toUpperCase()}
+                                                    <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, background: '#e2e8f0', color: '#475569' }}>
+                                                        Recorded
                                                     </span>
                                                 </div>
 
@@ -1224,32 +1181,9 @@ function ArtistSessions() {
                                                     <div><strong>Blood Thinners:</strong> {sessionHealthScreening.medications_blood_thinners || 'None'}</div>
                                                     <div><strong>Illness (14d):</strong> {sessionHealthScreening.recent_illness_infection || 'None'}</div>
                                                     <div><strong>Alcohol/Drugs (24h):</strong> {sessionHealthScreening.substance_influence ? '⚠️ Yes' : 'No'}</div>
+                                                    <div><strong>Conditions:</strong> {conditions.join(', ') || 'None disclosed'}</div>
+                                                    <div><strong>Allergens:</strong> {allergens.join(', ') || 'None disclosed'}</div>
                                                 </div>
-
-                                                {sessionHealthScreening.rejection_reason && (
-                                                    <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem', color: '#991b1b', marginBottom: '10px' }}>
-                                                        <strong>Postponement / Refusal Reason:</strong> {sessionHealthScreening.rejection_reason}
-                                                    </div>
-                                                )}
-
-                                                {sessionHealthScreening.screening_status === 'pending_review' && (
-                                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleReviewHealthScreening(true, 'approved')}
-                                                            style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: '#16a34a', color: 'white', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}
-                                                        >
-                                                            Approve Screening
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => { setRefusalActionType('postponed'); setShowRefusalModal(true); }}
-                                                            style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: '#ea580c', color: 'white', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}
-                                                        >
-                                                            Postpone / Refuse
-                                                        </button>
-                                                    </div>
-                                                )}
                                             </div>
                                         )}
 
@@ -1632,7 +1566,7 @@ function ArtistSessions() {
                                                             key={item.id}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleOpenTraceabilityModal(item);
+                                                                handleQuickAdd(item.id);
                                                             }}
                                                             style={{
                                                                 padding: '10px 14px',
@@ -1896,135 +1830,6 @@ function ArtistSessions() {
                 </div>
             )}
 
-            {/* Health Screening Postponement / Refusal Modal */}
-            {showRefusalModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
-                    <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', maxWidth: '480px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', border: '1px solid #cbd5e1' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#991b1b', fontWeight: 700 }}>
-                                Health Screening Decision
-                            </h3>
-                            <button onClick={() => setShowRefusalModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Action Type</label>
-                            <select 
-                                value={refusalActionType} 
-                                onChange={e => setRefusalActionType(e.target.value)}
-                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.92rem', background: 'white' }}
-                            >
-                                <option value="postponed">Postpone Session (Needs Rescheduling)</option>
-                                <option value="refused">Refuse &amp; Cancel Session (Safety Risk)</option>
-                            </select>
-                        </div>
-
-                        <div style={{ marginBottom: '20px' }}>
-                            <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                                Reason for {refusalActionType === 'postponed' ? 'Postponement' : 'Refusal'} <span style={{ color: '#ef4444' }}>*</span>
-                            </label>
-                            <textarea 
-                                rows={4}
-                                value={refusalReasonText}
-                                onChange={e => setRefusalReasonText(e.target.value)}
-                                placeholder="Explain safety or health concern (e.g. active skin rash at site, high blood pressure, recent illness, or alcohol influence)..."
-                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', boxSizing: 'border-box' }}
-                            />
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                            <button onClick={() => setShowRefusalModal(false)} style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', fontWeight: 600, cursor: 'pointer' }}>
-                                Cancel
-                            </button>
-                            <button 
-                                onClick={() => handleReviewHealthScreening(false, refusalActionType, refusalReasonText.trim())}
-                                disabled={refusalReasonText.trim().length < 5}
-                                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: refusalReasonText.trim().length >= 5 ? '#dc2626' : '#cbd5e1', color: 'white', fontWeight: 700, cursor: refusalReasonText.trim().length >= 5 ? 'pointer' : 'not-allowed' }}
-                            >
-                                Confirm {refusalActionType === 'postponed' ? 'Postponement' : 'Refusal'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-            {traceabilityModal.visible && (
-                <div className="modal-overlay" onClick={() => setTraceabilityModal({ ...traceabilityModal, visible: false })} style={{ zIndex: 1100 }}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-                        <div className="modal-header">
-                            <h3 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <Package size={20} color="#b7954e" /> Traceability & Tracking
-                            </h3>
-                            <button className="close-btn" onClick={() => setTraceabilityModal({ ...traceabilityModal, visible: false })}><X size={20}/></button>
-                        </div>
-                        <div className="modal-body" style={{ padding: '20px' }}>
-                            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px', marginTop: 0 }}>
-                                Confirm or enter the specific batch/lot details for <strong>{traceabilityModal.inventoryItem?.name}</strong> being used.
-                            </p>
-                            
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Batch Number</label>
-                                    <input 
-                                        type="text" 
-                                        className="form-input" 
-                                        value={traceabilityModal.batch_number} 
-                                        onChange={e => setTraceabilityModal({ ...traceabilityModal, batch_number: e.target.value })}
-                                        placeholder="e.g. B-2024-001"
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Lot Number</label>
-                                    <input 
-                                        type="text" 
-                                        className="form-input" 
-                                        value={traceabilityModal.lot_number} 
-                                        onChange={e => setTraceabilityModal({ ...traceabilityModal, lot_number: e.target.value })}
-                                        placeholder="e.g. L-5541"
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Serial Number (Optional)</label>
-                                    <input 
-                                        type="text" 
-                                        className="form-input" 
-                                        value={traceabilityModal.serial_number} 
-                                        onChange={e => setTraceabilityModal({ ...traceabilityModal, serial_number: e.target.value })}
-                                        placeholder="If applicable"
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Expiration Date</label>
-                                    <input 
-                                        type="date" 
-                                        className="form-input" 
-                                        value={traceabilityModal.expiration_date} 
-                                        onChange={e => setTraceabilityModal({ ...traceabilityModal, expiration_date: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-secondary" onClick={() => setTraceabilityModal({ ...traceabilityModal, visible: false })}>Cancel</button>
-                            <button 
-                                className="btn btn-primary" 
-                                onClick={() => {
-                                    handleQuickAdd(traceabilityModal.inventoryItem.id, 1, {
-                                        batch_number: traceabilityModal.batch_number,
-                                        lot_number: traceabilityModal.lot_number,
-                                        serial_number: traceabilityModal.serial_number,
-                                        expiration_date: traceabilityModal.expiration_date
-                                    });
-                                    setTraceabilityModal({ ...traceabilityModal, visible: false });
-                                }}
-                            >
-                                Confirm & Add
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
         <ImageLightbox src={lightboxSrc} alt="Session photo" onClose={() => setLightboxSrc(null)} />
     </>);

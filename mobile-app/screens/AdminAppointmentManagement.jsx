@@ -33,6 +33,23 @@ import {
 } from '../src/utils/api';
 import { sanitizeNumeric, sanitizeEmail, isValidEmail, sanitizeText } from '../src/utils/validators';
 
+const formatMaterialTraceability = (material) => [
+  material.batch_number && `Batch ${material.batch_number}`,
+  material.lot_number && `Lot ${material.lot_number}`,
+  material.serial_number && `Serial ${material.serial_number}`,
+  material.expiration_date && `Expires ${String(material.expiration_date).slice(0, 10)}`,
+].filter(Boolean).join(' • ');
+
+const getPayablePrice = (appointment) => Number(
+  appointment?.payable_price ?? appointment?.price ?? appointment?.total_price ?? 0
+);
+
+const isFullyPaid = (appointment) => Boolean(appointment) && (
+  appointment.payment_status === 'paid'
+  || (getPayablePrice(appointment) > 0
+    && Number(appointment.total_paid ?? appointment.amount_paid ?? 0) + 0.005 >= getPayablePrice(appointment))
+);
+
 export const AdminAppointmentManagement = ({ navigation, route }) => {
   const { theme, hapticsEnabled } = useTheme();
   const insets = useSafeAreaInsets();
@@ -458,7 +475,7 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
         { 
           text: 'Rebook', 
           onPress: () => {
-            const previousPrice = parseFloat(appt.price) || parseFloat(appt.total_price) || 0;
+            const previousPrice = getPayablePrice(appt);
             const previousPaid = parseFloat(appt.total_paid) || parseFloat(appt.amount_paid) || 0;
             const remainingBalance = Math.max(0, previousPrice - previousPaid);
             
@@ -830,9 +847,14 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
                       </View>
                       {archiveMaterials.materials.map((m, i) => (
                         <View key={i} style={[styles.archiveMaterialRow, i % 2 === 1 && styles.archiveMaterialRowAlt]}>
-                          <Text style={[styles.archiveMaterialCellText, { flex: 2 }]} numberOfLines={1}>{m.item_name || m.name || 'Item'}</Text>
-                          <Text style={styles.archiveMaterialCellText}>{m.quantity_used || m.qty || 1}</Text>
-                          <Text style={styles.archiveMaterialCellText}>₱{formatCurrency((m.unit_cost || m.cost_per_unit || 0) * (m.quantity_used || m.qty || 1))}</Text>
+                          <View style={{ flex: 2 }}>
+                            <Text style={[styles.archiveMaterialCellText, { flex: 0 }]} numberOfLines={1}>{m.item_name || m.name || 'Item'}</Text>
+                            {formatMaterialTraceability(m) ? (
+                              <Text style={[styles.archiveMaterialCellText, { flex: 0, fontSize: 10 }]}>{formatMaterialTraceability(m)}</Text>
+                            ) : null}
+                          </View>
+                          <Text style={styles.archiveMaterialCellText}>{m.quantity || m.quantity_used || m.qty || 1}</Text>
+                          <Text style={styles.archiveMaterialCellText}>₱{formatCurrency((m.cost || m.unit_cost || m.cost_per_unit || 0) * (m.quantity || m.quantity_used || m.qty || 1))}</Text>
                         </View>
                       ))}
                       <View style={styles.archiveMaterialTotal}>
@@ -1072,11 +1094,7 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
 
               {/* ── Pricing Lock: prevent modification of fully-paid appointments ── */}
               {(() => {
-                const isPricingLocked = selectedAppt && (
-                  selectedAppt.payment_status === 'paid'
-                  || (parseFloat(selectedAppt.price || selectedAppt.total_price || 0) > 0
-                    && parseFloat(selectedAppt.total_paid || selectedAppt.amount_paid || 0) >= parseFloat(selectedAppt.price || selectedAppt.total_price || 0))
-                );
+                const isPricingLocked = isFullyPaid(selectedAppt);
                 if (isPricingLocked) {
                   return (
                     <View style={{ marginTop: 8, padding: 14, borderRadius: 12, backgroundColor: 'rgba(16,185,129,0.08)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -1091,19 +1109,19 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
               <Text style={styles.inputLabel}>Price (PHP)</Text>
               <TextInput
                 style={[styles.input, fieldErrors.price && styles.inputError,
-                  selectedAppt && (selectedAppt.payment_status === 'paid' || (parseFloat(selectedAppt.price || selectedAppt.total_price || 0) > 0 && parseFloat(selectedAppt.total_paid || selectedAppt.amount_paid || 0) >= parseFloat(selectedAppt.price || selectedAppt.total_price || 0))) && { opacity: 0.5 }
+                  isFullyPaid(selectedAppt) && { opacity: 0.5 }
                 ]}
                 value={editPrice}
                 onChangeText={t => { setEditPrice(t); clearError('price'); }}
                 keyboardType="numeric"
                 placeholder="Min. ₱5,000 for sessions"
                 placeholderTextColor={theme.textTertiary}
-                editable={!(selectedAppt && (selectedAppt.payment_status === 'paid' || (parseFloat(selectedAppt.price || selectedAppt.total_price || 0) > 0 && parseFloat(selectedAppt.total_paid || selectedAppt.amount_paid || 0) >= parseFloat(selectedAppt.price || selectedAppt.total_price || 0))))}
+                editable={!isFullyPaid(selectedAppt)}
               />
               {fieldErrors.price ? <Text style={styles.errorText}>{fieldErrors.price}</Text> : null}
 
               {/* P2-15: Special Discount Section */}
-              <View style={[styles.discountSection, selectedAppt && (selectedAppt.payment_status === 'paid' || (parseFloat(selectedAppt.price || selectedAppt.total_price || 0) > 0 && parseFloat(selectedAppt.total_paid || selectedAppt.amount_paid || 0) >= parseFloat(selectedAppt.price || selectedAppt.total_price || 0))) && { opacity: 0.4 }]} pointerEvents={selectedAppt && (selectedAppt.payment_status === 'paid' || (parseFloat(selectedAppt.price || selectedAppt.total_price || 0) > 0 && parseFloat(selectedAppt.total_paid || selectedAppt.amount_paid || 0) >= parseFloat(selectedAppt.price || selectedAppt.total_price || 0))) ? 'none' : 'auto'}>
+              <View style={[styles.discountSection, isFullyPaid(selectedAppt) && { opacity: 0.4 }]} pointerEvents={isFullyPaid(selectedAppt) ? 'none' : 'auto'}>
                 <Text style={styles.discountTitle}>Special Discount</Text>
                 {/* Preset quick-apply buttons */}
                 <View style={styles.discountPresets}>

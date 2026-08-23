@@ -371,34 +371,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
           ? 'The tattoo session is still in progress. Would you like to save your current documentation (notes, photos) before closing?'
           : 'You have unsaved changes to your documentation. Would you like to save them before closing?',
         [
-          { text: 'Discard Changes', style: 'cancel', onPress: () => {
-            if (status === 'in_progress') {
-              Alert.alert(
-                'Discard Active Session?',
-                'This will NOT abort the session, but will discard any notes or photos you added during this visit. Any materials you logged will be automatically returned to stock. Are you sure?',
-                [
-                  { text: 'No, Keep Editing', style: 'cancel' },
-                  { text: 'Yes, Discard', style: 'destructive', onPress: async () => {
-                    if (sessionMaterials && sessionMaterials.length > 0) {
-                      for (const mat of sessionMaterials) {
-                        try {
-                          await fetchAPI(`/appointments/${appointment.id}/release-material`, {
-                            method: 'POST',
-                            body: JSON.stringify({ materialId: mat.id })
-                          });
-                        } catch (e) {
-                          console.error('Failed to release material on discard', e);
-                        }
-                      }
-                    }
-                    onBack();
-                  }}
-                ]
-              );
-            } else {
-              onBack();
-            }
-          }},
+          { text: 'Discard Changes', style: 'cancel', onPress: onBack },
           { text: 'Save & Close', onPress: async () => {
             await handleSaveDetails();
             onBack();

@@ -45,7 +45,8 @@ function extractArtistPath(path) {
 
 function extractAppointmentId(req, path) {
   const pathMatch = path.match(/^\/api\/(?:customer\/)?appointments\/(\d+)(?:\/|$)/)
-    || path.match(/^\/api\/artist\/appointments\/(\d+)(?:\/|$)/);
+    || path.match(/^\/api\/artist\/appointments\/(\d+)(?:\/|$)/)
+    || path.match(/^\/api\/health-screenings\/appointment\/(\d+)$/);
   return pathMatch
     ? asPositiveInteger(pathMatch[1])
     : asPositiveInteger(req.body?.appointmentId || req.query?.appointmentId);
@@ -73,6 +74,9 @@ function classifyRequest(req) {
   if (method === 'GET' && path === '/api/reviews') return null;
   if (method === 'GET' && path === '/api/services') return null;
   if (method === 'POST' && path === '/api/customer/appointments') return { optional: true, kind: 'new-appointment' };
+  if (method === 'POST' && path === '/api/admin/appointments' && req.body?.isFromWizard === true) {
+    return { optional: true, kind: 'new-appointment' };
+  }
 
   if (path.startsWith('/api/debug/')) return { roles: ['admin'], kind: 'role' };
 
@@ -115,6 +119,9 @@ function classifyRequest(req) {
   if (/^\/api\/appointments\/\d+\/(?:project-timeline|materials|release-material|status|details|after-photo|payment-status|transactions)$/.test(path)) {
     const customerReadable = /\/(?:project-timeline|payment-status|transactions)$/.test(path) && method === 'GET';
     return { roles: customerReadable ? ['admin', 'manager', 'artist', 'customer'] : ['admin', 'manager', 'artist'], kind: 'appointment' };
+  }
+  if (/^\/api\/health-screenings\/appointment\/\d+$/.test(path) && method === 'GET') {
+    return { roles: ['admin', 'manager', 'artist', 'customer'], kind: 'appointment' };
   }
   if (path === '/api/payments/create-checkout-session') return { roles: ['admin', 'customer'], kind: 'appointment' };
   if (path === '/api/payments/status') return { roles: ['admin', 'manager', 'customer'], kind: 'payment' };
