@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, RefreshControl,
+  View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, ScrollView, SafeAreaView, RefreshControl,
   Modal, TextInput, Alert, Animated, Switch, Keyboard, KeyboardAvoidingView, Platform, Image
 } from 'react-native';
 import {
@@ -585,17 +585,24 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
 
       {/* Change Password Modal */}
       <Modal visible={isPasswordVisible} animationType="fade" transparent onRequestClose={closePasswordModal}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{otpStep ? 'Verify OTP' : 'Change Password'}</Text>
-              <TouchableOpacity onPress={closePasswordModal} accessibilityRole="button" accessibilityLabel="Close change password">
-                <X size={24} color={theme.textSecondary} />
-              </TouchableOpacity>
-            </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{otpStep ? 'Verify OTP' : 'Change Password'}</Text>
+                <TouchableOpacity onPress={closePasswordModal} accessibilityRole="button" accessibilityLabel="Close change password">
+                  <X size={24} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
 
-            <Animated.View style={{ transform: [{ translateX: shakeAnimation }] }}>
-              {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+                contentContainerStyle={{ paddingBottom: 4 }}
+              >
+                <Animated.View style={{ transform: [{ translateX: shakeAnimation }] }}>
+                  {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
               {!otpStep ? (
                 <>
@@ -617,6 +624,9 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
                           }}
                           secureTextEntry={!showPassword[f.key]}
                           placeholderTextColor={theme.textTertiary}
+                          returnKeyType="done"
+                          blurOnSubmit
+                          onSubmitEditing={Keyboard.dismiss}
                         />
                         <TouchableOpacity onPress={() => togglePasswordVisibility(f.key)} style={styles.eyeBtn}>
                           {showPassword[f.key] ? <EyeOff size={20} color={theme.textSecondary} /> : <Eye size={20} color={theme.textSecondary} />}
@@ -675,6 +685,9 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
                     maxLength={6}
                     placeholder="123456"
                     placeholderTextColor={theme.textTertiary}
+                    returnKeyType="done"
+                    blurOnSubmit
+                    onSubmitEditing={Keyboard.dismiss}
                   />
                   {passwordFieldErrors.otp ? <Text style={styles.fieldErrorText}>{passwordFieldErrors.otp}</Text> : null}
                   <TouchableOpacity onPress={() => sendOtp(profile.email, 'email')} style={{ marginTop: 12, alignSelf: 'flex-start' }}>
@@ -682,19 +695,21 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
                   </TouchableOpacity>
                 </View>
               )}
-            </Animated.View>
+                </Animated.View>
 
-            <View style={styles.passwordActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={closePasswordModal} activeOpacity={0.8}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <AnimatedTouchable style={[styles.saveBtn, styles.passwordSaveBtn, passwordLoading && { opacity: 0.65 }]} onPress={handlePasswordSave} activeOpacity={0.8}>
-                <Text style={styles.saveBtnText}>{passwordLoading ? 'Please wait...' : (otpStep ? 'Verify & Save' : 'Send Verification OTP')}</Text>
-                <Lock size={18} color={theme.backgroundDeep} style={{ marginLeft: 8 }} />
-              </AnimatedTouchable>
+                <View style={styles.passwordActions}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={closePasswordModal} activeOpacity={0.8}>
+                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <AnimatedTouchable style={[styles.saveBtn, styles.passwordSaveBtn, passwordLoading && { opacity: 0.65 }]} onPress={handlePasswordSave} activeOpacity={0.8}>
+                    <Text style={styles.saveBtnText}>{passwordLoading ? 'Please wait...' : (otpStep ? 'Verify & Save' : 'Send Verification OTP')}</Text>
+                    <Lock size={18} color={theme.backgroundDeep} style={{ marginLeft: 8 }} />
+                  </AnimatedTouchable>
+                </View>
+              </ScrollView>
             </View>
-          </View>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
       </Modal>
 
       {/* Health & Safety Edit Modal — chip multi-select */}
