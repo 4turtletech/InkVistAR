@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, RefreshControl,
-  Modal, TextInput, Alert, Animated, Switch, KeyboardAvoidingView, Platform, Image
+  Modal, TextInput, Alert, Animated, Switch, Keyboard, KeyboardAvoidingView, Platform, Image
 } from 'react-native';
 import {
   LogOut, Edit3, X, Phone, MapPin, Palette, Heart, Users, Check,
