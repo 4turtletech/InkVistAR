@@ -118,8 +118,18 @@ const PAYMONGO_API_BASE = 'https://api.paymongo.com/v1';
 
 // Google reCAPTCHA v3 configuration
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY || '';
+const parsedRecaptchaScore = Number(process.env.RECAPTCHA_MIN_SCORE || 0.3);
+const RECAPTCHA_MIN_SCORE = Number.isFinite(parsedRecaptchaScore) && parsedRecaptchaScore >= 0 && parsedRecaptchaScore <= 1
+  ? parsedRecaptchaScore
+  : 0.3;
+const RECAPTCHA_ALLOWED_HOSTNAMES = new Set(
+  (process.env.RECAPTCHA_ALLOWED_HOSTNAMES || 'www.inkvictusstudio.com,inkvictusstudio.com,inkvistar-web.vercel.app')
+    .split(',')
+    .map((hostname) => hostname.trim().toLowerCase())
+    .filter(Boolean)
+);
 
-async function verifyCaptcha(token) {
+async function verifyCaptcha(token, { expectedAction, remoteIp } = {}) {
   if (CAPTCHA_BYPASS_ENABLED) {
     console.warn('[reCAPTCHA] Development bypass is enabled.');
     return true;
@@ -131,14 +141,37 @@ async function verifyCaptcha(token) {
   }
 
   try {
+    const verificationBody = new URLSearchParams({
+      secret: RECAPTCHA_SECRET_KEY,
+      response: String(token),
+    });
+    if (remoteIp) verificationBody.set('remoteip', remoteIp);
+
     const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `secret=${RECAPTCHA_SECRET_KEY}&response=${encodeURIComponent(token)}`
+      body: verificationBody.toString()
     });
     const data = await response.json();
-    // For v3, consider a score of 0.3 or above as passing to prevent overly aggressive blocking
-    return data.success === true && (data.score === undefined || data.score >= 0.3);
+    const hostname = String(data.hostname || '').toLowerCase();
+    const score = Number(data.score);
+    const valid = data.success === true
+      && Number.isFinite(score)
+      && score >= RECAPTCHA_MIN_SCORE
+      && (!expectedAction || data.action === expectedAction)
+      && RECAPTCHA_ALLOWED_HOSTNAMES.has(hostname);
+
+    if (!valid) {
+      console.warn('[reCAPTCHA] Verification rejected.', {
+        success: data.success === true,
+        score: Number.isFinite(score) ? score : null,
+        action: data.action || null,
+        expectedAction: expectedAction || null,
+        hostname: hostname || null,
+        errorCodes: data['error-codes'] || [],
+      });
+    }
+    return valid;
   } catch (err) {
     console.error('reCAPTCHA verification error:', err.message);
     return false;
@@ -3102,7 +3135,7 @@ app.post('/api/register', async (req, res) => {
     const normalizedEmail = String(email || '').trim().toLowerCase();
 
     // Verify reCAPTCHA
-    const captchaValid = await verifyCaptcha(captchaToken);
+    const captchaValid = await verifyCaptcha(captchaToken, { expectedAction: 'register', remoteIp: req.ip });
     if (!captchaValid) {
       return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
     }
@@ -5075,7 +5108,7 @@ app.post('/api/admin/appointments', async (req, res) => {
 
   // Verify reCAPTCHA for public wizard submissions only
   if (isFromWizard) {
-    const captchaValid = await verifyCaptcha(captchaToken);
+    const captchaValid = await verifyCaptcha(captchaToken, { expectedAction: 'booking', remoteIp: req.ip });
     if (!captchaValid) {
       return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
     }
@@ -11840,7 +11873,7 @@ app.post('/api/contact', async (req, res) => {
     let { name, email, phone, subject, message, captchaToken } = req.body;
 
     // Verify reCAPTCHA
-    const captchaValid = await verifyCaptcha(captchaToken);
+    const captchaValid = await verifyCaptcha(captchaToken, { expectedAction: 'contact', remoteIp: req.ip });
     if (!captchaValid) {
       return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
     }

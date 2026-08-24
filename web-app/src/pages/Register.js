@@ -79,6 +79,7 @@ function Register() {
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Consent state
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -198,6 +199,8 @@ function Register() {
   const registerUser = async (e) => {
     e.preventDefault();
 
+    if (isSubmitting) return;
+
     setApiError('');
     const fieldsAreValid = validate();
     if (!agreedToTerms) {
@@ -211,6 +214,7 @@ function Register() {
     }
 
     try {
+      setIsSubmitting(true);
       const token = await executeRecaptcha('register');
       if (!token) {
         setApiError('CAPTCHA verification failed to execute.');
@@ -250,6 +254,8 @@ function Register() {
       } else {
         setApiError(message);
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -529,7 +535,9 @@ function Register() {
               </label>
             </div>
 
-            <button type="submit" className="login-btn">Register</button>
+            <button type="submit" className="login-btn" disabled={isSubmitting}>
+              {isSubmitting ? 'Verifying...' : 'Register'}
+            </button>
           </form>
 
           <div className="login-footer">

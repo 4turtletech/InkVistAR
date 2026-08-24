@@ -314,6 +314,8 @@ PAYMONGO_MODE=test
 SEMAPHORE_API_KEY=<key>
 
 RECAPTCHA_SECRET_KEY=<key>
+RECAPTCHA_MIN_SCORE=0.3
+RECAPTCHA_ALLOWED_HOSTNAMES=www.inkvictusstudio.com,inkvictusstudio.com,inkvistar-web.vercel.app
 
 JWT_ACCESS_SECRET=<32+ character random secret>
 JWT_ACCESS_TTL=15m
@@ -334,7 +336,7 @@ BACKEND_URL=https://inkvistar-api.onrender.com
 - **Socket.IO Rooms:** `backend/services/socketAuthorization.js` requires admin/manager authentication for admin tracking, verifies artist assignment before joining session rooms, limits customers to their own support room, and binds anonymous live-support sockets to one guest room.
 - **Payment Webhook:** `/api/payments/webhook` is the only unauthenticated payment endpoint. It requires `PAYMONGO_WEBHOOK_SECRET`, a valid HMAC signature, and a timestamp within five minutes.
 - **Security Regression Suite:** Run `npm test` from `backend/` before deploying authentication, authorization, recovery, or payment changes. The suite covers unauthenticated and wrong-role admin access, cross-customer profile access, artist appointment assignment, public role escalation, expired/reused tokens, and unsigned PayMongo webhooks.
-- **Deferred Native Registration Follow-up:** Native mobile registration still needs a production-compatible CAPTCHA flow. Do not add a CAPTCHA bypass or place `RECAPTCHA_SECRET_KEY` in the app. Resolve this after Task 5; until then, production mobile registration requests without a valid CAPTCHA token are expected to be rejected by the backend.
+- **Native Registration CAPTCHA:** Mobile registration obtains a short-lived reCAPTCHA v3 `register` token from the approved website origin through a WebView bridge. The app may override that page with `EXPO_PUBLIC_CAPTCHA_WEB_URL`; `RECAPTCHA_SECRET_KEY` remains backend-only. The website must use the matching `REACT_APP_RECAPTCHA_SITE_KEY`, and every production hostname must be registered in both Google reCAPTCHA and `RECAPTCHA_ALLOWED_HOSTNAMES`.
 
 ## Important Patterns
 

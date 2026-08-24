@@ -59,6 +59,7 @@ import CustomerReports from './pages/CustomerReports';
 import TermsPage from './pages/TermsPage';
 import { MAINTENANCE_CONFIG } from './maintenanceConfig';
 import MaintenanceNotice from './pages/MaintenanceNotice';
+import MobileCaptcha from './pages/MobileCaptcha';
 
 
 
@@ -95,8 +96,11 @@ const PublicRoute = ({ children }) => {
 };
 
 function App() {
+  const isMobileCaptchaRequest = new URLSearchParams(window.location.search).get('mobileCaptcha') === 'register';
+
   return (
     <GoogleReCaptchaProvider reCaptchaKey={RECAPTCHA_SITE_KEY}>
+      {isMobileCaptchaRequest ? <MobileCaptcha /> : (
       <div className="App">
         <Router>
           <Routes>
@@ -157,6 +161,7 @@ function App() {
           </Routes>
         </Router>
       </div>
+      )}
     </GoogleReCaptchaProvider>
   );
 }
