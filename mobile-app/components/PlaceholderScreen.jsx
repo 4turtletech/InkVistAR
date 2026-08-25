@@ -1,31 +1,40 @@
 /**
- * PlaceholderScreen.jsx -- "Coming Soon" stub
+ * PlaceholderScreen.jsx -- Used for AR Tattoo Preview Launcher
  * Themed with lucide icons.
  */
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, Wrench } from 'lucide-react-native';
+import { ArrowLeft, Smartphone } from 'lucide-react-native';
 import { colors, typography, borderRadius } from '../src/theme';
+import * as Linking from 'expo-linking';
 
 export default function PlaceholderScreen({ navigation, title, feature }) {
+  const openTattooAR = () => {
+    // This will open the Swift app
+    Linking.openURL('tattooar://').catch((err) => {
+      console.error('Failed to open AR app:', err);
+      alert('Tattoo AR app is not installed or could not be opened.');
+    });
+  };
+
   return (
     <LinearGradient colors={['#0f172a', '#1e293b']} style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ArrowLeft size={22} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{title}</Text>
+        <Text style={styles.headerTitle}>{title || 'AR Tattoo Preview'}</Text>
         <View style={{ width: 40 }} />
       </View>
       <View style={styles.content}>
-        <Wrench size={64} color={colors.primary} />
-        <Text style={styles.title}>Coming Soon!</Text>
-        <Text style={styles.subtitle}>{feature} feature is under development</Text>
-        <Text style={styles.desc}>This feature will be available in the next update. Check back soon for amazing new functionality!</Text>
-        <TouchableOpacity style={styles.btn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-          <Text style={styles.btnText}>Go Back</Text>
+        <Smartphone size={64} color={colors.primary} />
+        <Text style={styles.title}>Launch AR App</Text>
+        <Text style={styles.subtitle}>Visualize designs on your skin</Text>
+        <Text style={styles.desc}>Tap the button below to open the companion Augmented Reality app and see how your tattoo will look in real-time!</Text>
+        <TouchableOpacity style={styles.btn} onPress={openTattooAR} activeOpacity={0.8}>
+          <Text style={styles.btnText}>Open Tattoo AR</Text>
         </TouchableOpacity>
       </View>
     </LinearGradient>
