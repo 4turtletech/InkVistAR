@@ -32,14 +32,6 @@ const getStatusUpdateAlert = (error) => {
     const code = response.data?.code;
     const serverMessage = response.data?.message;
 
-    if (code === 'consent_required') {
-        return {
-            title: 'Signed Consent Required',
-            message: serverMessage || 'The customer must complete the required consent waiver before this procedure can start.',
-            type: 'warning'
-        };
-    }
-
     if (['insufficient_stock', 'unsafe_inventory', 'inventory_not_found'].includes(code)) {
         return {
             title: 'Service Kit Needs Attention',

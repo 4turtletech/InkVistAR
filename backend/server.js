@@ -7222,35 +7222,6 @@ app.put('/api/appointments/:id/status', async (req, res) => {
   const { id } = req.params;
   const { status, price, isFullyComplete, sessionDuration, auditLog } = req.body;
 
-  if (status === 'in_progress' || status === 'completed') {
-    try {
-      const procedureRows = await queryAsync(
-        db,
-        `SELECT ap.service_type, ${CONSENT_EXISTS_SQL} AS has_valid_consent
-         FROM appointments ap WHERE ap.id = ? AND COALESCE(ap.is_deleted, 0) = 0 LIMIT 1`,
-        [id]
-      );
-      if (!procedureRows.length) {
-        return res.status(404).json({ success: false, message: 'Appointment not found.' });
-      }
-      const isConsultation = String(procedureRows[0].service_type || '').toLowerCase().includes('consultation');
-      if (!isConsultation && !procedureRows[0].has_valid_consent) {
-        return res.status(409).json({
-          success: false,
-          code: 'consent_required',
-          message: 'A valid signed consent record is required before the procedure can start or be completed.'
-        });
-      }
-    } catch (error) {
-      console.error('[CONSENT] Procedure gate failed:', error.message);
-      return res.status(500).json({
-        success: false,
-        code: 'consent_verification_failed',
-        message: 'Unable to verify the procedure consent record.'
-      });
-    }
-  }
-
   let appointment;
   try {
     const transition = await sessionInventoryService.transitionStatus({
