@@ -5,6 +5,8 @@ import { MessageSquare, X, Send, User, Bot, UserSquare, Check, CheckCheck, LogOu
 import { API_URL, SOCKET_URL, getSocketAccessToken } from '../config';
 import './ChatWidget.css';
 
+const CHAT_UNAVAILABLE_MESSAGE = 'AI assistance is temporarily limited. Please retry in a moment or switch to Live Support.';
+
 // Establish socket connection outside the component
 const socket = io(SOCKET_URL, { auth: async (callback) => callback({ token: await getSocketAccessToken() }) });
 
@@ -76,6 +78,49 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
     const lowerText = text.toLowerCase();
     // Use word boundaries for English to avoid false positives
     return profanityList.some(word => new RegExp(`\\b${word}\\b`, 'i').test(lowerText));
+  };
+
+  const requestAiResponse = async (messageText, { addUserMessage = true } = {}) => {
+    if (addUserMessage) {
+      setBotMessages(prev => [...prev, {
+        id: Date.now(),
+        text: messageText,
+        sender: 'user',
+        timestamp: new Date(),
+      }]);
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: messageText })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success || typeof data.response !== 'string') {
+        throw new Error(`Chat request failed with status ${response.status}`);
+      }
+
+      setBotMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        text: data.response,
+        sender: 'bot',
+        timestamp: new Date(),
+      }]);
+    } catch (error) {
+      console.error('[CHATBOT] Request failed:', error.message);
+      setBotMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        text: CHAT_UNAVAILABLE_MESSAGE,
+        sender: 'bot',
+        timestamp: new Date(),
+        canRetry: true,
+        retryText: messageText,
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const scrollToBottom = () => {
@@ -214,39 +259,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
       }]);
     } else {
       // Send to AI Bot
-      const userMessage = {
-        id: Date.now(),
-        text: messageText,
-        sender: 'user',
-        timestamp: new Date(),
-      };
-      setBotMessages(prev => [...prev, userMessage]);
-      setIsLoading(true);
-
-      try {
-        const response = await fetch(`${API_URL}/api/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: messageText })
-        });
-        const data = await response.json();
-
-        const botReply = {
-          id: Date.now() + 1,
-          text: data.success ? data.response : 'Sorry, I encountered an error.',
-          sender: 'bot',
-          timestamp: new Date(),
-        };
-        setBotMessages(prev => [...prev, botReply]);
-      } catch (error) {
-        setBotMessages(prev => [...prev, {
-          id: Date.now() + 1,
-          text: 'I seem to be offline. Please try again later.',
-          sender: 'bot',
-          timestamp: new Date(),
-        }]);
-      }
-      setIsLoading(false);
+      await requestAiResponse(messageText);
     }
   };
 
@@ -343,6 +356,16 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
               <div key={msg.id} className={`chat-message ${isUser ? 'user' : 'bot'}`}>
                 <div className={`message-bubble ${isUser ? 'user-bubble' : 'bot-bubble'}`}>
                   <p>{msg.text}</p>
+                  {msg.canRetry && !isUser && (
+                    <button
+                      type="button"
+                      className="chat-retry-btn"
+                      disabled={isLoading}
+                      onClick={() => requestAiResponse(msg.retryText, { addUserMessage: false })}
+                    >
+                      Retry
+                    </button>
+                  )}
                   <span className="message-time">
                     {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                     {isUser && isHumanMode && (

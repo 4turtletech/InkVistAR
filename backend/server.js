@@ -40,6 +40,7 @@ const { normalizePhilippineMobileNumber } = require('./services/phoneNumber');
 const { createSessionInventoryService, InventoryOperationError } = require('./services/sessionInventoryService');
 const { createFinancialLedgerService, summarizeAppointmentFinances } = require('./services/financialLedgerService');
 const { evaluateCaptchaResponse, shouldVerifyRegistrationCaptcha } = require('./services/captchaPolicy');
+const { ChatbotInputError, createChatbotResponder, withTimeout } = require('./services/chatbotResilience');
 process.env.TZ = 'Asia/Manila'; // Global Node.js timezone localization
 
 if (BYPASS_MOBILE_REGISTRATION_CAPTCHA) {
@@ -10739,77 +10740,153 @@ const sanitizeChatValue = (value, fallback, blocked = []) => {
   return blocked.some((item) => normalized.toLowerCase() === String(item).toLowerCase().trim()) ? fallback : normalized;
 };
 
-app.post('/api/chat', async (req, res) => {
-  const { message } = req.body;
-  console.log('[INFO] Chat message received.');
+const parseChatbotNumber = (value, fallback, minimum, maximum) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(maximum, Math.max(minimum, parsed));
+};
 
-  if (!message) {
-    return res.status(400).json({ success: false, message: 'Message required' });
+const CHATBOT_PROVIDER_TIMEOUT_MS = parseChatbotNumber(process.env.CHATBOT_PROVIDER_TIMEOUT_MS, 12_000, 3_000, 30_000);
+const CHATBOT_DATABASE_TIMEOUT_MS = parseChatbotNumber(process.env.CHATBOT_DATABASE_TIMEOUT_MS, 5_000, 1_000, 15_000);
+const CHATBOT_FAILURE_THRESHOLD = parseChatbotNumber(process.env.CHATBOT_FAILURE_THRESHOLD, 3, 1, 10);
+const CHATBOT_COOLDOWN_MS = parseChatbotNumber(process.env.CHATBOT_COOLDOWN_MS, 60_000, 10_000, 10 * 60_000);
+const CHATBOT_CONTEXT_CACHE_MS = parseChatbotNumber(process.env.CHATBOT_CONTEXT_CACHE_MS, 5 * 60_000, 30_000, 30 * 60_000);
+
+const DEFAULT_CHATBOT_STUDIO = Object.freeze({
+  name: 'your studio',
+  description: 'A professional tattoo and piercing studio.',
+  address: 'your studio location',
+  phone: 'the studio contact number',
+  openingTime: '1:00 PM',
+  closingTime: '10:00 PM',
+});
+
+const DEFAULT_ARTIST_ROSTER = '  - Artist roster is currently being updated. Please contact the studio for details.';
+let chatbotContextCache = null;
+
+const queryChatbotData = (sql, params = []) => withTimeout(
+  () => new Promise((resolve, reject) => {
+    db.query(sql, params, (err, results) => err ? reject(err) : resolve(results));
+  }),
+  CHATBOT_DATABASE_TIMEOUT_MS,
+  { code: 'CHATBOT_DATABASE_TIMEOUT', message: 'Chatbot database context timed out.' }
+);
+
+const loadChatbotContext = async () => {
+  if (chatbotContextCache && chatbotContextCache.expiresAt > Date.now()) {
+    return chatbotContextCache.value;
   }
 
-  // Try Groq if key exists AND client was successfully initialized
-  if (GROQ_API_KEY && groq) {
-    // Promise wrapper for callback-based db.query
-    const queryAsync = (sql, params = []) => new Promise((resolve, reject) => {
-      db.query(sql, params, (err, results) => err ? reject(err) : resolve(results));
+  const [settingsResult, artistsResult] = await Promise.allSettled([
+    queryChatbotData('SELECT * FROM app_settings'),
+    queryChatbotData(`
+      SELECT u.name,
+             COALESCE(a.specialization, 'General') as specialization,
+             COALESCE(a.experience_years, 0) as experience_years,
+             COALESCE(a.rating, 0) as rating,
+             COALESCE(a.total_reviews, 0) as total_reviews,
+             COALESCE(a.hourly_rate, 0) as hourly_rate
+      FROM users u
+      LEFT JOIN artists a ON u.id = a.user_id
+      WHERE u.user_type = 'artist' AND u.is_deleted = 0
+      ORDER BY a.rating DESC
+    `),
+  ]);
+
+  const settings = {};
+  if (settingsResult.status === 'fulfilled') {
+    settingsResult.value.forEach(row => {
+      try {
+        settings[row.section] = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+      } catch (_) {
+        settings[row.section] = row.data;
+      }
     });
+  } else {
+    console.warn(`[CHATBOT] Studio settings unavailable: ${settingsResult.reason?.code || settingsResult.reason?.message || 'database error'}`);
+  }
 
-    try {
-      // Run parallel queries: studio settings + active artist roster
-      const [settingsRows, artistRows] = await Promise.all([
-        queryAsync('SELECT * FROM app_settings'),
-        queryAsync(`
-          SELECT u.name,
-                 COALESCE(a.specialization, 'General') as specialization,
-                 COALESCE(a.experience_years, 0) as experience_years,
-                 COALESCE(a.rating, 0) as rating,
-                 COALESCE(a.total_reviews, 0) as total_reviews,
-                 COALESCE(a.hourly_rate, 0) as hourly_rate
-          FROM users u
-          LEFT JOIN artists a ON u.id = a.user_id
-          WHERE u.user_type = 'artist' AND u.is_deleted = 0
-          ORDER BY a.rating DESC
-        `)
-      ]);
+  const studio = settings.studio || {};
+  const safeStudio = {
+    name: sanitizeChatValue(studio.name, DEFAULT_CHATBOT_STUDIO.name, ['InkVistAR Studio', 'InkVictus Tattoo Studio', 'Inkvictus Tattoo Studio']),
+    description: sanitizeChatValue(studio.description, DEFAULT_CHATBOT_STUDIO.description, []),
+    address: sanitizeChatValue(studio.address, DEFAULT_CHATBOT_STUDIO.address, ['123 Art Street, City, State 12345', '123 Art Street', 'Ground Floor, W Tower, 32nd Street, corner 9th Ave, Taguig, 1634 Metro Manila, Philippines']),
+    phone: sanitizeChatValue(studio.phone, DEFAULT_CHATBOT_STUDIO.phone, ['+1-555-0100', 'contact@inkvistrar.com']),
+    openingTime: sanitizeChatValue(studio.openingTime, DEFAULT_CHATBOT_STUDIO.openingTime, ['09:00', '1:00 PM']),
+    closingTime: sanitizeChatValue(studio.closingTime, DEFAULT_CHATBOT_STUDIO.closingTime, ['18:00', '10:00 PM']),
+  };
 
-      // Parse app_settings rows into a keyed object
-      const settings = {};
-      settingsRows.forEach(row => {
-        try {
-          settings[row.section] = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
-        } catch (e) { settings[row.section] = row.data; }
-      });
+  let artistRoster = DEFAULT_ARTIST_ROSTER;
+  if (artistsResult.status === 'fulfilled' && artistsResult.value.length > 0) {
+    artistRoster = artistsResult.value.map(artist => {
+      let line = `  - ${artist.name}: ${artist.specialization}`;
+      if (artist.experience_years > 0) line += ` | ${artist.experience_years} yrs experience`;
+      if (artist.rating > 0) line += ` | Rating: ${Number(artist.rating).toFixed(1)}/5`;
+      if (artist.total_reviews > 0) line += ` (${artist.total_reviews} reviews)`;
+      return line;
+    }).join('\n');
+  } else if (artistsResult.status === 'rejected') {
+    console.warn(`[CHATBOT] Artist roster unavailable: ${artistsResult.reason?.code || artistsResult.reason?.message || 'database error'}`);
+  }
 
-      const studio = settings.studio || {};
-      const billing = settings.billing || {};
-      const care = settings.care || {};
-      const policies = settings.policies || {};
-      // Admin-overridable chatbot config (add a "chatbot" section in Admin Settings to customize)
-      const botConfig = settings.chatbot || {};
-      const safeStudio = {
-        name: sanitizeChatValue(studio.name, 'your studio', ['InkVistAR Studio', 'InkVictus Tattoo Studio', 'Inkvictus Tattoo Studio']),
-        description: sanitizeChatValue(studio.description, 'A professional tattoo and piercing studio.', []),
-        address: sanitizeChatValue(studio.address, 'your studio location', ['123 Art Street, City, State 12345', '123 Art Street', 'Ground Floor, W Tower, 32nd Street, corner 9th Ave, Taguig, 1634 Metro Manila, Philippines']),
-        phone: sanitizeChatValue(studio.phone, 'the studio contact number', ['+1-555-0100', 'contact@inkvistrar.com']),
-        openingTime: sanitizeChatValue(studio.openingTime, '1:00 PM', ['09:00', '1:00 PM']),
-        closingTime: sanitizeChatValue(studio.closingTime, '10:00 PM', ['18:00', '10:00 PM'])
-      };
+  const context = {
+    studio: safeStudio,
+    billing: settings.billing || {},
+    care: settings.care || {},
+    policies: settings.policies || {},
+    botConfig: settings.chatbot || {},
+    artistRoster,
+  };
+
+  // Cache successful data briefly to reduce repeated database reads per message.
+  if (settingsResult.status === 'fulfilled' || artistsResult.status === 'fulfilled') {
+    chatbotContextCache = { value: context, expiresAt: Date.now() + CHATBOT_CONTEXT_CACHE_MS };
+  }
+  return context;
+};
+
+const chatbotResponder = createChatbotResponder({
+  provider: GROQ_API_KEY && groq ? async ({ message, systemPrompt, timeoutMs }) => {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: message },
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.7,
+      max_tokens: 500,
+    }, {
+      timeout: timeoutMs,
+      maxRetries: 0,
+    });
+    return chatCompletion?.choices?.[0]?.message?.content;
+  } : null,
+  fallback: getFallbackResponse,
+  timeoutMs: CHATBOT_PROVIDER_TIMEOUT_MS,
+  failureThreshold: CHATBOT_FAILURE_THRESHOLD,
+  cooldownMs: CHATBOT_COOLDOWN_MS,
+});
+
+app.post('/api/chat', async (req, res) => {
+  const message = req.body?.message;
+  console.log('[INFO] Chat message received.');
+
+  try {
+    if (typeof message !== 'string' || !message.trim()) {
+      throw new ChatbotInputError('Message required');
+    }
+    if (message.trim().length > 500) {
+      throw new ChatbotInputError('Message must be 500 characters or fewer');
+    }
+
+    const context = await loadChatbotContext();
+    const { studio: safeStudio, billing, care, policies, botConfig, artistRoster } = context;
       const assistantName = sanitizeChatValue(botConfig.assistantName, `AI assistant for ${safeStudio.name}`, []);
       const customInstructions = [botConfig.customInstructions, botConfig.extraInstructions]
         .filter(Boolean)
         .join('\\n');
 
       // ── Build dynamic artist roster from DB ──
-      const artistRoster = artistRows.length > 0
-        ? artistRows.map(a => {
-            let line = `  - ${a.name}: ${a.specialization}`;
-            if (a.experience_years > 0) line += ` | ${a.experience_years} yrs experience`;
-            if (a.rating > 0) line += ` | Rating: ${Number(a.rating).toFixed(1)}/5`;
-            if (a.total_reviews > 0) line += ` (${a.total_reviews} reviews)`;
-            return line;
-          }).join('\n')
-        : '  - Artist roster is currently being updated. Please contact the studio for details.';
-
       // ── Build pricing section (admin can override via settings.chatbot.pricing) ──
       const pricingGuide = botConfig.pricing || `Pricing is case-to-case depending on size, placement, and design complexity:
   - Small tattoos (wrist, finger, behind ear): Starts at around P2,000 - P5,000
@@ -10919,35 +10996,21 @@ ${aftercareInstructions}
 
 ${customInstructions ? '=== ADDITIONAL INSTRUCTIONS ===\n' + customInstructions : ''}`.trim();
 
-      const chatCompletion = await groq.chat.completions.create({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
-        model: 'llama-3.3-70b-versatile',
-        temperature: 0.7,
-        max_tokens: 500,
-      });
+    const result = await chatbotResponder.respond({ message, context, systemPrompt });
+    console.log(`[CHATBOT] Response served by ${result.source}.`);
+    return res.json({ success: true, response: result.response, degraded: result.degraded });
+  } catch (error) {
+    if (error instanceof ChatbotInputError) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
 
-      const response = chatCompletion.choices[0].message.content;
-      console.log('[OK] Groq responded successfully.');
-      return res.json({ success: true, response });
-    } catch (error) {
-      const errStatus = error?.status || error?.statusCode || 'unknown';
-      const errType = error?.error?.type || error?.code || error?.message || 'unknown';
-      console.error(`[ERROR] Groq API failed — HTTP ${errStatus} | type: ${errType}. Falling back to rule-based responses.`);
-      const fallback = getFallbackResponse(message, { studio: safeStudio, billing, care, policies, botConfig });
-      return res.json({ success: true, response: fallback });
-    }
-  } else {
-    // Fallback if no Groq API key is configured or client failed to init
-    if (GROQ_API_KEY && !groq) {
-      console.warn('[WARN] GROQ_API_KEY is set but groq client is null — client failed to initialize. Using fallback.');
-    } else {
-      console.warn('[WARN] No GROQ_API_KEY set. Using fallback responses.');
-    }
-    const fallback = getFallbackResponse(message, { studio: { name: 'your studio', description: 'A professional tattoo and piercing studio.', address: 'your studio location', phone: 'the studio contact number', openingTime: '1:00 PM', closingTime: '10:00 PM' }, billing: {}, care: {}, policies: {}, botConfig: {} });
-    return res.json({ success: true, response: fallback });
+    // This final boundary must always produce JSON so an AI failure cannot terminate Railway's request.
+    console.error(`[CHATBOT] Unexpected route failure: ${error?.code || error?.message || 'unknown error'}`);
+    return res.json({
+      success: true,
+      response: getFallbackResponse(typeof message === 'string' ? message : '', { studio: DEFAULT_CHATBOT_STUDIO }),
+      degraded: true,
+    });
   }
 });
 

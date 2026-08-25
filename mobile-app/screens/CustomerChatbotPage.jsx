@@ -16,6 +16,8 @@ import { typography, borderRadius, shadows } from '../src/theme';
 import { sendChatMessage, API_BASE_URL, getSocketAuthToken } from '../src/utils/api';
 import io from 'socket.io-client';
 
+const CHAT_UNAVAILABLE_MESSAGE = 'AI assistance is temporarily limited. Please retry in a moment or switch to Live Support.';
+
 // Connect socket directly to the backend origin (matches web-app SOCKET_URL pattern)
 const socket = io(API_BASE_URL, {
   transports: ['websocket', 'polling'],
@@ -25,7 +27,7 @@ const socket = io(API_BASE_URL, {
   reconnectionDelay: 2000,
 });
 
-const AnimatedMessageBubble = ({ msg, currentUserName, theme, styles }) => {
+const AnimatedMessageBubble = ({ msg, currentUserName, theme, styles, onRetry, retryDisabled }) => {
   const animValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -46,6 +48,15 @@ const AnimatedMessageBubble = ({ msg, currentUserName, theme, styles }) => {
       ) : (
         <View style={[styles.bubble, (msg.sender === 'user' || msg.sender === currentUserName) ? styles.bubbleUser : styles.bubbleBot, msg.isError && styles.bubbleError]}>
           <Text style={[styles.bubbleText, (msg.sender === 'user' || msg.sender === currentUserName) ? { color: theme.backgroundDeep } : { color: theme.textPrimary }]}>{msg.text}</Text>
+          {msg.canRetry && (
+            <TouchableOpacity
+              onPress={() => onRetry(msg.retryText)}
+              disabled={retryDisabled}
+              style={[styles.retryButton, retryDisabled && styles.retryButtonDisabled]}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          )}
           <Text style={[styles.bubbleTime, (msg.sender === 'user' || msg.sender === currentUserName) ? { color: 'rgba(255,255,255,0.6)' } : { color: theme.textTertiary }]}>
             {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
@@ -124,6 +135,44 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
     sendMessageHandler(inputValue);
   };
 
+  const requestAiResponse = async (text, { addUserMessage = true } = {}) => {
+    const normalizedText = text.trim();
+    if (addUserMessage) {
+      setBotMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        text: normalizedText,
+        sender: 'user',
+        timestamp: new Date(),
+      }]);
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await sendChatMessage(normalizedText);
+      if (!response.success || typeof response.response !== 'string') {
+        throw new Error(response.message || 'Chat request failed');
+      }
+      setBotMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        sender: 'bot',
+        timestamp: new Date(),
+        text: response.response,
+      }]);
+    } catch (error) {
+      console.error('[CHATBOT] Request failed:', error.message);
+      setBotMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        sender: 'bot',
+        timestamp: new Date(),
+        text: CHAT_UNAVAILABLE_MESSAGE,
+        canRetry: true,
+        retryText: normalizedText,
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const sendMessageHandler = async (text) => {
     if (text.trim().length === 0 || isLoading) return;
     if (inputValue === text) setInputValue('');
@@ -133,16 +182,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
       socket.emit('send_message', data);
       setHumanMessages(prev => [...prev, { id: Date.now(), sender: currentUserName, text: text.trim(), timestamp: new Date() }]);
     } else {
-      const userMsg = { id: Date.now().toString(), text: text.trim(), sender: 'user', timestamp: new Date() };
-      setBotMessages(prev => [...prev, userMsg]);
-      setIsLoading(true);
-      const response = await sendChatMessage(text.trim());
-      setIsLoading(false);
-      setBotMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(), sender: 'bot', timestamp: new Date(),
-        text: response.success ? response.response : (response.message || 'Sorry, something went wrong.'),
-        isError: !response.success,
-      }]);
+      await requestAiResponse(text);
     }
   };
 
@@ -187,7 +227,15 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
         {/* Messages */}
         <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={styles.msgContent} showsVerticalScrollIndicator={false}>
           {(isHumanMode ? humanMessages : botMessages).map(msg => (
-            <AnimatedMessageBubble key={msg.id} msg={msg} currentUserName={currentUserName} theme={theme} styles={styles} />
+            <AnimatedMessageBubble
+              key={msg.id}
+              msg={msg}
+              currentUserName={currentUserName}
+              theme={theme}
+              styles={styles}
+              retryDisabled={isLoading}
+              onRetry={(retryText) => requestAiResponse(retryText, { addUserMessage: false })}
+            />
           ))}
 
           {isLoading && (
@@ -220,6 +268,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
             onBlur={() => setIsFocused(false)}
             editable={!isLoading || isHumanMode}
             multiline
+            maxLength={500}
           />
           <AnimatedTouchable onPress={handleSend} disabled={isLoading && !isHumanMode} style={styles.sendBtn}>
             <SendHorizontal size={18} color={theme.backgroundDeep} />
@@ -250,6 +299,9 @@ const getStyles = (theme) => StyleSheet.create({
   bubbleBot: { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border },
   bubbleError: { backgroundColor: '#fee2e2', borderColor: theme.error, borderWidth: 1 },
   bubbleText: { ...typography.body, lineHeight: 21, marginBottom: 4 },
+  retryButton: { alignSelf: 'flex-start', marginTop: 7, marginBottom: 4, paddingHorizontal: 12, paddingVertical: 5, borderRadius: borderRadius.round, borderWidth: 1, borderColor: theme.gold },
+  retryButtonDisabled: { opacity: 0.5 },
+  retryButtonText: { ...typography.bodyXSmall, color: theme.gold, fontWeight: '700' },
   bubbleTime: { ...typography.bodyXSmall },
   systemText: { ...typography.bodyXSmall, color: theme.textTertiary, textAlign: 'center', fontStyle: 'italic' },
   typingRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 },

@@ -118,9 +118,11 @@ const CustomerTabs = ({ user, onLogout }) => {
     <Tab.Screen name="Gallery">
       {(props) => <CustomerGallery {...props} userId={user?.id} onBack={() => props.navigation.navigate('Home')} />}
     </Tab.Screen>
-    <Tab.Screen name="AR">
-      {(props) => <PlaceholderScreen navigation={props.navigation} title="AR Tattoo Preview" feature="Augmented Reality" />}
-    </Tab.Screen>
+    {Platform.OS === 'ios' && (
+      <Tab.Screen name="AR">
+        {(props) => <PlaceholderScreen navigation={props.navigation} title="AR Tattoo Preview" feature="Augmented Reality" />}
+      </Tab.Screen>
+    )}
     <Tab.Screen name="Chat">
       {(props) => <CustomerChatbotPage {...props} userId={user.id} userName={user.name} onBack={() => props.navigation.navigate('Home')} />}
     </Tab.Screen>
