@@ -1,6 +1,7 @@
 function evaluateCaptchaResponse(data = {}, {
   expectedAction,
   minimumScore = 0.3,
+  minimumScoreByAction = {},
   allowedHostnames = new Set(),
 } = {}) {
   const hostname = String(data.hostname || '').trim().toLowerCase();
@@ -11,17 +12,21 @@ function evaluateCaptchaResponse(data = {}, {
   const hostnameMatches = allowedHostnames instanceof Set
     ? allowedHostnames.has(hostname)
     : Array.from(allowedHostnames || []).includes(hostname);
+  const actionMinimumScore = Number(minimumScoreByAction?.[data.action]);
+  const effectiveMinimumScore = Number.isFinite(actionMinimumScore)
+    ? actionMinimumScore
+    : minimumScore;
 
   return {
     valid: data.success === true
       && Number.isFinite(score)
-      && score >= minimumScore
+      && score >= effectiveMinimumScore
       && actionMatches
       && hostnameMatches,
     diagnostic: {
       success: data.success === true,
       score: Number.isFinite(score) ? score : null,
-      minimumScore,
+      minimumScore: effectiveMinimumScore,
       action: data.action || null,
       expectedAction: expectedActions,
       hostname: hostname || null,

@@ -136,7 +136,11 @@ const RECAPTCHA_ALLOWED_HOSTNAMES = new Set(
     .filter(Boolean)
 );
 
-async function verifyCaptcha(token, { expectedAction, minimumScore = RECAPTCHA_MIN_SCORE } = {}) {
+async function verifyCaptcha(token, {
+  expectedAction,
+  minimumScore = RECAPTCHA_MIN_SCORE,
+  minimumScoreByAction = {},
+} = {}) {
   if (CAPTCHA_BYPASS_ENABLED) {
     console.warn('[reCAPTCHA] Development bypass is enabled.');
     return true;
@@ -162,6 +166,7 @@ async function verifyCaptcha(token, { expectedAction, minimumScore = RECAPTCHA_M
     const { valid, diagnostic } = evaluateCaptchaResponse(data, {
       expectedAction,
       minimumScore,
+      minimumScoreByAction,
       allowedHostnames: RECAPTCHA_ALLOWED_HOSTNAMES,
     });
 
@@ -3127,17 +3132,19 @@ app.post('/api/register', async (req, res) => {
   try {
     console.log('\n[INFO] ========== REGISTER REQUEST ==========');
 
-    const { firstName, lastName, suffix, name, email, password, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent, captchaToken, captchaClient, health_conditions, allergens } = req.body;
+    const { firstName, lastName, suffix, name, email, password, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent, captchaToken, health_conditions, allergens } = req.body;
     const accountType = publicAccountType();
     const normalizedEmail = String(email || '').trim().toLowerCase();
 
     // Verify reCAPTCHA
-    const isMobileCaptcha = captchaClient === 'mobile';
     const captchaValid = await verifyCaptcha(captchaToken, {
-      // Accept the previous bridge action during rollout so Railway and Vercel
-      // can deploy in either order. New mobile tokens use mobile_register.
-      expectedAction: isMobileCaptcha ? ['mobile_register', 'register'] : 'register',
-      minimumScore: isMobileCaptcha ? RECAPTCHA_MOBILE_MIN_SCORE : RECAPTCHA_MIN_SCORE,
+      // Google signs the action into its verified response. Use that trusted
+      // value rather than a client-supplied platform flag to choose policy.
+      expectedAction: ['register', 'mobile_register'],
+      minimumScore: RECAPTCHA_MIN_SCORE,
+      minimumScoreByAction: {
+        mobile_register: RECAPTCHA_MOBILE_MIN_SCORE,
+      },
     });
     if (!captchaValid) {
       return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
