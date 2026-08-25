@@ -293,6 +293,7 @@ export const registerUser = async (name, email, password, _userType, phone, orph
       phone: phone ? sanitizeInput(phone) : undefined,
       orphanAppointmentId,
       captchaToken,
+      captchaClient: 'mobile',
       health_conditions: healthConditions.length > 0 ? healthConditions : undefined,
       allergens: healthAllergens.length > 0 ? healthAllergens : undefined
     })

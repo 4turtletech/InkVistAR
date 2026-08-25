@@ -23,7 +23,9 @@ function MobileCaptcha() {
     setFailed(false);
     setStatus('Verifying you are not a bot...');
     try {
-      const token = await executeRecaptcha('register');
+      // Keep the native bridge action separate from ordinary browser registration.
+      // The backend still validates the action, hostname, and score before accepting it.
+      const token = await executeRecaptcha('mobile_register');
       if (!token) throw new Error('Google did not return a verification token.');
 
       completedRef.current = true;

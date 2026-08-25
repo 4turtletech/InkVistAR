@@ -37,6 +37,7 @@ const { createConsentRouter } = require('./routes/consents');
 const { normalizeHealthScreeningInput } = require('./services/healthScreeningPolicy');
 const { createSessionInventoryService, InventoryOperationError } = require('./services/sessionInventoryService');
 const { createFinancialLedgerService, summarizeAppointmentFinances } = require('./services/financialLedgerService');
+const { evaluateCaptchaResponse } = require('./services/captchaPolicy');
 process.env.TZ = 'Asia/Manila'; // Global Node.js timezone localization
 
 const app = express();
@@ -122,6 +123,12 @@ const parsedRecaptchaScore = Number(process.env.RECAPTCHA_MIN_SCORE || 0.3);
 const RECAPTCHA_MIN_SCORE = Number.isFinite(parsedRecaptchaScore) && parsedRecaptchaScore >= 0 && parsedRecaptchaScore <= 1
   ? parsedRecaptchaScore
   : 0.3;
+const parsedMobileRecaptchaScore = Number(process.env.RECAPTCHA_MOBILE_MIN_SCORE || 0.1);
+const RECAPTCHA_MOBILE_MIN_SCORE = Number.isFinite(parsedMobileRecaptchaScore)
+  && parsedMobileRecaptchaScore >= 0
+  && parsedMobileRecaptchaScore <= 1
+  ? parsedMobileRecaptchaScore
+  : 0.1;
 const RECAPTCHA_ALLOWED_HOSTNAMES = new Set(
   (process.env.RECAPTCHA_ALLOWED_HOSTNAMES || 'www.inkvictusstudio.com,inkvictusstudio.com,inkvistar-web.vercel.app')
     .split(',')
@@ -129,7 +136,7 @@ const RECAPTCHA_ALLOWED_HOSTNAMES = new Set(
     .filter(Boolean)
 );
 
-async function verifyCaptcha(token, { expectedAction, remoteIp } = {}) {
+async function verifyCaptcha(token, { expectedAction, minimumScore = RECAPTCHA_MIN_SCORE } = {}) {
   if (CAPTCHA_BYPASS_ENABLED) {
     console.warn('[reCAPTCHA] Development bypass is enabled.');
     return true;
@@ -145,7 +152,6 @@ async function verifyCaptcha(token, { expectedAction, remoteIp } = {}) {
       secret: RECAPTCHA_SECRET_KEY,
       response: String(token),
     });
-    if (remoteIp) verificationBody.set('remoteip', remoteIp);
 
     const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
@@ -153,23 +159,14 @@ async function verifyCaptcha(token, { expectedAction, remoteIp } = {}) {
       body: verificationBody.toString()
     });
     const data = await response.json();
-    const hostname = String(data.hostname || '').toLowerCase();
-    const score = Number(data.score);
-    const valid = data.success === true
-      && Number.isFinite(score)
-      && score >= RECAPTCHA_MIN_SCORE
-      && (!expectedAction || data.action === expectedAction)
-      && RECAPTCHA_ALLOWED_HOSTNAMES.has(hostname);
+    const { valid, diagnostic } = evaluateCaptchaResponse(data, {
+      expectedAction,
+      minimumScore,
+      allowedHostnames: RECAPTCHA_ALLOWED_HOSTNAMES,
+    });
 
     if (!valid) {
-      console.warn('[reCAPTCHA] Verification rejected.', {
-        success: data.success === true,
-        score: Number.isFinite(score) ? score : null,
-        action: data.action || null,
-        expectedAction: expectedAction || null,
-        hostname: hostname || null,
-        errorCodes: data['error-codes'] || [],
-      });
+      console.warn('[reCAPTCHA] Verification rejected.', diagnostic);
     }
     return valid;
   } catch (err) {
@@ -3130,12 +3127,18 @@ app.post('/api/register', async (req, res) => {
   try {
     console.log('\n[INFO] ========== REGISTER REQUEST ==========');
 
-    const { firstName, lastName, suffix, name, email, password, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent, captchaToken, health_conditions, allergens } = req.body;
+    const { firstName, lastName, suffix, name, email, password, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent, captchaToken, captchaClient, health_conditions, allergens } = req.body;
     const accountType = publicAccountType();
     const normalizedEmail = String(email || '').trim().toLowerCase();
 
     // Verify reCAPTCHA
-    const captchaValid = await verifyCaptcha(captchaToken, { expectedAction: 'register', remoteIp: req.ip });
+    const isMobileCaptcha = captchaClient === 'mobile';
+    const captchaValid = await verifyCaptcha(captchaToken, {
+      // Accept the previous bridge action during rollout so Railway and Vercel
+      // can deploy in either order. New mobile tokens use mobile_register.
+      expectedAction: isMobileCaptcha ? ['mobile_register', 'register'] : 'register',
+      minimumScore: isMobileCaptcha ? RECAPTCHA_MOBILE_MIN_SCORE : RECAPTCHA_MIN_SCORE,
+    });
     if (!captchaValid) {
       return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
     }
@@ -5108,7 +5111,7 @@ app.post('/api/admin/appointments', async (req, res) => {
 
   // Verify reCAPTCHA for public wizard submissions only
   if (isFromWizard) {
-    const captchaValid = await verifyCaptcha(captchaToken, { expectedAction: 'booking', remoteIp: req.ip });
+    const captchaValid = await verifyCaptcha(captchaToken, { expectedAction: 'booking' });
     if (!captchaValid) {
       return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
     }
@@ -11873,7 +11876,7 @@ app.post('/api/contact', async (req, res) => {
     let { name, email, phone, subject, message, captchaToken } = req.body;
 
     // Verify reCAPTCHA
-    const captchaValid = await verifyCaptcha(captchaToken, { expectedAction: 'contact', remoteIp: req.ip });
+    const captchaValid = await verifyCaptcha(captchaToken, { expectedAction: 'contact' });
     if (!captchaValid) {
       return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
     }

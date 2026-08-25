@@ -315,6 +315,7 @@ SEMAPHORE_API_KEY=<key>
 
 RECAPTCHA_SECRET_KEY=<key>
 RECAPTCHA_MIN_SCORE=0.3
+RECAPTCHA_MOBILE_MIN_SCORE=0.1
 RECAPTCHA_ALLOWED_HOSTNAMES=www.inkvictusstudio.com,inkvictusstudio.com,inkvistar-web.vercel.app
 
 JWT_ACCESS_SECRET=<32+ character random secret>
@@ -336,7 +337,7 @@ BACKEND_URL=https://inkvistar-api.onrender.com
 - **Socket.IO Rooms:** `backend/services/socketAuthorization.js` requires admin/manager authentication for admin tracking, verifies artist assignment before joining session rooms, limits customers to their own support room, and binds anonymous live-support sockets to one guest room.
 - **Payment Webhook:** `/api/payments/webhook` is the only unauthenticated payment endpoint. It requires `PAYMONGO_WEBHOOK_SECRET`, a valid HMAC signature, and a timestamp within five minutes.
 - **Security Regression Suite:** Run `npm test` from `backend/` before deploying authentication, authorization, recovery, or payment changes. The suite covers unauthenticated and wrong-role admin access, cross-customer profile access, artist appointment assignment, public role escalation, expired/reused tokens, and unsigned PayMongo webhooks.
-- **Native Registration CAPTCHA:** Mobile registration obtains a short-lived reCAPTCHA v3 `register` token from the approved website origin through a WebView bridge. The app may override that page with `EXPO_PUBLIC_CAPTCHA_WEB_URL`; `RECAPTCHA_SECRET_KEY` remains backend-only. The website must use the matching `REACT_APP_RECAPTCHA_SITE_KEY`, and every production hostname must be registered in both Google reCAPTCHA and `RECAPTCHA_ALLOWED_HOSTNAMES`.
+- **Native Registration CAPTCHA:** Mobile registration obtains a short-lived reCAPTCHA v3 `mobile_register` token from the approved website origin through a WebView bridge. The app may override that page with `EXPO_PUBLIC_CAPTCHA_WEB_URL`; `RECAPTCHA_SECRET_KEY` remains backend-only. The website must use the matching `REACT_APP_RECAPTCHA_SITE_KEY`, and every production hostname must be registered in both Google reCAPTCHA and `RECAPTCHA_ALLOWED_HOSTNAMES`. The backend uses `RECAPTCHA_MOBILE_MIN_SCORE` for the WebView flow while continuing to validate the token action and hostname. Do not send `req.ip` to Google unless Express is configured with a trusted proxy chain that produces the actual client address.
 
 ## Important Patterns
 
