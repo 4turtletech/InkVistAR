@@ -8,4 +8,5 @@ require('./materialTraceability.test');
 require('./inventoryConsistency.test');
 require('./financialLedger.test');
 require('./migrationService.test');
+require('./phoneNumber.test');
 require('./captchaPolicy.test');

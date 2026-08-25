@@ -13,6 +13,7 @@ import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { getInitials } from '../src/utils/formatters';
 import { getCustomerDashboard, updateCustomerProfile, getCustomerProfile, changeCustomerPassword } from '../src/utils/api';
 import { sendOtp, verifyOtp } from '../src/api/authAPI';
+import { getPhilippineLocalMobileNumber, normalizePhilippineMobileNumber } from '../src/utils/validators';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -95,6 +96,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const styles = getStyles(theme);
   const [pendingImage, setPendingImage] = useState(null); // holds newly picked image before save
   const [savingAll, setSavingAll] = useState(false);
+  const [editProfileErrors, setEditProfileErrors] = useState({});
 
   useEffect(() => { if (userId) fetchProfile(); }, [userId]);
 
@@ -127,7 +129,11 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
     finally { setLoading(false); }
   };
 
-  const handleEdit = () => { setEditForm({ ...profile }); setEditProfileVisible(true); };
+  const handleEdit = () => {
+    setEditProfileErrors({});
+    setEditForm({ ...profile, phone: getPhilippineLocalMobileNumber(profile.phone) });
+    setEditProfileVisible(true);
+  };
   const handleMedicalEdit = () => { setMedicalForm({ ...medicalNotes }); setMedicalVisible(true); };
 
   const onRefresh = async () => {
@@ -146,14 +152,22 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   };
 
   const handleProfileSave = async () => {
+    const normalizedPhone = normalizePhilippineMobileNumber(editForm.phone);
+    if (!normalizedPhone) {
+      setEditProfileErrors({ phone: 'Enter 10 digits starting with 9, for example 9171234567.' });
+      triggerShake();
+      return;
+    }
+
+    setEditProfileErrors({});
     setLoading(true);
     try {
-      const payload = { ...editForm };
+      const payload = { ...editForm, phone: normalizedPhone };
       if (pendingImage) payload.profileImage = pendingImage;
       const res = await updateCustomerProfile(userId, payload);
       if (res.success) {
         Alert.alert('Success', 'Profile updated successfully', [{ text: 'OK' }]);
-        const updatedProfile = { ...editForm, profile_image: pendingImage || editForm.profile_image };
+        const updatedProfile = { ...editForm, phone: normalizedPhone, profile_image: pendingImage || editForm.profile_image };
         setProfile(updatedProfile);
         setPendingImage(null);
         setEditProfileVisible(false);
@@ -544,7 +558,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit Profile</Text>
-              <TouchableOpacity onPress={() => setEditProfileVisible(false)}>
+              <TouchableOpacity onPress={() => { Keyboard.dismiss(); setEditProfileVisible(false); setEditProfileErrors({}); }}>
                 <X size={24} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
@@ -561,8 +575,9 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
                     value={String(editForm[f.key] || '')}
                     onChangeText={t => {
                       if (f.key === 'phone') {
-                        const digits = t.replace(/\D/g, '').replace(/^0+/, '').slice(0, 10);
+                        const digits = getPhilippineLocalMobileNumber(t);
                         setEditForm({ ...editForm, [f.key]: digits });
+                        setEditProfileErrors(prev => ({ ...prev, phone: '' }));
                       } else {
                         setEditForm({ ...editForm, [f.key]: t });
                       }
@@ -572,6 +587,9 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
                     placeholder={f.key === 'phone' ? '9XXXXXXXXX' : ''}
                     maxLength={f.key === 'phone' ? 10 : undefined}
                   />
+                  {f.key === 'phone' && editProfileErrors.phone ? (
+                    <Text style={styles.fieldErrorText}>{editProfileErrors.phone}</Text>
+                  ) : null}
                 </View>
               ))}
               <AnimatedTouchable style={styles.saveBtn} onPress={handleProfileSave}>

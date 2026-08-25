@@ -49,6 +49,19 @@ export const isValidPhone = (phone) => {
   return digitsOnly.length >= 7 && digitsOnly.length <= 15;
 };
 
+export const getPhilippineLocalMobileNumber = (phone) => {
+  const digits = String(phone || '').replace(/\D/g, '');
+  let localNumber = digits;
+  if (localNumber.startsWith('63')) localNumber = localNumber.slice(2);
+  if (localNumber.startsWith('0')) localNumber = localNumber.slice(1);
+  return localNumber.slice(0, 10);
+};
+
+export const normalizePhilippineMobileNumber = (phone) => {
+  const localNumber = getPhilippineLocalMobileNumber(phone);
+  return /^9\d{9}$/.test(localNumber) ? `+63${localNumber}` : null;
+};
+
 export const sanitizeNumeric = (val, allowDecimal = false) => {
   if (val === null || val === undefined || val === '') return '';
   let str = String(val).trim();

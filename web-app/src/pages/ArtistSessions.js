@@ -19,6 +19,50 @@ const readHealthSnapshot = (screening) => {
     try { return JSON.parse(screening.screening_snapshot); } catch (_) { return {}; }
 };
 
+const getStatusUpdateAlert = (error) => {
+    const response = error?.response;
+    if (!response) {
+        return {
+            title: 'Connection Error',
+            message: 'The server could not be reached. Check your connection and try again.',
+            type: 'danger'
+        };
+    }
+
+    const code = response.data?.code;
+    const serverMessage = response.data?.message;
+
+    if (code === 'consent_required') {
+        return {
+            title: 'Signed Consent Required',
+            message: serverMessage || 'The customer must complete the required consent waiver before this procedure can start.',
+            type: 'warning'
+        };
+    }
+
+    if (['insufficient_stock', 'unsafe_inventory', 'inventory_not_found'].includes(code)) {
+        return {
+            title: 'Service Kit Needs Attention',
+            message: serverMessage || 'The procedure kit could not be reserved. Ask an admin to review the service kit and inventory stock.',
+            type: 'warning'
+        };
+    }
+
+    if (response.status === 401 || response.status === 403) {
+        return {
+            title: 'Permission Denied',
+            message: serverMessage || 'Your account is not authorized to update this appointment.',
+            type: 'danger'
+        };
+    }
+
+    return {
+        title: 'Status Update Failed',
+        message: serverMessage || 'The appointment status could not be updated. Please try again.',
+        type: response.status >= 500 ? 'danger' : 'warning'
+    };
+};
+
 function ArtistSessions() {
     const [sessions, setSessions] = useState([]);
     const [upcomingSessions, setUpcomingSessions] = useState([]);
@@ -698,8 +742,10 @@ function ArtistSessions() {
         }
 
         try {
-            // Save session details (notes, photos) before completing
-            if (newStatus === 'completed' && (sessionData.notes || sessionData.beforePhoto || sessionData.afterPhoto)) {
+            // Persist documentation before starting or completing so a successful
+            // status change never leaves the required photos only in browser state.
+            if ((newStatus === 'in_progress' || newStatus === 'completed')
+                && (sessionData.notes || sessionData.beforePhoto || sessionData.afterPhoto)) {
                 await Axios.put(`${API_URL}/api/appointments/${activeSession.id}/details`, {
                     notes: sessionData.notes,
                     beforePhoto: sessionData.beforePhoto,
@@ -756,7 +802,8 @@ function ArtistSessions() {
             }
         } catch (error) {
             console.error("Error updating status:", error);
-            showAlert("Connection Error", "Failed to connect to the server while updating status.", "danger");
+            const alert = getStatusUpdateAlert(error);
+            showAlert(alert.title, alert.message, alert.type);
         }
     };
 

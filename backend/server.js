@@ -36,6 +36,7 @@ const { createConsentService } = require('./services/consentService');
 const { CONSENT_EXISTS_SQL } = require('./services/checkoutConsentPolicy');
 const { createConsentRouter } = require('./routes/consents');
 const { normalizeHealthScreeningInput } = require('./services/healthScreeningPolicy');
+const { normalizePhilippineMobileNumber } = require('./services/phoneNumber');
 const { createSessionInventoryService, InventoryOperationError } = require('./services/sessionInventoryService');
 const { createFinancialLedgerService, summarizeAppointmentFinances } = require('./services/financialLedgerService');
 const { evaluateCaptchaResponse, shouldVerifyRegistrationCaptcha } = require('./services/captchaPolicy');
@@ -3922,6 +3923,7 @@ app.put('/api/customer/profile/:id', (req, res) => {
   const { id } = req.params;
   const { name, email, phone, location, notes, profileImage, health_conditions, allergens } = req.body;
   const normalizedEmail = email === undefined ? undefined : String(email).trim().toLowerCase();
+  const normalizedPhone = phone === undefined ? undefined : normalizePhilippineMobileNumber(phone);
 
   if (name !== undefined && !String(name).trim()) {
     return res.status(400).json({ success: false, message: 'Legal name is required' });
@@ -3929,17 +3931,18 @@ app.put('/api/customer/profile/:id', (req, res) => {
   if (normalizedEmail !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
     return res.status(400).json({ success: false, message: 'Enter a valid email address' });
   }
-  if (phone !== undefined && !/^\+639\d{9}$/.test(String(phone))) {
-    return res.status(400).json({ success: false, message: 'Enter a valid PH phone number' });
+  if (phone !== undefined && !normalizedPhone) {
+    return res.status(400).json({ success: false, message: 'Enter a valid PH mobile number, such as 9171234567' });
   }
 
   const updateUserPromise = new Promise((resolve, reject) => {
-    if (name === undefined && normalizedEmail === undefined && profileImage === undefined) return resolve();
+    if (name === undefined && normalizedEmail === undefined && normalizedPhone === undefined && profileImage === undefined) return resolve();
     let query = 'UPDATE users SET ';
     const params = [];
     const updates = [];
     if (name !== undefined) { updates.push('name = ?'); params.push(name); }
     if (normalizedEmail !== undefined) { updates.push('email = ?'); params.push(normalizedEmail); }
+    if (normalizedPhone !== undefined) { updates.push('phone = ?'); params.push(normalizedPhone); }
     if (profileImage !== undefined) { updates.push('profile_image = ?'); params.push(profileImage); }
     query += updates.join(', ') + ' WHERE id = ?';
     params.push(id);
@@ -3960,7 +3963,7 @@ app.put('/api/customer/profile/:id', (req, res) => {
       if (selectErr) return reject({ message: 'DB Error (Customer Select)' });
 
       const existing = results[0] || {};
-      const finalPhone = phone !== undefined ? phone : existing.phone;
+      const finalPhone = normalizedPhone !== undefined ? normalizedPhone : existing.phone;
       const finalLocation = location !== undefined ? location : existing.location;
       const finalNotes = notes !== undefined ? notes : existing.notes;
       const finalProfileImage = profileImage !== undefined ? profileImage : existing.profile_image;
@@ -4064,6 +4067,8 @@ app.get('/api/customer/artists', (req, res) => {
     LEFT JOIN artists a ON u.id = a.user_id
     LEFT JOIN portfolio_works pw ON u.id = pw.artist_id AND pw.is_deleted = 0
     WHERE u.user_type = 'artist'
+      AND u.is_deleted = 0
+      AND COALESCE(u.account_status, 'active') = 'active'
     GROUP BY u.id, u.name, u.email, 
              a.studio_name, a.experience_years,
              a.specialization, a.hourly_rate,
@@ -7238,7 +7243,11 @@ app.put('/api/appointments/:id/status', async (req, res) => {
       }
     } catch (error) {
       console.error('[CONSENT] Procedure gate failed:', error.message);
-      return res.status(500).json({ success: false, message: 'Unable to verify the procedure consent record.' });
+      return res.status(500).json({
+        success: false,
+        code: 'consent_verification_failed',
+        message: 'Unable to verify the procedure consent record.'
+      });
     }
   }
 
@@ -11673,6 +11682,7 @@ app.get('/api/artists/:id/public', (req, res) => {
     FROM users u 
     LEFT JOIN artists a ON u.id = a.user_id 
     WHERE u.id = ? AND u.user_type = 'artist' AND u.is_deleted = 0
+      AND COALESCE(u.account_status, 'active') = 'active'
   `;
   db.query(q, [id], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });

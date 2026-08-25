@@ -22,15 +22,21 @@ const PublicArtistProfile = () => {
         const fetchArtistData = async () => {
             try {
                 setLoading(true);
-                const [artistRes, reviewsRes, portfolioRes] = await Promise.all([
+                const [artistResult, reviewsResult, portfolioResult] = await Promise.allSettled([
                     Axios.get(`${API_URL}/api/artists/${id}/public`),
                     Axios.get(`${API_URL}/api/artists/${id}/reviews`),
-                    Axios.get(`${API_URL}/api/artist/${id}/portfolio`)
+                    Axios.get(`${API_URL}/api/gallery/works?artistId=${encodeURIComponent(id)}`)
                 ]);
-                
-                if (artistRes.data.success) setArtist(artistRes.data.artist);
-                if (reviewsRes.data.success) setReviews(reviewsRes.data.reviews || []);
-                if (portfolioRes.data.success) setPortfolio((portfolioRes.data.works || []).filter(w => w.is_public));
+
+                if (artistResult.status === 'fulfilled' && artistResult.value.data.success) {
+                    setArtist(artistResult.value.data.artist);
+                }
+                if (reviewsResult.status === 'fulfilled' && reviewsResult.value.data.success) {
+                    setReviews(reviewsResult.value.data.reviews || []);
+                }
+                if (portfolioResult.status === 'fulfilled' && portfolioResult.value.data.success) {
+                    setPortfolio(portfolioResult.value.data.works || []);
+                }
                 
             } catch (error) {
                 console.error("Error fetching artist details:", error);
