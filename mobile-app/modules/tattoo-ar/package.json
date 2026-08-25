@@ -1,0 +1,12 @@
+{
+  "name": "tattoo-ar",
+  "version": "1.0.0",
+  "description": "InkVistAR's iOS-only ARKit tattoo preview module",
+  "main": "index.js",
+  "private": true,
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}

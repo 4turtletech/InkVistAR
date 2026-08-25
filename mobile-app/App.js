@@ -120,7 +120,7 @@ const CustomerTabs = ({ user, onLogout }) => {
     </Tab.Screen>
     {Platform.OS === 'ios' && (
       <Tab.Screen name="AR">
-        {(props) => <PlaceholderScreen navigation={props.navigation} title="AR Tattoo Preview" feature="Augmented Reality" />}
+        {(props) => <PlaceholderScreen navigation={props.navigation} title="AR Tattoo Preview" />}
       </Tab.Screen>
     )}
     <Tab.Screen name="Chat">
