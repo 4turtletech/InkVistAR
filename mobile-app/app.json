@@ -16,7 +16,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.nglo.mobileapp",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["tattooar"]
       }
     },
     "android": {
