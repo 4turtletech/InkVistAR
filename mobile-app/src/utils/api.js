@@ -270,7 +270,7 @@ export const resetUserPassword = async (email, token, newPassword) => {
 };
 
 // Register user
-export const registerUser = async (name, email, password, _userType, phone, orphanAppointmentId, healthConditions = [], healthAllergens = [], captchaToken) => {
+export const registerUser = async (name, email, password, _userType, phone, orphanAppointmentId, healthConditions = [], healthAllergens = []) => {
   if (!name || !email || !password) {
     return { success: false, message: 'All fields are required' };
   }
@@ -280,19 +280,15 @@ export const registerUser = async (name, email, password, _userType, phone, orph
   if (password.length < 6) {
     return { success: false, message: 'Password must be at least 6 characters' };
   }
-  if (!captchaToken) {
-    return { success: false, message: 'CAPTCHA verification is required. Please try again.' };
-  }
-
   const result = await fetchAPI('/register', {
     method: 'POST',
+    headers: { 'X-InkVistAR-Client': 'mobile-app' },
     body: JSON.stringify({
       name: sanitizeInput(name),
       email: sanitizeInput(email),
       password,
       phone: phone ? sanitizeInput(phone) : undefined,
       orphanAppointmentId,
-      captchaToken,
       health_conditions: healthConditions.length > 0 ? healthConditions : undefined,
       allergens: healthAllergens.length > 0 ? healthAllergens : undefined
     })

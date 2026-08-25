@@ -35,4 +35,12 @@ function evaluateCaptchaResponse(data = {}, {
   };
 }
 
-module.exports = { evaluateCaptchaResponse };
+function shouldVerifyRegistrationCaptcha({
+  bypassMobileCaptcha = false,
+  clientHeader = '',
+} = {}) {
+  const isMobileApp = String(clientHeader).trim().toLowerCase() === 'mobile-app';
+  return !(bypassMobileCaptcha === true && isMobileApp);
+}
+
+module.exports = { evaluateCaptchaResponse, shouldVerifyRegistrationCaptcha };

@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { evaluateCaptchaResponse } = require('../services/captchaPolicy');
+const { evaluateCaptchaResponse, shouldVerifyRegistrationCaptcha } = require('../services/captchaPolicy');
 
 const allowedHostnames = new Set(['www.inkvictusstudio.com', 'inkvictusstudio.com']);
 
@@ -96,4 +96,22 @@ test('CAPTCHA rejects a valid-looking token from an unapproved hostname', () => 
   });
 
   assert.equal(result.valid, false);
+});
+
+test('temporary mobile bypass does not disable browser registration CAPTCHA', () => {
+  assert.equal(shouldVerifyRegistrationCaptcha({
+    bypassMobileCaptcha: true,
+    clientHeader: 'browser',
+  }), true);
+});
+
+test('mobile registration CAPTCHA bypass requires both the switch and mobile header', () => {
+  assert.equal(shouldVerifyRegistrationCaptcha({
+    bypassMobileCaptcha: false,
+    clientHeader: 'mobile-app',
+  }), true);
+  assert.equal(shouldVerifyRegistrationCaptcha({
+    bypassMobileCaptcha: true,
+    clientHeader: 'mobile-app',
+  }), false);
 });

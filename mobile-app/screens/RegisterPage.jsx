@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
-  ActivityIndicator,
   Dimensions,
   Keyboard,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StatusBar,
@@ -16,7 +14,6 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { WebView } from 'react-native-webview';
 import {
   ArrowRight,
   Check,
@@ -29,10 +26,8 @@ import {
   Shield,
   Sun,
   User,
-  X,
 } from 'lucide-react-native';
 import { colors, shadows } from '../src/theme';
-import { CAPTCHA_WEB_URL } from '../src/config';
 import { useTheme } from '../src/context/ThemeContext';
 import { useToast } from '../src/context/ToastContext';
 import { useShakeAnimation } from '../src/utils/animations';
@@ -125,15 +120,11 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
   const [selectedAllergens, setSelectedAllergens] = useState([]);
   const [showPhoneDropdown, setShowPhoneDropdown] = useState(false);
   const [bgIndex, setBgIndex] = useState(0);
-  const [captchaVisible, setCaptchaVisible] = useState(false);
-  const [captchaLoading, setCaptchaLoading] = useState(false);
-  const [captchaRequestKey, setCaptchaRequestKey] = useState(0);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
   const bgOpacity = useRef(new Animated.Value(1)).current;
-  const captchaHandledRef = useRef(false);
   const { shakeAnim, triggerShake } = useShakeAnimation();
 
   const { isDark, theme, toggleTheme } = useTheme();
@@ -175,21 +166,6 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
 
     return () => clearInterval(bgInterval);
   }, [bgOpacity, fadeAnim, slideAnim]);
-
-  useEffect(() => {
-    if (!captchaVisible) return undefined;
-
-    const timeout = setTimeout(() => {
-      if (captchaHandledRef.current) return;
-      captchaHandledRef.current = true;
-      setCaptchaVisible(false);
-      setCaptchaLoading(false);
-      setSubmitted(false);
-      showToast('CAPTCHA timed out. Check your connection and try again.', 'error');
-    }, 20000);
-
-    return () => clearTimeout(timeout);
-  }, [captchaRequestKey, captchaVisible, showToast]);
 
   const validateField = (name, value, nextPassword = null) => {
     let errorMsg = '';
@@ -283,7 +259,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
     return checks.every(Boolean);
   };
 
-  const completeRegistration = async (captchaToken) => {
+  const completeRegistration = async () => {
     try {
       const orphanStr = await AsyncStorage.getItem('orphanAppointmentId');
       const orphanId = orphanStr ? parseInt(orphanStr, 10) : null;
@@ -301,7 +277,6 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
         orphanId,
         selectedConditions,
         selectedAllergens,
-        captchaToken,
       );
 
       if (!result?.success) setSubmitted(false);
@@ -311,57 +286,15 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm()) {
       triggerShake();
       return;
     }
 
     Keyboard.dismiss();
-    captchaHandledRef.current = false;
     setSubmitted(true);
-    setCaptchaLoading(true);
-    setCaptchaRequestKey((current) => current + 1);
-    setCaptchaVisible(true);
-  };
-
-  const cancelCaptcha = () => {
-    if (captchaHandledRef.current) return;
-    captchaHandledRef.current = true;
-    setCaptchaVisible(false);
-    setCaptchaLoading(false);
-    setSubmitted(false);
-  };
-
-  const failCaptcha = (message = 'CAPTCHA could not load. Check your connection and try again.') => {
-    if (captchaHandledRef.current) return;
-    captchaHandledRef.current = true;
-    setCaptchaVisible(false);
-    setCaptchaLoading(false);
-    setSubmitted(false);
-    showToast(message, 'error');
-  };
-
-  const handleCaptchaMessage = async (event) => {
-    if (captchaHandledRef.current) return;
-
-    try {
-      const payload = JSON.parse(event.nativeEvent.data);
-      if (payload.type === 'captcha-error') {
-        failCaptcha(payload.message || 'CAPTCHA verification failed. Please try again.');
-        return;
-      }
-      if (payload.type !== 'captcha-token' || typeof payload.token !== 'string' || !payload.token.trim()) {
-        return;
-      }
-
-      captchaHandledRef.current = true;
-      setCaptchaVisible(false);
-      setCaptchaLoading(false);
-      await completeRegistration(payload.token.trim());
-    } catch {
-      failCaptcha('CAPTCHA returned an invalid response. Please try again.');
-    }
+    await completeRegistration();
   };
 
   const toggleTag = (setter, tag) => {
@@ -781,51 +714,6 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
         </View>
       ) : null}
 
-      <Modal
-        visible={captchaVisible}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={cancelCaptcha}
-      >
-        <View style={styles.captchaOverlay}>
-          <View style={[styles.captchaCard, { backgroundColor: theme.darkBgSecondary, borderColor: theme.border }]}>
-            <View style={styles.captchaHeader}>
-              <View>
-                <Text style={[styles.captchaTitle, { color: theme.textPrimary }]}>Security Check</Text>
-                <Text style={[styles.captchaSubtitle, { color: theme.textSecondary }]}>Verifying you are not a bot...</Text>
-              </View>
-              <TouchableOpacity onPress={cancelCaptcha} accessibilityRole="button" accessibilityLabel="Cancel CAPTCHA">
-                <X size={22} color={theme.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.captchaWebViewWrap}>
-              <WebView
-                key={captchaRequestKey}
-                source={{ uri: `${CAPTCHA_WEB_URL}${CAPTCHA_WEB_URL.includes('?') ? '&' : '?'}request=${captchaRequestKey}` }}
-                originWhitelist={['https://*']}
-                javaScriptEnabled
-                domStorageEnabled
-                thirdPartyCookiesEnabled
-                sharedCookiesEnabled
-                setSupportMultipleWindows={false}
-                onLoadStart={() => setCaptchaLoading(true)}
-                onLoadEnd={() => setCaptchaLoading(false)}
-                onMessage={handleCaptchaMessage}
-                onError={() => failCaptcha()}
-                onHttpError={() => failCaptcha('CAPTCHA service is temporarily unavailable. Please try again.')}
-                style={styles.captchaWebView}
-              />
-              {captchaLoading ? (
-                <View style={[styles.captchaLoader, { backgroundColor: theme.darkBgSecondary }]}>
-                  <ActivityIndicator size="large" color={theme.gold} />
-                </View>
-              ) : null}
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -1124,46 +1012,5 @@ const styles = StyleSheet.create({
   },
   dropdownLabel: {
     fontSize: 16,
-  },
-  captchaOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.72)',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  captchaCard: {
-    height: 230,
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 18,
-    overflow: 'hidden',
-  },
-  captchaHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  captchaTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  captchaSubtitle: {
-    fontSize: 12,
-    marginTop: 3,
-  },
-  captchaWebViewWrap: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  captchaWebView: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  captchaLoader: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
