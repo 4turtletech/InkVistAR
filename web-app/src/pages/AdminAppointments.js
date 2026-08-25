@@ -39,6 +39,8 @@ function AdminAppointments() {
     const [appointments, setAppointments] = useState([]);
     const [artists, setArtists] = useState([]);
     const [clients, setClients] = useState([]);
+    const [directoryLoading, setDirectoryLoading] = useState(true);
+    const [directoryError, setDirectoryError] = useState('');
 
     const [filteredAppointments, setFilteredAppointments] = useState(appointments);
     const [viewMode, setViewMode] = useState('calendar'); // Defaults to calendar
@@ -312,14 +314,28 @@ function AdminAppointments() {
     }, [formData.clientId, selectedAppointment]);
 
     const fetchUsers = async () => {
+        setDirectoryLoading(true);
+        setDirectoryError('');
         try {
-            const response = await Axios.get(`${API_URL}/api/debug/users`);
-            if (response.data.success) {
-                setArtists(response.data.users.filter(u => u.user_type === 'artist'));
-                setClients(response.data.users.filter(u => u.user_type === 'customer'));
+            const response = await Axios.get(`${API_URL}/api/admin/users`);
+            const users = Array.isArray(response.data?.data) ? response.data.data : [];
+            if (!response.data?.success || !Array.isArray(response.data?.data)) {
+                throw new Error('The user directory returned an invalid response.');
             }
+
+            const selectableUsers = users.filter((user) => {
+                const accountStatus = String(user.account_status || 'active').toLowerCase();
+                return !user.is_deleted && accountStatus !== 'deactivated' && accountStatus !== 'banned';
+            });
+            setArtists(selectableUsers.filter(user => user.user_type === 'artist'));
+            setClients(selectableUsers.filter(user => user.user_type === 'customer'));
         } catch (error) {
             console.error("Error fetching users:", error);
+            setArtists([]);
+            setClients([]);
+            setDirectoryError(error.response?.data?.message || 'Unable to load clients and artists.');
+        } finally {
+            setDirectoryLoading(false);
         }
     };
 
@@ -761,6 +777,9 @@ function AdminAppointments() {
     };
 
     const handleAddNew = (prefilledDate = null) => {
+        if (!directoryLoading && (directoryError || clients.length === 0 || artists.length === 0)) {
+            fetchUsers();
+        }
         const safeDate = (typeof prefilledDate === 'string') ? prefilledDate : new Date().toISOString().split('T')[0];
         setSelectedAppointment(null);
         setModalTab('details');
@@ -2340,12 +2359,35 @@ function AdminAppointments() {
                                                             </div>
                                                             {(clientDropdownOpen || clientSearch) && (
                                                                 <div className="glass-card admin-st-83ac1cb2">
-                                                                    {clients.filter(c => c.name && c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
-                                                                        <div key={c.id} className="admin-st-824731e9" onClick={() => { setFormData({ ...formData, clientId: c.id }); setClientSearch(c.name); }}>
-                                                                            <User size={16} color="#be9055" />
-                                                                            <span className="admin-st-9d3db44b">{c.name}</span>
+                                                                    {directoryLoading ? (
+                                                                        <div className="admin-st-824731e9">
+                                                                            <RefreshCw size={16} color="#94a3b8" />
+                                                                            <span className="admin-st-9d3db44b">Loading clients...</span>
                                                                         </div>
-                                                                    ))}
+                                                                    ) : directoryError ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            className="admin-st-824731e9"
+                                                                            onMouseDown={(event) => event.preventDefault()}
+                                                                            onClick={fetchUsers}
+                                                                            style={{ width: '100%', border: 0, background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                                                                        >
+                                                                            <RefreshCw size={16} color="#ef4444" />
+                                                                            <span className="admin-st-9d3db44b">{directoryError} Click to retry.</span>
+                                                                        </button>
+                                                                    ) : clients.filter(c => c.name && c.name.toLowerCase().includes(clientSearch.toLowerCase())).length > 0 ? (
+                                                                        clients.filter(c => c.name && c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
+                                                                            <div key={c.id} className="admin-st-824731e9" onClick={() => { setFormData({ ...formData, clientId: c.id }); setClientSearch(c.name); setClientDropdownOpen(false); }}>
+                                                                                <User size={16} color="#be9055" />
+                                                                                <span className="admin-st-9d3db44b">{c.name}</span>
+                                                                            </div>
+                                                                        ))
+                                                                    ) : (
+                                                                        <div className="admin-st-824731e9">
+                                                                            <User size={16} color="#94a3b8" />
+                                                                            <span className="admin-st-9d3db44b">No matching active clients.</span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -2527,20 +2569,29 @@ function AdminAppointments() {
                                                                 <div className="admin-st-fefecdf0">
                                                                     <div className="premium-input-group">
                                                                         <label className="admin-st-b8618eb2">{primaryLabel}</label>
-                                                                        <select value={formData.artistId} onChange={(e) => handleInputChange('artistId', e.target.value)} className="premium-select-v2">
-                                                                            <option value="">Select Staff</option>
+                                                                        <select value={formData.artistId} onChange={(e) => handleInputChange('artistId', e.target.value)} className="premium-select-v2" disabled={directoryLoading || !!directoryError || artists.length === 0}>
+                                                                            <option value="">
+                                                                                {directoryLoading ? 'Loading staff...' : directoryError ? 'Unable to load staff' : artists.length === 0 ? 'No active artists available' : 'Select Staff'}
+                                                                            </option>
                                                                             {artists.map(a => <option key={a.id} value={a.id}>{a.name}{a.specialization ? ` — ${a.specialization}` : ''}</option>)}
                                                                         </select>
+                                                                        {directoryError && (
+                                                                            <button type="button" onClick={fetchUsers} style={{ marginTop: '6px', padding: 0, border: 0, background: 'transparent', color: '#ef4444', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}>
+                                                                                Retry loading staff
+                                                                            </button>
+                                                                        )}
                                                                     </div>
                                                                     <div className="premium-input-group">
                                                                         <label className="admin-st-b8618eb2" style={{ whiteSpace: 'nowrap' }}>
                                                                             {secondaryLabel}
                                                                             {selectedAppointment?.status === 'completed' && <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginLeft: '4px', fontWeight: 500 }}>(Locked)</span>}
                                                                         </label>
-                                                                        <select value={formData.secondaryArtistId || ''} onChange={(e) => handleInputChange('secondaryArtistId', e.target.value)} className="premium-select-v2" disabled={selectedAppointment?.status === 'completed'}
+                                                                        <select value={formData.secondaryArtistId || ''} onChange={(e) => handleInputChange('secondaryArtistId', e.target.value)} className="premium-select-v2" disabled={selectedAppointment?.status === 'completed' || directoryLoading || !!directoryError || artists.length === 0}
                                                                             style={requiresDualStaff && !formData.secondaryArtistId ? { borderColor: '#f59e0b', boxShadow: '0 0 0 2px rgba(245,158,11,0.15)' } : {}}
                                                                         >
-                                                                            <option value="">{requiresDualStaff ? 'Select Staff (Required)' : 'None (Solo)'}</option>
+                                                                            <option value="">
+                                                                                {directoryLoading ? 'Loading staff...' : directoryError ? 'Unable to load staff' : artists.length === 0 ? 'No active artists available' : requiresDualStaff ? 'Select Staff (Required)' : 'None (Solo)'}
+                                                                            </option>
                                                                             {artists.map(a => <option key={a.id} value={a.id}>{a.name}{a.specialization ? ` — ${a.specialization}` : ''}</option>)}
                                                                         </select>
                                                                         {requiresDualStaff && (
