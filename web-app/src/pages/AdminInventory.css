@@ -222,3 +222,32 @@
         background: white !important;
     }
 }
+.inventory-edit-delete-btn {
+    position: static;
+    top: auto;
+    right: auto;
+    opacity: 1;
+    transform: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    background: #dc2626;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    z-index: auto;
+}
+
+.inventory-edit-delete-btn:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+    background: #b91c1c;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+}
+
+.inventory-edit-delete-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+}

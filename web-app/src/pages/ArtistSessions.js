@@ -73,6 +73,7 @@ function ArtistSessions() {
     const [sessionCost, setSessionCost] = useState(0);
     const [inventoryItems, setInventoryItems] = useState([]);
     const [serviceKits, setServiceKits] = useState({});
+    const [supplyLoadErrors, setSupplyLoadErrors] = useState({ inventory: '', kits: '' });
     const [addingMaterial, setAddingMaterial] = useState(false);
     const [inventorySearch, setInventorySearch] = useState('');
     const [isCompletingSession, setIsCompletingSession] = useState(false);
@@ -357,9 +358,19 @@ function ArtistSessions() {
         try {
             const res = await Axios.get(`${API_URL}/api/admin/inventory`);
             if (res.data.success && res.data.data) {
-                setInventoryItems(res.data.data.filter(item => item.current_stock > 0 && !item.is_deleted));
+                setInventoryItems(res.data.data
+                    .filter(item => !item.is_deleted)
+                    .map(item => ({ ...item, current_stock: Number(item.current_stock) || 0 })));
+                setSupplyLoadErrors(prev => ({ ...prev, inventory: '' }));
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            setInventoryItems([]);
+            setSupplyLoadErrors(prev => ({
+                ...prev,
+                inventory: e.response?.data?.message || 'Unable to load available inventory items.'
+            }));
+        }
     };
 
     const fetchServiceKits = async () => {
@@ -367,8 +378,16 @@ function ArtistSessions() {
             const res = await Axios.get(`${API_URL}/api/admin/service-kits`);
             if (res.data.success) {
                 setServiceKits(res.data.data || {});
+                setSupplyLoadErrors(prev => ({ ...prev, kits: '' }));
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            setServiceKits({});
+            setSupplyLoadErrors(prev => ({
+                ...prev,
+                kits: e.response?.data?.message || 'Unable to load service kits.'
+            }));
+        }
     };
 
     const fetchSessionMaterials = async (id) => {
@@ -1518,6 +1537,11 @@ function ArtistSessions() {
                                     <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <Package size={14}/> Consumption Log
                                     </label>
+                                    {(supplyLoadErrors.inventory || supplyLoadErrors.kits) && (
+                                        <div style={{ padding: '10px 12px', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                                            {supplyLoadErrors.inventory || supplyLoadErrors.kits}
+                                        </div>
+                                    )}
                                     {isCompletingSession || activeSession.status === 'confirmed' || activeSession.status === 'in_progress' || activeSession.status === 'completed' ? (
                                         <>
                                             <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -1592,7 +1616,7 @@ function ArtistSessions() {
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1 }}>
                                             {inventoryItems.length === 0 ? (
-                                                <div style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8' }}>No items in stock.</div>
+                                                <div style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8' }}>No active inventory items.</div>
                                             ) : (
                                                 (() => {
                                                     const filtered = inventoryItems.filter(item =>
@@ -1605,17 +1629,18 @@ function ArtistSessions() {
                                                             key={item.id}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleQuickAdd(item.id);
+                                                                if (item.current_stock > 0) handleQuickAdd(item.id);
                                                             }}
                                                             style={{
                                                                 padding: '10px 14px',
-                                                                background: '#fff',
+                                                                background: item.current_stock > 0 ? '#fff' : '#f8fafc',
                                                                 border: '1px solid #e2e8f0',
                                                                 borderRadius: '10px',
                                                                 display: 'flex',
                                                                 justifyContent: 'space-between',
                                                                 alignItems: 'center',
-                                                                cursor: 'pointer',
+                                                                cursor: item.current_stock > 0 ? 'pointer' : 'not-allowed',
+                                                                opacity: item.current_stock > 0 ? 1 : 0.7,
                                                                 transition: 'all 0.2s',
                                                                 flexShrink: 0
                                                             }}
@@ -1626,7 +1651,21 @@ function ArtistSessions() {
                                                                     {item.category} • {item.current_stock} {item.unit} available
                                                                 </div>
                                                             </div>
-                                                            <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.7rem', color: '#1e293b', background: '#e2e8f0', border: '1px solid #cbd5e1', fontWeight: 600 }}>Add</button>
+                                                            <button
+                                                                disabled={item.current_stock <= 0}
+                                                                className="btn btn-secondary"
+                                                                style={{
+                                                                    padding: '4px 10px',
+                                                                    fontSize: '0.7rem',
+                                                                    color: item.current_stock > 0 ? '#1e293b' : '#991b1b',
+                                                                    background: item.current_stock > 0 ? '#e2e8f0' : '#fee2e2',
+                                                                    border: `1px solid ${item.current_stock > 0 ? '#cbd5e1' : '#fecaca'}`,
+                                                                    fontWeight: 600,
+                                                                    cursor: item.current_stock > 0 ? 'pointer' : 'not-allowed'
+                                                                }}
+                                                            >
+                                                                {item.current_stock > 0 ? 'Add' : 'Out of Stock'}
+                                                            </button>
                                                         </div>
                                                     )) : <div style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8' }}>No matching items found.</div>;
                                                 })()

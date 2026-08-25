@@ -25,6 +25,15 @@ const INVENTORY_CATEGORIES = [
     { value: 'machinery', label: 'Machinery' }
 ];
 
+const SERVICE_KIT_TYPES = ['Tattoo Session', 'Tattoo + Piercing', 'Consultation'];
+
+const getServiceKitTypeOptions = (currentValue) => {
+    const values = currentValue && !SERVICE_KIT_TYPES.includes(currentValue)
+        ? [currentValue, ...SERVICE_KIT_TYPES]
+        : SERVICE_KIT_TYPES;
+    return values.map(value => ({ value, label: value }));
+};
+
 function AdminInventory() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -316,7 +325,7 @@ function AdminInventory() {
             setEditingKitMaterials([]);
         } catch (error) {
             console.error("Error saving service kit", error);
-            showAlert("Error", "Error saving service kit", "danger");
+            showAlert("Error", error.response?.data?.message || "Error saving service kit", "danger");
         } finally {
             setIsSaving(false);
         }
@@ -522,7 +531,7 @@ function AdminInventory() {
         openModal(setAddEditModal);
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = (id, { closeEditorOnSuccess = false } = {}) => {
         setConfirmDialog({
             isOpen: true,
             title: 'Delete Item',
@@ -531,6 +540,7 @@ function AdminInventory() {
                 setConfirmDialog({ isOpen: false });
                 try {
                     await Axios.delete(`${API_URL}/api/admin/inventory/${id}`);
+                    if (closeEditorOnSuccess) closeModal(setAddEditModal);
                     fetchInventory();
                     showAlert('Item Archived', 'The inventory item was moved to the deleted items view.', 'success');
                 } catch (error) {
@@ -1256,8 +1266,13 @@ function AdminInventory() {
                             </div>
                             <div className="modal-footer">
                                 {selectedItem && (
-                                    <button type="button" className="action-btn delete-btn admin-st-47451e19" onClick={() => { closeModal(setAddEditModal); handleDelete(selectedItem.id); }} disabled={isSaving}>
-                                        <Trash2 size={16} /> Delete Item
+                                    <button
+                                        type="button"
+                                        className="action-btn delete-btn inventory-edit-delete-btn admin-st-47451e19"
+                                        onClick={() => handleDelete(selectedItem.id, { closeEditorOnSuccess: true })}
+                                        disabled={isSaving}
+                                    >
+                                        <Trash2 size={16} /> Archive Duplicate
                                     </button>
                                 )}
                                 <button type="button" className="btn btn-secondary" onClick={() => closeModal(setAddEditModal)} disabled={isSaving}>Cancel</button>
@@ -1529,16 +1544,17 @@ function AdminInventory() {
                                 </h3>
                                 <div className="form-group">
                                     <label className="admin-st-d050454a">Service Designation *</label>
-                                    <input 
-                                        type="text" 
-                                        className={`form-input ${errors.kit_name ? 'error' : ''}`} 
-                                        placeholder="e.g. Minimalist Tattoo, Piercing"
+                                    <CustomSelect
                                         value={editingKitServiceType}
-                                        onChange={e => {
-                                            setEditingKitServiceType(e.target.value.substring(0, 50));
-                                            validateKitField(e.target.value);
+                                        onChange={value => {
+                                            setEditingKitServiceType(value);
+                                            validateKitField(value);
                                         }}
-                                        maxLength={50}
+                                        options={[
+                                            { value: '', label: '-- Select Appointment Service --' },
+                                            ...getServiceKitTypeOptions(editingKitServiceType)
+                                        ]}
+                                        width="100%"
                                     />
                                     {errors.kit_name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.kit_name}</small>}
                                 </div>
@@ -1618,15 +1634,14 @@ function AdminInventory() {
                                             <div className="inline-edit-form fade-in">
                                                 <div className="form-group">
                                                     <label className="admin-st-a2d5e684">Update Service Type Name *</label>
-                                                    <input 
-                                                        type="text" 
-                                                        className={`form-input ${errors.kit_name ? 'error' : ''}`} 
+                                                    <CustomSelect
                                                         value={editingKitServiceType}
-                                                        onChange={e => {
-                                                            setEditingKitServiceType(e.target.value.substring(0, 50));
-                                                            validateKitField(e.target.value);
+                                                        onChange={value => {
+                                                            setEditingKitServiceType(value);
+                                                            validateKitField(value);
                                                         }}
-                                                        maxLength={50}
+                                                        options={getServiceKitTypeOptions(editingKitServiceType)}
+                                                        width="100%"
                                                     />
                                                     {errors.kit_name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.kit_name}</small>}
                                                 </div>
@@ -1686,7 +1701,14 @@ function AdminInventory() {
                                         ) : (
                                             <React.Fragment>
                                                 <div className="admin-st-db565939">
-                                                    <h4 className="admin-st-323ff927">{type}</h4>
+                                                    <div>
+                                                        <h4 className="admin-st-323ff927">{type}</h4>
+                                                        {!SERVICE_KIT_TYPES.includes(type) && (
+                                                            <small style={{ color: '#b45309', fontWeight: 600 }}>
+                                                                Not linked to an appointment service. Edit this kit and select a valid service designation.
+                                                            </small>
+                                                        )}
+                                                    </div>
                                                     <div className="admin-st-c3b81489">
                                                         <button
                                                             className="action-btn edit-btn service-kit-action-btn admin-st-7f4c9b70" 

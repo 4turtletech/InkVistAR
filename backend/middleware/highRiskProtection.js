@@ -84,7 +84,14 @@ function classifyRequest(req) {
     const managerRead = method === 'GET' && /^\/api\/admin\/appointments(?:\/\d+)?$/.test(path);
     const managerInventory = /^\/api\/admin\/(?:inventory|service-kits)(?:\/|$)/.test(path)
       && !path.endsWith('/permanent');
-    return { roles: managerRead || managerInventory ? ['admin', 'manager'] : ['admin'], kind: 'role' };
+    const artistSessionSupplyRead = method === 'GET'
+      && (path === '/api/admin/inventory' || path === '/api/admin/service-kits');
+    const roles = artistSessionSupplyRead
+      ? ['admin', 'manager', 'artist']
+      : managerRead || managerInventory
+        ? ['admin', 'manager']
+        : ['admin'];
+    return { roles, kind: 'role' };
   }
   if (path.startsWith('/api/manager/')) return { roles: ['admin', 'manager'], kind: 'role' };
 

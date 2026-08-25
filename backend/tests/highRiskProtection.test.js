@@ -91,6 +91,34 @@ test('admin routes require authentication and reject customer roles', async () =
   assert.equal(managerUsers.status, 403);
 });
 
+test('artists can read session supplies but cannot manage inventory or kits', async () => {
+  const middleware = createHarness();
+
+  assert.equal((await invoke(middleware, {
+    path: '/api/admin/inventory',
+    token: 'artist',
+  })).nextCalled, true);
+  assert.equal((await invoke(middleware, {
+    path: '/api/admin/service-kits',
+    token: 'artist',
+  })).nextCalled, true);
+
+  assert.equal((await invoke(middleware, {
+    method: 'POST',
+    path: '/api/admin/service-kits',
+    token: 'artist',
+  })).status, 403);
+  assert.equal((await invoke(middleware, {
+    method: 'POST',
+    path: '/api/admin/inventory/3/transaction',
+    token: 'artist',
+  })).status, 403);
+  assert.equal((await invoke(middleware, {
+    path: '/api/admin/inventory',
+    token: 'customer',
+  })).status, 403);
+});
+
 test('customer profile access is limited to the authenticated customer', async () => {
   const middleware = createHarness();
   assert.equal((await invoke(middleware, { path: '/api/customer/profile/4', token: 'customer' })).nextCalled, true);
