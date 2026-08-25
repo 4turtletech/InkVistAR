@@ -1547,7 +1547,7 @@ struct ContentView: View {
         .overlay {
             bodyTrackingLoadingOverlay
         }
-        
+
         .onAppear {
             if showSplash {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
@@ -1728,7 +1728,7 @@ struct ContentView: View {
             recordingTimer = nil
             lastRecordingDuration = formatDuration(recordingDuration)
             isRecording = false
-            
+
             // Unlock orientation after recording
             TattooAROrientationLock.current = .allButUpsideDown
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -1751,7 +1751,7 @@ struct ContentView: View {
             } else {
                 TattooAROrientationLock.current = .portrait
             }
-            
+
             isRecording = true
             recordingDuration = 0
             recordingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
@@ -3702,7 +3702,7 @@ private struct TattooARView: UIViewRepresentable {
                         (SIMD3<Float>( 0.072,  0.005, -0.035), 0.025, "left ear"),
                         (SIMD3<Float>(-0.072,  0.005, -0.035), 0.025, "right ear"),
                     ]
-                    
+
                     var blocked = false
                     for zone in sensitiveZones {
                         if simd_distance(bestLocalPos, zone.center) < zone.radius {
@@ -3710,18 +3710,18 @@ private struct TattooARView: UIViewRepresentable {
                             break
                         }
                     }
-                    
+
                     DispatchQueue.main.async {
                         self.isSensitiveAreaBlocked.wrappedValue = blocked
                     }
-                    
+
                     if blocked {
                         // Don't update the tap offset — reject placement
                         let haptic = UINotificationFeedbackGenerator()
                         haptic.notificationOccurred(.error)
                         return
                     }
-                    
+
                     faceTapLocalOffset = bestLocalPos
                 }
             } else if configuration.bodyTrackingEnabled {
@@ -5216,7 +5216,7 @@ private struct TattooARView: UIViewRepresentable {
                         // ── Layer 1: ARKit person segmentation pre-filter ──
                         // Fast first-pass: reject triangles on walls/floor/furniture.
                         // Only active for chest/back where ARKit person seg is highly reliable.
-                        // For isolated limbs (arms/legs), ARKit person seg often fails to 
+                        // For isolated limbs (arms/legs), ARKit person seg often fails to
                         // recognize the limb as a person, causing the projection to disappear.
                         /*
                         if !isPlacementLocked,
@@ -5228,16 +5228,16 @@ private struct TattooARView: UIViewRepresentable {
                             if let screenPt = av.project(centroid) {
                                 // Convert viewport pixel coordinate to a normalized viewport coordinate (0...1)
                                 let normPt = CGPoint(x: screenPt.x / bounds.width, y: screenPt.y / bounds.height)
-                                
+
                                 // The segmentation buffer is in the raw camera image coordinate space (landscape).
                                 // displayTransform maps from image coordinates to viewport coordinates.
                                 // We invert it to map from viewport coordinates to the raw image coordinates.
                                 let displayTransform = frame.displayTransform(for: .portrait, viewportSize: bounds.size)
                                 let imagePt = normPt.applying(displayTransform.inverted())
-                                
+
                                 let pX = Int(imagePt.x * CGFloat(personSeg.width))
                                 let pY = Int(imagePt.y * CGFloat(personSeg.height))
-                                
+
                                 if pX >= 0 && pX < personSeg.width && pY >= 0 && pY < personSeg.height {
                                     let personValue = personSeg.ptr.load(fromByteOffset: pY * personSeg.bytesPerRow + pX, as: UInt8.self)
                                     if personValue < 128 {
@@ -5736,7 +5736,7 @@ private struct TattooARView: UIViewRepresentable {
                 if self.isProjectionQualityPoor.wrappedValue != true {
                     DispatchQueue.main.async { self.isProjectionQualityPoor.wrappedValue = true }
                 }
-                return false 
+                return false
             }
 
             var descriptor = MeshDescriptor()
