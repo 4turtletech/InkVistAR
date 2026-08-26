@@ -13,6 +13,7 @@ import SensitiveContentAnalysis
 /// This runs entirely on-device — no data leaves the phone.
 /// Requires iOS 17+ and the `com.apple.developer.sensitivecontentanalysis.client` entitlement.
 /// Only functions if the user has "Sensitive Content Warning" enabled in Settings → Privacy & Security.
+@available(iOS 26.0, *)
 @MainActor
 final class SensitiveContentManager: ObservableObject {
     /// Whether the current camera view contains sensitive content
