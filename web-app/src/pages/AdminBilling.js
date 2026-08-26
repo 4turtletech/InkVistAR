@@ -15,6 +15,14 @@ import './AdminStyles.css';
 import { API_URL } from '../config';
 import { formatStatus } from '../utils/formatters';
 
+const isEditableInvoiceRecord = (invoice) => invoice?.record_source === 'invoice' || Boolean(invoice?.invoice_number);
+
+const getInvoiceSourceId = (invoice) => {
+    if (invoice?.source_id) return invoice.source_id;
+    if (invoice?.invoice_number && Number(invoice.id) >= 100000) return Number(invoice.id) - 100000;
+    return invoice?.id;
+};
+
 function AdminBilling() {
     const [activeTab, setActiveTab] = useState('invoices');
     const [invoices, setInvoices] = useState([]);
@@ -85,6 +93,9 @@ function AdminBilling() {
             case 'amount':
                 if (!value || parseFloat(value) <= 0) errorMsg = 'Amount must be greater than 0';
                 break;
+            case 'type':
+                if (!value || !value.trim()) errorMsg = 'Service type is required';
+                break;
             default: break;
         }
         setInvoiceErrors(prev => ({ ...prev, [field]: errorMsg }));
@@ -119,6 +130,8 @@ function AdminBilling() {
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [payoutCurrentPage, setPayoutCurrentPage] = useState(1);
+    const [payoutItemsPerPage, setPayoutItemsPerPage] = useState(10);
     const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
 
     const handleSort = (key) => {
@@ -160,18 +173,22 @@ function AdminBilling() {
     // Modal animation handlers
     const openModal = (mode = 'create', invoice = null) => {
         if (mode === 'edit' && invoice) {
+            if (!isEditableInvoiceRecord(invoice)) {
+                showAlert('Read-only Payment', 'Payment transactions are immutable. Edit the generated invoice record instead.', 'warning');
+                return;
+            }
             setNewInvoice({
-                customerId: invoice.customer_id || null,
+                customerId: invoice.customer_id || invoice.client_id || null,
                 customerName: invoice.client_name || '',
                 appointmentId: invoice.appointment_id || '',
                 amount: invoice.amount,
                 type: invoice.service_type,
-                method: 'Cash',
+                method: invoice.payment_method || 'Digital',
                 status: invoice.status
             });
             setClientSearch(invoice.client_name || '');
             setInvoiceErrors({});
-            setInvoiceModal({ mounted: true, visible: false, mode: 'edit', id: invoice.id });
+            setInvoiceModal({ mounted: true, visible: false, mode: 'edit', id: getInvoiceSourceId(invoice) });
         } else {
             setNewInvoice({ customerId: null, customerName: '', appointmentId: '', amount: '', type: '', method: 'Cash', status: 'Pending' });
             setClientSearch('');
@@ -252,20 +269,24 @@ function AdminBilling() {
         if (invoiceModal.mode === 'edit') {
             // Edit mode — update existing invoice (keep original flow)
             const clientValid = newInvoice.customerName && newInvoice.customerName.trim();
+            const typeValid = validateInvoiceField('type', newInvoice.type);
             const amountValid = validateInvoiceField('amount', newInvoice.amount);
-            if (!clientValid || !amountValid) {
+            if (!clientValid || !typeValid || !amountValid) {
                 showAlert("Error", "Please fix validation errors before saving.", "warning");
                 return;
             }
             try {
-                await Axios.put(`${API_URL}/api/admin/invoices/${invoiceModal.id}`, {
+                const response = await Axios.put(`${API_URL}/api/admin/invoices/${invoiceModal.id}`, {
                     client: newInvoice.customerName,
                     type: newInvoice.type,
                     amount: newInvoice.amount,
-                    status: newInvoice.status
+                    status: newInvoice.status,
+                    payment_method: newInvoice.method
                 });
+                if (!response.data?.success) throw new Error(response.data?.message || 'Invoice update failed.');
                 closeModal();
-                fetchData();
+                await fetchData();
+                showAlert('Invoice Updated', 'The billing record was updated successfully.', 'success');
             } catch (error) {
                 showAlert("Error", "Failed to update invoice: " + (error.response?.data?.message || error.message), "danger");
             }
@@ -308,10 +329,13 @@ function AdminBilling() {
             onConfirm: async () => {
                 setConfirmDialog({ isOpen: false });
                 try {
-                    await Axios.delete(`${API_URL}/api/admin/invoices/${id}`);
-                    fetchData();
+                    const response = await Axios.delete(`${API_URL}/api/admin/invoices/${id}`);
+                    if (!response.data?.success) throw new Error(response.data?.message || 'Invoice delete failed.');
+                    await fetchData();
+                    showAlert('Invoice Deleted', 'The invoice was deleted successfully.', 'success');
                 } catch (error) {
                     console.error("Error deleting invoice:", error);
+                    showAlert('Delete Failed', error.response?.data?.message || error.message || 'The invoice could not be deleted.', 'danger');
                 }
             }
         });
@@ -478,6 +502,20 @@ function AdminBilling() {
         const matchesSearch = artistName.toLowerCase().includes(searchLower) || (p.reference_no || '').toLowerCase().includes(searchLower);
         return matchesDate && matchesMethod && matchesSearch;
     });
+
+    const payoutTotalPages = Math.ceil(filteredPayouts.length / payoutItemsPerPage);
+    const paginatedPayouts = filteredPayouts.slice(
+        (payoutCurrentPage - 1) * payoutItemsPerPage,
+        payoutCurrentPage * payoutItemsPerPage
+    );
+
+    useEffect(() => {
+        setPayoutCurrentPage(1);
+    }, [payoutSearchTerm, payoutMethodFilter, timePeriodFilter, customStartDate, customEndDate]);
+
+    useEffect(() => {
+        setPayoutCurrentPage(page => Math.min(page, Math.max(1, payoutTotalPages)));
+    }, [payoutTotalPages]);
 
     const payoutSearchSuggestions = Array.from(new Set([
         ...payouts.map(p => (p.artist_name || 'Artist #' + p.artist_id).trim()),
@@ -657,7 +695,7 @@ function AdminBilling() {
                                         {loading ? (
                                             <tr><td colSpan="8" className="no-data admin-st-3927920f">Loading invoices...</td></tr>
                                         ) : paginatedInvoices.map(inv => (
-                                            <tr key={inv.id}>
+                                            <tr key={`${inv.record_source || 'record'}-${inv.id}`}>
                                                 <td data-label="Invoice ID">{inv.invoice_number || `INV-${String(inv.id).padStart(6, '0')}`}</td>
                                                 <td data-label="Client">{inv.client_name || 'Walk-in Customer'}</td>
                                                 <td data-label="Service">
@@ -690,12 +728,16 @@ function AdminBilling() {
                                                         <button className="action-btn" title="View / Print Invoice" onClick={() => openPreview(inv)}>
                                                             <FileText size={16}/>
                                                         </button>
-                                                        <button className="action-btn" title="Edit" onClick={() => openModal('edit', inv)}>
-                                                            <Edit size={16}/>
-                                                        </button>
-                                                        <button className="action-btn delete-btn" title="Delete" onClick={() => handleDeleteInvoice(inv.id)}>
-                                                            <Trash2 size={16}/>
-                                                        </button>
+                                                        {isEditableInvoiceRecord(inv) && (
+                                                            <>
+                                                                <button className="action-btn" title="Edit Invoice" onClick={() => openModal('edit', inv)}>
+                                                                    <Edit size={16}/>
+                                                                </button>
+                                                                <button className="action-btn delete-btn" title="Delete Invoice" onClick={() => handleDeleteInvoice(getInvoiceSourceId(inv))}>
+                                                                    <Trash2 size={16}/>
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -820,7 +862,7 @@ function AdminBilling() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredPayouts.map(p => (
+                                    {paginatedPayouts.map(p => (
                                         <tr key={p.id}>
                                             <td data-label="Date">{new Date(p.created_at).toLocaleDateString()}</td>
                                             <td data-label="Staff">{p.artist_name || 'Artist #' + p.artist_id}</td>
@@ -834,6 +876,18 @@ function AdminBilling() {
                                 </tbody>
                             </table>
                         </div>
+                        <Pagination
+                            currentPage={payoutCurrentPage}
+                            totalPages={payoutTotalPages}
+                            onPageChange={setPayoutCurrentPage}
+                            itemsPerPage={payoutItemsPerPage}
+                            onItemsPerPageChange={(newVal) => {
+                                setPayoutItemsPerPage(newVal);
+                                setPayoutCurrentPage(1);
+                            }}
+                            totalItems={filteredPayouts.length}
+                            unit="payouts"
+                        />
                     </div>
                 ) : null}
 
@@ -969,6 +1023,20 @@ function AdminBilling() {
                                         </div>
                                     )}
 
+                                    {invoiceModal.mode === 'edit' && (
+                                        <div className="form-group admin-mb-20">
+                                            <label className={`admin-st-19644797 ${invoiceErrors.type ? 'text-red-500' : ''}`}>Service Classification <span style={{ color: '#ef4444' }}>*</span></label>
+                                            <input
+                                                type="text"
+                                                className={`form-input ${invoiceErrors.type ? 'border-red-500 bg-red-50' : ''}`}
+                                                value={newInvoice.type || ''}
+                                                onChange={e => handleInvoiceChange('type', e.target.value.substring(0, 255))}
+                                                required
+                                            />
+                                            {invoiceErrors.type && <span className="text-red-500 text-xs mt-1 block">{invoiceErrors.type}</span>}
+                                        </div>
+                                    )}
+
                                     {/* ── Amount + Payment Method ── */}
                                     <div className="admin-st-f9a903f8">
                                         <div className="form-group">
@@ -976,7 +1044,7 @@ function AdminBilling() {
                                             <input
                                                 type="number"
                                                 step="0.01"
-                                                min="0"
+                                                min="0.01"
                                                 className={`form-input ${invoiceErrors.amount ? 'border-red-500 bg-red-50' : ''}`}
                                                 required
                                                 value={newInvoice.amount}
@@ -999,13 +1067,32 @@ function AdminBilling() {
                                                 <option value="GCash">GCash</option>
                                                 <option value="Bank Transfer">Bank Transfer</option>
                                                 <option value="Card">Card</option>
+                                                <option value="Digital">Digital</option>
+                                                <option value="Manual">Manual</option>
                                             </select>
                                         </div>
                                     </div>
 
+                                    {invoiceModal.mode === 'edit' && (
+                                        <div className="form-group admin-mb-20">
+                                            <label className="admin-st-19644797">Invoice Status</label>
+                                            <select
+                                                className="form-input"
+                                                value={String(newInvoice.status || 'Pending').toLowerCase()}
+                                                onChange={e => handleInvoiceChange('status', e.target.value)}
+                                            >
+                                                <option value="pending">Pending</option>
+                                                <option value="paid">Paid</option>
+                                                <option value="cancelled">Cancelled</option>
+                                            </select>
+                                        </div>
+                                    )}
+
                                     <div className="admin-st-7460b907">
                                         <p className="admin-st-76a35748">
-                                            * This action will record a payment against the selected appointment, generate an invoice, send a notification and receipt email to the client, and update payment status across the system.
+                                            {invoiceModal.mode === 'edit'
+                                                ? '* This updates the invoice document only. It does not create, reverse, or alter the underlying payment transaction.'
+                                                : '* This action will record a payment against the selected appointment, generate an invoice, send a notification and receipt email to the client, and update payment status across the system.'}
                                         </p>
                                     </div>
                                 </div>

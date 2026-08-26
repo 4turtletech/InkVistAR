@@ -12,3 +12,4 @@ require('./phoneNumber.test');
 require('./captchaPolicy.test');
 require('./chatbotResilience.test');
 require('./expoPushService.test');
+require('./invoiceRecordService.test');

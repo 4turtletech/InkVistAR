@@ -225,6 +225,14 @@ const PayMongoPayment = () => {
                         >
                             Confirm Selection <CreditCard size={18} />
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/customer/bookings')}
+                            className="btn btn-secondary"
+                            style={{ ...btnBase, background: 'transparent', color: '#64748b', marginTop: '10px', fontSize: '0.9rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                        >
+                            <ArrowLeft size={17} /> Back to Bookings
+                        </button>
                     </>
                 ) : status === 'initializing' || status === 'processing' ? (
                     <div style={{ textAlign: 'center', padding: '48px 0' }}>

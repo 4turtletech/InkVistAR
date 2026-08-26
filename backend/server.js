@@ -39,6 +39,7 @@ const { normalizeHealthScreeningInput } = require('./services/healthScreeningPol
 const { normalizePhilippineMobileNumber } = require('./services/phoneNumber');
 const { createSessionInventoryService, InventoryOperationError } = require('./services/sessionInventoryService');
 const { createFinancialLedgerService, summarizeAppointmentFinances } = require('./services/financialLedgerService');
+const { InvoiceRecordInputError, buildInvoiceUpdate } = require('./services/invoiceRecordService');
 const { evaluateCaptchaResponse, shouldVerifyRegistrationCaptcha } = require('./services/captchaPolicy');
 const { ChatbotInputError, createChatbotResponder, withTimeout } = require('./services/chatbotResilience');
 const {
@@ -6854,15 +6855,20 @@ app.get('/api/admin/invoices', (req, res) => {
   // Query 1: Payment-based invoices (from PayMongo / appointment payments)
   const paymentsQuery = `
     SELECT 
-      p.id, 
+      p.id,
+      p.id as source_id,
+      'payment' as record_source,
       NULL as invoice_number,
       u.name as client_name, 
       u.id as client_id,
+      u.id as customer_id,
+      p.appointment_id,
       COALESCE(a.service_type, 'Service') as service_type, 
       p.created_at, 
       (p.amount / 100) as amount, 
       p.status,
       p.raw_event,
+      NULL as payment_method,
       NULL as items,
       NULL as discount_amount,
       NULL as discount_type
@@ -6876,14 +6882,19 @@ app.get('/api/admin/invoices', (req, res) => {
   const invoicesQuery = `
     SELECT 
       (id + 100000) as id,
+      id as source_id,
+      'invoice' as record_source,
       invoice_number,
       client_name,
       customer_id as client_id,
+      customer_id,
+      appointment_id,
       service_type,
       created_at,
       amount,
       status,
       NULL as raw_event,
+      payment_method,
       items,
       discount_amount,
       discount_type
@@ -10456,30 +10467,52 @@ app.post('/api/admin/invoices', (req, res) => {
 
 // Admin: Update Invoice
 app.put('/api/admin/invoices/:id', (req, res) => {
-  const { id } = req.params;
-  const { client, type, amount, discount_amount, discount_type, status, items } = req.body;
-  console.log(`[INFO] Updating invoice ${id}`);
-  const targetDiscount = discount_amount || 0;
-  const itemsJson = items ? JSON.stringify(items) : null;
-  const query = 'UPDATE invoices SET client_name = ?, service_type = ?, amount = ?, discount_amount = ?, discount_type = ?, status = ?, items = ? WHERE id = ?';
-  db.query(query, [client, type, amount, targetDiscount, discount_type || null, status, itemsJson, id], (err) => {
+  const invoiceId = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(invoiceId) || invoiceId <= 0) {
+    return res.status(400).json({ success: false, message: 'A valid invoice ID is required.' });
+  }
+
+  let update;
+  try {
+    update = buildInvoiceUpdate(req.body);
+  } catch (error) {
+    if (error instanceof InvoiceRecordInputError) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
+    }
+    throw error;
+  }
+
+  console.log(`[INFO] Updating invoice ${invoiceId}`);
+  const query = `UPDATE invoices SET ${update.assignments.join(', ')} WHERE id = ?`;
+  db.query(query, [...update.values, invoiceId], (err, result) => {
     if (err) {
       console.error(`[DEBUG] Update error:`, err);
       return res.status(500).json({ success: false, message: err.message });
     }
+    if (!result || result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Invoice not found. Payment transactions cannot be edited as invoices.' });
+    }
+    logAction(getAdminId(req), 'UPDATE_INVOICE', `Updated invoice ID ${invoiceId}`, req.ip);
     res.json({ success: true, message: 'Invoice updated' });
   });
 });
 
 // Admin: Delete Invoice
 app.delete('/api/admin/invoices/:id', (req, res) => {
-  const { id } = req.params;
-  console.log(`[DEBUG] Deleting invoice ${id}`);
-  db.query('DELETE FROM invoices WHERE id = ?', [id], (err) => {
+  const invoiceId = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(invoiceId) || invoiceId <= 0) {
+    return res.status(400).json({ success: false, message: 'A valid invoice ID is required.' });
+  }
+  console.log(`[DEBUG] Deleting invoice ${invoiceId}`);
+  db.query('DELETE FROM invoices WHERE id = ?', [invoiceId], (err, result) => {
     if (err) {
       console.error(`[DEBUG] Delete error:`, err);
       return res.status(500).json({ success: false, message: err.message });
     }
+    if (!result || result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Invoice not found.' });
+    }
+    logAction(getAdminId(req), 'DELETE_INVOICE', `Deleted invoice ID ${invoiceId}`, req.ip);
     res.json({ success: true, message: 'Invoice deleted' });
   });
 });

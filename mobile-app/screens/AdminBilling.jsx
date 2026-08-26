@@ -24,6 +24,14 @@ import { ConfirmModal } from '../src/components/shared/ConfirmModal';
 import { formatCurrency, formatDate } from '../src/utils/formatters';
 import { fetchAPI } from '../src/utils/api';
 
+const isEditableInvoiceRecord = (invoice) => invoice?.record_source === 'invoice' || Boolean(invoice?.invoice_number);
+
+const getInvoiceSourceId = (invoice) => {
+  if (invoice?.source_id) return invoice.source_id;
+  if (invoice?.invoice_number && Number(invoice.id) >= 100000) return Number(invoice.id) - 100000;
+  return invoice?.id;
+};
+
 export const AdminBilling = ({ navigation }) => {
   const { theme, hapticsEnabled } = useTheme();
   const insets = useSafeAreaInsets();
@@ -187,8 +195,12 @@ export const AdminBilling = ({ navigation }) => {
   };
 
   const handleUpdateInvoice = async () => {
+    if (!isEditableInvoiceRecord(invoiceDetail)) {
+      Alert.alert('Read-only Payment', 'Payment transactions cannot be edited as invoices.');
+      return;
+    }
     try {
-      const data = await fetchAPI(`/admin/invoices/${invoiceDetail.id}`, {
+      const data = await fetchAPI(`/admin/invoices/${getInvoiceSourceId(invoiceDetail)}`, {
         method: 'PUT',
         body: JSON.stringify({
           client: invoiceDetail.client_name,
@@ -393,7 +405,7 @@ export const AdminBilling = ({ navigation }) => {
               })
           }
           renderItem={activeTab === 'invoices' ? renderInvoice : renderPayout}
-          keyExtractor={item => item.id.toString()}
+          keyExtractor={item => `${item.record_source || 'record'}-${item.id}`}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={<EmptyState icon={activeTab === 'invoices' ? FileText : Banknote} title={`No ${activeTab} found`} />}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={theme.gold} />}
@@ -445,15 +457,21 @@ export const AdminBilling = ({ navigation }) => {
                       </View>
                     )}
                     
-                    <AnimatedTouchable style={[styles.saveBtn, { marginTop: 20 }]} onPress={() => {
-                      setInvoiceDetail(prev => ({
-                        ...prev,
-                        amount: prev.amount ? parseFloat(prev.amount).toFixed(2) : ''
-                      }));
-                      setIsEditingInvoice(true);
-                    }}>
-                      <Text style={styles.saveBtnText}>Edit Invoice</Text>
-                    </AnimatedTouchable>
+                    {isEditableInvoiceRecord(invoiceDetail) ? (
+                      <AnimatedTouchable style={[styles.saveBtn, { marginTop: 20 }]} onPress={() => {
+                        setInvoiceDetail(prev => ({
+                          ...prev,
+                          amount: prev.amount ? parseFloat(prev.amount).toFixed(2) : ''
+                        }));
+                        setIsEditingInvoice(true);
+                      }}>
+                        <Text style={styles.saveBtnText}>Edit Invoice</Text>
+                      </AnimatedTouchable>
+                    ) : (
+                      <Text style={{ ...typography.bodyXSmall, color: theme.textTertiary, marginTop: 20, textAlign: 'center' }}>
+                        Payment transactions are read-only. Edit the generated invoice record instead.
+                      </Text>
+                    )}
                     <View style={{ height: 30 }} />
                   </>
                 ) : (
