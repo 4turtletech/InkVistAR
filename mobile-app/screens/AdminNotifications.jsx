@@ -139,18 +139,23 @@ export const AdminNotifications = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all'); // all, unread, read
+  const [loadError, setLoadError] = useState('');
 
   const loadNotifications = async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const userStr = await AsyncStorage.getItem('user_session');
       const userId = userStr ? JSON.parse(userStr).id : 1;
       const result = await getNotifications(userId, { limit: 100 });
       if (result.success) {
         setNotifications(result.notifications || []);
+      } else {
+        setLoadError(result.message || 'Unable to load notifications.');
       }
     } catch (err) {
       console.error('Error loading notifications:', err);
+      setLoadError('Unable to load notifications.');
     }
     setLoading(false);
   };
@@ -230,6 +235,12 @@ export const AdminNotifications = ({ navigation }) => {
           </AnimatedTouchable>
         )}
       </View>
+
+      {loadError ? (
+        <TouchableOpacity onPress={loadNotifications} style={{ paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#fef2f2' }}>
+          <Text style={{ color: theme.error, textAlign: 'center' }}>{loadError} Tap to retry.</Text>
+        </TouchableOpacity>
+      ) : null}
 
       <View style={styles.searchBar}>
         <Search size={18} color={theme.textTertiary} />

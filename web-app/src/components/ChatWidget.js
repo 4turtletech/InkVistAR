@@ -7,9 +7,6 @@ import './ChatWidget.css';
 
 const CHAT_UNAVAILABLE_MESSAGE = 'AI assistance is temporarily limited. Please retry in a moment or switch to Live Support.';
 
-// Establish socket connection outside the component
-const socket = io(SOCKET_URL, { auth: async (callback) => callback({ token: await getSocketAccessToken() }) });
-
 export default function ChatWidget({ room = null, currentUser = 'Guest', userName = 'Guest User', customerName = '', isAdminMode = false, initialMessages = null }) {
   // Initialize state from sessionStorage or defaults
   const [isOpen, setIsOpen] = useState(isAdminMode ? true : false);
@@ -65,6 +62,8 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const socketRef = useRef(null);
+  const [isLiveConnected, setIsLiveConnected] = useState(false);
   const [lastMessageTime, setLastMessageTime] = useState(0);
   const [recentMessages, setRecentMessages] = useState([]);
   const [profanityStrikes, setProfanityStrikes] = useState(0);
@@ -142,12 +141,42 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
 
   // Socket.io Setup for Live Chat
   useEffect(() => {
-    socket.emit('join_room', activeRoom);
+    if (!activeRoom) return undefined;
 
-    // If switching to human mode or already in human mode, ensure backend knows about this session
-    if (isHumanMode && !isAdminMode) {
-      socket.emit('start_support_session', { room: activeRoom, name: userName });
-    }
+    const socket = io(SOCKET_URL, {
+      autoConnect: false,
+      auth: async (callback) => callback({ token: await getSocketAccessToken() }),
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1500,
+    });
+    socketRef.current = socket;
+
+    const appendConnectionMessage = (text) => {
+      setHumanMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.sender === 'system' && last.text === text) return prev;
+        return [...prev, { id: `system-${Date.now()}`, sender: 'system', text, timestamp: new Date() }];
+      });
+    };
+
+    const connectHandler = () => {
+      setIsLiveConnected(true);
+      socket.emit('join_room', activeRoom);
+      if (isHumanMode && !isAdminMode) {
+        socket.emit('start_support_session', { room: activeRoom, name: userName });
+      }
+    };
+
+    const disconnectHandler = () => setIsLiveConnected(false);
+    const connectErrorHandler = () => {
+      setIsLiveConnected(false);
+      appendConnectionMessage('Unable to connect to live support. Please try again.');
+    };
+    const authorizationErrorHandler = () => {
+      setIsLiveConnected(false);
+      appendConnectionMessage('Your live-chat session could not be authorized. Please sign in again or retry.');
+    };
 
     const receiveMessageHandler = (data) => {
       // For Admins, we don't want to hear messages strictly meant for other rooms 
@@ -170,6 +199,10 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
       }
     };
 
+    socket.on('connect', connectHandler);
+    socket.on('disconnect', disconnectHandler);
+    socket.on('connect_error', connectErrorHandler);
+    socket.on('authorization_error', authorizationErrorHandler);
     socket.on('receive_message', receiveMessageHandler);
     socket.on('session_closed', sessionClosedHandler);
 
@@ -185,13 +218,14 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
       }));
     };
     socket.on('messages_read', messagesReadHandler);
+    socket.connect();
 
     return () => {
-      socket.off('receive_message', receiveMessageHandler);
-      socket.off('session_closed', sessionClosedHandler);
-      socket.off('messages_read', messagesReadHandler);
+      if (socketRef.current === socket) socketRef.current = null;
+      socket.disconnect();
+      setIsLiveConnected(false);
     };
-  }, [activeRoom, isHumanMode, isAdminMode, humanMessages.length]);
+  }, [activeRoom, isHumanMode, isAdminMode, currentUser, userName]);
 
   const handleSend = async (e) => {
     if (e) e.preventDefault();
@@ -239,17 +273,25 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
       return;
     }
 
-    setLastMessageTime(now);
-    setInputValue('');
-
     if (isHumanMode) {
+      if (!socketRef.current?.connected) {
+        setHumanMessages(prev => [...prev, {
+          id: `system-${Date.now()}`,
+          sender: 'system',
+          text: 'Live support is reconnecting. Your message was not sent; please retry.',
+          timestamp: new Date(),
+        }]);
+        return;
+      }
+      setLastMessageTime(now);
+      setInputValue('');
       // Send to Live Chat
       const messageData = {
         room: activeRoom,
         sender: currentUser,
         text: messageText,
       };
-      socket.emit('send_message', messageData);
+      socketRef.current.emit('send_message', messageData);
       setHumanMessages(prev => [...prev, {
         id: Date.now(),
         sender: currentUser,
@@ -258,6 +300,8 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
         read: false
       }]);
     } else {
+      setLastMessageTime(now);
+      setInputValue('');
       // Send to AI Bot
       await requestAiResponse(messageText);
     }
@@ -277,7 +321,8 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
     if (!isHumanMode || !isOpen) return;
     const hasUnread = humanMessages.some(msg => msg.sender !== currentUser && msg.sender !== 'system' && !msg.read);
     if (hasUnread) {
-      socket.emit('mark_read', { room: activeRoom, reader: currentUser });
+      if (!socketRef.current?.connected) return;
+      socketRef.current.emit('mark_read', { room: activeRoom, reader: currentUser });
       // Locally mark them as read too
       setHumanMessages(prev => prev.map(msg => {
         if (msg.sender !== currentUser && msg.sender !== 'system' && !msg.read) {
@@ -296,13 +341,13 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
         <div className="chat-header">
           <div className="chat-header-info">
             <span className="chat-title">{isAdminMode ? (customerName || 'Customer') : (isHumanMode ? 'Live Chat Support' : 'Tattoo AI Assistant')}</span>
-            <span className="chat-subtitle">{isHumanMode ? 'Connected to Studio Admin' : 'Always here to help'}</span>
+            <span className="chat-subtitle">{isHumanMode ? (isLiveConnected ? 'Connected to Studio Admin' : 'Connecting to live support...') : 'Always here to help'}</span>
           </div>
           <div className="chat-header-actions">
             {isHumanMode && (
               <button
                 className="end-session-btn"
-                onClick={() => socket.emit('end_support_session', activeRoom)}
+                onClick={() => socketRef.current?.connected && socketRef.current.emit('end_support_session', activeRoom)}
                 title="End Live Chat"
               >
                 <LogOut size={16} />

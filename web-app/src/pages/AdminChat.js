@@ -12,15 +12,25 @@ import './AdminChat.css';
 function AdminChat() {
     const [liveSessions, setLiveSessions] = useState([]);
     const [selectedAppointment, setSelectedAppointment] = useState(null);
+    const [connectionError, setConnectionError] = useState('');
     const selectedRef = useRef(null);
     const socketRef = useRef(null);
     selectedRef.current = selectedAppointment;
 
     useEffect(() => {
 
-        const socket = io(SOCKET_URL, { auth: async (callback) => callback({ token: await getSocketAccessToken() }) });
+        const socket = io(SOCKET_URL, {
+            autoConnect: false,
+            auth: async (callback) => callback({ token: await getSocketAccessToken() }),
+            reconnection: true,
+        });
         socketRef.current = socket;
-        socket.emit('join_admin_tracking');
+        socket.on('connect', () => {
+            setConnectionError('');
+            socket.emit('join_admin_tracking');
+        });
+        socket.on('connect_error', () => setConnectionError('Unable to connect to live support. Retrying...'));
+        socket.on('authorization_error', () => setConnectionError('Live support authorization failed. Please sign in again.'));
 
         socket.on('support_sessions_update', (sessions) => {
             const sorted = [...sessions].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -32,6 +42,7 @@ function AdminChat() {
                 setSelectedAppointment(null);
             }
         });
+        socket.connect();
 
         return () => {
             socketRef.current = null;
@@ -65,6 +76,7 @@ function AdminChat() {
                     </div>
                 </header>
                 <p className="header-subtitle">Manage live support sessions and artist consultations from one unified dashboard.</p>
+                {connectionError && <p className="header-subtitle" style={{ color: '#dc2626' }}>{connectionError}</p>}
 
                 <div className="admin-chat-layout glass-panel">
                     <div className="appointment-list-container">

@@ -172,12 +172,14 @@ export function CustomerNotifications({ onBack, userId }) {
   const [filterType, setFilterType] = useState('all');
   const [subFilter, setSubFilter] = useState('all_types');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => { load(1); }, [userId, filterType, subFilter]);
 
   const load = async (p = 1) => {
     if (!userId) { setLoading(false); return; }
     setLoading(true);
+    setLoadError('');
     try {
       const opts = { page: p, limit: 20 };
 
@@ -192,8 +194,10 @@ export function CustomerNotifications({ onBack, userId }) {
       if (r.success) {
         p === 1 ? setNotifications(r.notifications || []) : setNotifications(prev => [...prev, ...(r.notifications || [])]);
         setHasMore(r.pagination?.hasMore || false);
+      } else {
+        setLoadError(r.message || 'Unable to load notifications.');
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); setLoadError('Unable to load notifications.'); }
     finally { setLoading(false); }
   };
 
@@ -267,6 +271,12 @@ export function CustomerNotifications({ onBack, userId }) {
           <Text style={styles.markAllText}>Mark all read</Text>
         </TouchableOpacity>
       </View>
+
+      {loadError ? (
+        <TouchableOpacity onPress={() => load(1)} style={{ paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#fef2f2' }}>
+          <Text style={{ color: theme.error, textAlign: 'center' }}>{loadError} Tap to retry.</Text>
+        </TouchableOpacity>
+      ) : null}
 
       <View style={[styles.filterWrap, { zIndex: 10 }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>

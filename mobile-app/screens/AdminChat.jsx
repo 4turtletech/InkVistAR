@@ -21,6 +21,7 @@ export const AdminChat = ({ navigation }) => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [endedSessions, setEndedSessions] = useState([]);
+  const [connectionError, setConnectionError] = useState('');
 
   const socketRef = useRef(null);
   const flatListRef = useRef(null);
@@ -31,9 +32,21 @@ export const AdminChat = ({ navigation }) => {
 
   useEffect(() => {
     const baseUrl = (API_BASE_URL || '').replace(/\/api\/?$/, '');
-    const socket = io(baseUrl, { auth: async (callback) => callback({ token: await getSocketAuthToken() }) });
+    const socket = io(baseUrl, {
+      autoConnect: false,
+      auth: async (callback) => callback({ token: await getSocketAuthToken() }),
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1500,
+    });
     socketRef.current = socket;
-    socket.emit('join_admin_tracking');
+    socket.on('connect', () => {
+      setConnectionError('');
+      socket.emit('join_admin_tracking');
+      if (selectedRef.current?.id) socket.emit('join_room', selectedRef.current.id);
+    });
+    socket.on('connect_error', () => setConnectionError('Unable to connect to live support. Retrying...'));
+    socket.on('authorization_error', () => setConnectionError('Live support authorization failed. Please sign in again.'));
 
     socket.on('support_sessions_update', (sessions) => {
       const sorted = [...sessions].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -61,6 +74,7 @@ export const AdminChat = ({ navigation }) => {
       const sel = selectedRef.current;
       if (sel && !sessions.find(s => s.id === sel.id)) setSelectedSession(null);
     });
+    socket.connect();
 
     return () => { socket.disconnect(); };
   }, []);
@@ -99,7 +113,12 @@ export const AdminChat = ({ navigation }) => {
   const handleSend = () => {
     const text = inputValue.trim();
     if (!text || !selectedSession) return;
+    if (!socketRef.current?.connected) {
+      setConnectionError('Live support is reconnecting. Your message was not sent; please retry.');
+      return;
+    }
     socketRef.current.emit('send_message', { room: selectedSession.id, sender: 'Admin', text });
+    setMessages(prev => [...prev, { sender: 'Admin', text }]);
     setInputValue('');
   };
 
@@ -169,7 +188,7 @@ export const AdminChat = ({ navigation }) => {
   );
 
   const renderMessage = ({ item }) => {
-    const isAdmin = item.sender === 'Admin';
+    const isAdmin = item.sender === 'Admin' || item.sender === 'Studio Support';
     return (
       <View style={[styles.msgRow, isAdmin ? styles.msgRowRight : styles.msgRowLeft]}>
         <View style={[styles.msgBubble, isAdmin ? styles.msgBubbleAdmin : styles.msgBubbleUser]}>
@@ -204,6 +223,8 @@ export const AdminChat = ({ navigation }) => {
           </TouchableOpacity>
         )}
       </View>
+
+      {connectionError ? <Text style={styles.connectionError}>{connectionError}</Text> : null}
 
       {!selectedSession ? (
         <>
@@ -288,6 +309,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.textTertiary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: borderRadius.md,
   },
   clearEndedText: { ...typography.bodyXSmall, color: '#ffffff', fontWeight: '700' },
+  connectionError: { ...typography.bodySmall, color: colors.error, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#fef2f2' },
 
   // List
   listContent: { padding: 16 },

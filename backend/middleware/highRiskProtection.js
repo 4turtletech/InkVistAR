@@ -28,6 +28,7 @@ function extractIdentityPath(path) {
   const patterns = [
     /^\/api\/customer\/(?:profile\/|dashboard\/|aftercare\/)?(\d+)(?:\/|$)/,
     /^\/api\/reports\/customer\/(\d+)(?:\/|$)/,
+    /^\/api\/notifications\/(\d+)$/,
     /^\/api\/notifications\/(\d+)\/read-all$/,
     /^\/api\/users\/(\d+)\/push-token$/,
   ];

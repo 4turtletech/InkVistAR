@@ -18,15 +18,6 @@ import io from 'socket.io-client';
 
 const CHAT_UNAVAILABLE_MESSAGE = 'AI assistance is temporarily limited. Please retry in a moment or switch to Live Support.';
 
-// Connect socket directly to the backend origin (matches web-app SOCKET_URL pattern)
-const socket = io(API_BASE_URL, {
-  transports: ['websocket', 'polling'],
-  auth: async (callback) => callback({ token: await getSocketAuthToken() }),
-  reconnection: true,
-  reconnectionAttempts: 10,
-  reconnectionDelay: 2000,
-});
-
 const AnimatedMessageBubble = ({ msg, currentUserName, theme, styles, onRetry, retryDisabled }) => {
   const animValue = useRef(new Animated.Value(0)).current;
 
@@ -70,7 +61,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const [isHumanMode, setIsHumanMode] = useState(false);
-  const [isConnected, setIsConnected] = useState(socket.connected);
+  const [isConnected, setIsConnected] = useState(false);
   const [botMessages, setBotMessages] = useState([
     { id: 1, text: "Hi! I'm your tattoo design assistant. I can help with design ideas, placement, aftercare tips, and more. How can I help?", sender: 'bot', timestamp: new Date() },
   ]);
@@ -81,6 +72,8 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const scrollRef = useRef(null);
+  const socketRef = useRef(null);
+  const isHumanModeRef = useRef(false);
 
   const room = useMemo(() => userId ? `customer_${userId}` : `guest_${Math.random().toString(36).substr(2, 9)}`, [userId]);
   const currentUserName = userName || 'Guest User';
@@ -88,31 +81,51 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
 
   useEffect(() => { scrollRef.current?.scrollToEnd({ animated: true }); }, [botMessages, humanMessages, isHumanMode]);
 
-  // Track socket connection status
+  // Keep the current chat mode available to reconnect handlers without recreating the socket.
   useEffect(() => {
-    const onConnect = () => { console.log('[CHAT] Socket connected'); setIsConnected(true); };
-    const onDisconnect = () => { console.log('[CHAT] Socket disconnected'); setIsConnected(false); };
-    
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    
-    // If already connected, set state
-    if (socket.connected) setIsConnected(true);
-    
-    return () => {
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-    };
-  }, []);
-
-  // Socket.IO room join + event handlers (mirrors web-app ChatWidget pattern)
-  useEffect(() => {
-    socket.emit('join_room', room);
-
-    // When switching to human mode, immediately announce the session to the admin dashboard
-    if (isHumanMode) {
+    isHumanModeRef.current = isHumanMode;
+    const socket = socketRef.current;
+    if (isHumanMode && socket?.connected) {
+      socket.emit('join_room', room);
       socket.emit('start_support_session', { room, name: currentUserName });
     }
+  }, [isHumanMode, room, currentUserName]);
+
+  // Create the socket only after this authenticated screen mounts. Module-level sockets connect
+  // before login and remain guests, which the backend correctly refuses from customer rooms.
+  useEffect(() => {
+    const socket = io(API_BASE_URL, {
+      autoConnect: false,
+      transports: ['websocket', 'polling'],
+      auth: async (callback) => callback({ token: await getSocketAuthToken() }),
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+    });
+    socketRef.current = socket;
+
+    const appendSystemMessage = (text) => {
+      setHumanMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.sender === 'system' && last.text === text) return prev;
+        return [...prev, { id: `system-${Date.now()}`, sender: 'system', text, timestamp: new Date() }];
+      });
+    };
+
+    const onConnect = () => {
+      console.log('[CHAT] Socket connected');
+      setIsConnected(true);
+      socket.emit('join_room', room);
+      if (isHumanModeRef.current) {
+        socket.emit('start_support_session', { room, name: currentUserName });
+      }
+    };
+    const onDisconnect = () => { console.log('[CHAT] Socket disconnected'); setIsConnected(false); };
+    const onConnectError = () => setIsConnected(false);
+    const onAuthorizationError = () => {
+      setIsConnected(false);
+      appendSystemMessage('Your live-chat session could not be authorized. Please sign in again or retry.');
+    };
 
     const onMsg = (data) => {
       if (data.room !== room) return;
@@ -124,11 +137,19 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
       setHumanMessages(prev => [...prev, { id: 'sys-reset', sender: 'system', text: 'Live chat ended by the agent. Returning to AI assistant.', timestamp: new Date() }]);
     };
 
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
+    socket.on('authorization_error', onAuthorizationError);
     socket.on('receive_message', onMsg);
     socket.on('session_closed', onClose);
+    socket.connect();
 
-    return () => { socket.off('receive_message', onMsg); socket.off('session_closed', onClose); };
-  }, [room, isHumanMode]);
+    return () => {
+      if (socketRef.current === socket) socketRef.current = null;
+      socket.disconnect();
+    };
+  }, [room, currentUserName]);
 
   const handleSend = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -178,8 +199,17 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
     if (inputValue === text) setInputValue('');
 
     if (isHumanMode) {
+      if (!socketRef.current?.connected) {
+        setHumanMessages(prev => [...prev, {
+          id: `system-${Date.now()}`,
+          sender: 'system',
+          text: 'Live support is reconnecting. Your message was not sent; please retry.',
+          timestamp: new Date(),
+        }]);
+        return;
+      }
       const data = { room, sender: currentUserName, text: text.trim() };
-      socket.emit('send_message', data);
+      socketRef.current.emit('send_message', data);
       setHumanMessages(prev => [...prev, { id: Date.now(), sender: currentUserName, text: text.trim(), timestamp: new Date() }]);
     } else {
       await requestAiResponse(text);
@@ -207,7 +237,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
               <Sparkles size={18} color={theme.gold} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>{isHumanMode ? 'Live Artist Support' : 'Tattoo AI Assistant'}</Text>
+              <Text style={styles.headerTitle}>{isHumanMode ? 'Live Support' : 'Tattoo AI Assistant'}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 {isHumanMode && (
                   <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isConnected ? theme.success : theme.error }} />

@@ -125,6 +125,24 @@ test('customer profile access is limited to the authenticated customer', async (
   assert.equal((await invoke(middleware, { path: '/api/customer/profile/5', token: 'customer' })).status, 403);
 });
 
+test('notification collections are limited to the authenticated account for every role', async () => {
+  const middleware = createHarness();
+
+  for (const [token, userId] of [['admin', 1], ['manager', 2], ['artist', 3], ['customer', 4]]) {
+    const ownNotifications = await invoke(middleware, {
+      path: `/api/notifications/${userId}`,
+      token,
+    });
+    assert.equal(ownNotifications.nextCalled, true, `${token} should read its own notifications`);
+
+    const otherNotifications = await invoke(middleware, {
+      path: `/api/notifications/${userId + 100}`,
+      token,
+    });
+    assert.equal(otherNotifications.status, 403, `${token} must not read another account's notifications`);
+  }
+});
+
 test('appointment authorization loads ownership from the database', async () => {
   const middleware = createHarness();
   const assignedArtist = await invoke(middleware, { method: 'PUT', path: '/api/appointments/42/status', token: 'artist' });
