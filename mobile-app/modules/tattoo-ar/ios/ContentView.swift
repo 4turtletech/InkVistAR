@@ -2639,6 +2639,11 @@ private extension UIImage {
     }
 }
 
+// The bridge only constructs this view after an iOS 26 availability check.
+// Marking the native AR implementation itself prevents its iOS 17/18+
+// RealityKit APIs from being type-checked as though they must run on the
+// host application's iOS 15 deployment target.
+@available(iOS 26.0, *)
 private struct TattooARView: UIViewRepresentable {
     var configuration: TattooConfiguration
     @Binding var tattooScale: Float
@@ -5913,5 +5918,9 @@ private extension MeshResource {
 }
 
 #Preview {
-    ContentView()
+    if #available(iOS 26.0, *) {
+        ContentView()
+    } else {
+        Text("Tattoo AR requires iOS 26 or newer.")
+    }
 }
