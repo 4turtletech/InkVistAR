@@ -5,7 +5,8 @@ const {
   withXcodeProject,
 } = require('expo/config-plugins');
 
-const MINIMUM_IOS_VERSION = '15.0';
+// Expo SDK 54 and React Native 0.81 require iOS 15.1 or newer.
+const MINIMUM_IOS_VERSION = '15.1';
 const PODFILE_MARKER = '# InkVistAR: enforce the minimum iOS version supported by Xcode';
 
 function withAppDeploymentTarget(config) {
