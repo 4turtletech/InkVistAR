@@ -67,6 +67,7 @@ test('highest-risk route groups are classified for protection', () => {
     ['/api/health-screenings/appointment/42', 'appointment'],
     ['/api/artist/3/earnings-ledger', 'artist-path'],
     ['/api/notifications/4', 'self-path'],
+    ['/api/push/register', 'self-body'],
     ['/api/admin/inventory', 'role'],
   ];
   for (const [path, kind] of paths) {

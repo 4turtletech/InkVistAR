@@ -3,9 +3,9 @@
  * Handles auth state, role-based routing, and nested navigation.
  * Expo Go compatible -- zero native modules.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Platform, View, Alert } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -66,9 +66,17 @@ import PlaceholderScreen from './components/PlaceholderScreen.jsx';
 // API utilities
 import {
   loginUser, registerUser, sendOTP, requestPasswordRecovery, resetUserPassword,
-  updatePushToken, logoutUser,
+  logoutUser,
 } from './src/utils/api';
-import { registerForPushNotifications } from './src/utils/pushNotifications';
+import {
+  addNotificationReceivedListener,
+  addNotificationTapListener,
+  addPushTokenChangeListener,
+  clearLastNotificationResponse,
+  getLastNotificationResponse,
+  registerForPushNotifications,
+  unregisterPushNotifications,
+} from './src/utils/pushNotifications';
 
 // Theme & Global Contexts
 import { colors } from './src/theme';
@@ -77,6 +85,7 @@ import { ToastProvider } from './src/context/ToastContext';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const navigationRef = createNavigationContainerRef();
 
 
 // ============================================================
@@ -270,6 +279,7 @@ function AppContent() {
   const [isResetMode, setIsResetMode] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginUserType, setLoginUserType] = useState('customer');
+  const lastNotificationResponseIdRef = useRef(null);
 
   // Hide Android system nav bar
   useEffect(() => {
@@ -297,6 +307,52 @@ function AppContent() {
     restoreSession();
   }, []);
 
+  // Register on both fresh login and restored sessions, keep rotated tokens synchronized,
+  // and route notification taps to the signed-in user's notification center.
+  useEffect(() => {
+    if (!user?.id) return undefined;
+
+    registerForPushNotifications(user.id)
+      .catch(error => console.warn('[PUSH] Registration failed:', error.message));
+
+    const tokenSubscription = addPushTokenChangeListener(user.id);
+    const receiveSubscription = addNotificationReceivedListener(() => {
+      console.log('[PUSH] Notification received while the app is open.');
+    });
+
+    const openNotificationCenter = (response) => {
+      const responseId = response?.notification?.request?.identifier;
+      if (responseId && lastNotificationResponseIdRef.current === responseId) return;
+      if (responseId) lastNotificationResponseIdRef.current = responseId;
+
+      const routeName = user.type === 'artist'
+        ? 'artist-notifications'
+        : user.type === 'customer'
+          ? 'customer-notifications'
+          : 'admin-notifications';
+
+      if (navigationRef.isReady()) navigationRef.navigate(routeName);
+      else setTimeout(() => {
+        if (navigationRef.isReady()) navigationRef.navigate(routeName);
+      }, 750);
+    };
+
+    const tapSubscription = addNotificationTapListener(openNotificationCenter);
+    getLastNotificationResponse()
+      .then(async response => {
+        if (!response) return;
+        openNotificationCenter(response);
+        await clearLastNotificationResponse();
+      })
+      .catch(error => console.warn('[PUSH] Could not read the launch notification:', error.message));
+
+    return () => {
+      tokenSubscription.remove();
+      receiveSubscription.remove();
+      tapSubscription.remove();
+    };
+  }, [user?.id, user?.type]);
+
   const hideNavigationBar = () => {
     if (Platform.OS === 'android') {
       NavigationBar.setVisibilityAsync('hidden');
@@ -308,16 +364,22 @@ function AppContent() {
     if (result && result.success === true && result.user && result.user.name) {
       setUser(result.user);
       await AsyncStorage.setItem('user_session', JSON.stringify(result.user));
-      registerForPushNotifications(result.user.id).catch(e => console.warn('[PUSH] Registration failed:', e.message));
     }
     return result;
   }, []);
 
   const handleLogout = useCallback(async () => {
+    if (user?.id) {
+      try {
+        await unregisterPushNotifications(user.id);
+      } catch (error) {
+        console.warn('[PUSH] Token unregister failed:', error.message);
+      }
+    }
     await logoutUser();
     await AsyncStorage.removeItem('user_session');
     setUser(null);
-  }, []);
+  }, [user?.id]);
 
   const handleRegister = useCallback(async (name, email, password, phone, userType, orphanAppointmentId, navigation, healthConditions = [], healthAllergens = []) => {
     const result = await registerUser(name, email, password, userType, phone, orphanAppointmentId, healthConditions, healthAllergens);
@@ -372,7 +434,7 @@ function AppContent() {
 
   return (
     <View style={{ flex: 1 }} onTouchStart={Platform.OS === 'android' ? hideNavigationBar : undefined}>
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right', animationDuration: 300 }}>
           {user ? (
             // ----- LOGGED IN -----

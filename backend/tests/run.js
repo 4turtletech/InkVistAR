@@ -11,3 +11,4 @@ require('./migrationService.test');
 require('./phoneNumber.test');
 require('./captchaPolicy.test');
 require('./chatbotResilience.test');
+require('./expoPushService.test');

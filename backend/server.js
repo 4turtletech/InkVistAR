@@ -41,6 +41,13 @@ const { createSessionInventoryService, InventoryOperationError } = require('./se
 const { createFinancialLedgerService, summarizeAppointmentFinances } = require('./services/financialLedgerService');
 const { evaluateCaptchaResponse, shouldVerifyRegistrationCaptcha } = require('./services/captchaPolicy');
 const { ChatbotInputError, createChatbotResponder, withTimeout } = require('./services/chatbotResilience');
+const {
+  isExpoPushToken,
+  sendExpoPushBatch,
+  fetchExpoPushReceipts,
+  getImmediatelyInvalidTokens,
+  getReceiptInvalidTokens,
+} = require('./services/expoPushService');
 process.env.TZ = 'Asia/Manila'; // Global Node.js timezone localization
 
 if (BYPASS_MOBILE_REGISTRATION_CAPTCHA) {
@@ -2121,31 +2128,6 @@ function createNotification(userId, title, message, type, relatedId = null) {
   });
 }
 
-// Helper: Send Push Notification via Expo
-async function sendPushNotification(userId, title, body, data) {
-  // 1. Get the user's push token
-  db.query('SELECT push_token FROM users WHERE id = ?', [userId], async (err, results) => {
-    if (err || results.length === 0 || !results[0].push_token) {
-      console.log(`[INFO] Skipping push notification for user ${userId}: No token found.`);
-      return;
-    }
-
-    const pushToken = results[0].push_token;
-    console.log(`[INFO] Sending push notification for user ${userId}`);
-
-    // 2. Send to Expo's push API
-    await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Accept-encoding': 'gzip, deflate',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ to: pushToken, title, body, data }),
-    });
-  });
-}
-
 // Helper: Log Audit Action
 function logAction(userId, action, details, ip = '::1') {
   const query = 'INSERT INTO audit_logs (user_id, action, details, ip_address, created_at) VALUES (?, ?, ?, ?, ?)';
@@ -2937,22 +2919,51 @@ app.post('/api/send-otp', (req, res) => {
 app.post('/api/push/register', (req, res) => {
   const user_id = req.auth.userId;
   const { token, platform } = req.body;
-  if (!user_id || !token) return res.json({ success: false, message: 'user_id and token required' });
+  const normalizedPlatform = String(platform || '').toLowerCase();
+  const normalizedToken = String(token || '').trim();
+  if (!isExpoPushToken(normalizedToken)) {
+    return res.status(400).json({ success: false, message: 'A valid Expo push token is required.' });
+  }
+  if (!['android', 'ios'].includes(normalizedPlatform)) {
+    return res.status(400).json({ success: false, message: 'Platform must be android or ios.' });
+  }
 
-  db.query(
-    `INSERT INTO user_push_tokens (user_id, token, platform)
-     VALUES (?, ?, ?)
-     ON DUPLICATE KEY UPDATE token = VALUES(token), updated_at = ?`,
-    [user_id, token, platform || 'android', getLocalDatetime()],
-    (err) => {
-      if (err) {
-        console.error('[PUSH] Token registration error:', err.message);
-        return res.json({ success: false, message: err.message });
-      }
-      console.log(`[PUSH] [OK] Token registered for user ${user_id} (${platform})`);
-      res.json({ success: true });
+  // Keep a physical token bound to only the account currently signed in on that device.
+  db.query('DELETE FROM user_push_tokens WHERE token = ? AND user_id <> ?', [normalizedToken, user_id], (deleteErr) => {
+    if (deleteErr) {
+      console.error('[PUSH] Token ownership cleanup error:', deleteErr.message);
+      return res.status(500).json({ success: false, message: 'Unable to register this device.' });
     }
-  );
+    db.query(
+      `INSERT INTO user_push_tokens (user_id, token, platform)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE token = VALUES(token), updated_at = ?`,
+      [user_id, normalizedToken, normalizedPlatform, getLocalDatetime()],
+      (err) => {
+        if (err) {
+          console.error('[PUSH] Token registration error:', err.message);
+          return res.status(500).json({ success: false, message: 'Unable to register this device.' });
+        }
+        console.log(`[PUSH] [OK] Token registered for user ${user_id} (${normalizedPlatform})`);
+        res.json({ success: true });
+      }
+    );
+  });
+});
+
+app.delete('/api/push/register', (req, res) => {
+  const userId = req.auth.userId;
+  const platform = String(req.body?.platform || '').toLowerCase();
+  if (!['android', 'ios'].includes(platform)) {
+    return res.status(400).json({ success: false, message: 'Platform must be android or ios.' });
+  }
+  db.query('DELETE FROM user_push_tokens WHERE user_id = ? AND platform = ?', [userId, platform], (err) => {
+    if (err) {
+      console.error('[PUSH] Token unregister error:', err.message);
+      return res.status(500).json({ success: false, message: 'Unable to unregister this device.' });
+    }
+    res.json({ success: true });
+  });
 });
 
 // ── Send Expo Push Notification (internal helper) ────────────────
@@ -2960,20 +2971,55 @@ async function sendPushNotification(userId, title, body, data = {}) {
   db.query('SELECT token FROM user_push_tokens WHERE user_id = ?', [userId], async (err, rows) => {
     if (err) { console.error('[PUSH] [ERROR] DB error fetching token:', err.message); return; }
     if (!rows.length) { console.warn(`[PUSH] [WARN] No token found for user ${userId} — skipping push`); return; }
-    const token = rows[0].token;
-    console.log(`[PUSH] [INFO] Push token found for user ${userId}`);
-    if (!token.startsWith('ExponentPushToken')) {
+    const tokens = rows.map(row => row.token);
+    console.log(`[PUSH] [INFO] ${tokens.length} push token(s) found for user ${userId}`);
+    if (!tokens.some(isExpoPushToken)) {
       console.warn('[PUSH] [WARN] Token is not an Expo push token — skipping');
       return;
     }
     try {
-      const response = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ to: token, title, body, data, sound: 'default' }),
+      const { messages, tickets } = await sendExpoPushBatch({
+        fetchImpl: fetch,
+        tokens,
+        title,
+        body,
+        data,
+        accessToken: process.env.EXPO_ACCESS_TOKEN,
       });
-      const result = await response.json();
-      console.log(`[PUSH] [OK] Expo API response for user ${userId}:`, JSON.stringify(result));
+      if (!messages.length) {
+        console.warn(`[PUSH] [WARN] User ${userId} has no valid Expo push tokens.`);
+        return;
+      }
+      const invalidTokens = getImmediatelyInvalidTokens(messages, tickets);
+      if (invalidTokens.length) {
+        db.query('DELETE FROM user_push_tokens WHERE token IN (?)', [invalidTokens], cleanupErr => {
+          if (cleanupErr) console.error('[PUSH] Invalid-token cleanup error:', cleanupErr.message);
+        });
+      }
+      const accepted = tickets.filter(ticket => ticket?.status === 'ok').length;
+      console.log(`[PUSH] [OK] Expo accepted ${accepted}/${messages.length} notification(s) for user ${userId}.`);
+
+      const ticketIds = tickets.filter(ticket => ticket?.status === 'ok' && ticket.id).map(ticket => ticket.id);
+      if (ticketIds.length) {
+        const receiptTimer = setTimeout(async () => {
+          try {
+            const receipts = await fetchExpoPushReceipts({
+              fetchImpl: fetch,
+              ticketIds,
+              accessToken: process.env.EXPO_ACCESS_TOKEN,
+            });
+            const receiptInvalidTokens = getReceiptInvalidTokens(messages, tickets, receipts);
+            if (receiptInvalidTokens.length) {
+              db.query('DELETE FROM user_push_tokens WHERE token IN (?)', [receiptInvalidTokens], cleanupErr => {
+                if (cleanupErr) console.error('[PUSH] Receipt token cleanup error:', cleanupErr.message);
+              });
+            }
+          } catch (receiptError) {
+            console.error('[PUSH] Receipt check error:', receiptError.message);
+          }
+        }, 15000);
+        receiptTimer.unref?.();
+      }
     } catch (e) {
       console.error('[PUSH] [ERROR] Send error:', e.message);
     }

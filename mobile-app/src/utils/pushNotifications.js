@@ -5,7 +5,7 @@
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { API_BASE_URL } from './api';
+import { fetchAPI } from './api';
 
 // Detect if running in Expo Go (push is not supported there since SDK 53)
 const isExpoGo = Constants.appOwnership === 'expo';
@@ -18,6 +18,8 @@ if (!isExpoGo) {
     Notifications = require('expo-notifications');
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
         shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: true,
@@ -27,6 +29,21 @@ if (!isExpoGo) {
     console.warn('[PUSH] expo-notifications unavailable:', e.message);
   }
 }
+
+const syncPushToken = async (userId, token) => {
+  const result = await fetchAPI('/push/register', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_id: userId,
+      token,
+      platform: Platform.OS,
+    }),
+  });
+
+  if (!result.success) {
+    throw new Error(result.message || 'The push token could not be registered.');
+  }
+};
 
 /**
  * Requests notification permission and registers the Expo push token
@@ -50,6 +67,17 @@ export async function registerForPushNotifications(userId) {
   }
 
   try {
+    // Android 13+ permission prompts are associated with a notification channel.
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'InkVistAR Notifications',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#DAA520',
+        sound: 'default',
+      });
+    }
+
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
@@ -63,42 +91,42 @@ export async function registerForPushNotifications(userId) {
       return null;
     }
 
-    // Android channel (required for Android 8+)
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'InkVistAR Notifications',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#DAA520',
-      });
-    }
-
-    const projectId = Constants?.expoConfig?.extra?.eas?.projectId;
+    const projectId = Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
     if (!projectId) {
       console.warn('[PUSH] No EAS projectId found in app.json. Push tokens will not work.');
       return null;
     }
     const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
     const token = tokenData.data;
-    console.log('[PUSH] Expo Push Token:', token);
+    await syncPushToken(userId, token);
 
-    // Register with backend
-    await fetch(`${API_BASE_URL}/api/push/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: userId,
-        token,
-        platform: Platform.OS,
-      }),
-    });
-
-    console.log('[PUSH] Token registered with backend.');
+    console.log(`[PUSH] ${Platform.OS} token registered with backend.`);
     return token;
   } catch (err) {
     console.error('[PUSH] Failed to get/register push token:', err.message);
-    return null;
+    throw err;
   }
+}
+
+/** Keep the backend synchronized if APNs or FCM rotates the native push token. */
+export function addPushTokenChangeListener(userId) {
+  if (!Notifications || !userId) return { remove: () => {} };
+  return Notifications.addPushTokenListener(async () => {
+    try {
+      await registerForPushNotifications(userId);
+    } catch (error) {
+      console.warn('[PUSH] Token refresh registration failed:', error.message);
+    }
+  });
+}
+
+/** Remove only this device platform's token before clearing the login session. */
+export async function unregisterPushNotifications(userId) {
+  if (isExpoGo || !Notifications || !userId) return { success: true };
+  return fetchAPI('/push/register', {
+    method: 'DELETE',
+    body: JSON.stringify({ user_id: userId, platform: Platform.OS }),
+  });
 }
 
 /**
@@ -119,4 +147,14 @@ export function addNotificationTapListener(onTap) {
 export function addNotificationReceivedListener(onReceive) {
   if (!Notifications) return { remove: () => {} };
   return Notifications.addNotificationReceivedListener(onReceive);
+}
+
+export async function getLastNotificationResponse() {
+  if (!Notifications) return null;
+  return Notifications.getLastNotificationResponseAsync();
+}
+
+export async function clearLastNotificationResponse() {
+  if (!Notifications?.clearLastNotificationResponseAsync) return;
+  await Notifications.clearLastNotificationResponseAsync();
 }
