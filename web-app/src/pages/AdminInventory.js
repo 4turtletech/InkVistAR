@@ -25,15 +25,6 @@ const INVENTORY_CATEGORIES = [
     { value: 'machinery', label: 'Machinery' }
 ];
 
-const SERVICE_KIT_TYPES = ['Tattoo Session', 'Tattoo + Piercing', 'Consultation'];
-
-const getServiceKitTypeOptions = (currentValue) => {
-    const values = currentValue && !SERVICE_KIT_TYPES.includes(currentValue)
-        ? [currentValue, ...SERVICE_KIT_TYPES]
-        : SERVICE_KIT_TYPES;
-    return values.map(value => ({ value, label: value }));
-};
-
 function AdminInventory() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -119,9 +110,46 @@ function AdminInventory() {
 
     const validateKitField = (value) => {
         let errorMsg = "";
-        if (!value || !value.trim()) errorMsg = "Service type is required";
+        if (!value || !value.trim()) errorMsg = "Kit name is required";
         setErrors(prev => ({ ...prev, kit_name: errorMsg }));
         return errorMsg === "";
+    };
+
+    const resetKitEditor = () => {
+        setEditingKitServiceType('');
+        setEditingKitOriginalType('');
+        setEditingKitMaterials([]);
+        setErrors(prev => ({ ...prev, kit_name: '', kit_materials: '' }));
+    };
+
+    const addKitMaterial = (value) => {
+        const itemId = Number(value);
+        if (!itemId) return;
+
+        const item = inventory.find(inventoryItem => inventoryItem.id === itemId);
+        if (!item || editingKitMaterials.some(material => material.inventory_id === itemId)) return;
+
+        setEditingKitMaterials(current => [
+            ...current,
+            { inventory_id: item.id, item_name: item.name, default_quantity: 1, unit: item.unit }
+        ]);
+        setErrors(prev => ({ ...prev, kit_materials: '' }));
+    };
+
+    const removeKitMaterial = (inventoryId) => {
+        setEditingKitMaterials(current => current.filter(material => material.inventory_id !== inventoryId));
+    };
+
+    const startEditingKit = (kitName, materials) => {
+        setEditingKitServiceType(kitName);
+        setEditingKitOriginalType(kitName);
+        setEditingKitMaterials(materials.map(material => ({
+            inventory_id: material.inventory_id,
+            item_name: material.item_name,
+            default_quantity: material.default_quantity,
+            unit: material.unit
+        })));
+        setErrors(prev => ({ ...prev, kit_name: '', kit_materials: '' }));
     };
 
     // History modal filter state
@@ -230,6 +258,7 @@ function AdminInventory() {
             const res = await Axios.delete(`${API_URL}/api/admin/service-kits/${encodeURIComponent((serviceType || '').trim())}`);
             if (res.data.success) {
                 showAlert('Deleted', `Service kit '${serviceType}' has been removed.`, 'success');
+                if (editingKitOriginalType === serviceType) resetKitEditor();
                 fetchServiceKits();
             } else {
                 showAlert('Error', res.data.message || 'Failed to delete service kit.', 'danger');
@@ -302,6 +331,7 @@ function AdminInventory() {
     };
 
     const handleManageKits = () => {
+        resetKitEditor();
         fetchServiceKits();
         openModal(setServiceKitsModal);
     };
@@ -311,18 +341,26 @@ function AdminInventory() {
         const materialsValid = editingKitMaterials.length > 0;
         setErrors(prev => ({ ...prev, kit_materials: materialsValid ? '' : 'Add at least one inventory item to the kit' }));
         if (!nameValid || !materialsValid) return;
+
+        const normalizedName = editingKitServiceType.trim().toLowerCase();
+        const duplicateKitName = Object.keys(serviceKits).find(name => (
+            name.toLowerCase() === normalizedName && name !== editingKitOriginalType
+        ));
+        if (duplicateKitName) {
+            setErrors(prev => ({ ...prev, kit_name: 'A kit with this name already exists' }));
+            return;
+        }
+
         setIsSaving(true);
         try {
             await Axios.post(`${API_URL}/api/admin/service-kits`, {
                 service_type: editingKitServiceType.trim(),
-                old_service_type: (editingKitOriginalType || editingKitServiceType).trim(),
+                old_service_type: editingKitOriginalType.trim(),
                 materials: editingKitMaterials.map(m => ({ inventory_id: m.inventory_id, default_quantity: m.default_quantity }))
             });
-            showAlert("Success", "Service Kit saved successfully!", "success");
+            showAlert("Success", editingKitOriginalType ? "Kit updated successfully!" : "Kit created successfully!", "success");
             fetchServiceKits();
-            setEditingKitServiceType('');
-            setEditingKitOriginalType('');
-            setEditingKitMaterials([]);
+            resetKitEditor();
         } catch (error) {
             console.error("Error saving service kit", error);
             showAlert("Error", error.response?.data?.message || "Error saving service kit", "danger");
@@ -1523,7 +1561,7 @@ function AdminInventory() {
 
             {/* Service Kits Modal */}
             {serviceKitsModal.mounted && (
-                <div className={`modal-overlay ${serviceKitsModal.visible ? 'open' : ''}`} onClick={() => closeModal(setServiceKitsModal)}>
+                <div className={`modal-overlay ${serviceKitsModal.visible ? 'open' : ''}`} onClick={() => { resetKitEditor(); closeModal(setServiceKitsModal); }}>
                     <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <div className="admin-flex-center admin-gap-15">
@@ -1531,30 +1569,31 @@ function AdminInventory() {
                                     <Package size={20} className="text-orange" />
                                 </div>
                                 <div>
-                                    <h2 className="admin-m-0">Service Kit Protocols</h2>
-                                    <p className="admin-st-925e4e02">Configure mandatory supply lists for specific services</p>
+                                    <h2 className="admin-m-0">Inventory Kits</h2>
+                                    <p className="admin-st-925e4e02">Create reusable item groups for quick bulk adding</p>
                                 </div>
                             </div>
-                            <button className="close-btn" onClick={() => closeModal(setServiceKitsModal)}><X size={24}/></button>
+                            <button className="close-btn" onClick={() => { resetKitEditor(); closeModal(setServiceKitsModal); }}><X size={24}/></button>
                         </div>
                         <div className="modal-body admin-st-7215da49">
                             <div className="glass-card admin-st-654f1b6d">
                                 <h3 className="admin-st-299edae5">
-                                    <Plus size={18} /> {editingKitOriginalType ? 'Modify System Kit' : 'Register New Protocol'}
+                                    {editingKitOriginalType ? <Edit2 size={18} /> : <Plus size={18} />}
+                                    {editingKitOriginalType ? `Edit ${editingKitOriginalType}` : 'Create New Kit'}
                                 </h3>
                                 <div className="form-group">
-                                    <label className="admin-st-d050454a">Service Designation *</label>
-                                    <CustomSelect
+                                    <label className="admin-st-d050454a">Kit Name *</label>
+                                    <input
+                                        type="text"
+                                        className={`form-input ${errors.kit_name ? 'error' : ''}`}
                                         value={editingKitServiceType}
-                                        onChange={value => {
+                                        onChange={event => {
+                                            const value = event.target.value.substring(0, 100);
                                             setEditingKitServiceType(value);
                                             validateKitField(value);
                                         }}
-                                        options={[
-                                            { value: '', label: '-- Select Appointment Service --' },
-                                            ...getServiceKitTypeOptions(editingKitServiceType)
-                                        ]}
-                                        width="100%"
+                                        placeholder="e.g. Standard Tattoo Setup"
+                                        maxLength={100}
                                     />
                                     {errors.kit_name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.kit_name}</small>}
                                 </div>
@@ -1562,29 +1601,26 @@ function AdminInventory() {
                                     <label>Kit Items *</label>
                                     <CustomSelect
                                         value=""
-                                        onChange={(val) => {
-                                            const itemId = Number(val);
-                                            if (!itemId) return;
-                                            const item = inventory.find(i => i.id === itemId);
-                                            if (item && !editingKitMaterials.find(m => m.inventory_id === itemId)) {
-                                                setEditingKitMaterials([...editingKitMaterials, { inventory_id: item.id, item_name: item.name, default_quantity: 1, unit: item.unit }]);
-                                                setErrors(prev => ({ ...prev, kit_materials: '' }));
-                                            }
-                                        }}
+                                        onChange={addKitMaterial}
                                         options={[
                                             { value: '', label: '-- Select Inventory Item --' },
-                                            ...inventory.map(item => ({ value: item.id, label: `${item.name} (${item.unit})` }))
+                                            ...inventory
+                                                .filter(item => !editingKitMaterials.some(material => material.inventory_id === item.id))
+                                                .map(item => ({ value: item.id, label: `${item.name} (${item.unit})` }))
                                         ]}
                                     />
                                     {errors.kit_materials && <small className="error-text">{errors.kit_materials}</small>}
                                 </div>
                                 
                                 {editingKitMaterials.length > 0 && (
-                                    <div className="admin-st-988c5fa7">
-                                        <label>Kit Items:</label>
+                                    <div className="kit-materials-list">
+                                        <div className="kit-materials-list-header">Selected Items ({editingKitMaterials.length})</div>
                                         {editingKitMaterials.map((mat, idx) => (
-                                            <div key={idx} className="admin-st-57608dc7 waterfall-item" style={{ animationDelay: `${idx * 0.05}s` }}>
+                                            <div key={mat.inventory_id} className="kit-material-row waterfall-item" style={{ animationDelay: `${idx * 0.05}s` }}>
+                                                <span className="kit-material-name">{mat.item_name} <small>({mat.unit})</small></span>
+                                                <label className="kit-material-quantity-label" htmlFor={`kit-quantity-${mat.inventory_id}`}>Qty</label>
                                                 <input 
+                                                    id={`kit-quantity-${mat.inventory_id}`}
                                                     type="number" 
                                                     min="1"
                                                     value={mat.default_quantity}
@@ -1593,13 +1629,12 @@ function AdminInventory() {
                                                         newVal[idx].default_quantity = clampNumber(e.target.value, 1, 999999);
                                                         setEditingKitMaterials(newVal);
                                                     }}
-                                                    className="admin-st-8381b655"
+                                                    className="kit-material-quantity"
                                                 />
-                                                <span className="admin-st-49cdf874">{mat.item_name} ({mat.unit})</span>
                                                 <button
                                                     type="button"
-                                                    className="action-btn delete-btn" 
-                                                    onClick={() => setEditingKitMaterials(editingKitMaterials.filter((_, i) => i !== idx))}
+                                                    className="kit-material-remove-btn"
+                                                    onClick={() => removeKitMaterial(mat.inventory_id)}
                                                     title={`Remove ${mat.item_name}`}
                                                     aria-label={`Remove ${mat.item_name}`}
                                                 >
@@ -1609,138 +1644,54 @@ function AdminInventory() {
                                         ))}
                                     </div>
                                 )}
-                                <div className="admin-st-bce72c81">
+                                <div className="kit-editor-actions">
+                                     {editingKitOriginalType && (
+                                         <button type="button" className="btn btn-secondary" onClick={resetKitEditor} disabled={isSaving}>
+                                             Cancel Edit
+                                         </button>
+                                     )}
                                      <button type="button" className="btn btn-primary" onClick={handleSaveKit} disabled={isSaving}>
-                                        {isSaving ? 'Saving...' : 'Save Kit'}
+                                        {isSaving ? 'Saving...' : editingKitOriginalType ? 'Save Changes' : 'Create Kit'}
                                      </button>
                                 </div>
                             </div>
 
                             {/* Existing Kits */}
-                            <h3>Existing Service Kits</h3>
+                            <h3>Saved Kits</h3>
                             {Object.keys(serviceKits).length === 0 ? (
-                                <p className="text-muted">No service kits configured yet.</p>
+                                <p className="text-muted">No inventory kits created yet.</p>
                             ) : (
-                                Object.entries(serviceKits).map(([type, materials]) => (
-                                    <div key={type} style={{ 
-                                        border: '1px solid #e5e7eb', 
-                                        borderRadius: '8px', 
-                                        padding: '1rem', 
-                                        marginBottom: '1rem',
-                                        backgroundColor: editingKitOriginalType === type ? '#f0f9ff' : 'white',
-                                        borderColor: editingKitOriginalType === type ? '#7dd3fc' : '#e5e7eb'
-                                    }}>
-                                        {editingKitOriginalType === type ? (
-                                            <div className="inline-edit-form fade-in">
-                                                <div className="form-group">
-                                                    <label className="admin-st-a2d5e684">Update Service Type Name *</label>
-                                                    <CustomSelect
-                                                        value={editingKitServiceType}
-                                                        onChange={value => {
-                                                            setEditingKitServiceType(value);
-                                                            validateKitField(value);
-                                                        }}
-                                                        options={getServiceKitTypeOptions(editingKitServiceType)}
-                                                        width="100%"
-                                                    />
-                                                    {errors.kit_name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.kit_name}</small>}
-                                                </div>
-                                                <div className="form-group admin-st-988c5fa7">
-                                                    <label className="admin-st-a2d5e684">Kit Items *</label>
-                                                    <CustomSelect
-                                                        value=""
-                                                        onChange={(val) => {
-                                                            const itemId = Number(val);
-                                                            if (!itemId) return;
-                                                            const item = inventory.find(i => i.id === itemId);
-                                                            if (item && !editingKitMaterials.find(m => m.inventory_id === itemId)) {
-                                                                setEditingKitMaterials([...editingKitMaterials, { inventory_id: item.id, item_name: item.name, default_quantity: 1, unit: item.unit }]);
-                                                                setErrors(prev => ({ ...prev, kit_materials: '' }));
-                                                            }
-                                                        }}
-                                                        options={[
-                                                            { value: '', label: '-- Select Inventory Item --' },
-                                                            ...inventory.map(item => ({ value: item.id, label: `${item.name} (${item.unit})` }))
-                                                        ]}
-                                                    />
-                                                    {errors.kit_materials && <small className="error-text">{errors.kit_materials}</small>}
-                                                </div>
-                                                <div className="admin-st-f3877976">
-                                                    {editingKitMaterials.map((mat, idx) => (
-                                                        <div key={idx} className="waterfall-item" style={{ animationDelay: `${idx * 0.05}s`, display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0', borderBottom: idx === editingKitMaterials.length - 1 ? 'none' : '1px solid #f1f5f9' }}>
-                                                            <input 
-                                                                type="number" 
-                                                                min="1"
-                                                                value={mat.default_quantity}
-                                                                onChange={e => {
-                                                                    const newVal = [...editingKitMaterials];
-                                                                    newVal[idx].default_quantity = clampNumber(e.target.value, 1, 999999);
-                                                                    setEditingKitMaterials(newVal);
-                                                                }}
-                                                                className="admin-st-b9da71e3"
-                                                            />
-                                                            <span className="admin-st-25d395ac">{mat.item_name}</span>
-                                                            <button
-                                                                type="button"
-                                                                className="action-btn delete-btn admin-st-67e81612"
-                                                                onClick={() => setEditingKitMaterials(editingKitMaterials.filter((_, i) => i !== idx))}
-                                                                title={`Remove ${mat.item_name}`}
-                                                                aria-label={`Remove ${mat.item_name}`}
-                                                            >
-                                                                <Trash2 size={14}/> Remove
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                <div className="admin-st-6a3a6aa8">
-                                                    <button type="button" className="btn btn-secondary admin-st-2029b6f9" onClick={() => { setEditingKitServiceType(''); setEditingKitOriginalType(''); setEditingKitMaterials([]); }}>Cancel</button>
-                                                    <button type="button" className="btn btn-secondary admin-st-7b8c305f" onClick={() => handleDeleteKit(type)}><Trash2 size={16}/></button>
-                                                    <button type="button" className="btn btn-primary admin-st-2029b6f9" onClick={handleSaveKit} disabled={isSaving}>{isSaving ? '...' : 'Save Changes'}</button>
-                                                </div>
+                                Object.entries(serviceKits).map(([kitName, materials]) => (
+                                    <div key={kitName} className={`saved-kit-card ${editingKitOriginalType === kitName ? 'is-editing' : ''}`}>
+                                        <div className="saved-kit-header">
+                                            <div>
+                                                <h4>{kitName}</h4>
+                                                <small>{materials.length} {materials.length === 1 ? 'item' : 'items'}</small>
                                             </div>
-                                        ) : (
-                                            <React.Fragment>
-                                                <div className="admin-st-db565939">
-                                                    <div>
-                                                        <h4 className="admin-st-323ff927">{type}</h4>
-                                                        {!SERVICE_KIT_TYPES.includes(type) && (
-                                                            <small style={{ color: '#b45309', fontWeight: 600 }}>
-                                                                Not linked to an appointment service. Edit this kit and select a valid service designation.
-                                                            </small>
-                                                        )}
-                                                    </div>
-                                                    <div className="admin-st-c3b81489">
-                                                        <button
-                                                            className="action-btn edit-btn service-kit-action-btn admin-st-7f4c9b70" 
-                                                            onClick={() => {
-                                                                setEditingKitServiceType(type);
-                                                                setEditingKitOriginalType(type);
-                                                                setEditingKitMaterials(materials.map(m => ({ 
-                                                                    inventory_id: m.inventory_id, 
-                                                                    item_name: m.item_name, 
-                                                                    default_quantity: m.default_quantity,
-                                                                    unit: m.unit
-                                                                }))); 
-                                                            }} 
-                                                            style={{ backgroundColor: '#3b82f6', color: 'white', borderColor: '#3b82f6' }}
-                                                        >
-                                                            <Edit2 size={16}/>
-                                                        </button>
-                                                        <button 
-                                                            className="action-btn delete-btn service-kit-action-btn" 
-                                                            onClick={() => handleDeleteKit(type)}
-                                                        >
-                                                            <Trash2 size={16}/>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <ul className="admin-st-ce1e7d49">
-                                                    {materials.map((mat, i) => (
-                                                      <li key={i}>{mat.default_quantity}x {mat.item_name}</li>
-                                                    ))}
-                                                </ul>
-                                            </React.Fragment>
-                                        )}
+                                            <div className="saved-kit-actions">
+                                                <button
+                                                    type="button"
+                                                    className="saved-kit-edit-btn"
+                                                    onClick={() => startEditingKit(kitName, materials)}
+                                                    aria-label={`Edit ${kitName}`}
+                                                >
+                                                    <Edit2 size={16}/> Edit
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="saved-kit-delete-btn"
+                                                    onClick={() => handleDeleteKit(kitName)}
+                                                    aria-label={`Delete ${kitName}`}
+                                                >
+                                                    <Trash2 size={16}/> Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <ul className="saved-kit-items">
+                                            {materials.map(material => (
+                                                <li key={material.inventory_id}>{material.default_quantity}x {material.item_name}</li>
+                                            ))}
+                                        </ul>
                                     </div>
                                 ))
                             )}
