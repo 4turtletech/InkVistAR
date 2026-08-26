@@ -1,29 +1,10 @@
 const fs = require('fs');
 const path = require('path');
-const {
-  withDangerousMod,
-  withXcodeProject,
-} = require('expo/config-plugins');
+const { withDangerousMod } = require('expo/config-plugins');
 
 // Expo SDK 54 and React Native 0.81 require iOS 15.1 or newer.
 const MINIMUM_IOS_VERSION = '15.1';
 const PODFILE_MARKER = '# InkVistAR: enforce the minimum iOS version supported by Xcode';
-
-function withAppDeploymentTarget(config) {
-  return withXcodeProject(config, (xcodeConfig) => {
-    const configurations = xcodeConfig.modResults.pbxXCBuildConfigurationSection();
-
-    for (const [key, value] of Object.entries(configurations)) {
-      if (key.endsWith('_comment') || !value?.buildSettings) {
-        continue;
-      }
-
-      value.buildSettings.IPHONEOS_DEPLOYMENT_TARGET = MINIMUM_IOS_VERSION;
-    }
-
-    return xcodeConfig;
-  });
-}
 
 function withPodDeploymentTargets(config) {
   return withDangerousMod(config, [
@@ -55,6 +36,5 @@ function withPodDeploymentTargets(config) {
 }
 
 module.exports = function withIosDeploymentTarget(config) {
-  config = withAppDeploymentTarget(config);
   return withPodDeploymentTargets(config);
 };
