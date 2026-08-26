@@ -16,7 +16,7 @@ import * as Haptics from 'expo-haptics';
 import { typography } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
-import { API_BASE_URL, API_URL, fetchAPI } from '../src/utils/api';
+import { fetchAPI } from '../src/utils/api';
 import { HealthAlertPanel } from '../src/components/shared/HealthAlertPanel';
 
 export function ArtistActiveSession({ appointment, onBack, onComplete }) {
@@ -47,13 +47,10 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const [projectTimeline, setProjectTimeline] = useState(null);
   const [projectTimelineLoading, setProjectTimelineLoading] = useState(false);
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
-  const [healthConditions, setHealthConditions] = useState([]);
-  const [healthAllergens, setHealthAllergens] = useState([]);
 
   useEffect(() => { 
     fetchInventory(); 
     fetchServiceKits(); 
-    fetchCustomerHealth();
     fetchSessionImages();
     if (status === 'in_progress') fetchSessionMaterials();
     // B-M1: load project timeline
@@ -103,38 +100,12 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     }, 400);
   };
 
-  const fetchCustomerHealth = async () => {
-    if (!appointment?.customer_id) return;
-    try {
-      const r = await (await fetch(`${API_URL}/customer/profile/${appointment.customer_id}`)).json();
-      if (r.success && r.profile) {
-        // Primary: new structured columns
-        const conditions = Array.isArray(r.profile.health_conditions) ? r.profile.health_conditions : [];
-        const allergens  = Array.isArray(r.profile.allergens)          ? r.profile.allergens          : [];
-        if (conditions.length > 0 || allergens.length > 0) {
-          setHealthConditions(conditions);
-          setHealthAllergens(allergens);
-          return;
-        }
-        // Fallback: legacy notes JSON
-        if (r.profile?.notes) {
-          try {
-            const parsed = JSON.parse(r.profile.notes);
-            const src = parsed.medicalNotes || parsed;
-            if (src.skinConditions) setHealthConditions([src.skinConditions]);
-            if (src.allergies)      setHealthAllergens([src.allergies]);
-          } catch (e) { /* plain text notes — ignore */ }
-        }
-      }
-    } catch (e) { console.error('Error fetching customer health:', e); }
-  };
-
   // B-M1: fetch project timeline
   const fetchProjectTimeline = async (projectId) => {
     if (!projectId) return;
     setProjectTimelineLoading(true);
     try {
-      const r = await (await fetch(`${API_URL}/projects/${projectId}`)).json();
+      const r = await fetchAPI(`/projects/${projectId}`);
       if (r.success && r.project) setProjectTimeline(r.project);
     } catch (e) { console.error('fetchProjectTimeline error:', e); }
     finally { setProjectTimelineLoading(false); }
@@ -143,8 +114,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const fetchSessionImages = async () => {
     if (!appointment?.id) return;
     try {
-      // Primary: dedicated details endpoint (may not be deployed yet)
-      const r = await (await fetch(`${API_URL}/appointments/${appointment.id}/details`)).json();
+      const r = await fetchAPI(`/appointments/${appointment.id}/details`);
       if (r.success && r.appointment) {
         if (r.appointment.draft_image) setDraftImage(r.appointment.draft_image);
         if (r.appointment.reference_image) setRefImage(r.appointment.reference_image);
@@ -155,7 +125,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     // Fallback 1: Re-fetch from artist appointments list (includes ap.*)
     try {
       if (appointment?.artist_id) {
-        const r2 = await (await fetch(`${API_URL}/artist/${appointment.artist_id}/appointments`)).json();
+        const r2 = await fetchAPI(`/artist/${appointment.artist_id}/appointments`);
         if (r2.success && r2.appointments) {
           const match = r2.appointments.find(a => a.id === appointment.id);
           if (match) {
@@ -196,6 +166,22 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     Alert.alert(title, message, [{ text: 'OK', onPress: onDismiss }]);
   };
 
+  const getSessionRequestError = (result, fallback) => {
+    if (result?.status === 401) {
+      return 'Your sign-in session has expired. Please sign out and sign in again.';
+    }
+    return result?.message || fallback;
+  };
+
+  const saveSessionDetails = () => fetchAPI(`/appointments/${appointment.id}/details`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      notes: sessionData.notes,
+      beforePhoto: sessionData.beforePhoto,
+      afterPhoto: sessionData.afterPhoto,
+    }),
+  });
+
   const handleQuickAdd = async (inventoryId, quantity = 1) => {
     setAddingMaterial(true);
     try { const r = await fetchAPI(`/appointments/${appointment.id}/materials`, { method: 'POST', body: JSON.stringify({ inventory_id: inventoryId, quantity }) }); if (r.success) fetchSessionMaterials(); else showAlert('Error', r.message || 'Failed. Check stock.'); }
@@ -227,44 +213,45 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     if (!result.canceled) setSessionData(p => ({ ...p, [type]: `data:image/jpeg;base64,${result.assets[0].base64}` }));
   };
 
-  const processStatusUpdate = async (newStatus, isFullyComplete = true) => {
+  const processStatusUpdate = async (newStatus, isFullyComplete = true, nextAuditLog = auditLog) => {
     setLoading(true);
     try {
       if (newStatus === 'completed' && (sessionData.notes || sessionData.beforePhoto || sessionData.afterPhoto)) {
-        await fetch(`${API_URL}/appointments/${appointment.id}/details`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notes: sessionData.notes, beforePhoto: sessionData.beforePhoto, afterPhoto: sessionData.afterPhoto })
-        });
+        const detailsResult = await saveSessionDetails();
+        if (!detailsResult.success) {
+          showAlert('Error', getSessionRequestError(detailsResult, 'Failed to save the session documentation.'));
+          return;
+        }
       }
 
       const payload = { 
         status: newStatus, 
         isFullyComplete,
-        auditLog: auditLog
+        auditLog: nextAuditLog
       };
 
       if (newStatus === 'incomplete') {
         payload.abortReason = abortReason;
       }
 
-      const r = await (await fetch(`${API_URL}/appointments/${appointment.id}/status`, {
+      const r = await fetchAPI(`/appointments/${appointment.id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-      })).json();
+      });
 
       if (r.success) {
         setStatus(newStatus);
         if (newStatus === 'completed') showAlert('Session Completed', `Session marked as complete. Total material cost: P${sessionCost.toLocaleString()}.`, () => onComplete?.());
         else if (newStatus === 'incomplete') showAlert('Session Aborted', 'Session has been marked as incomplete.', () => onComplete?.());
         else if (newStatus === 'in_progress') setTimeout(fetchSessionMaterials, 1000);
-      } else showAlert('Error', r.message || 'Failed to update status');
+      } else showAlert('Error', getSessionRequestError(r, 'Failed to update the session status.'));
     } catch (e) { showAlert('Error', 'Connection failed'); } finally { setLoading(false); }
   };
 
   const handleUpdateStatus = async (newStatus) => {
     if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    let nextAuditLog = auditLog;
 
     if (newStatus === 'in_progress') {
       if (!sessionData.beforePhoto) {
@@ -278,7 +265,8 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
         event: 'Session Started',
         note: 'Artist initiated the session.'
       };
-      setAuditLog(prev => [...prev, startEvent]);
+      nextAuditLog = [...auditLog, startEvent];
+      setAuditLog(nextAuditLog);
     }
 
     if (newStatus === 'completed') {
@@ -305,16 +293,17 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
         `Does this piece need another session, or is the tattoo fully complete?\n\nStuff Used: ${materialsList || 'None'}\n(Total material cost: P${sessionCost.toLocaleString()})`,
         [
           { text: 'Needs Another', style: 'cancel', onPress: () => {
-            setAuditLog(prev => [...prev, { timestamp: new Date().toISOString(), event: 'Session Partially Completed', note: 'Needs another session' }]);
-            processStatusUpdate('completed', false);
+            const completionLog = [...auditLog, { timestamp: new Date().toISOString(), event: 'Session Partially Completed', note: 'Needs another session' }];
+            setAuditLog(completionLog);
+            processStatusUpdate('completed', false, completionLog);
           }},
-          { text: 'Fully Complete', onPress: () => processStatusUpdate('completed', true) }
+          { text: 'Fully Complete', onPress: () => processStatusUpdate('completed', true, auditLog) }
         ]
       );
       return;
     }
 
-    await processStatusUpdate(newStatus, true);
+    await processStatusUpdate(newStatus, true, nextAuditLog);
   };
 
   const handleAbortSession = () => {
@@ -333,7 +322,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     setAuditLog(newLog);
     
     // We pass the abortReason in state which will be picked up by processStatusUpdate
-    await processStatusUpdate('incomplete', false);
+    await processStatusUpdate('incomplete', false, newLog);
   };
 
   const handleSaveDetails = async () => {
@@ -341,8 +330,10 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLoading(true);
     try {
-      const r = await (await fetch(`${API_URL}/appointments/${appointment.id}/details`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notes: sessionData.notes, beforePhoto: sessionData.beforePhoto, afterPhoto: sessionData.afterPhoto }) })).json();
-      r.success ? showAlert('Success', 'Session details saved!') : showAlert('Error', 'Failed to save.');
+      const r = await saveSessionDetails();
+      r.success
+        ? showAlert('Success', 'Session details saved!')
+        : showAlert('Error', getSessionRequestError(r, 'Failed to save the session details.'));
     } catch (e) { showAlert('Error', 'Connection failed'); } finally { setLoading(false); }
   };
 
