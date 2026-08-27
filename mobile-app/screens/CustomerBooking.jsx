@@ -9,7 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import { typography, borderRadius, shadows } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
-import { API_URL } from '../src/utils/api';
+import { API_URL, getCustomerAppointments } from '../src/utils/api';
 import { formatTime } from '../src/utils/formatters';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -26,6 +26,8 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [completedAppointments, setCompletedAppointments] = useState([]);
+  const [completedAppointmentsLoading, setCompletedAppointmentsLoading] = useState(false);
+  const [completedAppointmentsError, setCompletedAppointmentsError] = useState('');
 
   // Form Data
 
@@ -102,12 +104,32 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
   }, []);
 
   const fetchCompletedAppointments = async () => {
+    if (!customerId) {
+      setCompletedAppointments([]);
+      setCompletedAppointmentsError('Your account could not be identified. Please sign in again.');
+      return;
+    }
+
+    setCompletedAppointmentsLoading(true);
+    setCompletedAppointmentsError('');
     try {
-      const r = await (await fetch(`${API_URL}/customer/${customerId || 'guest'}/appointments`)).json();
+      const r = await getCustomerAppointments(customerId);
       if (r.success) {
-        setCompletedAppointments(r.appointments.filter(a => ['completed', 'finished'].includes(a.status?.toLowerCase())));
+        const completed = (r.appointments || []).filter(a =>
+          ['completed', 'finished'].includes(String(a.status || '').trim().toLowerCase())
+        );
+        setCompletedAppointments(completed);
+      } else {
+        setCompletedAppointments([]);
+        setCompletedAppointmentsError(r.message || 'Could not load your completed appointments.');
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error('Failed to load completed appointments:', e);
+      setCompletedAppointments([]);
+      setCompletedAppointmentsError('Could not load your completed appointments. Check your connection and try again.');
+    } finally {
+      setCompletedAppointmentsLoading(false);
+    }
   };
 
   const fetchAvailability = async () => {
@@ -349,7 +371,19 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
       {formData.bookingType === 'followup' && (
         <View style={styles.animDrop}>
           <Text style={styles.label}>Select Previous Appointment <Text style={{color: colors.error}}>*</Text></Text>
-          {completedAppointments.length === 0 ? (
+          {completedAppointmentsLoading ? (
+            <View style={styles.historyStateCard}>
+              <ActivityIndicator size="small" color={colors.gold} />
+              <Text style={styles.historyStateText}>Loading completed appointments...</Text>
+            </View>
+          ) : completedAppointmentsError ? (
+            <View style={styles.historyStateCard}>
+              <Text style={styles.errorTxt}>{completedAppointmentsError}</Text>
+              <TouchableOpacity style={styles.retryBtn} onPress={fetchCompletedAppointments}>
+                <Text style={styles.retryBtnText}>Try Again</Text>
+              </TouchableOpacity>
+            </View>
+          ) : completedAppointments.length === 0 ? (
             <Text style={styles.errorTxt}>No past completed appointments found.</Text>
           ) : (
             completedAppointments.map(a => (
@@ -776,6 +810,10 @@ const getStyles = (colors) => StyleSheet.create({
   apptCardTitleActive: { color: colors.gold },
   apptCardSub: { ...typography.bodySmall, color: colors.textTertiary, marginTop: 4 },
   apptCardSubActive: { color: colors.gold },
+  historyStateCard: { alignItems: 'flex-start', gap: 10, paddingVertical: 8 },
+  historyStateText: { ...typography.bodySmall, color: colors.textSecondary },
+  retryBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.gold },
+  retryBtnText: { ...typography.bodySmall, color: colors.gold, fontWeight: '700' },
 
   infoBox: { flexDirection: 'row', backgroundColor: colors.darkBgSecondary, padding: 16, borderRadius: borderRadius.md, marginTop: 10, borderWidth: 1, borderColor: colors.border },
   infoTxt: { flex: 1, ...typography.bodyXSmall, color: colors.textSecondary, fontStyle: 'italic', lineHeight: 18 },

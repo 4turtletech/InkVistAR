@@ -39,6 +39,7 @@ function CustomerBookings(){
     const [migrationModal, setMigrationModal] = useState({ show: false, count: 0 });
     
     const placementNotesRef = useRef(null);
+    const referenceImageInputRef = useRef(null);
     const [bookingData, setBookingData] = useState({
         artistId: null,
         bookingType: '', // 'new' or 'followup'
@@ -383,9 +384,18 @@ function CustomerBookings(){
             }
             const reader = new FileReader();
             reader.onloadend = () => {
-                setBookingData({ ...bookingData, referenceImage: reader.result });
+                setBookingData(prev => ({ ...prev, referenceImage: reader.result }));
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveReferenceImage = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setBookingData(prev => ({ ...prev, referenceImage: null }));
+        if (referenceImageInputRef.current) {
+            referenceImageInputRef.current.value = '';
         }
     };
 
@@ -2136,23 +2146,40 @@ function CustomerBookings(){
                                             <div className="form-group customer-st-5d155c93" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
                                                 <label className="customer-st-67198c20" >Reference Image</label>
                                                 <div 
-                                                    onClick={() => document.getElementById('modal-ref-img').click()}
+                                                    onClick={() => referenceImageInputRef.current?.click()}
                                                     style={{ 
                                                         flex: 1, border: '2px dashed #e2e8f0', borderRadius: '12px', 
                                                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
                                                         cursor: 'pointer', background: bookingData.referenceImage ? '#f8fafc' : 'transparent', overflow: 'hidden',
-                                                        minHeight: '180px'
+                                                        minHeight: '180px', position: 'relative'
                                                     }}
                                                 >
                                                     {bookingData.referenceImage ? (
-                                                        <img className="customer-st-2fbefd4f" src={bookingData.referenceImage} alt="Ref" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                        <>
+                                                            <img className="customer-st-2fbefd4f" src={bookingData.referenceImage} alt="Reference preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                            <button
+                                                                type="button"
+                                                                aria-label="Remove reference image"
+                                                                title="Remove reference image"
+                                                                onClick={handleRemoveReferenceImage}
+                                                                style={{
+                                                                    position: 'absolute', top: '10px', right: '10px', zIndex: 2,
+                                                                    width: '36px', height: '36px', borderRadius: '50%', border: 'none',
+                                                                    background: '#dc2626', color: '#fff', display: 'inline-flex',
+                                                                    alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                                                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)'
+                                                                }}
+                                                            >
+                                                                <X size={18} aria-hidden="true" />
+                                                            </button>
+                                                        </>
                                                     ) : (
                                                         <>
                                                             <ImageIcon size={32} color="#94a3b8" style={{ marginBottom: '8px' }} />
                                                             <span className="customer-st-4b235664" style={{ fontSize: '0.85rem', textAlign: 'center', padding: '0 10px' }} >Upload a photo or sketch</span>
                                                         </>
                                                     )}
-                                                    <input type="file" id="modal-ref-img" hidden accept="image/*" onChange={handleImageUpload} />
+                                                    <input ref={referenceImageInputRef} type="file" id="modal-ref-img" hidden accept="image/*" onChange={handleImageUpload} />
                                                 </div>
                                             </div>
                                         </div>

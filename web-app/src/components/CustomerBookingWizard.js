@@ -39,6 +39,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     });
     
     const placementNotesRef = useRef(null);
+    const referenceImageInputRef = useRef(null);
     const [formData, setFormData] = useState({
         firstName: user?.name ? user.name.split(' ')[0] : '',
         lastName: user?.name ? user.name.split(' ').slice(1).join(' ') : '',
@@ -295,9 +296,18 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setFormData({ ...formData, referenceImage: reader.result });
+                setFormData(prev => ({ ...prev, referenceImage: reader.result }));
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveReferenceImage = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setFormData(prev => ({ ...prev, referenceImage: null }));
+        if (referenceImageInputRef.current) {
+            referenceImageInputRef.current.value = '';
         }
     };
 
@@ -624,23 +634,40 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 <div className="form-group" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column' }}>
                     <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Reference Image (Optional)</label>
                     <div 
-                        onClick={() => document.getElementById('wizard-ref-img').click()}
+                        onClick={() => referenceImageInputRef.current?.click()}
                         style={{ 
                             flex: 1, border: '2px dashed #e2e8f0', borderRadius: '12px', 
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
                             cursor: 'pointer', background: formData.referenceImage ? '#f8fafc' : 'transparent', overflow: 'hidden',
-                            minHeight: '180px'
+                            minHeight: '180px', position: 'relative'
                         }}
                     >
                         {formData.referenceImage ? (
-                            <img src={formData.referenceImage} alt="Ref" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            <>
+                                <img src={formData.referenceImage} alt="Reference preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                <button
+                                    type="button"
+                                    aria-label="Remove reference image"
+                                    title="Remove reference image"
+                                    onClick={handleRemoveReferenceImage}
+                                    style={{
+                                        position: 'absolute', top: '10px', right: '10px', zIndex: 2,
+                                        width: '36px', height: '36px', borderRadius: '50%', border: 'none',
+                                        background: '#dc2626', color: '#fff', display: 'inline-flex',
+                                        alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)'
+                                    }}
+                                >
+                                    <X size={18} aria-hidden="true" />
+                                </button>
+                            </>
                         ) : (
                             <>
                                 <ImageIcon size={32} color="#94a3b8" />
                                 <span style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '10px' }}>Upload inspiration or sketches</span>
                             </>
                         )}
-                        <input type="file" id="wizard-ref-img" hidden accept="image/*" onChange={handleImageUpload} />
+                        <input ref={referenceImageInputRef} type="file" id="wizard-ref-img" hidden accept="image/*" onChange={handleImageUpload} />
                     </div>
                 </div>
             </div>
