@@ -17,7 +17,9 @@
       "bundleIdentifier": "com.nglo.mobileapp",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": ["tattooar"]
+        "NSCameraUsageDescription": "InkVistAR uses the camera to preview tattoo designs on your body in augmented reality.",
+        "NSPhotoLibraryUsageDescription": "InkVistAR uses your photo library so you can select a tattoo design for the AR preview.",
+        "NSPhotoLibraryAddUsageDescription": "InkVistAR saves AR tattoo snapshots and recordings to your photo library."
       }
     },
     "android": {
@@ -37,6 +39,16 @@
       }
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ],
+      "./plugins/withIosDeploymentTarget",
+      "./plugins/withIosSceneLifecycle",
       "expo-notifications",
       "expo-font",
       "expo-secure-store"

@@ -1,37 +1,65 @@
 /**
- * PlaceholderScreen.jsx -- Used for AR Tattoo Preview Launcher
+ * PlaceholderScreen.jsx -- Launches the embedded iOS AR tattoo preview.
  * Themed with lucide icons.
  */
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { Alert, Platform, View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Smartphone } from 'lucide-react-native';
 import { colors, typography, borderRadius } from '../src/theme';
-import * as Linking from 'expo-linking';
+import { getTattooARCapabilities, presentTattooAR } from '../src/native/tattooAR';
 
 const BODY_PARTS = [
   { id: 'general', label: 'General' },
   { id: 'chest', label: 'Chest' },
   { id: 'back', label: 'Back' },
   { id: 'neck', label: 'Neck' },
-  { id: 'upper_arm', label: 'Upper Arm' },
-  { id: 'forearm', label: 'Forearm' },
+  { id: 'upperArms', label: 'Upper Arm' },
+  { id: 'forearms', label: 'Forearm' },
   { id: 'hand', label: 'Hand' },
   { id: 'thighs', label: 'Thighs' },
   { id: 'calves', label: 'Calves' },
-  { id: 'face', label: 'Face' },
+  { id: 'faceGeneral', label: 'Face' },
 ];
 
-export default function PlaceholderScreen({ navigation, title, feature }) {
+export default function PlaceholderScreen({ navigation, title }) {
   const [selectedPart, setSelectedPart] = useState('general');
+  const [isLaunching, setIsLaunching] = useState(false);
 
-  const openTattooAR = () => {
-    // Launch the Swift app with the mode parameter
-    Linking.openURL(`tattooar://?mode=${selectedPart}`).catch((err) => {
-      console.error('Failed to open AR app:', err);
-      alert('Tattoo AR app is not installed or could not be opened.');
-    });
+  const openTattooAR = async () => {
+    if (Platform.OS !== 'ios') {
+      Alert.alert('iOS Only', 'The AR tattoo preview is available only on compatible iOS devices.');
+      return;
+    }
+
+    const capabilities = getTattooARCapabilities();
+    const usesFaceTracking = selectedPart === 'faceGeneral';
+
+    if (!capabilities.osSupported) {
+      Alert.alert('iOS 26 Required', 'The current AR experience requires iOS 26 or newer. The rest of InkVistAR remains available on this device.');
+      return;
+    }
+
+    if (usesFaceTracking && !capabilities.faceTracking) {
+      Alert.alert('TrueDepth Required', 'Face tattoo preview requires an iPhone or iPad with a TrueDepth camera.');
+      return;
+    }
+
+    if (!usesFaceTracking && !capabilities.lidar) {
+      Alert.alert('LiDAR Required', 'This placement mode requires a LiDAR-capable iPhone or iPad.');
+      return;
+    }
+
+    setIsLaunching(true);
+    try {
+      await presentTattooAR(selectedPart);
+    } catch (error) {
+      console.error('Failed to present embedded AR:', error);
+      Alert.alert('AR Preview Unavailable', error?.message || 'The embedded AR preview could not be opened.');
+    } finally {
+      setIsLaunching(false);
+    }
   };
 
   return (
@@ -46,7 +74,7 @@ export default function PlaceholderScreen({ navigation, title, feature }) {
       
       <ScrollView contentContainerStyle={styles.content}>
         <Smartphone size={64} color={colors.primary} style={{ marginBottom: 16 }} />
-        <Text style={styles.title}>Launch AR App</Text>
+        <Text style={styles.title}>Tattoo AR Preview</Text>
         <Text style={styles.subtitle}>Visualize designs on your skin</Text>
         
         <View style={styles.pickerSection}>
@@ -71,10 +99,15 @@ export default function PlaceholderScreen({ navigation, title, feature }) {
         </View>
 
         <Text style={styles.desc}>
-          Tap the button below to open the companion Augmented Reality app and see how your tattoo will look in real-time!
+          Open the built-in iOS AR experience to see how your tattoo will look in real time. No companion app is required.
         </Text>
-        <TouchableOpacity style={styles.btn} onPress={openTattooAR} activeOpacity={0.8}>
-          <Text style={styles.btnText}>Open Tattoo AR</Text>
+        <TouchableOpacity
+          style={[styles.btn, isLaunching && styles.btnDisabled]}
+          onPress={openTattooAR}
+          activeOpacity={0.8}
+          disabled={isLaunching}
+        >
+          <Text style={styles.btnText}>{isLaunching ? 'Opening AR…' : 'Start AR Preview'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </LinearGradient>
@@ -110,5 +143,6 @@ const styles = StyleSheet.create({
   chipTextSelected: { color: colors.primary, fontWeight: '700' },
   desc: { ...typography.body, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 24, marginBottom: 30, marginTop: 10 },
   btn: { backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 16, borderRadius: borderRadius.lg, width: '100%', alignItems: 'center' },
+  btnDisabled: { opacity: 0.65 },
   btnText: { ...typography.button, color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
 });
