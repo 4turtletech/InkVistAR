@@ -193,17 +193,13 @@ export default function WaiverPrintView() {
                     })}
                 </div>
 
-                {/* Signature / Acceptance Block */}
+                {/* Consent / Acceptance Block */}
                 <div style={s.acceptanceBlock}>
-                    <h3 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>Electronic Acceptance Record</h3>
+                    <h3 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>Consent &amp; Acceptance Record</h3>
                     <div style={s.sigGrid}>
                         <div style={s.sigField}>
                             <span style={s.sigLabel}>Client Name</span>
                             <span style={s.sigValue}>{clientName}</span>
-                        </div>
-                        <div style={s.sigField}>
-                            <span style={s.sigLabel}>Electronic Signature</span>
-                            <span style={s.sigValue}>{c?.signature_evidence || 'N/A'}</span>
                         </div>
                         <div style={s.sigField}>
                             <span style={s.sigLabel}>Booking Reference</span>
@@ -255,7 +251,7 @@ export default function WaiverPrintView() {
                         <div style={{ ...s.sigField, gridColumn: '1 / -1', marginTop: '8px' }}>
                             <span style={s.sigLabel}>Waiver Accepted</span>
                             {waiverDate ? (
-                                <span style={{ ...s.sigValue, color: '#16a34a' }}>Electronically accepted on {waiverDate} (v{c?.waiver_version || '1.0'})</span>
+                                <span style={{ ...s.sigValue, color: '#16a34a' }}>Accepted on {waiverDate} (v{c?.waiver_version || '1.0'})</span>
                             ) : (
                                 <span style={{ ...s.sigValue, color: '#dc2626' }}>No waiver acceptance on record</span>
                             )}
@@ -266,8 +262,8 @@ export default function WaiverPrintView() {
                 {/* Footer */}
                 <div style={s.docFooter}>
                     <p style={{ margin: 0, fontSize: '0.78rem', color: '#94a3b8', textAlign: 'center' }}>
-                        This document was electronically accepted via the InkVistAR Platform. It constitutes a binding legal agreement
-                        with the same force and effect as a handwritten signature. Document generated on {printDate}.
+                        This document was accepted through the required confirmations in the InkVistAR Platform.
+                        Document generated on {printDate}.
                     </p>
                 </div>
             </div>

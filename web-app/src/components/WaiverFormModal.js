@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { FileWarning, Shield, X } from 'lucide-react';
-import axios from 'axios';
-import { API_URL } from '../config';
 import './WaiverFormModal.css';
 
 const WAIVER_SECTIONS = [
@@ -21,15 +19,12 @@ const checkboxStyle = { marginTop: '4px', width: '18px', height: '18px', accentC
 const labelStyle = { display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '12px', cursor: 'pointer' };
 
 export default function WaiverFormModal({ isOpen, onClose, onAccept, clientName }) {
-    const [staffList, setStaffList] = useState([]);
     const [ageConfirmed, setAgeConfirmed] = useState(false);
     const [procedureConsent, setProcedureConsent] = useState(false);
     const [paymentConsent, setPaymentConsent] = useState(false);
     const [healthDataConsent, setHealthDataConsent] = useState(false);
     const [marketingConsent, setMarketingConsent] = useState(false);
     const [photoConsent, setPhotoConsent] = useState(false);
-    const [signature, setSignature] = useState('');
-    const [witnessId, setWitnessId] = useState('');
 
     useEffect(() => {
         if (!isOpen) return;
@@ -39,21 +34,14 @@ export default function WaiverFormModal({ isOpen, onClose, onAccept, clientName 
         setHealthDataConsent(false);
         setMarketingConsent(false);
         setPhotoConsent(false);
-        setSignature('');
-        setWitnessId('');
-        axios.get(`${API_URL}/api/public/staff`)
-            .then((res) => { if (res.data.success) setStaffList(res.data.staff); })
-            .catch((error) => console.error('Failed to fetch staff:', error));
     }, [isOpen]);
 
     if (!isOpen) return null;
 
-    const canSubmit = ageConfirmed && procedureConsent && paymentConsent
-        && healthDataConsent && signature.trim().length > 2;
+    const canSubmit = ageConfirmed && procedureConsent && paymentConsent && healthDataConsent;
 
     const handleSubmit = () => {
         if (!canSubmit) return;
-        const witness = staffList.find((staff) => String(staff.id) === String(witnessId));
         onAccept({
             ageConfirmed,
             procedureConsent,
@@ -61,10 +49,12 @@ export default function WaiverFormModal({ isOpen, onClose, onAccept, clientName 
             healthDataConsent,
             marketingConsent,
             photoConsent,
-            signatureEvidence: signature.trim(),
-            witnessName: witness?.name || null,
-            witnessUserId: witness?.id || null,
-            waiverVersion: '1.3-adult-confirmation',
+            // Retained as internal consent evidence for existing backend records;
+            // the customer no longer has to type a redundant signature.
+            signatureEvidence: 'Required confirmation checkboxes accepted',
+            witnessName: null,
+            witnessUserId: null,
+            waiverVersion: '1.4-checkbox-consent',
             waiverText: WAIVER_SECTIONS.map(([title, text]) => `${title}: ${text}`).join('\n'),
         });
     };
@@ -129,26 +119,12 @@ export default function WaiverFormModal({ isOpen, onClose, onAccept, clientName 
                         </label>
                     </div>
 
-                    <div className="waiver-acceptance-box" style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                        <p><strong>Electronic Acceptance</strong><br />By typing my name, I acknowledge that I have read, understood, and agree to the waiver.</p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-                            <label style={{ fontWeight: 600, fontSize: '0.9rem', color: '#475569' }}>Electronic Signature (Type your full name) *</label>
-                            <input type="text" value={signature} onChange={(event) => setSignature(event.target.value)} placeholder="E.g. Juan Dela Cruz" style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', width: '100%', boxSizing: 'border-box' }} />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <label style={{ fontWeight: 600, fontSize: '0.9rem', color: '#475569' }}>Artist / Staff Witness (Optional)</label>
-                            <select value={witnessId} onChange={(event) => setWitnessId(event.target.value)} style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', width: '100%', boxSizing: 'border-box', background: 'white' }}>
-                                <option value="">Select Witness (if assisted in-studio)</option>
-                                {staffList.map((staff) => <option key={staff.id} value={staff.id}>{staff.name} ({staff.user_type})</option>)}
-                            </select>
-                        </div>
-                    </div>
                 </div>
 
                 <div className="waiver-modal-footer">
                     <button className="waiver-btn-decline" onClick={onClose}>Cancel</button>
                     <button className="waiver-btn-accept" onClick={handleSubmit} disabled={!canSubmit} style={{ background: canSubmit ? '#be9055' : '#cbd5e1', cursor: canSubmit ? 'pointer' : 'not-allowed' }}>
-                        <Shield size={16} /> I Agree &amp; Sign Waiver
+                        <Shield size={16} /> I Agree to the Waiver
                     </button>
                 </div>
             </div>
