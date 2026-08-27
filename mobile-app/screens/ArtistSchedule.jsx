@@ -3,20 +3,20 @@
  * Theme-aware, animated, gold accents. Filters, sort, calendar, appointment cards, detail & add modals.
  */
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, Modal, TextInput, Animated, Pressable, RefreshControl, Share, Platform, Image, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, Modal, TextInput, Animated, Pressable, RefreshControl, Platform, Image, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import {
   ArrowLeft, Calendar, CheckCircle2, ArrowUpDown, ChevronLeft, ChevronRight,
-  Clock, User, X, Ban, Download, Printer, Lock, Unlock, PenTool,
+  Clock, User, X, Ban, Download, Lock, Unlock, PenTool,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { typography } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { getArtistAppointments, updateAppointmentStatus, createArtistAppointment, updateAppointmentDetails } from '../src/utils/api';
+import { buildReportHTML, exportCSV, generateCSV, sharePDF } from '../src/utils/exportHelpers';
 
 export function ArtistSchedule({ onBack, artistId, navigation, route }) {
   const { theme: colors, hapticsEnabled } = useTheme();
@@ -39,6 +39,7 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
   const [newDesign, setNewDesign] = useState('');
   const [alertModal, setAlertModal] = useState({ visible: false, title: '', message: '' });
   const [uploadingDraft, setUploadingDraft] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   // Date blocking
   const [blockedDates, setBlockedDates] = useState([]);
@@ -121,26 +122,78 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
 
   const exportToCSV = async () => {
     if (appointments.length === 0) {
-      setAlertModal({ visible: true, title: 'No Data', message: 'There are no appointments to export.' });
+      setExportError('There are no appointments to export.');
       return;
     }
-    const header = 'Booking Code,Client,Date,Time,Service,Status,Price,Payment';
-    const rows = appointments.map(a =>
-      `"${a.booking_code || a.id}","${a.client_name || ''}","${(a.appointment_date || '').substring(0, 10)}","${a.start_time || ''}","${a.design_title || ''}","${a.status || ''}","${a.price || 0}","${a.payment_status || ''}"`
-    );
-    const csv = [header, ...rows].join('\n');
-    const fileName = `schedule_${new Date().toISOString().split('T')[0]}.csv`;
-    const fileUri = FileSystem.documentDirectory + fileName;
-    try {
-      await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
-      await Share.share({
-        title: 'Schedule Export',
-        message: `Schedule CSV exported. File saved at:\n${fileUri}\n\n${csv.substring(0, 500)}...`,
-        url: fileUri,
-      });
-    } catch (e) {
-      setAlertModal({ visible: true, title: 'Error', message: 'Failed to export schedule.' });
+
+    const rows = appointments.map(a => ({
+      bookingCode: a.booking_code || a.id,
+      client: a.client_name || '',
+      date: (a.appointment_date || '').substring(0, 10),
+      time: a.start_time || '',
+      service: a.design_title || '',
+      status: a.status || '',
+      price: a.price || 0,
+      payment: a.payment_status || '',
+    }));
+    const csv = generateCSV(rows, [
+      { key: 'bookingCode', label: 'Booking Code' },
+      { key: 'client', label: 'Client' },
+      { key: 'date', label: 'Date' },
+      { key: 'time', label: 'Time' },
+      { key: 'service', label: 'Service' },
+      { key: 'status', label: 'Status' },
+      { key: 'price', label: 'Price' },
+      { key: 'payment', label: 'Payment' },
+    ]);
+    await exportCSV(csv, `schedule_${new Date().toISOString().split('T')[0]}`);
+  };
+
+  const exportToPDF = async () => {
+    if (appointments.length === 0) {
+      setExportError('There are no appointments to export.');
+      return;
     }
+
+    const html = buildReportHTML({
+      title: 'Artist Schedule',
+      subtitle: `Schedule generated on ${new Date().toLocaleDateString()}`,
+      metrics: [
+        { label: 'Total', value: String(appointments.length) },
+        { label: 'Confirmed', value: String(appointments.filter(a => a.status === 'confirmed').length) },
+        { label: 'Pending', value: String(appointments.filter(a => a.status === 'pending').length) },
+        { label: 'Completed', value: String(appointments.filter(a => a.status === 'completed').length) },
+      ],
+      tables: [{
+        title: 'Appointments',
+        headers: ['Booking Code', 'Client', 'Date', 'Time', 'Service', 'Status', 'Price', 'Payment'],
+        rows: appointments.map(a => [
+          a.booking_code || a.id,
+          a.client_name || '',
+          (a.appointment_date || '').substring(0, 10),
+          a.start_time || '',
+          a.design_title || '',
+          a.status || '',
+          `PHP ${Number(a.price || 0).toLocaleString()}`,
+          a.payment_status || '',
+        ]),
+      }],
+    });
+    await sharePDF(html, `schedule_${new Date().toISOString().split('T')[0]}`);
+  };
+
+  const handleExport = () => {
+    if (appointments.length === 0) {
+      setExportError('There are no appointments to export.');
+      return;
+    }
+
+    setExportError('');
+    Alert.alert('Export Schedule', 'Choose a file format.', [
+      { text: 'CSV', onPress: exportToCSV },
+      { text: 'PDF', onPress: exportToPDF },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const handleUploadDraft = async () => {
@@ -181,17 +234,6 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
       setUploadingDraft(false);
       Alert.alert('Error', 'Something went wrong while uploading.');
     }
-  };
-
-  const printScheduleSummary = () => {
-    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const upcoming = appointments
-      .filter(a => a.status !== 'cancelled' && a.status !== 'completed')
-      .slice(0, 10)
-      .map(a => `• ${(a.appointment_date || '').substring(0, 10)} ${a.start_time || ''} — ${a.client_name || 'Unknown'} (${a.design_title || 'Session'})`)
-      .join('\n');
-    const summary = `SCHEDULE SUMMARY\nGenerated: ${today}\nArtist ID: ${artistId}\n\nUpcoming Sessions:\n${upcoming || 'None'}`;
-    setAlertModal({ visible: true, title: 'Schedule Summary', message: summary });
   };
 
   const changeMonth = (inc) => { const d = new Date(currentMonth); d.setMonth(d.getMonth() + inc); setCurrentMonth(d); };
@@ -309,15 +351,12 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
               <Ban size={16} color={colors.error} />
               <Text style={[styles.toolbarBtnText, { color: colors.error }]}>Block Date</Text>
             </AnimatedTouchable>
-            <AnimatedTouchable style={styles.toolbarBtn} onPress={exportToCSV}>
+            <AnimatedTouchable style={styles.toolbarBtn} onPress={handleExport}>
               <Download size={16} color={colors.gold} />
               <Text style={[styles.toolbarBtnText, { color: colors.gold }]}>Export</Text>
             </AnimatedTouchable>
-            <AnimatedTouchable style={styles.toolbarBtn} onPress={printScheduleSummary}>
-              <Printer size={16} color={colors.textSecondary} />
-              <Text style={[styles.toolbarBtnText, { color: colors.textSecondary }]}>Print</Text>
-            </AnimatedTouchable>
           </ScrollView>
+          {!!exportError && <Text style={{ color: colors.error, fontSize: 12, marginTop: 6 }}>{exportError}</Text>}
         </View>
 
         <View style={styles.content}>
