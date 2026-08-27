@@ -15,7 +15,6 @@ const {
   DEMO_ACCOUNTS_ENABLED,
   DEBUG_ROUTES_ENABLED,
   CAPTCHA_BYPASS_ENABLED,
-  BYPASS_MOBILE_REGISTRATION_CAPTCHA,
   databaseConfig,
 } = require('./config/runtime');
 const { initializeControlledAccounts } = require('./utils/accountBootstrap');
@@ -40,7 +39,7 @@ const { normalizePhilippineMobileNumber } = require('./services/phoneNumber');
 const { createSessionInventoryService, InventoryOperationError } = require('./services/sessionInventoryService');
 const { createFinancialLedgerService, summarizeAppointmentFinances } = require('./services/financialLedgerService');
 const { InvoiceRecordInputError, InvoiceRecordNotFoundError, buildInvoiceUpdate, updateInvoiceRecord } = require('./services/invoiceRecordService');
-const { evaluateCaptchaResponse, shouldVerifyRegistrationCaptcha } = require('./services/captchaPolicy');
+const { evaluateCaptchaResponse } = require('./services/captchaPolicy');
 const { ChatbotInputError, createChatbotResponder, withTimeout } = require('./services/chatbotResilience');
 const {
   isExpoPushToken,
@@ -50,10 +49,6 @@ const {
   getReceiptInvalidTokens,
 } = require('./services/expoPushService');
 process.env.TZ = 'Asia/Manila'; // Global Node.js timezone localization
-
-if (BYPASS_MOBILE_REGISTRATION_CAPTCHA) {
-  console.warn('[SECURITY] Mobile registration CAPTCHA bypass is enabled. Email OTP verification remains required.');
-}
 
 const app = express();
 const { sendResendEmail } = require('./utils/emailService');
@@ -3196,24 +3191,17 @@ app.post('/api/register', async (req, res) => {
     const accountType = publicAccountType();
     const normalizedEmail = String(email || '').trim().toLowerCase();
 
-    const verifyRegistrationCaptcha = shouldVerifyRegistrationCaptcha({
-      bypassMobileCaptcha: BYPASS_MOBILE_REGISTRATION_CAPTCHA,
-      clientHeader: req.get('x-inkvistar-client'),
+    const captchaValid = await verifyCaptcha(captchaToken, {
+      // Google signs the action into its verified response. Use that trusted
+      // value rather than a client-supplied platform flag to choose policy.
+      expectedAction: ['register', 'mobile_register'],
+      minimumScore: RECAPTCHA_MIN_SCORE,
+      minimumScoreByAction: {
+        mobile_register: RECAPTCHA_MOBILE_MIN_SCORE,
+      },
     });
-
-    if (verifyRegistrationCaptcha) {
-      const captchaValid = await verifyCaptcha(captchaToken, {
-        // Google signs the action into its verified response. Use that trusted
-        // value rather than a client-supplied platform flag to choose policy.
-        expectedAction: ['register', 'mobile_register'],
-        minimumScore: RECAPTCHA_MIN_SCORE,
-        minimumScoreByAction: {
-          mobile_register: RECAPTCHA_MOBILE_MIN_SCORE,
-        },
-      });
-      if (!captchaValid) {
-        return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
-      }
+    if (!captchaValid) {
+      return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
     }
 
     // Handle combined name if firstName/lastName not provided (backward compatibility)
