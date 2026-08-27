@@ -5456,11 +5456,11 @@ app.post('/api/admin/appointments', async (req, res) => {
             const waiverText = String(c.waiverText || '').trim();
             const signatureEvidence = String(c.signatureEvidence || '').trim();
             if (c.ageConfirmed !== true || !c.paymentConsent || !c.procedureConsent || !c.healthDataConsent
-              || waiverText.length < 20 || !/(?:at least 18 years old|18 years old or older)/i.test(waiverText)
+              || waiverText.length < 20 || !/(?:at least 18 years (?:old|of age)|18 years old or older)/i.test(waiverText)
               || signatureEvidence.length < 3) {
               return conn.rollback(() => {
                 conn.release();
-                res.status(400).json({ success: false, message: 'Age confirmation and a complete signed waiver are required.' });
+                res.status(400).json({ success: false, message: 'Age confirmation and all required waiver confirmations are required.' });
               });
             }
             const consentQuery = `

@@ -11,9 +11,9 @@ function validateConsentInput(input) {
   if (!input.procedureConsent) errors.push('Procedure consent is required.');
   if (!input.paymentConsent) errors.push('Payment consent is required.');
   if (!input.healthDataConsent) errors.push('Health-data consent is required.');
-  if (String(input.signatureEvidence || '').trim().length < 3) errors.push('Electronic signature is required.');
+  if (String(input.signatureEvidence || '').trim().length < 3) errors.push('Waiver acceptance evidence is required.');
   if (String(input.waiverText || '').trim().length < 20) errors.push('The exact waiver text is required.');
-  if (!/(?:at least 18 years old|18 years old or older)/i.test(String(input.waiverText || ''))) {
+  if (!/(?:at least 18 years (?:old|of age)|18 years old or older)/i.test(String(input.waiverText || ''))) {
     errors.push('The signed waiver must contain the adult age confirmation.');
   }
   return { valid: errors.length === 0, errors };

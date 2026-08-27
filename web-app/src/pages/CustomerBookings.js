@@ -1578,14 +1578,12 @@ function CustomerBookings(){
                         </div>
                         <div className="modal-footer modal-footer-spaced" >
                             <button className="btn btn-secondary btn-close-modal" onClick={() => setIsModalOpen(false)}>Close</button>
-                            {selectedApt.waiver_accepted_at && (
-                                <button
-                                    className="btn btn-secondary btn-action-waiver"
-                                    onClick={() => navigate(`/customer/waiver/${selectedApt.id}`)}
-                                >
-                                    <ShieldCheck size={16} /> View Waiver
-                                </button>
-                            )}
+                            <button
+                                className="btn btn-secondary btn-action-waiver"
+                                onClick={() => navigate(`/customer/waiver/${selectedApt.id}`)}
+                            >
+                                <ShieldCheck size={16} /> View Waiver
+                            </button>
 
                             {selectedApt.status.toLowerCase() === 'completed' && (
                                 <button 

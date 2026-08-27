@@ -22,6 +22,19 @@ const adultConsent = {
   waiverText: 'Age Verification: I confirm that I am at least 18 years old. Exact waiver text retained for this signed consent record.',
 };
 
+test('checkbox waiver accepts the customer-facing age confirmation wording', () => {
+  const checkboxConsent = {
+    ...adultConsent,
+    waiverVersion: '1.4-checkbox-consent',
+    waiverText: 'Age Verification: I confirm that I am at least 18 years of age. Exact waiver text retained for this consent record.',
+    signatureEvidence: 'Required confirmation checkboxes accepted',
+  };
+
+  const result = validateConsentInput(checkboxConsent);
+  assert.equal(result.valid, true);
+  assert.deepEqual(result.errors, []);
+});
+
 test('required consents are independent and optional photo consent defaults to declined', () => {
   const valid = validateConsentInput(adultConsent, { allow_minors: false }, new Date('2026-08-22T00:00:00Z'));
   assert.equal(valid.valid, true);
