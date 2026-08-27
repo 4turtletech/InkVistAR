@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
   ActivityIndicator, Alert, Image, Animated, Dimensions, Keyboard, SafeAreaView, Platform, StatusBar
 } from 'react-native';
-import { ArrowLeft, ChevronLeft, ChevronRight, Camera, CalendarCheck, MapPin, Check, Info, Star, CreditCard, Ticket, Clock, User, Plus, History } from 'lucide-react-native';
+import { ArrowLeft, ChevronLeft, ChevronRight, Camera, CalendarCheck, MapPin, Check, Info, Star, CreditCard, Ticket, Clock, User, Plus, History, X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
@@ -166,7 +166,7 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
         }
         return { ...prev, [field]: arr };
       }
-      
+
       const isAdding = !arr.includes(item);
       return { ...prev, [field]: isAdding ? [...arr, item] : arr.filter(x => x !== item) };
     });
@@ -433,16 +433,29 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
       </View>
 
       <Text style={[styles.label, { marginTop: 8 }]}>Reference Image (Optional)</Text>
-      <TouchableOpacity style={styles.uploadZone} onPress={pickImage}>
-        {formData.referenceImage ? (
-          <Image source={{ uri: formData.referenceImage }} style={styles.uploadedImg} />
-        ) : (
-          <View style={styles.uploadInner}>
-            <Camera size={32} color={colors.goldMuted} />
-            <Text style={styles.uploadTxt}>Tap to upload inspiration</Text>
-          </View>
+      <View style={styles.uploadZone}>
+        <TouchableOpacity style={styles.uploadTouchable} onPress={pickImage} accessibilityRole="button" accessibilityLabel={formData.referenceImage ? 'Replace reference image' : 'Add reference image'}>
+          {formData.referenceImage ? (
+            <Image source={{ uri: formData.referenceImage }} style={styles.uploadedImg} />
+          ) : (
+            <View style={styles.uploadInner}>
+              <Camera size={32} color={colors.goldMuted} />
+              <Text style={styles.uploadTxt}>Tap to upload inspiration</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        {formData.referenceImage && (
+          <TouchableOpacity
+            style={styles.removeImageBtn}
+            onPress={() => handleInput('referenceImage', null)}
+            accessibilityRole="button"
+            accessibilityLabel="Remove reference image"
+          >
+            <X size={18} color="#fff" />
+            <Text style={styles.removeImageText}>Remove</Text>
+          </TouchableOpacity>
         )}
-      </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -784,10 +797,13 @@ const getStyles = (colors) => StyleSheet.create({
   pillTxt: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
   pillTxtActive: { color: colors.backgroundDeep },
   
-  uploadZone: { height: 160, borderRadius: borderRadius.xl, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', backgroundColor: colors.darkBgSecondary, overflow: 'hidden' },
+  uploadZone: { height: 160, borderRadius: borderRadius.xl, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', backgroundColor: colors.darkBgSecondary, overflow: 'hidden', position: 'relative' },
+  uploadTouchable: { flex: 1 },
   uploadInner: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   uploadTxt: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 12 },
   uploadedImg: { width: '100%', height: '100%', resizeMode: 'cover' },
+  removeImageBtn: { position: 'absolute', top: 10, right: 10, zIndex: 2, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: borderRadius.lg, backgroundColor: 'rgba(185, 28, 28, 0.92)' },
+  removeImageText: { ...typography.bodyXSmall, color: '#fff', fontWeight: '800' },
   
   calCard: { backgroundColor: colors.darkBgSecondary, borderRadius: borderRadius.lg, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.border },
   calHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },

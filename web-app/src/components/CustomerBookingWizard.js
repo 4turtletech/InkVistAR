@@ -677,7 +677,12 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     return (
                         <button
                             key={opt.key} type="button"
-                            onClick={() => setFormData(prev => ({ ...prev, consultationMethod: opt.key, onlinePlatform: opt.key === 'Face-to-Face' ? '' : prev.onlinePlatform }))}
+                            onClick={() => {
+                                setFormData(prev => ({ ...prev, consultationMethod: opt.key, onlinePlatform: opt.key === 'Face-to-Face' ? '' : prev.onlinePlatform }));
+                                if (opt.key === 'Face-to-Face' && errors.onlinePlatform) {
+                                    setErrors(prev => ({ ...prev, onlinePlatform: '' }));
+                                }
+                            }}
                             style={{
                                 flex: 1, padding: '14px', borderRadius: '12px',
                                 border: `2px solid ${isActive ? opt.color : '#e2e8f0'}`,
@@ -705,10 +710,13 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             return (
                                 <button
                                     key={platform} type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, onlinePlatform: platform }))}
+                                    onClick={() => {
+                                        setFormData(prev => ({ ...prev, onlinePlatform: platform }));
+                                        if (errors.onlinePlatform) setErrors(prev => ({ ...prev, onlinePlatform: '' }));
+                                    }}
                                     style={{
                                         flex: 1, padding: '12px', borderRadius: '10px',
-                                        border: `2px solid ${isActive ? color : '#e2e8f0'}`,
+                                        border: `2px solid ${isActive ? color : (errors.onlinePlatform ? '#ef4444' : '#e2e8f0')}`,
                                         background: isActive ? `${color}12` : 'white',
                                         color: isActive ? color : '#64748b',
                                         fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer',
@@ -721,8 +729,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             );
                         })}
                     </div>
-                    {!formData.onlinePlatform && (
-                        <p style={{ fontSize: '0.78rem', color: '#f59e0b', marginTop: '8px', textAlign: 'center' }}>Please select your preferred messaging platform</p>
+                    {errors.onlinePlatform && (
+                        <p style={{ fontSize: '0.78rem', color: '#ef4444', marginTop: '8px', textAlign: 'center' }}>{errors.onlinePlatform}</p>
                     )}
                 </div>
             )}
@@ -781,7 +789,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                         return (
                                             <button key={`p-${part}`} type="button" onClick={() => toggleArrayField('placement', part)} style={{
                                                 padding: '9px 5px', borderRadius: '10px',
-                                                border: `2px solid ${isSelected ? '#be9055' : '#e2e8f0'}`,
+                                                border: `2px solid ${isSelected ? '#be9055' : (errors.placement ? '#ef4444' : '#e2e8f0')}`,
                                                 background: isSelected ? '#be9055' : 'white',
                                                 color: isSelected ? 'white' : '#1e293b',
                                                 fontWeight: '600', fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s',
@@ -1791,7 +1799,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             const newErrors = {};
                             if (step === 1 && !formData.designTitle) newErrors.designTitle = 'Please tell us about your tattoo idea'; 
                             if (step === 2 && formData.consultationFor.length === 0) newErrors.placement = 'Please select what this consultation is for (Tattoo, Piercing, or both)';
-                            else if (step === 2 && formData.consultationMethod === 'Online' && !formData.onlinePlatform) newErrors.placement = 'Please select your preferred messaging platform (Messenger or Instagram)';
+                            else if (step === 2 && formData.consultationMethod === 'Online' && !formData.onlinePlatform) newErrors.onlinePlatform = 'Please select your preferred messaging platform (Messenger or Instagram)';
                             else if (step === 2 && formData.placement.length === 0) newErrors.placement = 'Please select at least one placement area';
                             else if (step === 2 && formData.placement.includes('Other') && !formData.placementNotes.trim()) newErrors.placementNotes = 'Please describe the specific location since you selected "Other"';
                             else if (step === 2 && formData.consultationFor.includes('piercing')) {

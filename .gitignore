@@ -25,6 +25,7 @@ dist/
 TattooARApp/
 ar-tattoo-native/
 .vscode/
-
+/AR/
+/backups/
 # AI Rules
 gemini.md

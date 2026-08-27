@@ -94,6 +94,12 @@ function AdminInventory() {
         validateInventoryField(field, value);
     };
 
+    const normalizeStockInput = (value) => {
+        const digits = String(value ?? '').replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+        if (digits === '') return '';
+        return String(Math.min(999999, Number(digits)));
+    };
+
     const validateTransactionField = (field, value) => {
         let errorMsg = "";
         if (field === 'quantity' && (!value || Number(value) < 1 || !Number.isInteger(Number(value)))) {
@@ -1176,7 +1182,7 @@ function AdminInventory() {
                                                     type="number"
                                                     min="0"
                                                     value={formData.currentStock}
-                                                    onChange={(e) => handleInventoryInputChange('currentStock', clampNumber(e.target.value, 0, 999999))}
+                                                    onChange={(e) => handleInventoryInputChange('currentStock', normalizeStockInput(e.target.value))}
                                                     className={`form-input admin-st-7047dd0b ${errors.currentStock ? 'error' : ''}`}
                                                 />
                                                 {errors.currentStock && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.currentStock}</small>}
@@ -1192,7 +1198,7 @@ function AdminInventory() {
                                                         type="number"
                                                         min="0"
                                                         value={formData.minStock}
-                                                        onChange={(e) => handleInventoryInputChange('minStock', clampNumber(e.target.value, 0, 999999))}
+                                                        onChange={(e) => handleInventoryInputChange('minStock', normalizeStockInput(e.target.value))}
                                                         className={`form-input ${errors.minStock ? 'error' : ''}`}
                                                     />
                                                     {errors.minStock && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.minStock}</small>}
@@ -1203,7 +1209,7 @@ function AdminInventory() {
                                                         type="number"
                                                         min="0"
                                                         value={formData.maxStock}
-                                                        onChange={(e) => handleInventoryInputChange('maxStock', clampNumber(e.target.value, 0, 999999))}
+                                                        onChange={(e) => handleInventoryInputChange('maxStock', normalizeStockInput(e.target.value))}
                                                         className={`form-input ${errors.maxStock ? 'error' : ''}`}
                                                     />
                                                     {errors.maxStock && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.maxStock}</small>}

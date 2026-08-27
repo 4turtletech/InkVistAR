@@ -14,6 +14,14 @@ class InvoiceRecordInputError extends Error {
   }
 }
 
+class InvoiceRecordNotFoundError extends Error {
+  constructor() {
+    super('Invoice not found. Payment transactions cannot be edited as invoices.');
+    this.name = 'InvoiceRecordNotFoundError';
+    this.statusCode = 404;
+  }
+}
+
 function cleanText(value, label, maxLength = 255) {
   const cleaned = String(value ?? '').trim();
   if (!cleaned) throw new InvoiceRecordInputError(`${label} is required.`);
@@ -66,7 +74,50 @@ function buildInvoiceUpdate(input = {}) {
   return { assignments, values };
 }
 
+async function updateInvoiceRecord({ database, invoiceId, update, markLinkedAppointmentPaid = false }) {
+  if (!database?.promise || !update?.assignments?.length) {
+    throw new TypeError('A database pool and validated invoice update are required.');
+  }
+
+  const connection = await database.promise().getConnection();
+  let transactionStarted = false;
+
+  try {
+    await connection.beginTransaction();
+    transactionStarted = true;
+
+    const [result] = await connection.query(
+      `UPDATE invoices SET ${update.assignments.join(', ')} WHERE id = ?`,
+      [...update.values, invoiceId]
+    );
+
+    if (!result || result.affectedRows === 0) throw new InvoiceRecordNotFoundError();
+
+    let linkedAppointmentUpdated = false;
+    if (markLinkedAppointmentPaid) {
+      const [syncResult] = await connection.query(
+        `UPDATE appointments ap
+         INNER JOIN invoices i ON i.appointment_id = ap.id
+         SET ap.payment_status = 'paid'
+         WHERE i.id = ? AND i.appointment_id IS NOT NULL`,
+        [invoiceId]
+      );
+      linkedAppointmentUpdated = Number(syncResult?.affectedRows || 0) > 0;
+    }
+
+    await connection.commit();
+    return { linkedAppointmentUpdated };
+  } catch (error) {
+    if (transactionStarted) await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 module.exports = {
   InvoiceRecordInputError,
+  InvoiceRecordNotFoundError,
   buildInvoiceUpdate,
+  updateInvoiceRecord,
 };

@@ -39,7 +39,7 @@ const { normalizeHealthScreeningInput } = require('./services/healthScreeningPol
 const { normalizePhilippineMobileNumber } = require('./services/phoneNumber');
 const { createSessionInventoryService, InventoryOperationError } = require('./services/sessionInventoryService');
 const { createFinancialLedgerService, summarizeAppointmentFinances } = require('./services/financialLedgerService');
-const { InvoiceRecordInputError, buildInvoiceUpdate } = require('./services/invoiceRecordService');
+const { InvoiceRecordInputError, InvoiceRecordNotFoundError, buildInvoiceUpdate, updateInvoiceRecord } = require('./services/invoiceRecordService');
 const { evaluateCaptchaResponse, shouldVerifyRegistrationCaptcha } = require('./services/captchaPolicy');
 const { ChatbotInputError, createChatbotResponder, withTimeout } = require('./services/chatbotResilience');
 const {
@@ -10466,7 +10466,7 @@ app.post('/api/admin/invoices', (req, res) => {
 });
 
 // Admin: Update Invoice
-app.put('/api/admin/invoices/:id', (req, res) => {
+app.put('/api/admin/invoices/:id', async (req, res) => {
   const invoiceId = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(invoiceId) || invoiceId <= 0) {
     return res.status(400).json({ success: false, message: 'A valid invoice ID is required.' });
@@ -10483,18 +10483,24 @@ app.put('/api/admin/invoices/:id', (req, res) => {
   }
 
   console.log(`[INFO] Updating invoice ${invoiceId}`);
-  const query = `UPDATE invoices SET ${update.assignments.join(', ')} WHERE id = ?`;
-  db.query(query, [...update.values, invoiceId], (err, result) => {
-    if (err) {
-      console.error(`[DEBUG] Update error:`, err);
-      return res.status(500).json({ success: false, message: err.message });
-    }
-    if (!result || result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Invoice not found. Payment transactions cannot be edited as invoices.' });
-    }
+  const shouldMarkAppointmentPaid = String(req.body.status || '').trim().toLowerCase() === 'paid';
+
+  try {
+    await updateInvoiceRecord({
+      database: db,
+      invoiceId,
+      update,
+      markLinkedAppointmentPaid: shouldMarkAppointmentPaid,
+    });
     logAction(getAdminId(req), 'UPDATE_INVOICE', `Updated invoice ID ${invoiceId}`, req.ip);
     res.json({ success: true, message: 'Invoice updated' });
-  });
+  } catch (error) {
+    if (error instanceof InvoiceRecordNotFoundError) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
+    }
+    console.error('[INVOICE] Update transaction failed:', error.message);
+    res.status(500).json({ success: false, message: 'Unable to update the billing record.' });
+  }
 });
 
 // Admin: Delete Invoice

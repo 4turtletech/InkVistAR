@@ -85,6 +85,11 @@ export const AdminInventory = ({ navigation }) => {
 
   const INVENTORY_CATEGORIES = ['all', 'ink', 'needles', 'jewelry', 'supplies', 'aftercare', 'machinery'];
 
+  const normalizeStockInput = (value) => {
+    const digits = sanitizeNumeric(value);
+    return digits.replace(/^0+(?=\d)/, '');
+  };
+
   const loadData = async (archivedOnly = showArchived) => {
     setLoading(true);
     const result = await getAdminInventory(archivedOnly ? 'deleted' : 'active');
@@ -709,10 +714,10 @@ export const AdminInventory = ({ navigation }) => {
               <TextInput style={styles.input} value={form.unit} onChangeText={t => setForm({ ...form, unit: t })} placeholder="e.g. pcs, bottles, sets" placeholderTextColor={theme.textTertiary} />
 
               <Text style={styles.inputLabel}>Current Stock</Text>
-              <TextInput style={styles.input} value={form.current_stock} onChangeText={t => setForm({ ...form, current_stock: t })} keyboardType="numeric" />
+              <TextInput style={styles.input} value={form.current_stock} onChangeText={t => setForm({ ...form, current_stock: normalizeStockInput(t) })} keyboardType="numeric" />
 
               <Text style={styles.inputLabel}>Minimum Stock (Alert Threshold)</Text>
-              <TextInput style={styles.input} value={form.min_stock} onChangeText={t => setForm({ ...form, min_stock: t })} keyboardType="numeric" />
+              <TextInput style={styles.input} value={form.min_stock} onChangeText={t => setForm({ ...form, min_stock: normalizeStockInput(t) })} keyboardType="numeric" />
 
               <Text style={styles.inputLabel}>Cost per Unit (PHP)</Text>
               <TextInput style={styles.input} value={form.cost_per_unit} onChangeText={t => setForm({ ...form, cost_per_unit: t })} keyboardType="decimal-pad" />
