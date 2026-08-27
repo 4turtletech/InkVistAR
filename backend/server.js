@@ -144,6 +144,12 @@ const RECAPTCHA_MOBILE_MIN_SCORE = Number.isFinite(parsedMobileRecaptchaScore)
   && parsedMobileRecaptchaScore <= 1
   ? parsedMobileRecaptchaScore
   : 0.1;
+const parsedBookingRecaptchaScore = Number(process.env.RECAPTCHA_BOOKING_MIN_SCORE || 0.1);
+const RECAPTCHA_BOOKING_MIN_SCORE = Number.isFinite(parsedBookingRecaptchaScore)
+  && parsedBookingRecaptchaScore >= 0
+  && parsedBookingRecaptchaScore <= 1
+  ? parsedBookingRecaptchaScore
+  : 0.1;
 const RECAPTCHA_ALLOWED_HOSTNAMES = new Set(
   (process.env.RECAPTCHA_ALLOWED_HOSTNAMES || 'www.inkvictusstudio.com,inkvictusstudio.com,inkvistar-web.vercel.app')
     .split(',')
@@ -5182,9 +5188,12 @@ app.post('/api/admin/appointments', async (req, res) => {
 
   // Verify reCAPTCHA for public wizard submissions only
   if (isFromWizard) {
-    const captchaValid = await verifyCaptcha(captchaToken, { expectedAction: 'booking' });
+    const captchaValid = await verifyCaptcha(captchaToken, {
+      expectedAction: 'booking',
+      minimumScore: RECAPTCHA_BOOKING_MIN_SCORE,
+    });
     if (!captchaValid) {
-      return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
+      return res.status(400).json({ success: false, code: 'CAPTCHA_FAILED', message: 'CAPTCHA verification failed. Please try again.' });
     }
   }
 

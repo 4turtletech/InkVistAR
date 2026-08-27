@@ -77,12 +77,27 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const toggleHealthTag = (list, setList, tag) => {
         setList(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
         if (healthNoneConfirmed) setHealthNoneConfirmed(false);
+        if (errors.health) setErrors(prev => ({ ...prev, health: '' }));
     };
     const addCustomHealthTag = (list, setList, value, setValue) => {
         const trimmed = value.trim().replace(/[<>]/g, '').slice(0, 60);
         if (trimmed && !list.includes(trimmed)) setList(prev => [...prev, trimmed]);
         setValue('');
         if (healthNoneConfirmed) setHealthNoneConfirmed(false);
+        if (trimmed && errors.health) setErrors(prev => ({ ...prev, health: '' }));
+    };
+
+    const getPhoneValidationError = (phoneCode, phone) => {
+        const digits = String(phone || '').replace(/\D/g, '').replace(/^0+/, '');
+        if (!digits) return 'Phone Number is required';
+        if (phoneCode === '+63' && !/^9\d{9}$/.test(digits)) {
+            return 'Enter a valid PH mobile number: 10 digits starting with 9 (e.g. 9171234567)';
+        }
+        const internationalDigits = `${String(phoneCode || '').replace(/\D/g, '')}${digits}`;
+        if (phoneCode !== '+63' && !/^\d{8,15}$/.test(internationalDigits)) {
+            return 'Enter a valid phone number for the selected country code';
+        }
+        return '';
     };
 
     // Toggle a value in/out of an array field
@@ -301,9 +316,10 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
     const finalizeBooking = async (uid) => {
         setLoading(true);
+        setErrors(prev => ({ ...prev, captcha: '', submit: '' }));
         
         if (!executeRecaptcha) {
-            alert('reCAPTCHA not loaded. Please try again.');
+            setErrors(prev => ({ ...prev, captcha: 'Security verification is still loading. Check your connection and try again.' }));
             setLoading(false);
             return;
         }
@@ -311,7 +327,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         try {
             const token = await executeRecaptcha('booking');
             if (!token) {
-                alert('CAPTCHA verification failed to execute.');
+                setErrors(prev => ({ ...prev, captcha: 'Security verification could not start. Please try again.' }));
                 setLoading(false);
                 return;
             }
@@ -346,7 +362,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 consultationMethod: consultMethodStr,
                 guestEmail: !currentUser ? formData.email : null,
                 guestPhone: !currentUser ? `${formData.phoneCode || '+63'}${formData.phone.replace(/^0+/, '')}` : null,
-                waiverAcceptedAt: waiverAcceptedAt || new Date().toISOString(),
+                waiverAcceptedAt,
                 photoMarketingConsent: photoMarketingConsent,
                 consentData: consentData,
                 healthScreeningData: {
@@ -376,7 +392,12 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 }
                 setStep(6); // Show consultation completed screen on step 6
             } else {
-                alert('Request Failed: ' + (response.data.message || 'An unknown error occurred.'));
+                const message = response.data.message || 'An unknown error occurred.';
+                if (/captcha/i.test(message)) {
+                    setErrors(prev => ({ ...prev, captcha: 'Security verification failed. Please try submitting again.' }));
+                } else {
+                    setConflictModal({ show: true, title: 'Request Failed', message, returnToStep: null });
+                }
             }
         } catch (error) {
             console.error('Error finalizing booking:', error);
@@ -384,7 +405,11 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             const code = error.response?.data?.code;
             const msg = error.response?.data?.message || '';
 
-            if (status === 409 || code === 'SLOT_TAKEN') {
+            if (code === 'CAPTCHA_FAILED' || /captcha/i.test(msg)) {
+                setErrors(prev => ({ ...prev, captcha: 'Security verification failed. Please try submitting again.' }));
+            } else if (!error.response) {
+                setErrors(prev => ({ ...prev, submit: 'Unable to connect to the server. Check your connection and try again.' }));
+            } else if (status === 409 || code === 'SLOT_TAKEN') {
                 // Slot conflict — show premium conflict modal and bounce back to scheduling
                 await fetchAvailability(); // Refresh calendar data
                 setConflictModal({
@@ -1133,13 +1158,19 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
             {/* None of the above confirmation */}
             {selectedConditions.length === 0 && selectedAllergens.length === 0 && (
-                <div style={{ margin: '0 0 16px', padding: '14px 20px', background: '#f0fdf4', border: `1.5px solid ${healthNoneConfirmed ? '#16a34a' : '#bbf7d0'}`, borderRadius: '12px', transition: 'all 0.2s' }}>
+                <div style={{ margin: '0 0 16px', padding: '14px 20px', background: errors.health ? '#fef2f2' : '#f0fdf4', border: `1.5px solid ${errors.health ? '#ef4444' : healthNoneConfirmed ? '#16a34a' : '#bbf7d0'}`, borderRadius: '12px', transition: 'all 0.2s' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.88rem', color: '#1e293b' }}>
                         <input type="checkbox" checked={healthNoneConfirmed}
-                            onChange={(e) => setHealthNoneConfirmed(e.target.checked)}
+                            onChange={(e) => {
+                                setHealthNoneConfirmed(e.target.checked);
+                                if (e.target.checked && errors.health) setErrors(prev => ({ ...prev, health: '' }));
+                            }}
+                            aria-invalid={Boolean(errors.health)}
+                            aria-describedby={errors.health ? 'health-confirmation-error' : undefined}
                             style={{ width: '20px', height: '20px', accentColor: '#16a34a', flexShrink: 0 }} />
                         <span>I confirm that I have <strong>no known health conditions or allergens</strong> to disclose.</span>
                     </label>
+                    {errors.health && <small id="health-confirmation-error" role="alert" style={{ color: '#dc2626', display: 'block', marginTop: '8px', fontSize: '0.8rem', paddingLeft: '32px' }}>{errors.health}</small>}
                 </div>
             )}
 
@@ -1221,15 +1252,22 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             </div>
 
             {/* Waiver Consent Toggle — Moved here from Contact step */}
-            <div style={{ margin: '8px 0 8px', padding: '16px 20px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px' }}>
+            <div style={{ margin: '8px 0 8px', padding: '16px 20px', background: errors.waiver ? '#fef2f2' : '#fffbeb', border: `1px solid ${errors.waiver ? '#ef4444' : '#fde68a'}`, borderRadius: '12px' }}>
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', fontSize: '0.88rem', color: '#1e293b', lineHeight: 1.6, textAlign: 'left' }}>
                     <input type="checkbox" checked={waiverAccepted}
                         onChange={(e) => {
                             const checked = e.target.checked;
-                            setWaiverAccepted(checked);
-                            if (checked) { setShowWaiverModal(true); }
-                            else { setWaiverAcceptedAt(null); }
+                            if (checked) {
+                                setShowWaiverModal(true);
+                            } else {
+                                setWaiverAccepted(false);
+                                setWaiverAcceptedAt(null);
+                                setConsentData(null);
+                                setPhotoMarketingConsent(false);
+                            }
                         }}
+                        aria-invalid={Boolean(errors.waiver)}
+                        aria-describedby={errors.waiver ? 'waiver-acceptance-error' : undefined}
                         style={{ width: '20px', height: '20px', marginTop: '2px', accentColor: '#be9055', flexShrink: 0 }} />
                     <span>
                         I have read and agree to the{' '}
@@ -1240,7 +1278,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         <span style={{ color: '#ef4444' }}> *</span>
                     </span>
                 </label>
-                {errors.waiver && <small style={{ color: '#ef4444', display: 'block', marginTop: '8px', fontSize: '0.8rem', paddingLeft: '32px' }}>{errors.waiver}</small>}
+                {errors.waiver && <small id="waiver-acceptance-error" role="alert" style={{ color: '#ef4444', display: 'block', marginTop: '8px', fontSize: '0.8rem', paddingLeft: '32px' }}>{errors.waiver}</small>}
             </div>
 
             {/* Waiver Modal */}
@@ -1342,7 +1380,13 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             className="form-input" 
                             style={{ width: '110px', flexShrink: 0, appearance: 'menulist', padding: '10px' }}
                             value={formData.phoneCode || '+63'} 
-                            onChange={(e) => handleInputChange('phoneCode', e.target.value)}
+                            onChange={(e) => {
+                                handleInputChange('phoneCode', e.target.value);
+                                if (formData.phone) {
+                                    const phoneError = getPhoneValidationError(e.target.value, formData.phone);
+                                    setErrors(prev => ({ ...prev, phone: phoneError }));
+                                }
+                            }}
                         >
                             <option value="+63">PH (+63)</option>
                             <option value="+1">US/CA (+1)</option>
@@ -1371,14 +1415,20 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             className={`form-input ${errors.phone ? 'error' : ''}`} 
                             placeholder="9171234567" 
                             value={formData.phone} 
-                            onChange={(e) => handleInputChange('phone', e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(0, 11))} 
+                            onChange={(e) => handleInputChange('phone', e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(0, 15))}
+                            onBlur={() => setErrors(prev => ({ ...prev, phone: getPhoneValidationError(formData.phoneCode || '+63', formData.phone) }))}
+                            aria-invalid={Boolean(errors.phone)}
+                            aria-describedby={errors.phone ? 'consultation-phone-error' : 'consultation-phone-help'}
                             style={{ flex: 1, padding: '10px' }}
-                            maxLength={11}
+                            maxLength={15}
                         />
                     </div>
-                    {errors.phone && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.phone}</small>}
+                    {errors.phone
+                        ? <small id="consultation-phone-error" role="alert" style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.phone}</small>
+                        : <small id="consultation-phone-help" style={{color: '#94a3b8', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{formData.phoneCode === '+63' ? 'Use 10 digits starting with 9 (e.g. 9171234567).' : 'Enter the local number without the country code.'}</small>}
                 </div>
             </div>
+            {(errors.captcha || errors.submit) && <div role="alert" style={{ marginTop: '14px', padding: '10px 12px', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', fontSize: '0.82rem' }}>{errors.captcha || errors.submit}</div>}
             <p style={{ marginTop: '16px', color: '#94a3b8', fontSize: '0.8rem', textAlign: 'center' }}>
                 <CheckCircle size={12} style={{ marginRight: '4px' }} />
                 Your data is secure and will only be used to contact you about this booking.
@@ -1815,9 +1865,9 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             if (step === 3 && (!formData.date || !formData.time)) newErrors.date = 'Please select a preferred date and time';
                             // Step 4: Health & Safety — require waiver acceptance and health acknowledgment
                             if (step === 4) {
-                                if (!waiverAccepted) newErrors.waiver = 'You must accept the Service Waiver to proceed';
+                                if (!waiverAccepted || !waiverAcceptedAt || !consentData) newErrors.waiver = 'Open the Service Waiver and complete all required confirmations before continuing';
                                 if (selectedConditions.length === 0 && selectedAllergens.length === 0 && !healthNoneConfirmed) {
-                                    newErrors.health = 'Please disclose any health conditions/allergens, or confirm you have none';
+                                    newErrors.health = 'Please confirm that you have no known health conditions or allergens';
                                 }
                             }
                             
@@ -1853,8 +1903,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             if (!formData.email) newErrors.email = 'Email Address is required';
                             else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Please enter a valid email format';
                             
-                            if (!formData.phone) newErrors.phone = 'Phone Number is required';
-                            else if (!/^\+?\d{10,15}$/.test((formData.phoneCode || '+63') + formData.phone.replace(/^0+/, ''))) newErrors.phone = 'Please enter a valid phone number';
+                            const phoneError = getPhoneValidationError(formData.phoneCode || '+63', formData.phone);
+                            if (phoneError) newErrors.phone = phoneError;
                             
                             if (Object.keys(newErrors).length > 0) {
                                 setErrors(newErrors);
