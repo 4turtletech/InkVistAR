@@ -21,28 +21,20 @@ export default function WaiverPrintView() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [apptRes, consentRes, healthRes] = await Promise.all([
-                    Axios.get(`${API_URL}/api/admin/appointments/${id}`),
-                    Axios.get(`${API_URL}/api/consents/appointment/${id}`).catch(err => ({ data: { success: false } })),
-                    Axios.get(`${API_URL}/api/health-screenings/appointment/${id}`).catch(err => ({ data: { success: false } }))
-                ]);
+                setError(null);
+                const response = await Axios.get(`${API_URL}/api/appointments/${id}/waiver-document`);
+                const documentData = response.data;
                 
-                if (apptRes.data.success && apptRes.data.appointment) {
-                    setAppointment(apptRes.data.appointment);
+                if (documentData.success && documentData.appointment) {
+                    setAppointment(documentData.appointment);
+                    setConsentRecord(documentData.consent || null);
+                    setHealthScreening(documentData.screening || null);
                 } else {
-                    setError('Appointment not found.');
-                }
-                
-                if (consentRes && consentRes.data && consentRes.data.success) {
-                    setConsentRecord(consentRes.data.consent);
-                }
-
-                if (healthRes && healthRes.data && healthRes.data.success) {
-                    setHealthScreening(healthRes.data.screening);
+                    setError(documentData.message || 'Appointment not found.');
                 }
             } catch (err) {
                 console.error('Error fetching waiver data:', err);
-                setError('Failed to load waiver data.');
+                setError(err.response?.data?.message || 'Failed to load waiver data. Please try again.');
             } finally {
                 setLoading(false);
             }
@@ -77,14 +69,38 @@ export default function WaiverPrintView() {
     const bookingCode = getDisplayCode(a.booking_code, a.id);
     const clientName = c?.customer_name || a.customer_name || a.client_name || a.guest_email || 'Client';
     
+    const parseServerDate = (value) => {
+        if (!value) return null;
+        const raw = String(value);
+        const normalized = raw.includes('T')
+            ? raw
+            : `${raw.replace(' ', 'T')}${/[zZ]|[+-]\d{2}:?\d{2}$/.test(raw) ? '' : '+08:00'}`;
+        const parsed = new Date(normalized);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    };
+
     const acceptedAtStr = c?.accepted_at || a.waiver_accepted_at;
-    const waiverDate = acceptedAtStr
-        ? new Date(acceptedAtStr.replace(' ', 'T') + (acceptedAtStr.includes('Z') ? '' : '+08:00')).toLocaleString('en-US', { 
+    const acceptedAt = parseServerDate(acceptedAtStr);
+    const waiverDate = acceptedAt
+        ? acceptedAt.toLocaleString('en-US', {
             dateStyle: 'long', 
             timeStyle: 'short',
             timeZone: 'Asia/Manila'
           })
         : null;
+
+    let screeningSnapshot = {};
+    try {
+        screeningSnapshot = typeof hs?.screening_snapshot === 'string'
+            ? JSON.parse(hs.screening_snapshot)
+            : (hs?.screening_snapshot || {});
+    } catch (_) {
+        screeningSnapshot = {};
+    }
+    const disclosedConditions = Array.isArray(screeningSnapshot.conditions) ? screeningSnapshot.conditions : [];
+    const disclosedAllergens = Array.isArray(screeningSnapshot.allergens)
+        ? screeningSnapshot.allergens
+        : String(hs?.allergies || '').split(',').map(value => value.trim()).filter(Boolean);
         
     const appointmentDate = a.appointment_date
         ? new Date(a.appointment_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })
@@ -108,7 +124,7 @@ export default function WaiverPrintView() {
         <div style={s.pageWrapper}>
             {/* Action bar — hidden when printing */}
             <div style={s.actionBar} className="no-print">
-                <button onClick={() => navigate(isAdmin ? '/admin/studio' : '/customer/bookings')} style={s.actionBtn}>
+                <button onClick={() => navigate(isAdmin ? '/admin/appointments' : '/customer/bookings')} style={s.actionBtn}>
                     <ArrowLeft size={16} /> Back
                 </button>
                 <div style={{ display: 'flex', gap: '10px' }}>
@@ -144,6 +160,20 @@ export default function WaiverPrintView() {
                         at <strong>Inkvictus Tattoo and Piercing Studio</strong>.
                     </p>
                 </div>
+
+                {/* Appointment identity */}
+                <div style={s.appointmentSummary}>
+                    <div style={s.summaryField}><span style={s.sigLabel}>Client</span><strong>{clientName}</strong></div>
+                    <div style={s.summaryField}><span style={s.sigLabel}>Assigned Artist</span><strong>{a.artist_name || 'To be assigned'}</strong></div>
+                    <div style={s.summaryField}><span style={s.sigLabel}>Procedure</span><strong>{c?.procedure_type || a.service_type || 'General Service'}</strong></div>
+                    <div style={s.summaryField}><span style={s.sigLabel}>Design / Booking Notes</span><strong>{a.design_title || 'Not specified'}</strong></div>
+                </div>
+
+                {!c && (
+                    <div style={s.legacyNotice}>
+                        This appointment has a legacy waiver acceptance timestamp, but no detailed signed consent record is available. The clauses below are the standard waiver terms; unavailable signature and confirmation fields are clearly marked.
+                    </div>
+                )}
 
                 {/* Waiver Sections */}
                 <div style={{ padding: '24px 36px' }}>
@@ -192,19 +222,33 @@ export default function WaiverPrintView() {
                                     <div><strong>Recorded:</strong> {hs.created_at ? new Date(hs.created_at).toLocaleString() : 'At booking'}</div>
                                     <div><strong>Site Condition:</strong> {hs.site_skin_condition || 'Normal'}</div>
                                     <div><strong>Blood Thinners:</strong> {hs.medications_blood_thinners || 'None'}</div>
-                                    <div><strong>Alcohol/Drugs (24h):</strong> {hs.substance_influence ? '⚠️ Yes' : 'No'}</div>
+                                    <div><strong>Recent Illness:</strong> {hs.recent_illness_infection || 'None'}</div>
+                                    <div><strong>Health Conditions:</strong> {disclosedConditions.join(', ') || (screeningSnapshot.noKnownHealthConcerns ? 'None confirmed' : 'None disclosed')}</div>
+                                    <div><strong>Allergens:</strong> {disclosedAllergens.join(', ') || (screeningSnapshot.noKnownHealthConcerns ? 'None confirmed' : 'None disclosed')}</div>
+                                    <div><strong>Alcohol/Drugs (24h):</strong> {hs.substance_influence ? 'Yes — disclosed' : 'No'}</div>
                                 </div>
                             </div>
                         )}
 
                         {/* Consent Checkboxes Visualized */}
                         {c && (
-                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '12px' }}>
-                                <div style={s.tag}>Procedure: {c.procedure_consent ? '✅' : '❌'}</div>
-                                <div style={s.tag}>Payment: {c.payment_consent ? '✅' : '❌'}</div>
-                                <div style={s.tag}>Health Data: {c.health_data_consent ? '✅' : '❌'}</div>
-                                <div style={s.tag}>Marketing: {c.marketing_consent ? '✅' : '❌'}</div>
-                                <div style={s.tag}>Photo: {c.photo_consent ? '✅' : '❌'}</div>
+                            <div style={{ gridColumn: '1 / -1', marginTop: '12px' }}>
+                                <span style={s.sigLabel}>Confirmation Record</span>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+                                    <div style={s.tagAccepted}>Age 18+: Confirmed</div>
+                                    <div style={c.procedure_consent ? s.tagAccepted : s.tagDeclined}>Procedure: {c.procedure_consent ? 'Accepted' : 'Not accepted'}</div>
+                                    <div style={c.payment_consent ? s.tagAccepted : s.tagDeclined}>Payment: {c.payment_consent ? 'Accepted' : 'Not accepted'}</div>
+                                    <div style={c.health_data_consent ? s.tagAccepted : s.tagDeclined}>Health Data: {c.health_data_consent ? 'Accepted' : 'Not accepted'}</div>
+                                    <div style={c.marketing_consent ? s.tagAccepted : s.tagOptional}>Marketing: {c.marketing_consent ? 'Accepted' : 'Declined'}</div>
+                                    <div style={c.photo_consent ? s.tagAccepted : s.tagOptional}>Photo: {c.photo_consent ? 'Accepted' : 'Declined'}</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {c && (
+                            <div style={{ ...s.sigField, gridColumn: '1 / -1' }}>
+                                <span style={s.sigLabel}>Document Integrity</span>
+                                <span style={{ ...s.sigValue, fontFamily: 'monospace', overflowWrap: 'anywhere' }}>Version {c.waiver_version || '1.0'} · SHA-256 {c.waiver_hash || 'Not recorded'}</span>
                             </div>
                         )}
 
@@ -257,6 +301,9 @@ const s = {
     refRow: { display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' },
     refLabel: { fontSize: '0.82rem', color: '#94a3b8' },
     preamble: { padding: '24px 36px', background: '#fefce8', borderBottom: '1px solid #fde68a' },
+    appointmentSummary: { margin: '24px 36px 0', padding: '18px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px' },
+    summaryField: { display: 'flex', flexDirection: 'column', gap: '5px', color: '#1e293b', fontSize: '0.9rem' },
+    legacyNotice: { margin: '16px 36px 0', padding: '12px 16px', color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '0.82rem', lineHeight: 1.55 },
     sectionTitle: { margin: '0 0 6px', fontSize: '0.88rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' },
     sectionNum: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '50%', background: '#be9055', color: '#fff', fontSize: '0.72rem', fontWeight: 700, flexShrink: 0 },
     sectionText: { margin: 0, fontSize: '0.86rem', color: '#475569', lineHeight: 1.65, paddingLeft: '34px' },
@@ -267,5 +314,7 @@ const s = {
     sigLabel: { fontSize: '0.72rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' },
     sigValue: { fontSize: '0.92rem', fontWeight: 600, color: '#1e293b', padding: '8px 0', borderBottom: '1px solid #e2e8f0' },
     docFooter: { padding: '20px 36px', background: '#f8fafc', borderTop: '1px solid #e2e8f0' },
-    tag: { background: '#fff', border: '1px solid #e2e8f0', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600, color: '#475569' }
+    tagAccepted: { background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '5px 9px', borderRadius: '5px', fontSize: '0.78rem', fontWeight: 600, color: '#166534' },
+    tagDeclined: { background: '#fef2f2', border: '1px solid #fecaca', padding: '5px 9px', borderRadius: '5px', fontSize: '0.78rem', fontWeight: 600, color: '#b91c1c' },
+    tagOptional: { background: '#f8fafc', border: '1px solid #cbd5e1', padding: '5px 9px', borderRadius: '5px', fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }
 };

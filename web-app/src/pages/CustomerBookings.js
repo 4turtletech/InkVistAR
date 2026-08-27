@@ -614,7 +614,7 @@ function CustomerBookings(){
     };
 
     // Toggle a value in/out of an array field in bookingData
-    const togglePlacementItem = (field, item) => {
+    const togglePlacementItem = (field, item, validationField = field) => {
         setBookingData(prev => {
             const arr = prev[field] || [];
             const isAdding = !arr.includes(item);
@@ -629,11 +629,18 @@ function CustomerBookings(){
             }
             return newData;
         });
+        if (['placement', 'piercingPlacement', 'consultationFor'].includes(validationField)) {
+            setErrors(prev => ({
+                ...prev,
+                [validationField]: '',
+                ...(validationField === 'consultationFor' ? { placement: '', piercingPlacement: '' } : {})
+            }));
+        }
     };
 
     const handleNextStep = () => {
         if (Object.values(errors).some(e => e)) {
-            return showAlert("Validation Error", "Please fix errors on this page before proceeding.", "warning");
+            return;
         }
         const derivedType = getDerivedServiceType(bookingData.selectedServices);
         if (bookingStep === 1) {
@@ -645,21 +652,34 @@ function CustomerBookings(){
             setErrors(prev => ({...prev, designTitle: 'Please tell us about your tattoo idea'}));
             return;
         }
-        if (bookingStep === 3 && bookingData.placement.length === 0 && derivedType !== 'Consultation') {
-            return showAlert("Required Field", "Please select at least one placement area for your session.", "warning");
-        }
-        if (bookingStep === 3 && derivedType === 'Consultation' && bookingData.consultationFor.length === 0) {
-            return showAlert("Required Field", "Please indicate what this consultation is for (Tattoo, Piercing, or both).", "warning");
-        }
-        if (bookingStep === 3 && derivedType === 'Consultation' && bookingData.placement.length === 0) {
-            return showAlert("Required Field", "Please select at least one body area you're considering.", "warning");
-        }
-        if (bookingStep === 3 && derivedType === 'Tattoo + Piercing' && bookingData.piercingPlacement.length === 0) {
-            return showAlert("Required Field", "Please also select the piercing location for your bundled session.", "warning");
-        }
-        // Validate location notes when 'Other' is selected
-        if (bookingStep === 3 && (bookingData.placement.includes('Other') || bookingData.piercingPlacement.includes('Other')) && !bookingData.placementNotes.trim()) {
-            return showAlert("Required Field", "You selected 'Other' — please describe the specific location in the notes field.", "warning");
+        if (bookingStep === 3) {
+            const requiresTattooPlacement = bookingData.selectedServices.includes('Tattoo Session')
+                || (derivedType === 'Consultation' && bookingData.consultationFor.includes('tattoo'));
+            const requiresPiercingPlacement = bookingData.selectedServices.includes('Piercing')
+                || (derivedType === 'Consultation' && bookingData.consultationFor.includes('piercing'));
+            const piercingField = requiresTattooPlacement && requiresPiercingPlacement ? 'piercingPlacement' : 'placement';
+            const placementErrors = {
+                consultationFor: '',
+                placement: '',
+                piercingPlacement: '',
+                placementNotes: ''
+            };
+
+            if (derivedType === 'Consultation' && bookingData.consultationFor.length === 0) {
+                placementErrors.consultationFor = 'Please select whether the consultation is for tattoo, piercing, or both.';
+            }
+            if (requiresTattooPlacement && bookingData.placement.length === 0) {
+                placementErrors.placement = 'Please select at least one tattoo placement.';
+            }
+            if (requiresPiercingPlacement && (bookingData[piercingField] || []).length === 0) {
+                placementErrors.piercingPlacement = 'Please select at least one piercing placement.';
+            }
+            if ((bookingData.placement.includes('Other') || bookingData.piercingPlacement.includes('Other')) && !bookingData.placementNotes.trim()) {
+                placementErrors.placementNotes = 'Please describe the specific location selected as Other.';
+            }
+
+            setErrors(prev => ({ ...prev, ...placementErrors }));
+            if (Object.values(placementErrors).some(Boolean)) return;
         }
         setBookingStep(bookingStep + 1);
     };
@@ -688,7 +708,15 @@ function CustomerBookings(){
             } else if (derivedType === 'Consultation') {
                 const consultType = bookingData.consultationFor.join(' & ');
                 const consultMethodStr = bookingData.consultationMethod === 'Online' ? `Online (${bookingData.onlinePlatform || 'TBD'})` : 'Face-to-Face';
-                placementLine = `Consultation for: ${consultType}\nConsultation method: ${consultMethodStr}\nAreas of interest: ${placementStr}`;
+                const consultationPlacements = [];
+                if (bookingData.consultationFor.includes('tattoo')) {
+                    consultationPlacements.push(`Tattoo placement: ${placementStr}`);
+                }
+                if (bookingData.consultationFor.includes('piercing')) {
+                    const selectedPiercingPlacement = bookingData.consultationFor.includes('tattoo') ? piercingStr : placementStr;
+                    consultationPlacements.push(`Piercing placement: ${selectedPiercingPlacement}`);
+                }
+                placementLine = `Consultation for: ${consultType}\nConsultation method: ${consultMethodStr}\n${consultationPlacements.join('\n')}`;
             } else {
                 placementLine = `Placement: ${placementStr}`;
             }
@@ -1553,7 +1581,7 @@ function CustomerBookings(){
                             {selectedApt.waiver_accepted_at && (
                                 <button
                                     className="btn btn-secondary btn-action-waiver"
-                                    onClick={() => window.open(`/customer/waiver/${selectedApt.id}`, '_blank')}
+                                    onClick={() => navigate(`/customer/waiver/${selectedApt.id}`)}
                                 >
                                     <ShieldCheck size={16} /> View Waiver
                                 </button>
@@ -2203,8 +2231,8 @@ function CustomerBookings(){
 
                                     // Handler for 3D model clicks — routes to correct array
                                     const handleModelToggle = (partName, category) => {
-                                        if (category === 'tattoo') togglePlacementItem('placement', partName);
-                                        else if (category === 'piercing') togglePlacementItem(piercingField, partName);
+                                        if (category === 'tattoo') togglePlacementItem('placement', partName, 'placement');
+                                        else if (category === 'piercing') togglePlacementItem(piercingField, partName, 'piercingPlacement');
                                     };
 
                                     return (
@@ -2221,7 +2249,7 @@ function CustomerBookings(){
                                                         return (
                                                             <button
                                                                 key={opt.key} type="button"
-                                                                onClick={() => togglePlacementItem('consultationFor', opt.key)}
+                                                                onClick={() => togglePlacementItem('consultationFor', opt.key, 'consultationFor')}
                                                                 style={{
                                                                     flex: 1, padding: '14px', borderRadius: '12px',
                                                                     border: `2px solid ${isActive ? opt.color : '#e2e8f0'}`,
@@ -2237,6 +2265,9 @@ function CustomerBookings(){
                                                         );
                                                     })}
                                                 </div>
+                                                {errors.consultationFor && (
+                                                    <p style={{ fontSize: '0.78rem', color: '#ef4444', margin: '8px 0 0', textAlign: 'center' }}>{errors.consultationFor}</p>
+                                                )}
                                                 <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '6px', textAlign: 'center' }}>You can select both if your consultation covers tattoo and piercing</p>
 
                                                 {/* Consultation Method: Face-to-Face vs Online */}
@@ -2322,9 +2353,10 @@ function CustomerBookings(){
                                                     {showTattooPlacement && (
                                                         <>
                                                             <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                <Paintbrush size={15} color="#be9055" /> Tattoo Placement
+                                                                <Paintbrush size={15} color="#be9055" /> Tattoo Placement <span style={{ color: '#ef4444' }}>*</span>
                                                                 {bookingData.placement.length > 0 && <span style={{ fontSize: '0.72rem', background: '#be9055', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>{bookingData.placement.length} selected</span>}
                                                             </p>
+                                                            {errors.placement && <p style={{ fontSize: '0.75rem', color: '#ef4444', margin: '-4px 0 0' }}>{errors.placement}</p>}
                                                             {(() => {
                                                                 const groups = {
                                                                     'Head / Neck': ['Face', 'Neck'],
@@ -2344,7 +2376,7 @@ function CustomerBookings(){
                                                                                     {parts.map(part => {
                                                                                         const isSelected = bookingData.placement.includes(part);
                                                                                         return (
-                                                                                            <button key={part} type="button" onClick={() => togglePlacementItem('placement', part)} style={{
+                                                                                            <button key={part} type="button" onClick={() => togglePlacementItem('placement', part, 'placement')} style={{
                                                                                                 padding: '7px 12px', borderRadius: '8px',
                                                                                                 border: `1.5px solid ${isSelected ? '#be9055' : '#e2e8f0'}`,
                                                                                                 background: isSelected ? '#be9055' : 'white',
@@ -2372,11 +2404,17 @@ function CustomerBookings(){
                                                     )}
 
                                                     {showPiercingPlacement && (
-                                                        <>
+                                                        <div style={{
+                                                            display: 'flex', flexDirection: 'column', gap: '8px',
+                                                            border: errors.piercingPlacement ? '1px solid #ef4444' : '1px solid transparent',
+                                                            background: errors.piercingPlacement ? '#fef2f2' : 'transparent',
+                                                            borderRadius: '10px', padding: errors.piercingPlacement ? '10px' : '0'
+                                                        }}>
                                                             <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                <Gem size={15} color="#4FC3F7" /> Piercing Placement
+                                                                <Gem size={15} color="#4FC3F7" /> Piercing Placement <span style={{ color: '#ef4444' }}>*</span>
                                                                 {bookingData[piercingField].length > 0 && <span style={{ fontSize: '0.72rem', background: '#4FC3F7', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>{bookingData[piercingField].length} selected</span>}
                                                             </p>
+                                                            {errors.piercingPlacement && <p style={{ fontSize: '0.75rem', color: '#ef4444', margin: 0 }}>{errors.piercingPlacement}</p>}
                                                             {(() => {
                                                                 const pGroups = {
                                                                     'Ears': ['Left Ear Lobe', 'Right Ear Lobe', 'Left Helix', 'Right Helix', 'Left Tragus', 'Right Tragus', 'Left Conch', 'Right Conch', 'Left Industrial', 'Right Industrial'],
@@ -2394,7 +2432,7 @@ function CustomerBookings(){
                                                                                     {parts.map(part => {
                                                                                         const isSelected = bookingData[piercingField].includes(part);
                                                                                         return (
-                                                                                            <button key={`p-${part}`} type="button" onClick={() => togglePlacementItem(piercingField, part)} style={{
+                                                                                            <button key={`p-${part}`} type="button" onClick={() => togglePlacementItem(piercingField, part, 'piercingPlacement')} style={{
                                                                                                 padding: '7px 12px', borderRadius: '8px',
                                                                                                 border: `1.5px solid ${isSelected ? '#4FC3F7' : '#e2e8f0'}`,
                                                                                                 background: isSelected ? '#4FC3F7' : 'white',
@@ -2414,7 +2452,7 @@ function CustomerBookings(){
                                                                     </div>
                                                                 );
                                                             })()}
-                                                        </>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>

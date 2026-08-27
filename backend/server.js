@@ -8931,6 +8931,67 @@ app.put('/api/appointments/:id/after-photo', (req, res) => {
 
 // Consent and waiver endpoints are provided by routes/consents.js.
 
+// Load the complete waiver document through one role-aware request. Access is
+// restricted by highRiskProtection to staff or participants in the appointment.
+app.get('/api/appointments/:id/waiver-document', async (req, res) => {
+  const appointmentId = Number(req.params.id);
+  if (!Number.isInteger(appointmentId) || appointmentId <= 0) {
+    return res.status(400).json({ success: false, message: 'A valid appointment ID is required.' });
+  }
+
+  try {
+    const [appointmentRows] = await db.promise().query(
+      `SELECT ap.id, ap.booking_code, ap.appointment_date, ap.service_type, ap.design_title,
+              ap.waiver_accepted_at, ap.customer_id, ap.artist_id, ap.secondary_artist_id,
+              ap.guest_email, COALESCE(u_cust.name, ap.guest_email, 'Guest Client') AS customer_name,
+              COALESCE(u_cust.name, ap.guest_email, 'Guest Client') AS client_name,
+              u_art.name AS artist_name
+       FROM appointments ap
+       LEFT JOIN users u_cust ON u_cust.id = ap.customer_id
+       LEFT JOIN users u_art ON u_art.id = ap.artist_id
+       WHERE ap.id = ? AND COALESCE(ap.is_deleted, 0) = 0
+       LIMIT 1`,
+      [appointmentId]
+    );
+    if (!appointmentRows[0]) {
+      return res.status(404).json({ success: false, message: 'Appointment not found.' });
+    }
+
+    let consent = null;
+    try {
+      consent = await consentService.getForAppointment(req.auth, appointmentId);
+    } catch (consentError) {
+      if (consentError.code !== 'consent_not_found') throw consentError;
+    }
+
+    const [screeningRows] = await db.promise().query(
+      `SELECT id, appointment_id, allergies, medications_blood_thinners, has_diabetes,
+              has_skin_disorders, is_pregnant, has_bleeding_conditions, has_immune_conditions,
+              recent_illness_infection, substance_influence, site_skin_condition,
+              screening_status, screening_snapshot, created_at
+       FROM session_health_screenings
+       WHERE appointment_id = ?
+       ORDER BY created_at DESC, id DESC
+       LIMIT 1`,
+      [appointmentId]
+    );
+
+    return res.json({
+      success: true,
+      appointment: appointmentRows[0],
+      consent,
+      screening: screeningRows[0] || null,
+    });
+  } catch (error) {
+    console.error('[WAIVER] Failed to load waiver document:', error.message);
+    return res.status(error.status || 500).json({
+      success: false,
+      code: error.code || 'waiver_document_failed',
+      message: error.status ? error.message : 'Unable to load the waiver document.',
+    });
+  }
+});
+
 // ========== PER-SESSION HEALTH SCREENING ENDPOINTS ==========
 
 // Get health screening record for an appointment

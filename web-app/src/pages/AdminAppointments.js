@@ -2108,7 +2108,7 @@ function AdminAppointments() {
                                         <button
                                             className="btn"
                                             style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, rgba(190,144,85,0.12), rgba(190,144,85,0.06))', color: '#92400e', borderColor: 'rgba(190,144,85,0.3)' }}
-                                            onClick={() => window.open(`/admin/appointments/${selectedAppointment.id}/waiver`, '_blank')}
+                                            onClick={() => navigate(`/admin/appointments/${selectedAppointment.id}/waiver`)}
                                         >
                                             <ShieldCheck size={16} /> View Waiver
                                         </button>
@@ -3349,7 +3349,7 @@ function AdminAppointments() {
                                                     <button
                                                         type="button"
                                                         className="btn"
-                                                        onClick={() => window.open(`/admin/appointments/${selectedAppointment.id}/waiver`, '_blank')}
+                                                        onClick={() => navigate(`/admin/appointments/${selectedAppointment.id}/waiver`)}
                                                         style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, rgba(190,144,85,0.12), rgba(190,144,85,0.06))', color: '#92400e', borderColor: 'rgba(190,144,85,0.3)' }}
                                                     >
                                                         <ShieldCheck size={16} /> View Waiver

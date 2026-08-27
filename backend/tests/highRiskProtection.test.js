@@ -64,6 +64,7 @@ test('highest-risk route groups are classified for protection', () => {
     ['/api/payments/create-checkout-session', 'appointment'],
     ['/api/customer/profile/4', 'identity-path'],
     ['/api/appointments/42/details', 'appointment'],
+    ['/api/appointments/42/waiver-document', 'appointment'],
     ['/api/health-screenings/appointment/42', 'appointment'],
     ['/api/artist/3/earnings-ledger', 'artist-path'],
     ['/api/notifications/4', 'self-path'],
@@ -152,6 +153,11 @@ test('appointment authorization loads ownership from the database', async () => 
 
   const otherCustomer = await invoke(middleware, { path: '/api/appointments/42/transactions', token: 'otherCustomer' });
   assert.equal(otherCustomer.status, 403);
+
+  const owningCustomerWaiver = await invoke(middleware, { path: '/api/appointments/42/waiver-document', token: 'customer' });
+  assert.equal(owningCustomerWaiver.nextCalled, true);
+  const otherCustomerWaiver = await invoke(middleware, { path: '/api/appointments/42/waiver-document', token: 'otherCustomer' });
+  assert.equal(otherCustomerWaiver.status, 403);
 
   const unassignedArtist = await invoke(middleware, { method: 'PUT', path: '/api/appointments/42/status', token: 'otherArtist' });
   assert.equal(unassignedArtist.status, 403);

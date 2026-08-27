@@ -124,8 +124,8 @@ function classifyRequest(req) {
   if (/^\/api\/artist\/portfolio\/\d+(?:\/visibility)?$/.test(path)) return { roles: ['admin', 'artist'], kind: 'portfolio-work' };
   if (/^\/api\/artist\/appointments\/\d+\/(?:accept|reject|draft)$/.test(path)) return { roles: ['admin', 'artist'], kind: 'appointment' };
 
-  if (/^\/api\/appointments\/\d+\/(?:project-timeline|materials|release-material|status|details|after-photo|payment-status|transactions)$/.test(path)) {
-    const customerReadable = /\/(?:project-timeline|payment-status|transactions)$/.test(path) && method === 'GET';
+  if (/^\/api\/appointments\/\d+\/(?:project-timeline|materials|release-material|status|details|after-photo|payment-status|transactions|waiver-document)$/.test(path)) {
+    const customerReadable = /\/(?:project-timeline|payment-status|transactions|waiver-document)$/.test(path) && method === 'GET';
     return { roles: customerReadable ? ['admin', 'manager', 'artist', 'customer'] : ['admin', 'manager', 'artist'], kind: 'appointment' };
   }
   if (/^\/api\/health-screenings\/appointment\/\d+$/.test(path) && method === 'GET') {

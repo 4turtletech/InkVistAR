@@ -68,6 +68,7 @@ export const AdminSalesReports = ({ navigation }) => {
   const [customEndDate, setCustomEndDate] = useState('');
   const [customDateModalVisible, setCustomDateModalVisible] = useState(false);
   const [search, setSearch] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [invoices, setInvoices] = useState([]);
   const [inventory, setInventory] = useState([]);
@@ -142,7 +143,7 @@ export const AdminSalesReports = ({ navigation }) => {
     const count = period.length;
     const atv = count > 0 ? net / count : 0;
     const top = Object.values(products).sort((a, b) => b.rev - a.rev).slice(0, 10);
-    return { gross, discounts, net, count, atv, service, retail, top };
+    return { gross, discounts, net, count, atv, service, retail, top, records: period };
   }, [invoices, startDate, endDate, reportType]);
 
   /* ═══ INVENTORY AGGREGATION ═══ */
@@ -179,6 +180,21 @@ export const AdminSalesReports = ({ navigation }) => {
     const topConsumed = Object.values(moves).filter(m => m.consumed > 0).sort((a, b) => b.consumed - a.consumed).slice(0, 10);
     return { totalVal, totalQty, lowCount, lowItems, topConsumed };
   }, [inventory, transactions, startDate, endDate, reportType]);
+
+  const searchQuery = search.trim().toLowerCase();
+  const matchingRecords = useMemo(() => {
+    if (!searchQuery) return [];
+
+    const source = reportType === 'sales' ? (salesReport?.records || []) : inventory;
+    return source.filter(record => {
+      const values = reportType === 'sales'
+        ? [record.invoice_number, record.booking_code, record.client_name, record.customer_name, record.service_type, record.status]
+        : [record.name, record.item_name, record.category, record.sku, record.status];
+      return values.some(value => String(value || '').toLowerCase().includes(searchQuery));
+    });
+  }, [searchQuery, reportType, salesReport, inventory]);
+
+  const searchSuggestions = matchingRecords.slice(0, 6);
 
   /* ═══ SHARE / EXPORT ═══ */
   const handleExport = () => {
@@ -378,9 +394,55 @@ export const AdminSalesReports = ({ navigation }) => {
         </View>
 
         {/* Search */}
-        <View style={s.searchBar}>
-          <Search size={16} color={theme.textTertiary} />
-          <TextInput style={s.searchInput} placeholder="Search records..." placeholderTextColor={theme.textTertiary} value={search} onChangeText={setSearch} />
+        <View style={s.searchSection}>
+          <View style={[s.searchBar, searchFocused && s.searchBarFocused]}>
+            <Search size={16} color={theme.textTertiary} />
+            <TextInput
+              style={s.searchInput}
+              placeholder={reportType === 'sales' ? 'Search invoice, client, or service...' : 'Search item, category, or SKU...'}
+              placeholderTextColor={theme.textTertiary}
+              value={search}
+              onChangeText={setSearch}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+              returnKeyType="search"
+              autoCorrect={false}
+            />
+          </View>
+
+          {searchFocused && searchQuery.length > 0 && (
+            <View style={s.suggestionsCard}>
+              {searchSuggestions.length > 0 ? searchSuggestions.map((record, index) => {
+                const title = reportType === 'sales'
+                  ? (record.client_name || record.customer_name || record.invoice_number || 'Sales record')
+                  : (record.name || record.item_name || 'Inventory item');
+                const subtitle = reportType === 'sales'
+                  ? [record.invoice_number || record.booking_code, record.service_type].filter(Boolean).join(' · ')
+                  : [record.category, record.sku].filter(Boolean).join(' · ');
+                return (
+                  <TouchableOpacity
+                    key={`${record.id || record.invoice_number || title}-${index}`}
+                    style={s.suggestionRow}
+                    onPress={() => { setSearch(String(title)); setSearchFocused(false); }}
+                  >
+                    <Search size={14} color={theme.textTertiary} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.suggestionTitle} numberOfLines={1}>{title}</Text>
+                      {!!subtitle && <Text style={s.suggestionSubtitle} numberOfLines={1}>{subtitle}</Text>}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }) : (
+                <View style={s.noResultsInline}>
+                  <Text style={s.noResultsText}>No results found for “{search.trim()}”.</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {!searchFocused && searchQuery.length > 0 && matchingRecords.length === 0 && (
+            <Text style={s.noResultsText}>No results found for “{search.trim()}”.</Text>
+          )}
         </View>
 
         {loading ? (
@@ -394,6 +456,25 @@ export const AdminSalesReports = ({ navigation }) => {
               <KPI icon={Tag} label="Avg Value" value={fmtPeso(salesReport.atv)} color={'#8b5cf6'} bgColor={'rgba(139,92,246,0.1)'} />
               <KPI icon={AlertTriangle} label="Discounts" value={fmtPeso(salesReport.discounts)} color={theme.error} bgColor={`${theme.error}18`} />
             </View>
+
+            {searchQuery.length > 0 && matchingRecords.length > 0 && (
+              <View style={s.section}>
+                <Text style={s.sectionTitle}>Matching Sales Records ({matchingRecords.length})</Text>
+                <View style={s.tableCard}>
+                  <TableRow cells={['Invoice', 'Client', 'Amount']} isHeader />
+                  {matchingRecords.map((record, index) => (
+                    <TableRow
+                      key={`${record.id || record.invoice_number || 'sale'}-${index}`}
+                      cells={[
+                        record.invoice_number || record.booking_code || `#${record.id}`,
+                        record.client_name || record.customer_name || 'Unknown',
+                        fmtPeso(record.amount),
+                      ]}
+                    />
+                  ))}
+                </View>
+              </View>
+            )}
 
             {/* Revenue Mix */}
             <View style={s.section}>
@@ -410,8 +491,8 @@ export const AdminSalesReports = ({ navigation }) => {
               <Text style={s.sectionTitle}>Bestselling Retail Products</Text>
               <View style={s.tableCard}>
                 <TableRow cells={['Product', 'Qty', 'Revenue']} isHeader />
-                {salesReport.top.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).length > 0 ? (
-                  salesReport.top.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).map((p, i) => (
+                {salesReport.top.length > 0 ? (
+                  salesReport.top.map((p, i) => (
                     <TableRow key={i} cells={[p.name, String(p.qty), fmtPeso(p.rev)]} />
                   ))
                 ) : (
@@ -429,13 +510,32 @@ export const AdminSalesReports = ({ navigation }) => {
               <KPI icon={AlertTriangle} label="Low Stock" value={`${invReport.lowCount} items`} color={invReport.lowCount > 0 ? theme.error : theme.success} bgColor={invReport.lowCount > 0 ? `${theme.error}18` : `${theme.success}18`} />
             </View>
 
+            {searchQuery.length > 0 && matchingRecords.length > 0 && (
+              <View style={s.section}>
+                <Text style={s.sectionTitle}>Matching Inventory Records ({matchingRecords.length})</Text>
+                <View style={s.tableCard}>
+                  <TableRow cells={['Item', 'Category', 'Stock']} isHeader />
+                  {matchingRecords.map((record, index) => (
+                    <TableRow
+                      key={`${record.id || record.sku || record.name || 'item'}-${index}`}
+                      cells={[
+                        record.name || record.item_name || 'Unnamed item',
+                        record.category || 'Uncategorized',
+                        String(parseInt(record.current_stock ?? record.quantity) || 0),
+                      ]}
+                    />
+                  ))}
+                </View>
+              </View>
+            )}
+
             {/* Most Consumed */}
             <View style={s.section}>
               <Text style={s.sectionTitle}>Highest Turnover (Consumed)</Text>
               <View style={s.tableCard}>
                 <TableRow cells={['Item', 'Used', 'Restocked']} isHeader />
-                {invReport.topConsumed.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).length > 0 ? (
-                  invReport.topConsumed.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).map((p, i) => (
+                {invReport.topConsumed.length > 0 ? (
+                  invReport.topConsumed.map((p, i) => (
                     <TableRow key={i} cells={[p.name, `-${p.consumed}`, `+${p.added}`]} />
                   ))
                 ) : (
@@ -449,8 +549,8 @@ export const AdminSalesReports = ({ navigation }) => {
               <Text style={s.sectionTitle}>Low Stock / Reorder Alerts</Text>
               <View style={s.tableCard}>
                 <TableRow cells={['Item', 'Stock', 'Min']} isHeader />
-                {invReport.lowItems.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).length > 0 ? (
-                  invReport.lowItems.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).map((p, i) => (
+                {invReport.lowItems.length > 0 ? (
+                  invReport.lowItems.map((p, i) => (
                     <TableRow key={i} cells={[p.name, String(p.quantity), String(p.min_stock_level)]} danger />
                   ))
                 ) : (
@@ -549,8 +649,16 @@ const getStyles = (theme, insets) => StyleSheet.create({
   dateText: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '600' },
 
   // Search
-  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.surface, paddingHorizontal: 14, paddingVertical: 12, borderRadius: borderRadius.lg, marginBottom: 16, borderWidth: 1, borderColor: theme.border },
+  searchSection: { marginBottom: 16 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.surface, paddingHorizontal: 14, paddingVertical: 12, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: theme.border },
+  searchBarFocused: { borderColor: theme.gold },
   searchInput: { flex: 1, ...typography.body, color: theme.textPrimary },
+  suggestionsCard: { marginTop: 6, backgroundColor: theme.surface, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: theme.border, overflow: 'hidden', ...shadows.subtle },
+  suggestionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: theme.border },
+  suggestionTitle: { ...typography.bodySmall, color: theme.textPrimary, fontWeight: '700' },
+  suggestionSubtitle: { ...typography.bodyXSmall, color: theme.textTertiary, marginTop: 2 },
+  noResultsInline: { paddingHorizontal: 14, paddingVertical: 14 },
+  noResultsText: { ...typography.bodySmall, color: theme.error, marginTop: 6 },
 
   // KPIs
   kpiGrid: { gap: 10, marginBottom: 20 },
