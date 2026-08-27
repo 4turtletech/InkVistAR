@@ -18,7 +18,10 @@ Pod::Spec.new do |s|
   s.dependency 'ExpoModulesCore'
   s.source_files = '**/*.swift'
   s.resource_bundles = {
-    'TattooARResources' => ['Resources/SkinSegmentation.mlpackage']
+    'TattooARResources' => [
+      'Resources/SkinSegmentation.mlpackage',
+      'Resources/transparentlogo.png'
+    ]
   }
   s.frameworks = [
     'ARKit',

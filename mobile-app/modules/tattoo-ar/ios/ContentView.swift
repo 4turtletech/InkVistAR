@@ -927,9 +927,7 @@ struct ContentView: View {
     @State private var lockToSurface: Bool = true
     @State private var smoothingAmount: Float = 0.18
     @State private var statusMessage: String?
-    @State private var showBodyTrackingAlert: Bool = false
     @State private var showLiDARAlert: Bool = false
-    @State private var showAdvancedControls: Bool = false
     @State private var showControlsSheet: Bool = false
     @State private var distanceMeters: Float?
     @State private var manualPlacementEnabled: Bool = false
@@ -965,13 +963,11 @@ struct ContentView: View {
     @State private var bodyTrackingEnabled: Bool = false
     @State private var bodyTracked: Bool = false
     /// Full-screen loading overlay shown during body tracking mode transitions
-    @State private var isLoadingBodyTracking: Bool = false
     /// Regular-mode spatial lock: when true, freezes the tattoo in world space
     @State private var regularModeLocked: Bool = false
     /// Sensitive area detection: true when the user is trying to place a tattoo on eyes, ears, or other restricted face regions
     @State private var isSensitiveAreaBlocked: Bool = false
 
-    private let isBodyTrackingSupported = ARBodyTrackingConfiguration.isSupported
     private let isLiDARSupported = ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh)
     private let isFaceTrackingSupported = ARFaceTrackingConfiguration.isSupported
     private let manualDragScale: Float = 0.0005
@@ -1456,7 +1452,7 @@ struct ContentView: View {
                 await MainActor.run {
                     if let loadedImage {
                         tattooImage = loadedImage
-                        statusMessage = isBodyTrackingSupported ? nil : statusMessage
+                        statusMessage = nil
                     } else {
                         statusMessage = "Unable to load the selected image. Please choose a compatible photo."
                     }
@@ -1484,14 +1480,6 @@ struct ContentView: View {
                 }
             }
         }
-        .onChange(of: bodyTracked) { _, isTracked in
-            // When placement locks (bodyTracked becomes true), dismiss loading overlay
-            if isTracked && isLoadingBodyTracking {
-                withAnimation(.easeInOut(duration: 0.4)) {
-                    isLoadingBodyTracking = false
-                }
-            }
-        }
         .onChange(of: isSessionReady) { _, ready in
             // Show "Scanning surface..." for 3 seconds when the AR session first becomes ready.
             // This communicates that the LiDAR mesh is still building and the projection
@@ -1502,11 +1490,6 @@ struct ContentView: View {
                     withAnimation(.easeInOut(duration: 0.5)) { isMeshStabilizing = false }
                 }
             }
-        }
-        .alert("Body Tracking Unavailable", isPresented: $showBodyTrackingAlert) {
-            Button("OK") {}
-        } message: {
-            Text("This device doesn’t support body tracking. Please use a LiDAR-capable device to see the tattoo anchored to your body.")
         }
         .alert("LiDAR Required", isPresented: $showLiDARAlert) {
             Button("OK") {}
@@ -1519,35 +1502,19 @@ struct ContentView: View {
                 tattooImage: $tattooImage,
                 tattooScale: $tattooScale,
                 tattooRotationDegrees: $tattooRotationDegrees,
-                lockToSurface: $lockToSurface,
-                smoothingAmount: $smoothingAmount,
-                nudgeX: $nudgeX,
-                nudgeY: $nudgeY,
-                nudgeZ: $nudgeZ,
-                showAdvancedControls: $showAdvancedControls,
                 manualPlacementEnabled: $manualPlacementEnabled,
                 manualDragOffset: $manualDragOffset,
-                bodyTrackingEnabled: $bodyTrackingEnabled,
-                showSkeletonOverlay: $showSkeletonOverlay,
-                bodyTracked: bodyTracked,
-                isLoadingBodyTracking: isLoadingBodyTracking,
-                isBodyTrackingSupported: isBodyTrackingSupported,
-                isFrontCamera: isFrontCamera,
-                onBodyTrackingToggle: handleBodyTrackingToggle,
                 maxScale: bodyPartMode.profile.maxScale,
                 onResetTattoo: resetTattoo
             )
             .presentationDetents([.medium, .large])
+            .presentationBackground(Color(uiColor: .systemGroupedBackground))
         }
         .overlay {
             if showSplash || !isSessionReady {
                 SplashLoadingView(showSplash: $showSplash)
             }
         }
-        .overlay {
-            bodyTrackingLoadingOverlay
-        }
-
         .onAppear {
             if showSplash {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
@@ -1618,46 +1585,9 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Body Tracking Loading Transition (extracted for type-checker performance)
-    @ViewBuilder
-    private var bodyTrackingLoadingOverlay: some View {
-        if isLoadingBodyTracking {
-            ZStack {
-                // Dark backdrop
-                Color.black.opacity(0.75)
-                    .ignoresSafeArea()
-
-                VStack(spacing: 24) {
-                    // Pulsing body icon
-                    Image(systemName: "figure.stand")
-                        .font(.system(size: 56 * screenScaleRatio, weight: .light))
-                        .foregroundStyle(.cyan)
-                        .symbolEffect(.pulse, options: .repeating)
-
-                    VStack(spacing: 8) {
-                        Text("Scanning for \(bodyPartMode.displayName)")
-                            .font(.system(size: 18 * screenScaleRatio, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white)
-
-                        Text("Point camera at your body. Tattoo will lock in place automatically.")
-                            .font(.system(size: 13 * screenScaleRatio, weight: .regular))
-                            .foregroundStyle(.white.opacity(0.6))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
-                    }
-
-                    ProgressView()
-                        .tint(.cyan)
-                        .scaleEffect(1.2)
-                }
-            }
-            .transition(.opacity)
-        }
-    }
-
     private func resetTattoo() {
         tattooImage = ContentView.defaultTattooImage()
-        tattooScale = 1.0
+        tattooScale = min(0.75, bodyPartMode.profile.maxScale)
         tattooRotationDegrees = bodyLocation.presetRotationDegrees
         nudgeX = 0.0
         nudgeY = 0.0
@@ -1696,24 +1626,23 @@ struct ContentView: View {
     }
 
     private static func defaultTattooImage() -> UIImage? {
-        let size = CGSize(width: 512, height: 512)
-        let renderer = UIGraphicsImageRenderer(size: size)
-        let image = renderer.image { context in
-            let rect = CGRect(origin: .zero, size: size)
-            context.cgContext.setFillColor(UIColor.clear.cgColor)
-            context.cgContext.fill(rect)
+        let moduleBundle = Bundle(for: TattooARModule.self)
+        let candidateBundles: [Bundle] = [
+            moduleBundle.url(forResource: "TattooARResources", withExtension: "bundle")
+                .flatMap(Bundle.init(url:)),
+            Bundle.main.url(forResource: "TattooARResources", withExtension: "bundle")
+                .flatMap(Bundle.init(url:)),
+            moduleBundle,
+            .main
+        ].compactMap { $0 }
 
-            let circleRect = rect.insetBy(dx: 64, dy: 64)
-            context.cgContext.setStrokeColor(UIColor.black.cgColor)
-            context.cgContext.setLineWidth(18)
-            context.cgContext.strokeEllipse(in: circleRect)
-
-            let barRect = CGRect(x: rect.midX - 24, y: rect.minY + 80, width: 48, height: rect.height - 160)
-            context.cgContext.setFillColor(UIColor.black.cgColor)
-            context.cgContext.fill(barRect)
+        for bundle in candidateBundles {
+            if let image = UIImage(named: "transparentlogo", in: bundle, compatibleWith: nil) {
+                return image
+            }
         }
 
-        return image
+        return nil
     }
 
     // MARK: - Video Recording (AR-only via Coordinator)
@@ -1772,35 +1701,6 @@ struct ContentView: View {
     private func startRecording() { /* unused — toggleRecording() handles both */ }
     private func stopRecording()  { /* unused — toggleRecording() handles both */ }
 
-    // MARK: - Body Tracking Toggle Helper
-    // Called by the Options sheet body tracking button.
-    // Previously inline in the toolbar button; extracted so it can be passed as a closure.
-    private func handleBodyTrackingToggle() {
-        let haptic = UIImpactFeedbackGenerator(style: .medium)
-        haptic.impactOccurred()
-        if !bodyTrackingEnabled {
-            regularModeLocked = false
-            withAnimation(.easeInOut(duration: 0.3)) { isLoadingBodyTracking = true }
-            bodyTrackingEnabled = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                if isLoadingBodyTracking {
-                    withAnimation(.easeInOut(duration: 0.4)) { isLoadingBodyTracking = false }
-                }
-            }
-        } else if bodyTracked {
-            bodyTracked = false
-            withAnimation(.easeInOut(duration: 0.3)) { isLoadingBodyTracking = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                if isLoadingBodyTracking {
-                    withAnimation(.easeInOut(duration: 0.4)) { isLoadingBodyTracking = false }
-                }
-            }
-        } else {
-            bodyTrackingEnabled = false
-            withAnimation(.easeInOut(duration: 0.3)) { isLoadingBodyTracking = false }
-        }
-    }
-
     private func formatDuration(_ seconds: TimeInterval) -> String {
         let mins = Int(seconds) / 60
         let secs = Int(seconds) % 60
@@ -1813,27 +1713,14 @@ struct ContentView: View {
 
 @available(iOS 26.0, *)
 private struct ControlsSheet: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     @Binding var selectedItem: PhotosPickerItem?
     @Binding var tattooImage: UIImage?
     @Binding var tattooScale: Float
     @Binding var tattooRotationDegrees: Float
-    @Binding var lockToSurface: Bool
-    @Binding var smoothingAmount: Float
-    @Binding var nudgeX: Float
-    @Binding var nudgeY: Float
-    @Binding var nudgeZ: Float
-    @Binding var showAdvancedControls: Bool
     @Binding var manualPlacementEnabled: Bool
     @Binding var manualDragOffset: CGSize
-    // Body tracking (moved from toolbar)
-    @Binding var bodyTrackingEnabled: Bool
-    @Binding var showSkeletonOverlay: Bool
-    var bodyTracked: Bool
-    var isLoadingBodyTracking: Bool
-    var isBodyTrackingSupported: Bool
-    var isFrontCamera: Bool
-    var onBodyTrackingToggle: () -> Void
-    // Tattoo
     var maxScale: Float
     var onResetTattoo: () -> Void
 
@@ -1841,19 +1728,8 @@ private struct ControlsSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
-
-                    // ── TATTOO SECTION ──
-                    VStack(spacing: 12) {
-                        HStack {
-                            Image(systemName: "photo.artframe")
-                                .font(.system(size: 13 * screenScaleRatio, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.6))
-                            Text("TATTOO")
-                                .font(.system(size: 11 * screenScaleRatio, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.6))
-                                .tracking(1.2)
-                            Spacer()
-                        }
+                    controlsCard {
+                        sectionHeader(icon: "photo.artframe", title: "TATTOO")
 
                         if let image = tattooImage {
                             HStack(spacing: 14) {
@@ -1861,16 +1737,21 @@ private struct ControlsSheet: View {
                                     .resizable()
                                     .scaledToFit()
                                     .frame(width: 64, height: 64)
+                                    .padding(4)
+                                    .background(Color(uiColor: .tertiarySystemGroupedBackground))
                                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                    .glassEffect(.regular, in: .rect(cornerRadius: 12))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+                                    }
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("Current Tattoo")
-                                        .font(.system(size: 12 * screenScaleRatio, weight: .semibold))
-                                        .foregroundStyle(.white)
-                                    Text("\(Int(image.size.width))×\(Int(image.size.height)) px")
+                                        .font(.system(size: 14 * screenScaleRatio, weight: .semibold))
+                                        .foregroundStyle(.primary)
+                                    Text("\(Int(image.size.width)) × \(Int(image.size.height)) px")
                                         .font(.system(size: 10 * screenScaleRatio, weight: .medium).monospacedDigit())
-                                        .foregroundStyle(.white.opacity(0.5))
+                                        .foregroundStyle(.secondary)
                                 }
 
                                 Spacer()
@@ -1886,10 +1767,11 @@ private struct ControlsSheet: View {
                                         .font(.system(size: 12 * screenScaleRatio, weight: .semibold))
                                 }
                                 .foregroundStyle(.white)
-                                .padding(.vertical, 8)
+                                .padding(.vertical, 9)
                                 .padding(.horizontal, 14)
-                                .glassEffect(.regular.tint(.blue).interactive(), in: .capsule)
+                                .background(Capsule().fill(Color.accentColor))
                             }
+                            .buttonStyle(.plain)
 
                             Spacer()
 
@@ -1902,213 +1784,62 @@ private struct ControlsSheet: View {
                                     Text("Reset")
                                         .font(.system(size: 12 * screenScaleRatio, weight: .semibold))
                                 }
-                                .foregroundStyle(.white.opacity(0.8))
-                                .padding(.vertical, 8)
+                                .foregroundStyle(.white)
+                                .padding(.vertical, 9)
                                 .padding(.horizontal, 14)
-                                .glassEffect(.regular.tint(.red).interactive(), in: .capsule)
+                                .background(Capsule().fill(Color.red))
                             }
+                            .buttonStyle(.plain)
                         }
                     }
-                    .padding(16)
-                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
 
-                    // ── PLACEMENT SECTION ──
-                    VStack(spacing: 14) {
-                        HStack {
-                            Image(systemName: "move.3d")
-                                .font(.system(size: 13 * screenScaleRatio, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.6))
-                            Text("PLACEMENT")
-                                .font(.system(size: 11 * screenScaleRatio, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.6))
-                                .tracking(1.2)
-                            Spacer()
-                        }
+                    controlsCard {
+                        sectionHeader(icon: "move.3d", title: "PLACEMENT")
 
-                        // Size slider
                         VStack(spacing: 4) {
                             HStack {
                                 Text("Size")
                                     .font(.system(size: 12 * screenScaleRatio, weight: .medium))
-                                    .foregroundStyle(.white.opacity(0.8))
+                                    .foregroundStyle(.primary)
                                 Spacer()
                                 Text(String(format: "%.2fx", tattooScale))
                                     .font(.system(size: 11 * screenScaleRatio, weight: .semibold).monospacedDigit())
-                                    .foregroundStyle(.white.opacity(0.6))
+                                    .foregroundStyle(.secondary)
                             }
                             Slider(value: $tattooScale, in: 0.05...maxScale, step: 0.05)
-                                .tint(.white.opacity(0.5))
+                                .tint(.accentColor)
                         }
 
-                        // Rotation slider
                         VStack(spacing: 4) {
                             HStack {
                                 Text("Rotate")
                                     .font(.system(size: 12 * screenScaleRatio, weight: .medium))
-                                    .foregroundStyle(.white.opacity(0.8))
+                                    .foregroundStyle(.primary)
                                 Spacer()
                                 Text("\(Int(tattooRotationDegrees))°")
                                     .font(.system(size: 11 * screenScaleRatio, weight: .semibold).monospacedDigit())
-                                    .foregroundStyle(.white.opacity(0.6))
+                                    .foregroundStyle(.secondary)
                             }
                             Slider(value: $tattooRotationDegrees, in: -180...180, step: 1)
-                                .tint(.white.opacity(0.5))
+                                .tint(.accentColor)
                         }
                     }
-                    .padding(16)
-                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
 
-                    // ── OPTIONS SECTION ──
-                    VStack(spacing: 12) {
-                        HStack {
-                            Image(systemName: "gearshape.2")
-                                .font(.system(size: 13 * screenScaleRatio, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.6))
-                            Text("OPTIONS")
-                                .font(.system(size: 11 * screenScaleRatio, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.6))
-                                .tracking(1.2)
-                            Spacer()
-                        }
+                    controlsCard {
+                        sectionHeader(icon: "gearshape.2", title: "OPTIONS")
 
-                        // Manual placement toggle
                         HStack {
                             Text("Manual Placement (Drag)")
                                 .font(.system(size: 12 * screenScaleRatio, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.8))
+                                .foregroundStyle(.primary)
                             Spacer()
                             Toggle("", isOn: $manualPlacementEnabled)
                                 .labelsHidden()
+                                .tint(.accentColor)
                                 .onChange(of: manualPlacementEnabled) { _, isEnabled in
                                     if !isEnabled { manualDragOffset = .zero }
                                 }
                         }
-
-                        Divider().opacity(0.3)
-
-                        // Advanced toggle
-                        Button {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                showAdvancedControls.toggle()
-                            }
-                        } label: {
-                            HStack {
-                                Text("Advanced")
-                                    .font(.system(size: 12 * screenScaleRatio, weight: .medium))
-                                    .foregroundStyle(.white.opacity(0.8))
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 10 * screenScaleRatio, weight: .semibold))
-                                    .foregroundStyle(.white.opacity(0.4))
-                                    .rotationEffect(.degrees(showAdvancedControls ? 90 : 0))
-                            }
-                        }
-
-                        if showAdvancedControls {
-                            VStack(spacing: 10) {
-                                // Lock to surface
-                                HStack {
-                                    Text("Lock To Surface")
-                                        .font(.system(size: 11 * screenScaleRatio, weight: .medium))
-                                        .foregroundStyle(.white.opacity(0.7))
-                                    Spacer()
-                                    Toggle("", isOn: $lockToSurface)
-                                        .labelsHidden()
-                                }
-
-                                // Smoothing slider
-                                glassSlider(label: "Smooth", value: $smoothingAmount, range: 0.0...0.5, step: 0.01, format: "%.2f")
-
-                                // Nudge sliders
-                                glassSlider(label: "Nudge X", value: $nudgeX, range: -0.06...0.06, step: 0.001, format: "%.3f")
-                                glassSlider(label: "Nudge Y", value: $nudgeY, range: -0.06...0.06, step: 0.001, format: "%.3f")
-                                glassSlider(label: "Nudge Z", value: $nudgeZ, range: -0.06...0.06, step: 0.001, format: "%.3f")
-                            }
-                            .padding(12)
-                            .glassEffect(.regular, in: .rect(cornerRadius: 14))
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
-                    }
-                    .padding(16)
-                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
-
-                    // ── BODY TRACKING SECTION ──
-                    if !isFrontCamera && isBodyTrackingSupported {
-                        VStack(spacing: 12) {
-                            HStack {
-                                Image(systemName: "person.and.background.dotted")
-                                    .font(.system(size: 13 * screenScaleRatio, weight: .semibold))
-                                    .foregroundStyle(.white.opacity(0.6))
-                                Text("BODY TRACKING")
-                                    .font(.system(size: 11 * screenScaleRatio, weight: .bold, design: .rounded))
-                                    .foregroundStyle(.white.opacity(0.6))
-                                    .tracking(1.2)
-                                Spacer()
-                            }
-
-                            // Body Tracking Toggle
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Enable Body Tracking")
-                                        .font(.system(size: 12 * screenScaleRatio, weight: .medium))
-                                        .foregroundStyle(.white.opacity(0.85))
-                                    Text("Anchors tattoo to body and follows movement")
-                                        .font(.system(size: 10 * screenScaleRatio))
-                                        .foregroundStyle(.white.opacity(0.4))
-                                }
-                                Spacer()
-                                Button {
-                                    onBodyTrackingToggle()
-                                } label: {
-                                    Image(systemName: bodyTrackingEnabled
-                                        ? (bodyTracked ? "lock.fill" : "person.and.background.dotted")
-                                        : "person.and.background.striped.horizontal")
-                                        .font(.system(size: 16 * screenScaleRatio, weight: .semibold))
-                                        .foregroundStyle(.white)
-                                        .padding(10)
-                                        .glassEffect(
-                                            bodyTrackingEnabled
-                                                ? (bodyTracked
-                                                    ? .regular.tint(.green).interactive()
-                                                    : .regular.tint(.cyan).interactive())
-                                                : .regular.interactive(),
-                                            in: .circle
-                                        )
-                                }
-                                .disabled(isLoadingBodyTracking)
-                            }
-
-                            Divider().opacity(0.3)
-
-                            // Skeleton Overlay Toggle
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Skeleton Overlay")
-                                        .font(.system(size: 12 * screenScaleRatio, weight: .medium))
-                                        .foregroundStyle(.white.opacity(0.85))
-                                    Text("Show body joint markers on screen")
-                                        .font(.system(size: 10 * screenScaleRatio))
-                                        .foregroundStyle(.white.opacity(0.4))
-                                }
-                                Spacer()
-                                Button {
-                                    showSkeletonOverlay.toggle()
-                                } label: {
-                                    Image(systemName: showSkeletonOverlay ? "figure.stand" : "figure.stand.line.dotted.figure.stand")
-                                        .font(.system(size: 16 * screenScaleRatio, weight: .semibold))
-                                        .foregroundStyle(.white)
-                                        .padding(10)
-                                        .glassEffect(
-                                            showSkeletonOverlay
-                                                ? .regular.tint(.green).interactive()
-                                                : .regular.interactive(),
-                                            in: .circle
-                                        )
-                                }
-                            }
-                        }
-                        .padding(16)
-                        .glassEffect(.regular, in: .rect(cornerRadius: 20))
                     }
                 }
                 .padding(.horizontal, 16)
@@ -2116,28 +1847,46 @@ private struct ControlsSheet: View {
                 .padding(.bottom, 20)
             }
             .scrollContentBackground(.hidden)
-            .background(.clear)
+            .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle("Controls")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color(uiColor: .systemGroupedBackground), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 
-    /// Reusable glass-styled slider row
     @ViewBuilder
-    private func glassSlider(label: String, value: Binding<Float>, range: ClosedRange<Float>, step: Float, format: String) -> some View {
-        VStack(spacing: 2) {
-            HStack {
-                Text(label)
-                    .font(.system(size: 11 * screenScaleRatio, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.7))
-                Spacer()
-                Text(String(format: format, value.wrappedValue))
-                    .font(.system(size: 10 * screenScaleRatio, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-            Slider(value: value, in: range, step: step)
-                .tint(.white.opacity(0.4))
+    private func sectionHeader(icon: String, title: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 13 * screenScaleRatio, weight: .semibold))
+            Text(title)
+                .font(.system(size: 11 * screenScaleRatio, weight: .bold, design: .rounded))
+                .tracking(1.2)
+            Spacer()
         }
+        .foregroundStyle(.secondary)
+    }
+
+    @ViewBuilder
+    private func controlsCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(spacing: 12) {
+            content()
+        }
+            .padding(16)
+            .background {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.16 : 0.08), lineWidth: 1)
+            }
+            .shadow(
+                color: Color.black.opacity(colorScheme == .dark ? 0.24 : 0.08),
+                radius: 12,
+                y: 5
+            )
     }
 }
 // MARK: - Crosshair Alignment Indicator
