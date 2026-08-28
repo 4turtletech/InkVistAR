@@ -1,0 +1,18 @@
+# InkVictus Tattoo Studio
+
+InkVictus is a tattoo and piercing studio in Bonifacio Global City, Taguig, Philippines. This file lists the public pages and actions available to visitors.
+
+## Public pages
+
+- [Home](https://www.inkvictusstudio.com/): Studio overview, services, safety standards, testimonials, and frequently asked questions.
+- [Artists](https://www.inkvictusstudio.com/artists): Public artist directory and portfolio profiles.
+- [Gallery](https://www.inkvictusstudio.com/gallery): Approved public tattoo and piercing work.
+- [Book a consultation](https://www.inkvictusstudio.com/book): Consultation request form that requires human confirmation and CAPTCHA validation.
+- [Contact](https://www.inkvictusstudio.com/contact): Public studio contact form and location details.
+- [Terms and conditions](https://www.inkvictusstudio.com/terms): Studio policies, acknowledgements, and service terms.
+
+## Usage guidance
+
+- Public pages may be summarized and linked.
+- Booking and contact submissions must be initiated and confirmed by the visitor.
+- Do not automate payments, account actions, appointments, or administrative operations.

@@ -351,10 +351,12 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
           <div className="chat-header-actions">
             {isHumanMode && (
               <button
+                type="button"
                 className="end-session-btn"
                 onClick={handleEndLiveChat}
                 disabled={!isLiveConnected}
                 title="End Live Chat"
+                aria-label="End live chat session"
               >
                 <LogOut size={16} />
               </button>
@@ -363,21 +365,25 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
               <div className="chat-mode-switcher">
                 {/* AI Chatbot button */}
                 <button
+                  type="button"
                   className={`chat-mode-btn ${!isHumanMode ? 'active' : ''}`}
                   disabled={isHumanMode}
                   title={isHumanMode ? 'End the live chat before returning to the AI Chatbot' : 'Currently using AI Chatbot'}
+                  aria-pressed={!isHumanMode}
                 >
                   <Bot size={16} />
                   <span className="chat-mode-label">Chatbot</span>
                 </button>
                 {/* Live Agent button */}
                 <button
+                  type="button"
                   className={`chat-mode-btn ${isHumanMode ? 'active' : ''}`}
                   onClick={() => {
                     if (!isHumanMode && !isShopOpen) return;
                     if (!isHumanMode) setIsHumanMode(true);
                   }}
                   title={!isShopOpen ? 'Live agents are currently offline (Hours: 1 PM - 8 PM)' : isHumanMode ? 'Currently chatting with an agent' : 'Switch to Live Agent'}
+                  aria-pressed={isHumanMode}
                 >
                   <User size={16} />
                   <span className="chat-mode-label">Live Agent</span>
@@ -386,9 +392,11 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
             )}
             {!isAdminMode && (
               <button 
+                type="button"
                 className="chat-close-btn mobile-only-close" 
                 onClick={() => setIsOpen(false)}
                 title="Close chat"
+                aria-label="Close chat"
               >
                 <X size={20} />
               </button>
@@ -463,14 +471,14 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
             className="chat-input"
             maxLength={500}
           />
-          <button type="submit" className="send-btn" disabled={isLoading && !isHumanMode}>
+          <button type="submit" className="send-btn" disabled={isLoading && !isHumanMode} aria-label="Send message">
             <Send size={18} color="white" />
           </button>
         </form>
       </div>
 
       {!isAdminMode && (
-        <button className="chat-fab" onClick={() => setIsOpen(!isOpen)}>
+        <button type="button" className="chat-fab" onClick={() => setIsOpen(!isOpen)} aria-label={isOpen ? 'Close chat' : 'Open chat'} aria-expanded={isOpen}>
           {isOpen ? <X size={24} color="white" /> : <MessageSquare size={24} color="white" />}
         </button>
       )}

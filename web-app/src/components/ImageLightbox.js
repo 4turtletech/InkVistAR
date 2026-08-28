@@ -89,9 +89,13 @@ function ImageLightbox({ src, alt, onClose }) {
     <div
       className={`lightbox-overlay ${visible ? 'lightbox-visible' : ''}`}
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={alt ? `Image preview: ${alt}` : 'Image preview'}
     >
       {/* Close button */}
       <button
+        type="button"
         className="lightbox-close-btn"
         onClick={(e) => { e.stopPropagation(); onClose(); }}
         title="Close (Esc)"

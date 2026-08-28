@@ -212,13 +212,14 @@ function Home() {
 
     return (
         <>
+            <a className="skip-link" href="#main-content">Skip to main content</a>
             <Navbar />
-            <div className="home-container" ref={parallaxRootRef}>
+            <main className="home-container" id="main-content" ref={parallaxRootRef} tabIndex="-1">
                 {/* Ambient Glowing Orbs */}
-                <div className="ambient-wrapper ambient-wrapper-one">
+                <div className="ambient-wrapper ambient-wrapper-one" aria-hidden="true">
                     <div className="ambient-glow-1"></div>
                 </div>
-                <div className="ambient-wrapper ambient-wrapper-two">
+                <div className="ambient-wrapper ambient-wrapper-two" aria-hidden="true">
                     <div className="ambient-glow-2"></div>
                 </div>
                 
@@ -271,7 +272,7 @@ function Home() {
                         </div>
                     </div>
                     
-                    <div className="scroll-indicator fade-up visible">
+                    <div className="scroll-indicator fade-up visible" aria-hidden="true">
                         <ChevronDown size={32} color="var(--accent-gold)" />
                     </div>
 
@@ -289,10 +290,13 @@ function Home() {
                             <>
                                 <div className="art-showcase-grid">
                                     {showcaseWorks.map((work, idx) => (
-                                        <div 
+                                        <button
+                                            type="button"
                                             key={work.id || idx} 
                                             className={`showcase-item tilt-card ${idx === 0 ? 'showcase-hero' : ''}`}
                                             onClick={() => work.artist_id && navigate(`/artist/${work.artist_id}`)}
+                                            disabled={!work.artist_id}
+                                            aria-label={work.artist_id ? `View ${work.title || work.category || 'tattoo artwork'} by ${work.artist_name || 'an InkVictus artist'}` : undefined}
                                         >
                                             <img 
                                                 src={work.image_url} 
@@ -307,7 +311,7 @@ function Home() {
                                                     <span className="showcase-artist">Crafted by {work.artist_name}</span>
                                                 )}
                                             </div>
-                                        </div>
+                                        </button>
                                     ))}
                                 </div>
                                 <div className="fade-up stagger-4" style={{ textAlign: 'center', marginTop: '1rem' }}>
@@ -342,24 +346,24 @@ function Home() {
                             </button>
                         </div>
                         <div className="matrix-images">
-                            <div className="matrix-img-box">
+                            <button type="button" className="matrix-img-box" onClick={() => setLightboxSrc('/images/tattoos/studio_1.jpg')} aria-label="Open larger view of the studio waiting area">
                                 <picture>
                                     <source srcSet="/images/tattoos/studio_1.webp" type="image/webp" />
-                                    <img src="/images/tattoos/studio_1.jpg" alt="Studio Dark Concept Wait Area" className="lightbox-trigger" width="819" height="1024" loading="lazy" decoding="async" onClick={() => setLightboxSrc('/images/tattoos/studio_1.jpg')} />
+                                    <img src="/images/tattoos/studio_1.jpg" alt="Studio Dark Concept Wait Area" className="lightbox-trigger" width="819" height="1024" loading="lazy" decoding="async" />
                                 </picture>
-                            </div>
-                            <div className="matrix-img-box">
+                            </button>
+                            <button type="button" className="matrix-img-box" onClick={() => setLightboxSrc('/images/tattoos/studio_3.jpg')} aria-label="Open larger view of the InkVictus studio setup">
                                 <picture>
                                     <source srcSet="/images/tattoos/studio_3.webp" type="image/webp" />
-                                    <img src="/images/tattoos/studio_3.jpg" alt="Inkvictus Aesthetic Setup" className="lightbox-trigger" width="819" height="1024" loading="lazy" decoding="async" onClick={() => setLightboxSrc('/images/tattoos/studio_3.jpg')} />
+                                    <img src="/images/tattoos/studio_3.jpg" alt="Inkvictus Aesthetic Setup" className="lightbox-trigger" width="819" height="1024" loading="lazy" decoding="async" />
                                 </picture>
-                            </div>
-                            <div className="matrix-img-box">
+                            </button>
+                            <button type="button" className="matrix-img-box" onClick={() => setLightboxSrc('/images/tattoos/studio_2.jpg')} aria-label="Open larger view of the studio chairs">
                                 <picture>
                                     <source srcSet="/images/tattoos/studio_2.webp" type="image/webp" />
-                                    <img src="/images/tattoos/studio_2.jpg" alt="Luxurious Studio Chairs" className="lightbox-trigger" width="819" height="1024" loading="lazy" decoding="async" onClick={() => setLightboxSrc('/images/tattoos/studio_2.jpg')} />
+                                    <img src="/images/tattoos/studio_2.jpg" alt="Luxurious Studio Chairs" className="lightbox-trigger" width="819" height="1024" loading="lazy" decoding="async" />
                                 </picture>
-                            </div>
+                            </button>
                         </div>
                     </div>
                 </section>
@@ -490,13 +494,13 @@ function Home() {
                                             <div 
                                                 key={testimony.id || idx} 
                                                 className={`perspective-slide ${isActive ? 'active' : ''}`}
+                                                aria-hidden={!isActive}
                                                 style={{
                                                     transform: `translateX(${offset * 75}%) scale(${isActive ? 1 : 0.75})`,
                                                     opacity: isVisible ? (isActive ? 1 : 0.45) : 0,
                                                     zIndex: isActive ? 10 : 5 - Math.abs(offset),
                                                     pointerEvents: isActive ? 'auto' : 'none',
                                                 }}
-                                                onClick={() => !isActive && setCurrentSlide(idx)}
                                             >
                                                 <div className="perspective-card">
                                                     <div className="perspective-card-inner">
@@ -522,18 +526,21 @@ function Home() {
                                     })}
                                 </div>
                                 {testimonials.length > 1 && (
-                                    <div className="carousel-controls">
-                                        <button className="carousel-btn" onClick={prevSlide}><ChevronLeft size={24} /></button>
+                                    <div className="carousel-controls" role="group" aria-label="Testimonial carousel controls">
+                                        <button type="button" className="carousel-btn" onClick={prevSlide} aria-label="Previous testimonial"><ChevronLeft size={24} aria-hidden="true" /></button>
                                         <div className="carousel-indicators">
                                             {testimonials.map((_, idx) => (
                                                 <button 
+                                                    type="button"
                                                     key={idx} 
                                                     className={`indicator-dot ${idx === currentSlide ? 'active' : ''}`}
                                                     onClick={() => setCurrentSlide(idx)}
+                                                    aria-label={`Show testimonial ${idx + 1}`}
+                                                    aria-current={idx === currentSlide ? 'true' : undefined}
                                                 />
                                             ))}
                                         </div>
-                                        <button className="carousel-btn" onClick={nextSlide}><ChevronRight size={24} /></button>
+                                        <button type="button" className="carousel-btn" onClick={nextSlide} aria-label="Next testimonial"><ChevronRight size={24} aria-hidden="true" /></button>
                                     </div>
                                 )}
                             </>
@@ -554,22 +561,33 @@ function Home() {
                             { q: "How do I prepare for my session?", a: "Get a good night's sleep, eat a full meal before arriving, and stay hydrated. Avoid alcohol and blood-thinning medications 24 hours prior." },
                             { q: "Do you do cover-ups?", a: "Yes, our artists specialize in cover-ups and restorations. We recommend booking a consultation first so we can assess the existing tattoo." }
                         ].map((faq, idx) => (
-                            <div key={idx} className={`faq-item glass-card-premium ${openFaq === idx ? 'open' : ''}`} onClick={() => toggleFaq(idx)}>
-                                <div className="faq-question">
+                            <div key={idx} className={`faq-item glass-card-premium ${openFaq === idx ? 'open' : ''}`}>
+                                <button
+                                    type="button"
+                                    className="faq-question"
+                                    id={`faq-question-${idx}`}
+                                    onClick={() => toggleFaq(idx)}
+                                    aria-expanded={openFaq === idx}
+                                    aria-controls={`faq-answer-${idx}`}
+                                >
                                     <h3>{faq.q}</h3>
-                                    <span className="faq-toggle-icon">{openFaq === idx ? <Minus size={20} /> : <Plus size={20} />}</span>
-                                </div>
-                                <div className="faq-answer">
+                                    <span className="faq-toggle-icon" aria-hidden="true">{openFaq === idx ? <Minus size={20} /> : <Plus size={20} />}</span>
+                                </button>
+                                <div
+                                    className="faq-answer"
+                                    id={`faq-answer-${idx}`}
+                                    role="region"
+                                    aria-labelledby={`faq-question-${idx}`}
+                                    aria-hidden={openFaq !== idx}
+                                >
                                     <p>{faq.a}</p>
                                 </div>
                             </div>
                         ))}
                     </div>
                 </section>
-
-
-                <Footer />
-            </div>
+            </main>
+            <Footer />
             <DeferredChatWidget />
             <ImageLightbox src={lightboxSrc} alt="Inkvictus Studio" onClose={() => setLightboxSrc(null)} />
         </>

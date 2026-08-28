@@ -310,6 +310,14 @@
     cursor: pointer;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     border: 1px solid var(--border-light);
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+}
+
+.showcase-item:disabled {
+    cursor: default;
 }
 
 .showcase-hero {
@@ -458,6 +466,8 @@
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     background: #000;
     border: 1px solid var(--border-light);
+    padding: 0;
+    cursor: pointer;
 }
 
 .matrix-img-box:nth-child(1) {
@@ -1016,13 +1026,19 @@
 
 .faq-item {
     padding: 1.5rem 2rem;
-    cursor: pointer;
 }
 
 .faq-question {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
 }
 
 .faq-question h3 {

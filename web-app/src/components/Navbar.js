@@ -81,12 +81,12 @@ const Navbar = () => {
             </div>
             <div className="home-auth-buttons">
                 {user ? (
-                    <div className="logged-user-container" onClick={handleProfileClick} title="My Dashboard">
+                    <button type="button" className="logged-user-container" onClick={handleProfileClick} title="My Dashboard">
                         <div className="user-icon-circle">
                             <UserIcon size={20} color="#be9055" />
                         </div>
                         <span className="user-display-name">{user.name || 'Account'}</span>
-                    </div>
+                    </button>
                 ) : (
                     <>
                         <Link to="/login" className="login-link">Log In</Link>
@@ -96,16 +96,22 @@ const Navbar = () => {
             </div>
 
             {/* Mobile hamburger button */}
-            <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)} aria-label="Menu">
+            <button
+                className="mobile-menu-btn"
+                onClick={() => setMobileOpen(true)}
+                aria-label="Open navigation menu"
+                aria-expanded={mobileOpen}
+                aria-controls="mobile-navigation"
+            >
                 <Menu size={26} color="#be9055" />
             </button>
 
             {/* Premium Mobile drawer overlay */}
             {mobileOpen && (
-                <div className="mobile-drawer-overlay">
+                <div className="mobile-drawer-overlay" id="mobile-navigation">
                     <div className="mobile-drawer-header">
                         <Link to="/" className="home-logo" onClick={() => setMobileOpen(false)}>INKVICTUS</Link>
-                        <button className="mobile-close-btn" onClick={() => setMobileOpen(false)}>
+                        <button className="mobile-close-btn" onClick={() => setMobileOpen(false)} aria-label="Close navigation menu">
                             <X size={28} color="#be9055" />
                         </button>
                     </div>

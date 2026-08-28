@@ -90,6 +90,18 @@
   background-color: rgb(255, 255, 255) !important;
 }
 
+.btn.btn-primary.booking-next-btn {
+  color: #17110b !important;
+  background: #be9055 !important;
+  border-color: #be9055 !important;
+}
+
+.btn.btn-primary.booking-next-btn:hover {
+  color: #17110b !important;
+  background: #d4af87 !important;
+  border-color: #d4af87 !important;
+}
+
 /* Hide Google reCAPTCHA v3 badge globally.
    reCAPTCHA v3 allows hiding the badge per Google's FAQ,
    as long as you include the required branding text on pages that use it. */

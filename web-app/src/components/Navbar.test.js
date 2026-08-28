@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import Navbar from './Navbar';
 
 const mockLocation = { pathname: '/artist/42' };
@@ -27,5 +27,15 @@ describe('Navbar public section state', () => {
         render(<Navbar />);
 
         expect(screen.getByRole('link', { name: 'Artists' })).not.toHaveClass('active-link');
+    });
+
+    test('provides names and state for the mobile navigation controls', () => {
+        render(<Navbar />);
+
+        const openButton = screen.getByRole('button', { name: 'Open navigation menu' });
+        expect(openButton).toHaveAttribute('aria-expanded', 'false');
+        fireEvent.click(openButton);
+        expect(openButton).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByRole('button', { name: 'Close navigation menu' })).toBeInTheDocument();
     });
 });

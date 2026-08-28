@@ -79,7 +79,7 @@
 
 .home-auth-buttons .signup-btn {
     background-color: #be9055;
-    color: white;
+    color: #17110b;
     border: none;
     padding: 0.75rem 1.8rem;
     border-radius: 50px;
@@ -93,6 +93,7 @@
 
 .home-auth-buttons .signup-btn:hover {
     background-color: #d4af87;
+    color: #17110b;
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(193, 154, 107, 0.3);
 }
@@ -107,6 +108,8 @@
     border-radius: 50px;
     border: 1px solid rgba(193, 154, 107, 0.2);
     transition: all 0.3s ease;
+    color: inherit;
+    font: inherit;
 }
 
 .logged-user-container:hover {

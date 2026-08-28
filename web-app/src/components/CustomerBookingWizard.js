@@ -1904,7 +1904,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             }
                             setStep(step + 1);
                         }} 
-                        className="btn btn-primary" 
+                        className="btn btn-primary booking-next-btn"
                         style={{
                             display: 'flex', 
                             alignItems: 'center', 
@@ -1912,7 +1912,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             padding: '12px 32px',
                             backgroundColor: '#be9055',
                             borderColor: '#be9055',
-                            color: 'white',
+                            color: '#17110b',
                             fontWeight: '700',
                             borderRadius: '12px',
                             boxShadow: '0 4px 12px rgba(193, 154, 107, 0.3)',

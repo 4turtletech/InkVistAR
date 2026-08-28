@@ -48,8 +48,8 @@ const Footer = () => {
                 <div className="footer-section">
                     <h3>Follow Us</h3>
                     <div className="social-links">
-                        <a href="https://www.instagram.com/inkvictustattoo.ph?igsh=dnV3NnE5ZnNnYzFo" target="_blank" rel="noopener noreferrer"><Instagram size={24} /></a>
-                        <a href="https://www.facebook.com/share/1KHRA3cY6P/" target="_blank" rel="noopener noreferrer"><Facebook size={24} /></a>
+                        <a href="https://www.instagram.com/inkvictustattoo.ph?igsh=dnV3NnE5ZnNnYzFo" target="_blank" rel="noopener noreferrer" aria-label="InkVictus on Instagram"><Instagram size={24} aria-hidden="true" /></a>
+                        <a href="https://www.facebook.com/share/1KHRA3cY6P/" target="_blank" rel="noopener noreferrer" aria-label="InkVictus on Facebook"><Facebook size={24} aria-hidden="true" /></a>
                     </div>
                     <div className="footer-hours">
                         <h4>Studio Hours</h4>
@@ -59,7 +59,7 @@ const Footer = () => {
             </div>
             
             <div className="footer-bottom">
-                <p>&copy; {new Date().getFullYear()} InkVistAR / Inkvictus Tattoo Studio. All Rights Reserved. | <a href="/terms" style={{ color: '#be9055', textDecoration: 'none' }}>Terms & Conditions</a></p>
+                <p>&copy; {new Date().getFullYear()} InkVistAR / Inkvictus Tattoo Studio. All Rights Reserved. | <a href="/terms">Terms & Conditions</a></p>
             </div>
         </footer>
     );

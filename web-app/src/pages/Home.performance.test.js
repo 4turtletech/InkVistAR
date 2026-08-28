@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import Home from './Home';
 
 jest.mock('react-router-dom', () => ({
@@ -44,4 +44,18 @@ test('throttles desktop parallax updates through one animation frame', () => {
   expect(home.style.getPropertyValue('--ambient-two-y')).toBe('-40px');
   expect(home.style.getPropertyValue('--hero-parallax-y')).toBe('80px');
   expect(home.style.getPropertyValue('--hero-overlay-opacity')).toBe('0.8');
+});
+
+test('exposes keyboard-accessible homepage landmarks and accordions', () => {
+  const { container } = render(<Home />);
+
+  expect(screen.getByRole('link', { name: 'Skip to main content' })).toHaveAttribute('href', '#main-content');
+  expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');
+  expect(screen.getAllByRole('button', { name: /Open larger view/ })).toHaveLength(3);
+
+  const question = screen.getByRole('button', { name: 'What is your minimum pricing?' });
+  expect(question).toHaveAttribute('aria-expanded', 'false');
+  fireEvent.click(question);
+  expect(question).toHaveAttribute('aria-expanded', 'true');
+  expect(container.querySelector('#faq-answer-0')).toHaveAttribute('aria-hidden', 'false');
 });
