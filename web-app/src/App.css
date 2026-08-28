@@ -3,6 +3,52 @@
   /* removing any potential 3d or transform contexts */
 }
 
+.route-loader {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: radial-gradient(circle at 50% 40%, #20170f 0%, #080706 38%, #050505 72%);
+  color: #d4b58e;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.route-loader-mark {
+  width: 3.25rem;
+  height: 3.25rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(190, 144, 85, 0.7);
+  color: #f1d2a8;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  animation: route-loader-pulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes route-loader-pulse {
+  from {
+    opacity: 0.45;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-loader-mark {
+    animation: none;
+  }
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;

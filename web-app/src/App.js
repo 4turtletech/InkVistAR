@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
 import { RECAPTCHA_SITE_KEY } from './config';
@@ -5,63 +6,65 @@ import './App.css';
 import './styles/premium-transitions.css';
 
 import Home from './pages/Home';
-import Login from './pages/Login';
-import Artists from './pages/Artists';
-import PublicArtistProfile from './pages/PublicArtistProfile';
-import Register from './pages/Register';
-import Gallery from './pages/Gallery';
-import Contact from './pages/Contact';
-import PublicBooking from './pages/PublicBooking';
-import AdminLogin from './pages/AdminLogin';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminUsers from './pages/AdminUsers';
-import AdminAppointments from './pages/AdminAppointments';
-import AdminStaff from './pages/AdminStaff';
-import AdminInventory from './pages/AdminInventory';
-import AdminPOS from './pages/AdminPOS';
-import AdminAnalytics from './pages/AdminAnalytics';
-import AdminStudio from './pages/AdminStudio';
-import AdminClients from './pages/AdminClients';
-import AdminBilling from './pages/AdminBilling';
-import AdminChat from './pages/AdminChat';
-import AdminNotifications from './pages/AdminNotifications';
-import AdminBusinessReports from './pages/AdminBusinessReports';
-import AppointmentPrintView from './pages/AppointmentPrintView';
-import WaiverPrintView from './pages/WaiverPrintView';
-
-import CustomerNotifications from './pages/CustomerNotifications';
-
-import ArtistPortal from './pages/ArtistPortal';
-import CustomerPortal from './pages/CustomerPortal';
-import ManagerPortal from './pages/ManagerPortal';
-import ManagerAnalytics from './pages/ManagerAnalytics';
-import ManagerAppointments from './pages/ManagerAppointments';
-import ManagerUsers from './pages/ManagerUsers';
-import ArtistAppointments from './pages/ArtistAppointments';
-import ArtistEarnings from './pages/ArtistEarnings';
-import ArtistProfile from './pages/ArtistProfile';
-import ArtistSessions from './pages/ArtistSessions';
-import ArtistNotifications from './pages/ArtistNotifications';
-
-import ArtistGallery from './pages/ArtistGallery';
-import CustomerBookings from './pages/CustomerBookings';
-import CustomerGallery from './pages/CustomerGallery';
-import CustomerProfile from './pages/CustomerProfile';
-import CustomerBookingCreate from './pages/CustomerBookingCreate';
-import CustomerReview from './pages/CustomerReview';
-import CustomerTransactions from './pages/CustomerTransactions';
-import PaymentSimulation from './pages/PaymentSimulation';
-import BookingConfirmation from './pages/BookingConfirmation';
-import PayMongoPayment from './pages/PayMongoPayment';
-import CustomerInvoice from './pages/CustomerInvoice';
-import CustomerAftercare from './pages/CustomerAftercare';
-import CustomerReports from './pages/CustomerReports';
-import TermsPage from './pages/TermsPage';
 import { MAINTENANCE_CONFIG } from './maintenanceConfig';
-import MaintenanceNotice from './pages/MaintenanceNotice';
-import MobileCaptcha from './pages/MobileCaptcha';
+const Login = lazy(() => import('./pages/Login'));
+const Artists = lazy(() => import('./pages/Artists'));
+const PublicArtistProfile = lazy(() => import('./pages/PublicArtistProfile'));
+const Register = lazy(() => import('./pages/Register'));
+const Gallery = lazy(() => import('./pages/Gallery'));
+const Contact = lazy(() => import('./pages/Contact'));
+const PublicBooking = lazy(() => import('./pages/PublicBooking'));
+const AdminLogin = lazy(() => import('./pages/AdminLogin'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminAppointments = lazy(() => import('./pages/AdminAppointments'));
+const AdminStaff = lazy(() => import('./pages/AdminStaff'));
+const AdminInventory = lazy(() => import('./pages/AdminInventory'));
+const AdminPOS = lazy(() => import('./pages/AdminPOS'));
+const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics'));
+const AdminStudio = lazy(() => import('./pages/AdminStudio'));
+const AdminClients = lazy(() => import('./pages/AdminClients'));
+const AdminBilling = lazy(() => import('./pages/AdminBilling'));
+const AdminChat = lazy(() => import('./pages/AdminChat'));
+const AdminNotifications = lazy(() => import('./pages/AdminNotifications'));
+const AdminBusinessReports = lazy(() => import('./pages/AdminBusinessReports'));
+const AppointmentPrintView = lazy(() => import('./pages/AppointmentPrintView'));
+const WaiverPrintView = lazy(() => import('./pages/WaiverPrintView'));
+const CustomerNotifications = lazy(() => import('./pages/CustomerNotifications'));
+const ArtistPortal = lazy(() => import('./pages/ArtistPortal'));
+const CustomerPortal = lazy(() => import('./pages/CustomerPortal'));
+const ManagerPortal = lazy(() => import('./pages/ManagerPortal'));
+const ManagerAnalytics = lazy(() => import('./pages/ManagerAnalytics'));
+const ManagerAppointments = lazy(() => import('./pages/ManagerAppointments'));
+const ManagerUsers = lazy(() => import('./pages/ManagerUsers'));
+const ArtistAppointments = lazy(() => import('./pages/ArtistAppointments'));
+const ArtistEarnings = lazy(() => import('./pages/ArtistEarnings'));
+const ArtistProfile = lazy(() => import('./pages/ArtistProfile'));
+const ArtistSessions = lazy(() => import('./pages/ArtistSessions'));
+const ArtistNotifications = lazy(() => import('./pages/ArtistNotifications'));
+const ArtistGallery = lazy(() => import('./pages/ArtistGallery'));
+const CustomerBookings = lazy(() => import('./pages/CustomerBookings'));
+const CustomerGallery = lazy(() => import('./pages/CustomerGallery'));
+const CustomerProfile = lazy(() => import('./pages/CustomerProfile'));
+const CustomerBookingCreate = lazy(() => import('./pages/CustomerBookingCreate'));
+const CustomerReview = lazy(() => import('./pages/CustomerReview'));
+const CustomerTransactions = lazy(() => import('./pages/CustomerTransactions'));
+const PaymentSimulation = lazy(() => import('./pages/PaymentSimulation'));
+const BookingConfirmation = lazy(() => import('./pages/BookingConfirmation'));
+const PayMongoPayment = lazy(() => import('./pages/PayMongoPayment'));
+const CustomerInvoice = lazy(() => import('./pages/CustomerInvoice'));
+const CustomerAftercare = lazy(() => import('./pages/CustomerAftercare'));
+const CustomerReports = lazy(() => import('./pages/CustomerReports'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
+const MaintenanceNotice = lazy(() => import('./pages/MaintenanceNotice'));
+const MobileCaptcha = lazy(() => import('./pages/MobileCaptcha'));
 
-
+const RouteLoader = () => (
+  <div className="route-loader" role="status" aria-live="polite">
+    <span className="route-loader-mark" aria-hidden="true">IV</span>
+    <span>Loading InkVictus...</span>
+  </div>
+);
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
     const user = JSON.parse(localStorage.getItem('user'));
@@ -100,10 +103,11 @@ function App() {
 
   return (
     <GoogleReCaptchaProvider reCaptchaKey={RECAPTCHA_SITE_KEY}>
-      {isMobileCaptchaRequest ? <MobileCaptcha /> : (
-      <div className="App">
-        <Router>
-          <Routes>
+      <Suspense fallback={<RouteLoader />}>
+        {isMobileCaptchaRequest ? <MobileCaptcha /> : (
+        <div className="App">
+          <Router>
+            <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/artists" element={<Artists />} />
             <Route path="/artist/:id" element={<PublicArtistProfile />} />
@@ -158,10 +162,11 @@ function App() {
             <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminBusinessReports /></ProtectedRoute>} />
 
-          </Routes>
-        </Router>
-      </div>
-      )}
+            </Routes>
+          </Router>
+        </div>
+        )}
+      </Suspense>
     </GoogleReCaptchaProvider>
   );
 }
