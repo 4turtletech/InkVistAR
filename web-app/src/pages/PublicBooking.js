@@ -21,7 +21,7 @@ function PublicBooking() {
     }, []);
 
     return (
-        <div style={{ backgroundColor: '#0D0D0D', minHeight: '100vh', color: '#fff', paddingBottom: isMobile ? '30px' : '50px' }}>
+        <div style={{ display: 'flow-root', backgroundColor: '#0D0D0D', minHeight: '100vh', color: '#fff', paddingBottom: isMobile ? '30px' : '50px' }}>
             <Navbar />
 
             <div style={{ maxWidth: '1050px', margin: isMobile ? '80px auto 0' : '140px auto 0', padding: isMobile ? '0 12px' : '0 20px' }}>
