@@ -5,7 +5,6 @@ import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
 import Footer from '../components/Footer';
 import ImageLightbox from '../components/ImageLightbox';
-import heroVideo from '../images/Background.mp4';
 import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Sparkles, Smartphone, Star, MapPin, ShieldCheck, ArrowRight, Plus, Minus } from 'lucide-react';
 import { API_URL } from '../config';
 
@@ -43,6 +42,8 @@ function Home() {
     const [lightboxSrc, setLightboxSrc] = useState(null);
     const [scrollY, setScrollY] = useState(0);
     const [openFaq, setOpenFaq] = useState(null);
+    const [shouldLoadHeroVideo, setShouldLoadHeroVideo] = useState(false);
+    const [isHeroVideoReady, setIsHeroVideoReady] = useState(false);
 
     const toggleFaq = (idx) => {
         setOpenFaq(openFaq === idx ? null : idx);
@@ -53,6 +54,52 @@ function Home() {
         const handleScroll = () => setScrollY(window.scrollY);
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    useEffect(() => {
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        const constrainedConnection = connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType);
+
+        if (reducedMotion || constrainedConnection) return undefined;
+
+        let idleId;
+        let timeoutId;
+        const activateVideo = () => setShouldLoadHeroVideo(true);
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
+        if (isMobile) {
+            // Keep decorative video out of the critical mobile load until the visitor interacts.
+            window.addEventListener('pointerdown', activateVideo, { once: true, passive: true });
+            window.addEventListener('touchstart', activateVideo, { once: true, passive: true });
+            window.addEventListener('scroll', activateVideo, { once: true, passive: true });
+
+            return () => {
+                window.removeEventListener('pointerdown', activateVideo);
+                window.removeEventListener('touchstart', activateVideo);
+                window.removeEventListener('scroll', activateVideo);
+            };
+        }
+
+        const scheduleVideo = () => {
+            if ('requestIdleCallback' in window) {
+                idleId = window.requestIdleCallback(activateVideo, { timeout: 2500 });
+            } else {
+                timeoutId = window.setTimeout(activateVideo, 1200);
+            }
+        };
+
+        if (document.readyState === 'complete') {
+            scheduleVideo();
+        } else {
+            window.addEventListener('load', scheduleVideo, { once: true });
+        }
+
+        return () => {
+            window.removeEventListener('load', scheduleVideo);
+            if (idleId !== undefined && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleId);
+            if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+        };
     }, []);
 
     // Dynamic gallery works from API
@@ -160,17 +207,36 @@ function Home() {
                             filter: `blur(${Math.min(scrollY * 0.015, 8)}px) brightness(${Math.max(1 - scrollY * 0.001, 0.4)})`
                         }}
                     >
-                        {/* Looping Hero Video */}
-                        <video 
-                            className="hero-parallax-img" 
-                            autoPlay 
-                            loop 
-                            muted 
-                            playsInline
-                            style={{ objectFit: 'cover' }}
-                        >
-                            <source src={heroVideo} type="video/mp4" />
-                        </video>
+                        <picture className="hero-poster" aria-hidden="true">
+                            <source media="(max-width: 768px)" srcSet="/media/hero/hero-poster-mobile.webp" type="image/webp" />
+                            <img
+                                className="hero-parallax-img"
+                                src="/media/hero/hero-poster-desktop.webp"
+                                alt=""
+                                width="720"
+                                height="1280"
+                                loading="eager"
+                                decoding="async"
+                                fetchPriority="high"
+                            />
+                        </picture>
+                        {shouldLoadHeroVideo && (
+                            <video
+                                className={`hero-parallax-img hero-video ${isHeroVideoReady ? 'is-ready' : ''}`}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                preload="none"
+                                aria-hidden="true"
+                                onCanPlay={() => setIsHeroVideoReady(true)}
+                            >
+                                <source src="/media/hero/hero-mobile.webm" type="video/webm" media="(max-width: 768px)" />
+                                <source src="/media/hero/hero-mobile.mp4" type="video/mp4" media="(max-width: 768px)" />
+                                <source src="/media/hero/hero-desktop.webm" type="video/webm" />
+                                <source src="/media/hero/hero-desktop.mp4" type="video/mp4" />
+                            </video>
+                        )}
                     </div>
                     <div className="hero-overlay" style={{ opacity: Math.min(0.6 + scrollY * 0.001, 0.9) }}></div>
                     
@@ -215,6 +281,7 @@ function Home() {
                                                 alt={work.title || 'Tattoo Artwork'} 
                                                 className="showcase-img"
                                                 loading="lazy"
+                                                decoding="async"
                                             />
                                             <div className="showcase-overlay">
                                                 <h3 className="showcase-title">{work.title || work.category || 'Custom Piece'}</h3>
@@ -258,13 +325,22 @@ function Home() {
                         </div>
                         <div className="matrix-images">
                             <div className="matrix-img-box">
-                                <img src="/images/tattoos/studio_1.jpg" alt="Studio Dark Concept Wait Area" className="lightbox-trigger" onClick={() => setLightboxSrc('/images/tattoos/studio_1.jpg')} />
+                                <picture>
+                                    <source srcSet="/images/tattoos/studio_1.webp" type="image/webp" />
+                                    <img src="/images/tattoos/studio_1.jpg" alt="Studio Dark Concept Wait Area" className="lightbox-trigger" width="819" height="1024" loading="lazy" decoding="async" onClick={() => setLightboxSrc('/images/tattoos/studio_1.jpg')} />
+                                </picture>
                             </div>
                             <div className="matrix-img-box">
-                                <img src="/images/tattoos/studio_3.jpg" alt="Inkvictus Aesthetic Setup" className="lightbox-trigger" onClick={() => setLightboxSrc('/images/tattoos/studio_3.jpg')} />
+                                <picture>
+                                    <source srcSet="/images/tattoos/studio_3.webp" type="image/webp" />
+                                    <img src="/images/tattoos/studio_3.jpg" alt="Inkvictus Aesthetic Setup" className="lightbox-trigger" width="819" height="1024" loading="lazy" decoding="async" onClick={() => setLightboxSrc('/images/tattoos/studio_3.jpg')} />
+                                </picture>
                             </div>
                             <div className="matrix-img-box">
-                                <img src="/images/tattoos/studio_2.jpg" alt="Luxurious Studio Chairs" className="lightbox-trigger" onClick={() => setLightboxSrc('/images/tattoos/studio_2.jpg')} />
+                                <picture>
+                                    <source srcSet="/images/tattoos/studio_2.webp" type="image/webp" />
+                                    <img src="/images/tattoos/studio_2.jpg" alt="Luxurious Studio Chairs" className="lightbox-trigger" width="819" height="1024" loading="lazy" decoding="async" onClick={() => setLightboxSrc('/images/tattoos/studio_2.jpg')} />
+                                </picture>
                             </div>
                         </div>
                     </div>

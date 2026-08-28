@@ -99,14 +99,24 @@ h1, h2, h3, h4 {
     object-fit: cover;
 }
 
-.hero-parallax-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: filter 1s ease;
+.hero-poster {
+    position: absolute;
+    inset: 0;
+    display: block;
 }
 
-.hero-parallax-img:hover {
+.hero-video {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.5s ease, filter 1s ease;
+}
+
+.hero-video.is-ready {
+    opacity: 1;
+}
+
+.hero-video:hover {
     filter: brightness(1.2);
 }
 
@@ -442,6 +452,12 @@ h1, h2, h3, h4 {
 
 .matrix-img-box:nth-child(1) {
     grid-row: span 2;
+    height: 100%;
+}
+
+.matrix-img-box picture {
+    display: block;
+    width: 100%;
     height: 100%;
 }
 
@@ -1044,7 +1060,6 @@ h1, h2, h3, h4 {
     .section-title { font-size: 2rem; }
     .section-subtitle { font-size: 0.8rem; letter-spacing: 3px; }
     .hero-parallax-bg { grid-template-columns: 1fr; }
-    .hero-parallax-img:nth-child(n+2) { display: none; }
     .glass-card-premium { padding: 1.25rem; }
     .matrix-grid { gap: 2rem; }
     .matrix-content { padding-right: 0; text-align: center; }
