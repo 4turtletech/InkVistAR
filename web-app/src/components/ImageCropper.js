@@ -28,7 +28,19 @@ async function getCroppedImg(imageSrc, pixelCrop) {
         pixelCrop.height
     );
 
-    return canvas.toDataURL('image/jpeg', 0.92);
+    const imageUrl = canvas.toDataURL('image/jpeg', 0.92);
+    const thumbnailCanvas = document.createElement('canvas');
+    const thumbnailContext = thumbnailCanvas.getContext('2d');
+    const thumbnailScale = Math.min(1, 960 / Math.max(canvas.width, canvas.height));
+
+    thumbnailCanvas.width = Math.max(1, Math.round(canvas.width * thumbnailScale));
+    thumbnailCanvas.height = Math.max(1, Math.round(canvas.height * thumbnailScale));
+    thumbnailContext.drawImage(canvas, 0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
+
+    return {
+        imageUrl,
+        thumbnailUrl: thumbnailCanvas.toDataURL('image/jpeg', 0.76)
+    };
 }
 
 function createImage(url) {
@@ -46,7 +58,7 @@ function createImage(url) {
  *
  * Props:
  *   imageSrc   (string)   — base64 or URL of the image to crop
- *   onCropDone (function) — called with the cropped base64 data URL
+ *   onCropDone (function) — called with the cropped image and a 960px thumbnail
  *   onCancel   (function) — called when user cancels the crop
  *   aspect     (number|'auto')  — crop aspect ratio (width/height). Defaults to 4/5.
  *                                  Pass 'auto' to use image's natural ratio.
@@ -78,8 +90,8 @@ function ImageCropper({ imageSrc, onCropDone, onCancel, aspect: aspectProp = 4 /
     const handleApply = async () => {
         if (!croppedAreaPixels) return;
         try {
-            const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
-            onCropDone(croppedImage);
+            const { imageUrl, thumbnailUrl } = await getCroppedImg(imageSrc, croppedAreaPixels);
+            onCropDone(imageUrl, thumbnailUrl);
         } catch (e) {
             console.error('Crop failed:', e);
         }

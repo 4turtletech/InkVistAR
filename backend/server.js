@@ -51,6 +51,12 @@ const {
 process.env.TZ = 'Asia/Manila'; // Global Node.js timezone localization
 
 const app = express();
+const PUBLIC_CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600';
+
+const setPublicCache = (res) => {
+  res.set('Cache-Control', PUBLIC_CACHE_CONTROL);
+};
+
 const { sendResendEmail } = require('./utils/emailService');
 const { sendSMS, otpMessage, appointmentConfirmedSMS, appointmentCancelledSMS, appointmentRequestedAdminSMS } = require('./utils/smsService');
 const server = http.createServer(app);
@@ -644,6 +650,7 @@ db.getConnection((err, connection) => {
         id INT AUTO_INCREMENT PRIMARY KEY,
         artist_id INT NOT NULL,
         image_url LONGTEXT,
+        thumbnail_url LONGTEXT,
         title VARCHAR(255),
         description TEXT,
         category VARCHAR(50),
@@ -679,6 +686,13 @@ db.getConnection((err, connection) => {
             console.log('[MIGRATE] Migrating portfolio table: Adding price_estimate column...');
             db.query("ALTER TABLE portfolio_works ADD COLUMN price_estimate DECIMAL(10, 2) DEFAULT NULL");
             console.log('[OK] Added price_estimate column to portfolio_works');
+          }
+        });
+
+        db.query("SHOW COLUMNS FROM portfolio_works LIKE 'thumbnail_url'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('[MIGRATE] Migrating portfolio table: Adding thumbnail_url column...');
+            db.query("ALTER TABLE portfolio_works ADD COLUMN thumbnail_url LONGTEXT NULL");
           }
         });
 
@@ -3801,7 +3815,7 @@ app.get('/api/artist/:artistId/portfolio', (req, res) => {
 // Add portfolio work
 app.post('/api/artist/portfolio', (req, res) => {
   const artistId = req.auth.role === 'artist' ? req.auth.userId : req.body.artistId;
-  const { imageUrl, title, description, category, isPublic, priceEstimate } = req.body;
+  const { imageUrl, thumbnailUrl, title, description, category, isPublic, priceEstimate } = req.body;
 
   if (!imageUrl) {
     return res.status(400).json({ success: false, message: 'Image data or URL is required.' });
@@ -3813,14 +3827,18 @@ app.post('/api/artist/portfolio', (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid image format. Must be a valid URL or a data URI.' });
   }
 
+  if (thumbnailUrl && !thumbnailUrl.startsWith('data:image/') && !urlRegex.test(thumbnailUrl)) {
+    return res.status(400).json({ success: false, message: 'Invalid thumbnail format. Must be a valid URL or a data URI.' });
+  }
+
   if (imageUrl) {
     console.log(`[INFO] Uploading work: "${title}", Category: ${category}, Public: ${isPublic}, Price: ${priceEstimate || 'N/A'}`);
   }
 
   const parsedPrice = priceEstimate ? parseFloat(priceEstimate) : null;
-  const query = 'INSERT INTO portfolio_works (artist_id, image_url, title, description, category, is_public, price_estimate, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+  const query = 'INSERT INTO portfolio_works (artist_id, image_url, thumbnail_url, title, description, category, is_public, price_estimate, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
 
-  db.query(query, [artistId, imageUrl, title, description, category, isPublic, parsedPrice, getLocalDatetime()], (err, result) => {
+  db.query(query, [artistId, imageUrl, thumbnailUrl || null, title, description, category, isPublic, parsedPrice, getLocalDatetime()], (err, result) => {
     if (err) {
       console.error('Error adding work:', err);
       return res.status(500).json({ success: false, message: 'DB Error: ' + err.message });
@@ -3833,14 +3851,14 @@ app.post('/api/artist/portfolio', (req, res) => {
 // Update portfolio work
 app.put('/api/artist/portfolio/:id', (req, res) => {
   const { id } = req.params;
-  const { title, description, category, priceEstimate, imageUrl, isPublic } = req.body;
+  const { title, description, category, priceEstimate, imageUrl, thumbnailUrl, isPublic } = req.body;
 
   let query = 'UPDATE portfolio_works SET title=?, description=?, category=?, price_estimate=?';
   const params = [title, description, category, priceEstimate || null];
 
   if (imageUrl) {
-    query += ', image_url=?';
-    params.push(imageUrl);
+    query += ', image_url=?, thumbnail_url=?';
+    params.push(imageUrl, thumbnailUrl || null);
   }
 
   if (isPublic !== undefined) {
@@ -4884,6 +4902,31 @@ app.put('/api/admin/reschedule-requests/:requestId/decide', (req, res) => {
 });
 
 // ========== GALLERY ENDPOINT ==========
+// Lightweight homepage feed. It deliberately excludes descriptions, prices,
+// and full-size images when a generated thumbnail is available.
+app.get('/api/gallery/homepage', (req, res) => {
+  const query = `
+    SELECT pw.id, pw.artist_id, pw.title, pw.category,
+           COALESCE(NULLIF(pw.thumbnail_url, ''), pw.image_url) AS image_url,
+           u.name AS artist_name
+    FROM portfolio_works pw
+    JOIN users u ON pw.artist_id = u.id
+    WHERE pw.is_public = 1 AND (pw.is_deleted = 0 OR pw.is_deleted IS NULL)
+    ORDER BY pw.created_at DESC
+    LIMIT 4
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('[ERROR] Error fetching homepage gallery works:', err);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+
+    setPublicCache(res);
+    res.json({ success: true, works: results });
+  });
+});
+
 // Get public gallery works (for customer gallery screen)
 app.get('/api/gallery/works', (req, res) => {
   const { search, category, minPrice, maxPrice } = req.query;
@@ -4928,6 +4971,7 @@ app.get('/api/gallery/works', (req, res) => {
       console.error('[ERROR] Error fetching gallery works:', err);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
+    setPublicCache(res);
     res.json({ success: true, works: results });
   });
 });
@@ -11994,7 +12038,11 @@ app.get('/api/admin/reviews', (req, res) => {
 
 // GET approved reviews (Public)
 app.get('/api/reviews', (req, res) => {
-  const q = `
+  const requestedLimit = Number.parseInt(req.query.limit, 10);
+  const limit = Number.isInteger(requestedLimit) && requestedLimit > 0
+    ? Math.min(requestedLimit, 20)
+    : null;
+  let q = `
     SELECT r.*, c.name as customer_name, a.name as artist_name 
     FROM reviews r 
     JOIN users c ON r.customer_id = c.id 
@@ -12002,8 +12050,15 @@ app.get('/api/reviews', (req, res) => {
     WHERE r.status = 'approved'
     ORDER BY r.created_at DESC
   `;
-  db.query(q, (err, results) => {
+  const params = [];
+  if (limit) {
+    q += ' LIMIT ?';
+    params.push(limit);
+  }
+
+  db.query(q, params, (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    setPublicCache(res);
     res.json({ success: true, reviews: results });
   });
 });

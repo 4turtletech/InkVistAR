@@ -9,6 +9,22 @@ import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Sparkles, Star, Shield
 import { API_URL } from '../config';
 import { navigateToBooking } from '../utils/bookingNavigation';
 
+function loadWhenNearViewport(target, load) {
+    if (!target || typeof IntersectionObserver === 'undefined') {
+        load();
+        return () => {};
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+        if (!entry.isIntersecting) return;
+        observer.unobserve(target);
+        load();
+    }, { rootMargin: '500px 0px' });
+
+    observer.observe(target);
+    return () => observer.unobserve(target);
+}
+
 const MagneticButton = ({ children, onClick, className }) => {
     const btnRef = useRef(null);
     const handleMouseMove = (e) => {
@@ -126,21 +142,7 @@ function Home() {
         };
     }, []);
 
-    // Dynamic gallery works from API
     const [showcaseWorks, setShowcaseWorks] = useState([]);
-
-    useEffect(() => {
-        fetch(`${API_URL}/api/gallery/works`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.success && data.works && data.works.length > 0) {
-                    // Randomize and take 4 pieces for the Bento-box grid
-                    const shuffled = [...data.works].sort(() => 0.5 - Math.random());
-                    setShowcaseWorks(shuffled.slice(0, 4));
-                }
-            })
-            .catch(err => console.error('Error fetching works for home showcase:', err));
-    }, []);
 
 
     // Intersection Observer for scroll animations (now handles staggered children)
@@ -175,27 +177,58 @@ function Home() {
     const faqRef = useScrollFade();
     const testimonialsRef = useScrollFade();
 
+    useEffect(() => {
+        const controller = new AbortController();
+        const stopObserving = loadWhenNearViewport(artistsRef.current, () => {
+            fetch(`${API_URL}/api/gallery/homepage`, { signal: controller.signal })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.works && data.works.length > 0) {
+                        setShowcaseWorks(data.works);
+                    }
+                })
+                .catch(err => {
+                    if (err.name !== 'AbortError') {
+                        console.error('Error fetching works for home showcase:', err);
+                    }
+                });
+        });
+
+        return () => {
+            controller.abort();
+            stopObserving();
+        };
+    }, [artistsRef]);
+
     // Testimonials State
     const [testimonials, setTestimonials] = useState([]);
     const [currentSlide, setCurrentSlide] = useState(0);
 
     useEffect(() => {
-        fetch(`${API_URL}/api/reviews`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.success && data.reviews && data.reviews.length > 0) {
-                    // Filter approved is ideally done on the backend, but we'll ensure safety here
-                    const approved = data.reviews.filter(r => r.status === 'approved' || r.status === undefined);
-                    setTestimonials(approved);
-                } else {
-                    setTestimonials([]); // Start blank if no data
-                }
-            })
-            .catch(err => {
-                console.error("Error fetching reviews:", err);
-                setTestimonials([]);
-            });
-    }, []);
+        const controller = new AbortController();
+        const stopObserving = loadWhenNearViewport(testimonialsRef.current, () => {
+            fetch(`${API_URL}/api/reviews?limit=6`, { signal: controller.signal })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.reviews && data.reviews.length > 0) {
+                        setTestimonials(data.reviews);
+                    } else {
+                        setTestimonials([]);
+                    }
+                })
+                .catch(err => {
+                    if (err.name !== 'AbortError') {
+                        console.error('Error fetching reviews:', err);
+                        setTestimonials([]);
+                    }
+                });
+        });
+
+        return () => {
+            controller.abort();
+            stopObserving();
+        };
+    }, [testimonialsRef]);
 
     const nextSlide = useCallback(() => {
         setCurrentSlide(prev => (prev === testimonials.length - 1 ? 0 : prev + 1));

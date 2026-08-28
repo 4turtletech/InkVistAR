@@ -30,6 +30,7 @@ function ArtistGallery() {
         title: '',
         description: '',
         imageUrl: '',
+        thumbnailUrl: '',
         category: 'Realism',
         isPublic: true,
         priceEstimate: ''
@@ -64,6 +65,7 @@ function ArtistGallery() {
             title: '', 
             description: '', 
             imageUrl: '',
+            thumbnailUrl: '',
             category: 'Realism',
             isPublic: true,
             priceEstimate: ''
@@ -78,6 +80,7 @@ function ArtistGallery() {
             title: work.title,
             description: work.description || '',
             imageUrl: work.image_url,
+            thumbnailUrl: work.thumbnail_url || '',
             category: work.category || 'Realism',
             isPublic: work.is_public === 1 || work.is_public === true,
             priceEstimate: work.price_estimate || ''
@@ -169,6 +172,7 @@ function ArtistGallery() {
                 title: '', 
                 description: '', 
                 imageUrl: '',
+                thumbnailUrl: '',
                 category: 'Realism',
                 isPublic: true,
                 priceEstimate: ''
@@ -499,8 +503,12 @@ function ArtistGallery() {
             {cropperSrc && (
                 <ImageCropper
                     imageSrc={cropperSrc}
-                    onCropDone={(croppedImage) => {
-                        setFormData(prev => ({ ...prev, imageUrl: croppedImage }));
+                    onCropDone={(croppedImage, thumbnailImage) => {
+                        setFormData(prev => ({
+                            ...prev,
+                            imageUrl: croppedImage,
+                            thumbnailUrl: thumbnailImage
+                        }));
                         setFormErrors(prev => ({ ...prev, imageUrl: '' }));
                         setCropperSrc(null);
                     }}

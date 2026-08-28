@@ -64,7 +64,7 @@ function classifyRequest(req) {
   const publicExact = new Set([
     '/api/test', '/api/login', '/api/send-otp',
     '/api/verify-otp', '/api/verify', '/api/register', '/api/resend-verification',
-    '/api/gallery/categories', '/api/gallery/works', '/api/gallery/art-of-the-day',
+    '/api/gallery/categories', '/api/gallery/homepage', '/api/gallery/works', '/api/gallery/art-of-the-day',
     '/api/customer/artists', '/api/public/calendar-availability',
     '/api/inventory/jewelry', '/api/testimonials', '/api/ar/config',
     '/api/contact', '/api/chat', '/api/payments/webhook',

@@ -76,6 +76,10 @@ test('highest-risk route groups are classified for protection', () => {
   }
 });
 
+test('the optimized homepage gallery remains a public read-only route', () => {
+  assert.equal(classifyRequest({ method: 'GET', path: '/api/gallery/homepage' }), null);
+});
+
 test('admin routes require authentication and reject customer roles', async () => {
   const middleware = createHarness();
   const unauthenticated = await invoke(middleware, { path: '/api/admin/users' });

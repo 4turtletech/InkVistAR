@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import Home from './Home';
 
 jest.mock('react-router-dom', () => ({
@@ -10,12 +10,31 @@ jest.mock('../components/Footer', () => () => null);
 jest.mock('../components/DeferredChatWidget', () => () => null);
 jest.mock('../components/ImageLightbox', () => () => null);
 
+let intersectionObservers;
+
 beforeEach(() => {
+  intersectionObservers = [];
   global.fetch = jest.fn(() => new Promise(() => {}));
   window.matchMedia = jest.fn(() => ({ matches: false }));
   global.IntersectionObserver = class {
-    observe() {}
-    unobserve() {}
+    constructor(callback, options = {}) {
+      this.callback = callback;
+      this.options = options;
+      this.targets = [];
+      intersectionObservers.push(this);
+    }
+
+    observe(target) {
+      this.targets.push(target);
+    }
+
+    unobserve(target) {
+      this.targets = this.targets.filter(candidate => candidate !== target);
+    }
+
+    disconnect() {
+      this.targets = [];
+    }
   };
 });
 
@@ -58,4 +77,34 @@ test('exposes keyboard-accessible homepage landmarks and accordions', () => {
   fireEvent.click(question);
   expect(question).toHaveAttribute('aria-expanded', 'true');
   expect(container.querySelector('#faq-answer-0')).toHaveAttribute('aria-hidden', 'false');
+});
+
+test('defers bounded public data requests until their sections approach the viewport', () => {
+  render(<Home />);
+
+  expect(global.fetch).not.toHaveBeenCalled();
+
+  const portfolioSection = screen.getByRole('heading', { name: 'Signatures in Ink' }).closest('section');
+  const testimonialSection = screen.getByRole('heading', { name: 'The Experience' }).closest('section');
+  const portfolioObserver = intersectionObservers.find(observer =>
+    observer.options.rootMargin === '500px 0px' && observer.targets.includes(portfolioSection)
+  );
+  const testimonialObserver = intersectionObservers.find(observer =>
+    observer.options.rootMargin === '500px 0px' && observer.targets.includes(testimonialSection)
+  );
+
+  act(() => {
+    portfolioObserver.callback([{ isIntersecting: true, target: portfolioSection }]);
+    testimonialObserver.callback([{ isIntersecting: true, target: testimonialSection }]);
+  });
+
+  expect(global.fetch).toHaveBeenCalledTimes(2);
+  expect(global.fetch).toHaveBeenCalledWith(
+    expect.stringContaining('/api/gallery/homepage'),
+    expect.objectContaining({ signal: expect.any(AbortSignal) })
+  );
+  expect(global.fetch).toHaveBeenCalledWith(
+    expect.stringContaining('/api/reviews?limit=6'),
+    expect.objectContaining({ signal: expect.any(AbortSignal) })
+  );
 });
