@@ -2041,6 +2041,40 @@ body.sidenav-collapsed .portal-layout .portal-container {
     color: #1e293b;
 }
 
+/* Booking fields own their styles instead of inheriting them from admin routes. */
+.wizard-card .form-group {
+    min-width: 0;
+}
+
+.wizard-card .form-input {
+    display: block;
+    width: 100%;
+    padding: 0.8rem;
+    color: #1e293b;
+    font: inherit;
+    font-size: 0.95rem;
+    background-color: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.wizard-card .form-input::placeholder {
+    color: #94a3b8;
+}
+
+.wizard-card .form-input:focus {
+    outline: none;
+    border-color: #be9055;
+    box-shadow: 0 0 0 3px rgba(190, 144, 85, 0.1);
+}
+
+.wizard-card textarea.form-input {
+    min-height: 100px;
+    resize: vertical;
+}
+
 .wizard-step-indicator {
     width: 30px;
     height: 4px;
