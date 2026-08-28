@@ -2,7 +2,6 @@
    Public Artist Profile — Dark Glassmorphism
    Colors: #171516 (bg), #262022 (surface), #b7954e (gold)
    ================================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap');
 
 .pap-page { background: #171516; color: #f8fafc; font-family: 'Inter', sans-serif; min-height: 100vh; }
 
