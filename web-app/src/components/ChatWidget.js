@@ -7,9 +7,9 @@ import './ChatWidget.css';
 
 const CHAT_UNAVAILABLE_MESSAGE = 'AI assistance is temporarily limited. Please retry in a moment or switch to Live Support.';
 
-export default function ChatWidget({ room = null, currentUser = 'Guest', userName = 'Guest User', customerName = '', isAdminMode = false, initialMessages = null }) {
+export default function ChatWidget({ room = null, currentUser = 'Guest', userName = 'Guest User', customerName = '', isAdminMode = false, initialMessages = null, initiallyOpen = false }) {
   // Initialize state from sessionStorage or defaults
-  const [isOpen, setIsOpen] = useState(isAdminMode ? true : false);
+  const [isOpen, setIsOpen] = useState(isAdminMode || initiallyOpen);
 
   // Operating Hours Check: Uncomment ONE of the two lines below
   const currentHour = new Date().getHours();
@@ -141,7 +141,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
 
   // Socket.io Setup for Live Chat
   useEffect(() => {
-    if (!activeRoom) return undefined;
+    if (!activeRoom || (!isHumanMode && !isAdminMode)) return undefined;
 
     const socket = io(SOCKET_URL, {
       autoConnect: false,

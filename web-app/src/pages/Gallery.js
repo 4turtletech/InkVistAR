@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../config';
 import './Gallery.css';
 import Navbar from '../components/Navbar';
-import ChatWidget from '../components/ChatWidget';
+import DeferredChatWidget from '../components/DeferredChatWidget';
 import Footer from '../components/Footer';
 import { TATTOO_STYLES } from '../constants/tattooStyles';
 import ImageLightbox from '../components/ImageLightbox';
@@ -333,7 +333,7 @@ const Gallery = () => {
 
         <Footer />
       </div>
-      <ChatWidget />
+      <DeferredChatWidget />
       <ImageLightbox src={lightboxSrc} alt="Gallery artwork" onClose={() => setLightboxSrc(null)} />
     </>
   );

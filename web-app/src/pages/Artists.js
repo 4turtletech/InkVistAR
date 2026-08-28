@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
 import './Artists.css';
 import Navbar from '../components/Navbar';
-import ChatWidget from '../components/ChatWidget';
+import DeferredChatWidget from '../components/DeferredChatWidget';
 import Footer from '../components/Footer';
 import ImageLightbox from '../components/ImageLightbox';
 
@@ -190,7 +190,7 @@ function Artists() {
             </section>
                 <Footer />
             </div>
-            <ChatWidget />
+            <DeferredChatWidget />
             <ImageLightbox src={lightboxSrc} alt="Inkvictus Studio" onClose={() => setLightboxSrc(null)} />
         </>
     );

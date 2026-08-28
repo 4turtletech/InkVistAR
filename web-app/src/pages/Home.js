@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
 import Navbar from '../components/Navbar';
-import ChatWidget from '../components/ChatWidget';
+import DeferredChatWidget from '../components/DeferredChatWidget';
 import Footer from '../components/Footer';
 import ImageLightbox from '../components/ImageLightbox';
 import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Sparkles, Smartphone, Star, MapPin, ShieldCheck, ArrowRight, Plus, Minus } from 'lucide-react';
@@ -553,7 +553,7 @@ function Home() {
 
                 <Footer />
             </div>
-            <ChatWidget />
+            <DeferredChatWidget />
             <ImageLightbox src={lightboxSrc} alt="Inkvictus Studio" onClose={() => setLightboxSrc(null)} />
         </>
     );

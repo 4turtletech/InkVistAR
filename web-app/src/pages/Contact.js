@@ -7,7 +7,7 @@ import { API_URL } from '../config';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import './Contact.css';
 import Navbar from '../components/Navbar';
-import ChatWidget from '../components/ChatWidget';
+import DeferredChatWidget from '../components/DeferredChatWidget';
 import Footer from '../components/Footer';
 
 const Contact = () => {
@@ -399,7 +399,7 @@ const Contact = () => {
 
         <Footer />
       </div>
-      <ChatWidget />
+      <DeferredChatWidget />
     </>
   );
 };

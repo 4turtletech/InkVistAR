@@ -1,0 +1,55 @@
+.deferred-chat-fab {
+    position: fixed;
+    right: 25px;
+    bottom: 25px;
+    z-index: 100000;
+    display: flex;
+    width: 60px;
+    height: 60px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    color: #fff;
+    background: #be9055;
+    border: 0;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out, background-color 0.2s;
+}
+
+.deferred-chat-fab:hover {
+    transform: scale(1.1);
+}
+
+.deferred-chat-fab:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 3px;
+}
+
+.deferred-chat-fab:disabled {
+    cursor: wait;
+}
+
+.deferred-chat-fab svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+@media (max-width: 480px) {
+    .deferred-chat-fab {
+        right: 20px;
+        bottom: 20px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .deferred-chat-fab {
+        transition: none;
+    }
+}

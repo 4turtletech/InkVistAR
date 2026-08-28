@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CustomerBookingWizard from '../components/CustomerBookingWizard';
 import Navbar from '../components/Navbar';
-import ChatWidget from '../components/ChatWidget';
+import DeferredChatWidget from '../components/DeferredChatWidget';
 
 function PublicBooking() {
     const navigate = useNavigate();
@@ -38,7 +38,7 @@ function PublicBooking() {
                 </div>
             </div>
 
-            <ChatWidget />
+            <DeferredChatWidget />
         </div>
     );
 }

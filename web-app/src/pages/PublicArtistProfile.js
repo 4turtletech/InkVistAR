@@ -4,7 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, ArrowLeft, ArrowRight, CheckCircle, Image as ImageIcon, Clock, Award, Briefcase, MapPin, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import ChatWidget from '../components/ChatWidget';
+import DeferredChatWidget from '../components/DeferredChatWidget';
 import { API_URL } from '../config';
 import './PublicArtistProfile.css';
 
@@ -277,7 +277,7 @@ const PublicArtistProfile = () => {
             )}
 
             <Footer />
-            <ChatWidget />
+            <DeferredChatWidget />
         </div>
     );
 };
