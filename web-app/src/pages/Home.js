@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar';
 import DeferredChatWidget from '../components/DeferredChatWidget';
 import Footer from '../components/Footer';
 import ImageLightbox from '../components/ImageLightbox';
-import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Sparkles, Smartphone, Star, MapPin, ShieldCheck, ArrowRight, Plus, Minus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Sparkles, Star, ShieldCheck, ArrowRight, Plus, Minus } from 'lucide-react';
 import { API_URL } from '../config';
 
 const MagneticButton = ({ children, onClick, className }) => {
@@ -220,7 +220,7 @@ function Home() {
                 {/* 1. Hero Section */}
                 <header className="hero-header">
                     <div className="hero-parallax-bg">
-                        <picture className="hero-poster" aria-hidden="true">
+                        <picture className="hero-poster">
                             <source media="(max-width: 768px)" srcSet="/media/hero/hero-poster-mobile.webp" type="image/webp" />
                             <img
                                 className="hero-parallax-img"
@@ -490,7 +490,6 @@ function Home() {
                                                     opacity: isVisible ? (isActive ? 1 : 0.45) : 0,
                                                     zIndex: isActive ? 10 : 5 - Math.abs(offset),
                                                     pointerEvents: isActive ? 'auto' : 'none',
-                                                    filter: isActive ? 'none' : 'blur(1.5px)',
                                                 }}
                                                 onClick={() => !isActive && setCurrentSlide(idx)}
                                             >
