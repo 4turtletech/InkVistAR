@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import CustomerBookingWizard from '../components/CustomerBookingWizard';
 import Navbar from '../components/Navbar';
 import DeferredChatWidget from '../components/DeferredChatWidget';
+import './PortalStyles.css';
 
 function PublicBooking() {
     const navigate = useNavigate();
