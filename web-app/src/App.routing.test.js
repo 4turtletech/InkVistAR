@@ -38,13 +38,15 @@ jest.mock('react-router-dom', () => {
   return { BrowserRouter, Routes, Route, Navigate };
 }, { virtual: true });
 
-jest.mock('react-google-recaptcha-v3', () => ({
-  GoogleReCaptchaProvider: ({ children }) => <div data-testid="captcha-provider">{children}</div>,
-}));
+jest.mock('./components/CaptchaBoundary', () => ({ children }) => <div data-testid="captcha-provider">{children}</div>);
 
 jest.mock('./pages/Home', () => () => <div>Home page</div>);
 jest.mock('./pages/Login', () => () => <div>Login page</div>);
 jest.mock('./pages/Gallery', () => () => <div>Gallery page</div>);
+jest.mock('./pages/Contact', () => () => <div>Contact page</div>);
+jest.mock('./pages/Register', () => () => <div>Register page</div>);
+jest.mock('./pages/PublicBooking', () => () => <div>Public booking page</div>);
+jest.mock('./pages/CustomerBookingCreate', () => () => <div>Customer booking page</div>);
 jest.mock('./pages/AdminDashboard', () => () => <div>Admin dashboard</div>);
 jest.mock('./pages/CustomerPortal', () => () => <div>Customer dashboard</div>);
 jest.mock('./pages/MobileCaptcha', () => () => <div>Mobile CAPTCHA page</div>);
@@ -65,12 +67,45 @@ describe('application routing', () => {
     renderAt('/');
 
     expect(await screen.findByText('Home page')).toBeInTheDocument();
+    expect(screen.queryByTestId('captcha-provider')).not.toBeInTheDocument();
   });
 
   test('loads a lazy public route', async () => {
     renderAt('/gallery');
 
     expect(await screen.findByText('Gallery page')).toBeInTheDocument();
+    expect(screen.queryByTestId('captcha-provider')).not.toBeInTheDocument();
+  });
+
+  test('loads CAPTCHA only around a route that requires it', async () => {
+    renderAt('/contact');
+
+    expect(await screen.findByText('Contact page')).toBeInTheDocument();
+    expect(screen.getByTestId('captcha-provider')).toBeInTheDocument();
+  });
+
+  test.each([
+    ['/register', 'Register page'],
+    ['/book', 'Public booking page'],
+  ])('keeps CAPTCHA available on %s', async (path, pageText) => {
+    renderAt(path);
+
+    expect(await screen.findByText(pageText)).toBeInTheDocument();
+    expect(screen.getByTestId('captcha-provider')).toBeInTheDocument();
+  });
+
+  test('does not load CAPTCHA before customer booking authorization', async () => {
+    renderAt('/customer/book');
+
+    expect(await screen.findByText('Login page')).toBeInTheDocument();
+    expect(screen.queryByTestId('captcha-provider')).not.toBeInTheDocument();
+  });
+
+  test('keeps CAPTCHA available for an authorized customer booking', async () => {
+    renderAt('/customer/book', { type: 'customer', id: 10, name: 'Customer' });
+
+    expect(await screen.findByText('Customer booking page')).toBeInTheDocument();
+    expect(screen.getByTestId('captcha-provider')).toBeInTheDocument();
   });
 
   test('redirects a signed-out visitor away from a protected route', async () => {
@@ -95,5 +130,6 @@ describe('application routing', () => {
     renderAt('/?mobileCaptcha=register');
 
     expect(await screen.findByText('Mobile CAPTCHA page')).toBeInTheDocument();
+    expect(screen.getByTestId('captcha-provider')).toBeInTheDocument();
   });
 });

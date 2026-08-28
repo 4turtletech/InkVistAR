@@ -1,7 +1,5 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
-import { RECAPTCHA_SITE_KEY } from './config';
 import './App.css';
 import './styles/premium-transitions.css';
 
@@ -58,6 +56,7 @@ const CustomerReports = lazy(() => import('./pages/CustomerReports'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const MaintenanceNotice = lazy(() => import('./pages/MaintenanceNotice'));
 const MobileCaptcha = lazy(() => import('./pages/MobileCaptcha'));
+const CaptchaBoundary = lazy(() => import('./components/CaptchaBoundary'));
 
 const RouteLoader = () => (
   <div className="route-loader" role="status" aria-live="polite">
@@ -102,9 +101,10 @@ function App() {
   const isMobileCaptchaRequest = new URLSearchParams(window.location.search).get('mobileCaptcha') === 'register';
 
   return (
-    <GoogleReCaptchaProvider reCaptchaKey={RECAPTCHA_SITE_KEY}>
-      <Suspense fallback={<RouteLoader />}>
-        {isMobileCaptchaRequest ? <MobileCaptcha /> : (
+    <Suspense fallback={<RouteLoader />}>
+      {isMobileCaptchaRequest ? (
+        <CaptchaBoundary><MobileCaptcha /></CaptchaBoundary>
+      ) : (
         <div className="App">
           <Router>
             <Routes>
@@ -112,11 +112,11 @@ function App() {
             <Route path="/artists" element={<Artists />} />
             <Route path="/artist/:id" element={<PublicArtistProfile />} />
             <Route path="/gallery" element={<Gallery />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/book" element={MAINTENANCE_CONFIG.disableBooking ? <MaintenanceNotice type="booking" /> : <PublicBooking />} />
+            <Route path="/contact" element={<CaptchaBoundary><Contact /></CaptchaBoundary>} />
+            <Route path="/book" element={MAINTENANCE_CONFIG.disableBooking ? <MaintenanceNotice type="booking" /> : <CaptchaBoundary><PublicBooking /></CaptchaBoundary>} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-            <Route path="/register" element={MAINTENANCE_CONFIG.disableRegistration ? <MaintenanceNotice type="registration" /> : <PublicRoute><Register /></PublicRoute>} />
+            <Route path="/register" element={MAINTENANCE_CONFIG.disableRegistration ? <MaintenanceNotice type="registration" /> : <PublicRoute><CaptchaBoundary><Register /></CaptchaBoundary></PublicRoute>} />
             <Route path="/admin" element={<PublicRoute><AdminLogin /></PublicRoute>} />
             <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminUsers /></ProtectedRoute>} />
@@ -145,7 +145,7 @@ function App() {
             <Route path="/artist/gallery" element={<ProtectedRoute allowedRoles={['artist']}><ArtistGallery /></ProtectedRoute>} />
             <Route path="/customer/bookings" element={<ProtectedRoute allowedRoles={['customer']}><CustomerBookings /></ProtectedRoute>} />
             <Route path="/customer/gallery" element={<ProtectedRoute allowedRoles={['customer']}><CustomerGallery /></ProtectedRoute>} />
-            <Route path="/customer/book" element={MAINTENANCE_CONFIG.disableBooking ? <MaintenanceNotice type="booking" /> : <ProtectedRoute allowedRoles={['customer']}><CustomerBookingCreate /></ProtectedRoute>} />
+            <Route path="/customer/book" element={MAINTENANCE_CONFIG.disableBooking ? <MaintenanceNotice type="booking" /> : <ProtectedRoute allowedRoles={['customer']}><CaptchaBoundary><CustomerBookingCreate /></CaptchaBoundary></ProtectedRoute>} />
             <Route path="/customer/profile" element={<ProtectedRoute allowedRoles={['customer']}><CustomerProfile /></ProtectedRoute>} />
             <Route path="/customer/notifications" element={<ProtectedRoute allowedRoles={['customer']}><CustomerNotifications /></ProtectedRoute>} />
             <Route path="/customer/reviews/new" element={<ProtectedRoute allowedRoles={['customer']}><CustomerReview /></ProtectedRoute>} />
@@ -165,9 +165,8 @@ function App() {
             </Routes>
           </Router>
         </div>
-        )}
-      </Suspense>
-    </GoogleReCaptchaProvider>
+      )}
+    </Suspense>
   );
 }
 
