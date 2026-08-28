@@ -37,7 +37,13 @@ const Navbar = () => {
         else navigate('/');
     };
 
-    const isActive = (path) => location.pathname === path;
+    const isActive = (path) => {
+        if (path === '/artists') {
+            return location.pathname === '/artists' || location.pathname.startsWith('/artist/');
+        }
+
+        return location.pathname === path;
+    };
 
     const handleAboutClick = (e) => {
         if (location.pathname === '/') {
@@ -97,10 +103,10 @@ const Navbar = () => {
                     </div>
                     <div className="mobile-drawer-content">
                         <a href="/#about" className="nav-anchor" onClick={(e) => { setMobileOpen(false); handleAboutClick(e); }}>About</a>
-                        <Link to="/artists" onClick={() => setMobileOpen(false)}>Artists</Link>
-                        <Link to="/gallery" onClick={() => setMobileOpen(false)}>Gallery</Link>
-                        <Link to="/book" onClick={() => setMobileOpen(false)}>Book Consultation</Link>
-                        <Link to="/contact" onClick={() => setMobileOpen(false)}>Contact</Link>
+                        <Link to="/artists" className={isActive('/artists') ? 'active-link' : ''} onClick={() => setMobileOpen(false)}>Artists</Link>
+                        <Link to="/gallery" className={isActive('/gallery') ? 'active-link' : ''} onClick={() => setMobileOpen(false)}>Gallery</Link>
+                        <Link to="/book" className={isActive('/book') ? 'active-link' : ''} onClick={() => setMobileOpen(false)}>Book Consultation</Link>
+                        <Link to="/contact" className={isActive('/contact') ? 'active-link' : ''} onClick={() => setMobileOpen(false)}>Contact</Link>
                         <div className="mobile-drawer-auth">
                             {user ? (
                                 <button className="btn-gold-luxury mobile-full-btn" onClick={() => { handleProfileClick(); setMobileOpen(false); }}>My Dashboard</button>

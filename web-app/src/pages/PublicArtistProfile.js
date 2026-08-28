@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import Axios from 'axios';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, ArrowLeft, ArrowRight, CheckCircle, Image as ImageIcon, Clock, Award, Briefcase, MapPin, X, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -17,6 +17,10 @@ const PublicArtistProfile = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('portfolio');
     const [lightboxIndex, setLightboxIndex] = useState(null);
+
+    useLayoutEffect(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }, [id]);
 
     useEffect(() => {
         const fetchArtistData = async () => {
