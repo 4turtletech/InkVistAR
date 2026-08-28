@@ -40,20 +40,39 @@ const MagneticButton = ({ children, onClick, className }) => {
 function Home() {
     const navigate = useNavigate();
     const [lightboxSrc, setLightboxSrc] = useState(null);
-    const [scrollY, setScrollY] = useState(0);
     const [openFaq, setOpenFaq] = useState(null);
     const [shouldLoadHeroVideo, setShouldLoadHeroVideo] = useState(false);
     const [isHeroVideoReady, setIsHeroVideoReady] = useState(false);
+    const parallaxRootRef = useRef(null);
 
     const toggleFaq = (idx) => {
         setOpenFaq(openFaq === idx ? null : idx);
     };
 
-    // Deep Parallax Scroll Tracking
     useEffect(() => {
-        const handleScroll = () => setScrollY(window.scrollY);
+        const root = parallaxRootRef.current;
+        const motionDisabled = window.matchMedia('(max-width: 768px), (prefers-reduced-motion: reduce)').matches;
+        if (!root || motionDisabled) return undefined;
+
+        let frameId = null;
+        const updateParallax = () => {
+            const scrollPosition = window.scrollY;
+            root.style.setProperty('--ambient-one-y', `${scrollPosition * -0.15}px`);
+            root.style.setProperty('--ambient-two-y', `${scrollPosition * -0.2}px`);
+            root.style.setProperty('--hero-parallax-y', `${scrollPosition * 0.4}px`);
+            root.style.setProperty('--hero-overlay-opacity', Math.min(0.6 + scrollPosition * 0.001, 0.9));
+            frameId = null;
+        };
+        const handleScroll = () => {
+            if (frameId === null) frameId = window.requestAnimationFrame(updateParallax);
+        };
+
+        updateParallax();
         window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            if (frameId !== null) window.cancelAnimationFrame(frameId);
+        };
     }, []);
 
     useEffect(() => {
@@ -189,24 +208,18 @@ function Home() {
     return (
         <>
             <Navbar />
-            <div className="home-container">
+            <div className="home-container" ref={parallaxRootRef}>
                 {/* Ambient Glowing Orbs */}
-                <div className="ambient-wrapper" style={{ transform: `translateY(${scrollY * -0.15}px)` }}>
+                <div className="ambient-wrapper ambient-wrapper-one">
                     <div className="ambient-glow-1"></div>
                 </div>
-                <div className="ambient-wrapper" style={{ transform: `translateY(${scrollY * -0.2}px)` }}>
+                <div className="ambient-wrapper ambient-wrapper-two">
                     <div className="ambient-glow-2"></div>
                 </div>
                 
                 {/* 1. Hero Section */}
                 <header className="hero-header">
-                    <div 
-                        className="hero-parallax-bg"
-                        style={{
-                            transform: `translateY(${scrollY * 0.4}px)`,
-                            filter: `blur(${Math.min(scrollY * 0.015, 8)}px) brightness(${Math.max(1 - scrollY * 0.001, 0.4)})`
-                        }}
-                    >
+                    <div className="hero-parallax-bg">
                         <picture className="hero-poster" aria-hidden="true">
                             <source media="(max-width: 768px)" srcSet="/media/hero/hero-poster-mobile.webp" type="image/webp" />
                             <img
@@ -238,7 +251,7 @@ function Home() {
                             </video>
                         )}
                     </div>
-                    <div className="hero-overlay" style={{ opacity: Math.min(0.6 + scrollY * 0.001, 0.9) }}></div>
+                    <div className="hero-overlay"></div>
                     
                     <div className="hero-content">
                         <span className="hero-tagline blur-reveal delay-1">BGC's Premier Studio</span>
