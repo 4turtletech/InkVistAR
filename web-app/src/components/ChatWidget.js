@@ -316,6 +316,11 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
 
   const activeMessages = isHumanMode ? humanMessages : botMessages;
 
+  const handleEndLiveChat = () => {
+    if (!isHumanMode || !socketRef.current?.connected) return;
+    socketRef.current.emit('end_support_session', activeRoom);
+  };
+
   // Emit mark_read when the chat is visible and there are unread messages from the other party
   useEffect(() => {
     if (!isHumanMode || !isOpen) return;
@@ -347,7 +352,8 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
             {isHumanMode && (
               <button
                 className="end-session-btn"
-                onClick={() => socketRef.current?.connected && socketRef.current.emit('end_support_session', activeRoom)}
+                onClick={handleEndLiveChat}
+                disabled={!isLiveConnected}
                 title="End Live Chat"
               >
                 <LogOut size={16} />
@@ -358,8 +364,8 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
                 {/* AI Chatbot button */}
                 <button
                   className={`chat-mode-btn ${!isHumanMode ? 'active' : ''}`}
-                  onClick={() => { if (isHumanMode) setIsHumanMode(false); }}
-                  title={isHumanMode ? 'Switch to AI Chatbot' : 'Currently using AI Chatbot'}
+                  disabled={isHumanMode}
+                  title={isHumanMode ? 'End the live chat before returning to the AI Chatbot' : 'Currently using AI Chatbot'}
                 >
                   <Bot size={16} />
                   <span className="chat-mode-label">Chatbot</span>

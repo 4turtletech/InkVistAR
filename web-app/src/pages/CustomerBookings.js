@@ -204,13 +204,17 @@ function CustomerBookings(){
 
         fetchArtists();
         fetchAvailability();
+    }, []);
 
-        // Handle auto-open from Gallery
+    // Open the authenticated booking flow when the customer arrives from a public CTA or gallery.
+    useEffect(() => {
         if (location.state?.autoOpenBooking) {
             setBookingData(prev => ({ ...prev, designTitle: location.state.designTitle || '' }));
+            setBookingStep(1);
             setIsBookingModalOpen(true);
+            navigate(location.pathname, { replace: true, state: {} });
         }
-    }, [location.state]);
+    }, [location.state, location.pathname, navigate]);
 
     useEffect(() => {
         const fetchAppointments = async () => {

@@ -8,8 +8,9 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Animated,
 } from 'react-native';
-import { ArrowLeft, Sparkles, User, Cpu, SendHorizontal, Wifi, WifiOff } from 'lucide-react-native';
+import { ArrowLeft, Sparkles, User, Cpu, SendHorizontal, Wifi, WifiOff, LogOut } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../src/context/ThemeContext';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { typography, borderRadius, shadows } from '../src/theme';
@@ -61,6 +62,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const [isHumanMode, setIsHumanMode] = useState(false);
+  const [isChatModeHydrated, setIsChatModeHydrated] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [botMessages, setBotMessages] = useState([
     { id: 1, text: "Hi! I'm your tattoo design assistant. I can help with design ideas, placement, aftercare tips, and more. How can I help?", sender: 'bot', timestamp: new Date() },
@@ -76,10 +78,28 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
   const isHumanModeRef = useRef(false);
 
   const room = useMemo(() => userId ? `customer_${userId}` : `guest_${Math.random().toString(36).substr(2, 9)}`, [userId]);
+  const liveModeStorageKey = useMemo(() => `support_chat_live_mode_${userId || 'guest'}`, [userId]);
   const currentUserName = userName || 'Guest User';
   const isShopOpen = useMemo(() => true, []); // Testing: always open
 
   useEffect(() => { scrollRef.current?.scrollToEnd({ animated: true }); }, [botMessages, humanMessages, isHumanMode]);
+
+  useEffect(() => {
+    let mounted = true;
+    AsyncStorage.getItem(liveModeStorageKey)
+      .then(value => {
+        if (mounted && value === 'true') setIsHumanMode(true);
+      })
+      .finally(() => {
+        if (mounted) setIsChatModeHydrated(true);
+      });
+    return () => { mounted = false; };
+  }, [liveModeStorageKey]);
+
+  useEffect(() => {
+    if (!isChatModeHydrated) return;
+    AsyncStorage.setItem(liveModeStorageKey, isHumanMode ? 'true' : 'false').catch(() => {});
+  }, [isChatModeHydrated, isHumanMode, liveModeStorageKey]);
 
   // Keep the current chat mode available to reconnect handlers without recreating the socket.
   useEffect(() => {
@@ -134,7 +154,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
 
     const onClose = () => {
       setIsHumanMode(false);
-      setHumanMessages(prev => [...prev, { id: 'sys-reset', sender: 'system', text: 'Live chat ended by the agent. Returning to AI assistant.', timestamp: new Date() }]);
+      setHumanMessages(prev => [...prev, { id: `sys-reset-${Date.now()}`, sender: 'system', text: 'Live chat ended. Returning to AI assistant.', timestamp: new Date() }]);
     };
 
     socket.on('connect', onConnect);
@@ -216,10 +236,25 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
     }
   };
 
-  const toggleMode = () => {
-    if (!isHumanMode && !isShopOpen) { Alert.alert('Agents Offline', 'Live support: 1 PM - 8 PM. Use AI Assistant for now.'); return; }
-    if (!isHumanMode && !isConnected) { Alert.alert('Connection Issue', 'Unable to reach live support. Please check your internet connection and try again.'); return; }
-    setIsHumanMode(!isHumanMode);
+  const startLiveSupport = () => {
+    if (isHumanMode) return;
+    if (!isShopOpen) { Alert.alert('Agents Offline', 'Live support: 1 PM - 8 PM. Use AI Assistant for now.'); return; }
+    if (!isConnected) { Alert.alert('Connection Issue', 'Unable to reach live support. Please check your internet connection and try again.'); return; }
+    setIsHumanMode(true);
+  };
+
+  const endLiveSupport = () => {
+    if (!isHumanMode) return;
+    if (!socketRef.current?.connected) {
+      setHumanMessages(prev => [...prev, {
+        id: `system-${Date.now()}`,
+        sender: 'system',
+        text: 'Live support is reconnecting. End Chat will be available when the connection returns.',
+        timestamp: new Date(),
+      }]);
+      return;
+    }
+    socketRef.current.emit('end_support_session', room);
   };
 
   const quickQ = ['What style suits me?', 'Where should I place it?', 'How to care for new tattoos?', 'Does it hurt?'];
@@ -247,9 +282,28 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
                 </Text>
               </View>
             </View>
-            <TouchableOpacity onPress={toggleMode} style={styles.modeToggle}>
-              {isHumanMode ? <Cpu size={16} color={theme.textSecondary} /> : <User size={16} color={theme.textSecondary} />}
-              <Text style={styles.modeText}>{isHumanMode ? 'AI' : 'Live'}</Text>
+            {isHumanMode && (
+              <TouchableOpacity
+                onPress={endLiveSupport}
+                disabled={!isConnected}
+                style={[styles.endChatButton, !isConnected && styles.modeToggleDisabled]}
+                accessibilityRole="button"
+                accessibilityLabel="End live chat"
+              >
+                <LogOut size={15} color={theme.error} />
+                <Text style={styles.endChatText}>End</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={startLiveSupport}
+              disabled={isHumanMode || !isChatModeHydrated}
+              style={[styles.modeToggle, (isHumanMode || !isChatModeHydrated) && styles.modeToggleDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel={isHumanMode ? 'AI Chatbot unavailable until live chat ends' : 'Switch to Live Agent'}
+              accessibilityState={{ disabled: isHumanMode || !isChatModeHydrated }}
+            >
+              {isHumanMode ? <Cpu size={16} color={theme.textTertiary} /> : <User size={16} color={theme.textSecondary} />}
+              <Text style={[styles.modeText, isHumanMode && { color: theme.textTertiary }]}>{isHumanMode ? 'Bot' : 'Live'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -318,7 +372,10 @@ const getStyles = (theme) => StyleSheet.create({
   headerTitle: { ...typography.body, fontWeight: '700', color: theme.textPrimary },
   headerSub: { ...typography.bodyXSmall, color: theme.textTertiary },
   modeToggle: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surfaceLight, paddingHorizontal: 10, paddingVertical: 6, borderRadius: borderRadius.round, gap: 5 },
+  modeToggleDisabled: { opacity: 0.45 },
   modeText: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '700' },
+  endChatButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surfaceLight, paddingHorizontal: 9, paddingVertical: 6, borderRadius: borderRadius.round, gap: 4, marginRight: 6 },
+  endChatText: { ...typography.bodyXSmall, color: theme.error, fontWeight: '700' },
   msgContent: { padding: 16, paddingBottom: 20 },
   msgWrap: { marginBottom: 14 },
   msgRight: { alignItems: 'flex-end' },

@@ -4,10 +4,18 @@ import CustomerBookingWizard from '../components/CustomerBookingWizard';
 import Navbar from '../components/Navbar';
 import DeferredChatWidget from '../components/DeferredChatWidget';
 import './PortalStyles.css';
+import { readStoredUser } from '../utils/bookingNavigation';
 
 function PublicBooking() {
     const navigate = useNavigate();
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const authenticatedCustomer = readStoredUser()?.type === 'customer';
+
+    useEffect(() => {
+        if (authenticatedCustomer) {
+            navigate('/customer/bookings', { replace: true, state: { autoOpenBooking: true } });
+        }
+    }, [authenticatedCustomer, navigate]);
 
     useEffect(() => {
         const handleResize = () => {
@@ -19,6 +27,8 @@ function PublicBooking() {
             window.removeEventListener('resize', handleResize);
         };
     }, []);
+
+    if (authenticatedCustomer) return null;
 
     return (
         <div style={{ display: 'flow-root', backgroundColor: '#0D0D0D', minHeight: '100vh', color: '#fff', paddingBottom: isMobile ? '30px' : '50px' }}>

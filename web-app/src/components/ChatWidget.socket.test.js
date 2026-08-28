@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import ChatWidget from './ChatWidget';
 
 const mockSocket = {
@@ -22,6 +22,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   sessionStorage.clear();
+  mockSocket.connected = false;
   mockIo.mockClear();
   mockIo.mockImplementation(() => mockSocket);
   mockSocket.connect.mockClear();
@@ -43,6 +44,27 @@ test('initializes Socket.IO when the visitor selects live support', () => {
 
   expect(mockIo).toHaveBeenCalledTimes(1);
   expect(mockSocket.connect).toHaveBeenCalledTimes(1);
+});
+
+test('keeps the AI chatbot disabled until the live support session closes', () => {
+  mockSocket.connected = true;
+  render(<ChatWidget initiallyOpen />);
+
+  fireEvent.click(screen.getByTitle('Switch to Live Agent'));
+  const connectHandler = mockSocket.on.mock.calls.find(([event]) => event === 'connect')[1];
+  act(() => connectHandler());
+
+  const chatbotButton = screen.getByTitle('End the live chat before returning to the AI Chatbot');
+  expect(chatbotButton).toBeDisabled();
+
+  fireEvent.click(screen.getByTitle('End Live Chat'));
+  expect(mockSocket.emit).toHaveBeenCalledWith('end_support_session', expect.stringMatching(/^guest_/));
+  expect(chatbotButton).toBeDisabled();
+
+  const sessionClosedHandler = mockSocket.on.mock.calls.find(([event]) => event === 'session_closed')[1];
+  act(() => sessionClosedHandler());
+
+  expect(screen.getByTitle('Currently using AI Chatbot')).toBeEnabled();
 });
 
 test('keeps the existing immediate connection for admin chat', () => {

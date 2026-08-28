@@ -11384,11 +11384,12 @@ io.on('connection', (socket) => {
     }
     if (activeSupportSessions[room]) {
       delete activeSupportSessions[room];
-      // Tell the room it was closed
-      io.to(room).emit('session_closed');
       // Tell the admins
       io.to('admin_room').emit('support_sessions_update', Object.values(activeSupportSessions));
     }
+    // Always release clients from live mode after a valid End Chat request. This also
+    // covers the short race where the customer ends before session registration finishes.
+    io.to(room).emit('session_closed');
   });
 
   // Handle disconnection (merged: dual-artist session cleanup + general logging)
