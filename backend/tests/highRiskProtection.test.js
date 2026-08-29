@@ -207,4 +207,15 @@ test('the existing public booking wizard remains available without opening admin
     body: { isFromWizard: true, customerId: 5 },
   });
   assert.equal(spoofedCustomer.status, 403);
+
+  for (const token of ['admin', 'manager', 'artist']) {
+    const staffWizard = await invoke(middleware, {
+      method: 'POST',
+      path: '/api/admin/appointments',
+      token,
+      body: { isFromWizard: true, customerId: users[token].userId },
+    });
+    assert.equal(staffWizard.status, 403, `${token} must not use the customer booking wizard`);
+    assert.match(staffWizard.payload.message, /Staff accounts cannot create customer booking requests/);
+  }
 });

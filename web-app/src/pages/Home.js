@@ -7,7 +7,7 @@ import Footer from '../components/Footer';
 import ImageLightbox from '../components/ImageLightbox';
 import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Sparkles, Star, ShieldCheck, ArrowRight, Plus, Minus } from 'lucide-react';
 import { API_URL } from '../config';
-import { navigateToBooking } from '../utils/bookingNavigation';
+import { navigateToBooking, readStoredUser } from '../utils/bookingNavigation';
 
 function loadWhenNearViewport(target, load) {
     if (!target || typeof IntersectionObserver === 'undefined') {
@@ -61,6 +61,8 @@ function Home() {
     const [shouldLoadHeroVideo, setShouldLoadHeroVideo] = useState(false);
     const [isHeroVideoReady, setIsHeroVideoReady] = useState(false);
     const parallaxRootRef = useRef(null);
+    const loggedInUser = readStoredUser();
+    const isStaffUser = ['admin', 'manager', 'artist'].includes(loggedInUser?.type);
 
     const handleBookConsultation = () => {
         navigateToBooking(navigate);
@@ -300,7 +302,7 @@ function Home() {
                         </h1>
                         <div className="blur-reveal delay-4">
                             <MagneticButton onClick={handleBookConsultation} className="btn-gold-luxury">
-                                Book Consultation
+                                {isStaffUser ? 'Return to Dashboard' : 'Book Consultation'}
                             </MagneticButton>
                         </div>
                     </div>
@@ -415,7 +417,7 @@ function Home() {
                                     <h3 className="service-title">Custom Tattoo Art</h3>
                                     <div className="service-hidden-content">
                                         <p className="service-desc">From breathtaking hyper-realism and fine-line to bold traditional designs, our artists craft timeless ink tailored perfectly to your vision.</p>
-                                        <button className="btn-text-gold" onClick={handleBookConsultation}>Book Now <ArrowRight size={16} /></button>
+                                        <button className="btn-text-gold" onClick={handleBookConsultation}>{isStaffUser ? 'My Dashboard' : 'Book Now'} <ArrowRight size={16} /></button>
                                     </div>
                                 </div>
                             </div>
@@ -429,7 +431,7 @@ function Home() {
                                     <h3 className="service-title">Professional Piercing</h3>
                                     <div className="service-hidden-content">
                                         <p className="service-desc">Safe, precise body and ear piercing performed in a strictly sterile environment, featuring a curated selection of premium, hypoallergenic jewelry.</p>
-                                        <button className="btn-text-gold" onClick={handleBookConsultation}>Book Now <ArrowRight size={16} /></button>
+                                        <button className="btn-text-gold" onClick={handleBookConsultation}>{isStaffUser ? 'My Dashboard' : 'Book Now'} <ArrowRight size={16} /></button>
                                     </div>
                                 </div>
                             </div>
@@ -443,7 +445,7 @@ function Home() {
                                     <h3 className="service-title">Cover-Ups & Restoration</h3>
                                     <div className="service-hidden-content">
                                         <p className="service-desc">Turn regret into a masterpiece. Our specialists seamlessly blend and rebuild existing tattoos into beautiful, refreshed works of art.</p>
-                                        <button className="btn-text-gold" onClick={handleBookConsultation}>Consult Now <ArrowRight size={16} /></button>
+                                        <button className="btn-text-gold" onClick={handleBookConsultation}>{isStaffUser ? 'My Dashboard' : 'Consult Now'} <ArrowRight size={16} /></button>
                                     </div>
                                 </div>
                             </div>

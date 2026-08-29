@@ -23,3 +23,11 @@ test('keeps guests in the public consultation flow and clears malformed stored s
   expect(readStoredUser()).toBeNull();
   expect(localStorage.getItem('user')).toBeNull();
 });
+
+test.each([
+  ['admin', '/admin/dashboard'],
+  ['manager', '/manager'],
+  ['artist', '/artist'],
+])('routes authenticated %s accounts away from public consultation booking', (type, pathname) => {
+  expect(getBookingDestination({ id: 10, type })).toEqual({ pathname, state: undefined });
+});

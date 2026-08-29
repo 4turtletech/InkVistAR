@@ -221,6 +221,9 @@ function createHighRiskProtection({ authenticate, pool }) {
       }
 
       if (policy.kind === 'new-appointment') {
+        if (req.auth.role !== 'customer') {
+          return deny(res, 'Staff accounts cannot create customer booking requests.');
+        }
         const suppliedId = asPositiveInteger(req.body?.customerId || req.body?.customer_id);
         if (suppliedId && suppliedId !== Number(req.auth.userId)) return deny(res, 'You may only create appointments for your own account.');
         return next();

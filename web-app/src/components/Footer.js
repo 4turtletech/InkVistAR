@@ -1,7 +1,10 @@
 import { Mail, Phone, MapPin, Instagram, Facebook } from 'lucide-react';
 import './Footer.css';
+import { readStoredUser } from '../utils/bookingNavigation';
 
 const Footer = () => {
+    const user = readStoredUser();
+    const canBookConsultation = !user || user.type === 'customer';
     return (
         <footer className="footer">
             <div className="footer-content">
@@ -24,7 +27,7 @@ const Footer = () => {
                         <li><a href="/about">About Us</a></li>
                         <li><a href="/artists">Artists</a></li>
                         <li><a href="/gallery">Gallery</a></li>
-                        <li><a href="/book">Book Consultation</a></li>
+                        {canBookConsultation && <li><a href="/book">Book Consultation</a></li>}
                         <li><a href="/terms">Terms & Conditions</a></li>
                     </ul>
                 </div>

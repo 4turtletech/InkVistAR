@@ -47,7 +47,7 @@ const Navbar = () => {
     };
 
     const handleBookingClick = (event) => {
-        if (user?.type !== 'customer') return;
+        if (!user) return;
         event.preventDefault();
         setMobileOpen(false);
         navigateToBooking(navigate, user);
@@ -76,7 +76,9 @@ const Navbar = () => {
                 <a href="/#about" className="nav-anchor" onClick={handleAboutClick}>About</a>
                 <Link to="/artists" className={isActive('/artists') ? 'active-link' : ''}>Artists</Link>
                 <Link to="/gallery" className={isActive('/gallery') ? 'active-link' : ''}>Gallery</Link>
-                <Link to="/book" className={isActive('/book') ? 'active-link' : ''} onClick={handleBookingClick}>Book Consultation</Link>
+                {(!user || user.type === 'customer') && (
+                    <Link to="/book" className={isActive('/book') ? 'active-link' : ''} onClick={handleBookingClick}>Book Consultation</Link>
+                )}
                 <Link to="/contact" className={isActive('/contact') ? 'active-link' : ''}>Contact</Link>
             </div>
             <div className="home-auth-buttons">
@@ -119,7 +121,9 @@ const Navbar = () => {
                         <a href="/#about" className="nav-anchor" onClick={(e) => { setMobileOpen(false); handleAboutClick(e); }}>About</a>
                         <Link to="/artists" className={isActive('/artists') ? 'active-link' : ''} onClick={() => setMobileOpen(false)}>Artists</Link>
                         <Link to="/gallery" className={isActive('/gallery') ? 'active-link' : ''} onClick={() => setMobileOpen(false)}>Gallery</Link>
-                        <Link to="/book" className={isActive('/book') ? 'active-link' : ''} onClick={(event) => { setMobileOpen(false); handleBookingClick(event); }}>Book Consultation</Link>
+                        {(!user || user.type === 'customer') && (
+                            <Link to="/book" className={isActive('/book') ? 'active-link' : ''} onClick={(event) => { setMobileOpen(false); handleBookingClick(event); }}>Book Consultation</Link>
+                        )}
                         <Link to="/contact" className={isActive('/contact') ? 'active-link' : ''} onClick={() => setMobileOpen(false)}>Contact</Link>
                         <div className="mobile-drawer-auth">
                             {user ? (
