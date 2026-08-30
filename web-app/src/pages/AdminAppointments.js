@@ -97,8 +97,13 @@ function AdminAppointments() {
         rejectionReason: '',
         rescheduleReason: '',
         consultationNotes: '',
-        quotedPrice: ''
+        quotedPrice: '',
+        guestEmail: '', // Used for Walk-In Client Name
+        guestPhone: '',
+        walkInHealthNotes: '',
+        walkInWaiverConfirmed: false
     });
+    const [isWalkIn, setIsWalkIn] = useState(false);
     const [rescheduleModal, setRescheduleModal] = useState({ isOpen: false, date: '', time: '', reason: '' });
     const [showCalendarLegend, setShowCalendarLegend] = useState(false);
     const [selectedDay, setSelectedDay] = useState(null); // tracks the keyboard-focused day
@@ -262,6 +267,8 @@ function AdminAppointments() {
         setTimeout(() => {
             setAppointmentModal({ mounted: false, visible: false });
             initialFormDataRef.current = null;
+            setIsWalkIn(false);
+            setErrors({});
         }, 400);
     };
 
@@ -688,6 +695,11 @@ function AdminAppointments() {
         setArchiveMode(false);
         setSelectedAppointment(appointment);
         setModalTab('details');
+        setErrors({});
+
+        // Detect walk-in appointments
+        const appointmentIsWalkIn = !!appointment.is_guest_placeholder;
+        setIsWalkIn(appointmentIsWalkIn);
 
         // Check if the stored artistId is a real artist (not admin placeholder)
         const storedArtistId = appointment.artistId || appointment.artist_id;
@@ -721,7 +733,11 @@ function AdminAppointments() {
             totalSessions: appointment.totalSessions || '',
             projectId: appointment.project_id || null,
             discountAmount: appointment.discountAmount || 0,
-            discountType: appointment.discountType || 'flat'
+            discountType: appointment.discountType || 'flat',
+            guestEmail: appointment.guest_email || '',
+            guestPhone: appointment.guest_phone || '',
+            walkInHealthNotes: appointment.walk_in_health_notes || '',
+            walkInWaiverConfirmed: !!appointment.walk_in_waiver_confirmed
         });
         setClientSearch(appointment.clientName);
         initialFormDataRef.current = {
@@ -783,6 +799,8 @@ function AdminAppointments() {
         const safeDate = (typeof prefilledDate === 'string') ? prefilledDate : new Date().toISOString().split('T')[0];
         setSelectedAppointment(null);
         setModalTab('details');
+        setIsWalkIn(false);
+        setErrors({});
         setFormData({
             clientId: '',
             artistId: '',
@@ -809,7 +827,11 @@ function AdminAppointments() {
             sessionNumber: '',
             totalSessions: '',
             discountAmount: 0,
-            discountType: 'flat'
+            discountType: 'flat',
+            guestEmail: '',
+            guestPhone: '',
+            walkInHealthNotes: '',
+            walkInWaiverConfirmed: false
         });
         setClientSearch('');
         initialFormDataRef.current = { ...formData, clientId: '', artistId: '', secondaryArtistId: '', commissionSplit: 50, serviceType: '', date: safeDate, time: '13:00', status: 'pending', paymentStatus: 'unpaid', notes: '', price: 0, tattooPrice: 0, piercingPrice: 0, beforePhoto: null, referenceImage: null, manualPaidAmount: 0, manualPaymentMethod: 'Cash', rejectionReason: '', rescheduleReason: '', isReferral: false };
@@ -899,9 +921,21 @@ function AdminAppointments() {
         const hasNoSecondaryArtist = !formData.secondaryArtistId || String(formData.secondaryArtistId) === 'null' || String(formData.secondaryArtistId) === 'undefined' || String(formData.secondaryArtistId) === '0' || String(formData.secondaryArtistId).trim() === '' || !artists.some(a => String(a.id) === String(formData.secondaryArtistId));
 
         // Basic required fields: Client + Date (+ Time for consultations)
-        if (!formData.clientId || !formData.date || (isConsultation && !formData.time)) {
+        const newErrors = {};
+        if (isWalkIn) {
+            if (!formData.guestEmail || !formData.guestEmail.trim()) newErrors.guestEmail = "Walk-in name is required";
+            if (!formData.guestPhone || !formData.guestPhone.trim()) newErrors.guestPhone = "Walk-in phone is required";
+            if (isTattooSession && !formData.walkInWaiverConfirmed) newErrors.walkInWaiverConfirmed = "Waiver confirmation is required";
+        } else {
+            if (!formData.clientId) newErrors.clientId = "Client is required";
+        }
+        if (!formData.date) newErrors.date = "Date is required";
+        if (isConsultation && !formData.time) newErrors.time = "Time is required for consultations";
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(prev => ({ ...prev, ...newErrors }));
             setModalTab('details');
-            showAlert('Missing Required Information', `Please fill in all required fields (Client, Date${isConsultation ? ', Time' : ''}).`, 'warning');
+            showAlert('Missing Required Information', `Please fill in all required fields marked in red.`, 'warning');
             return;
         }
 
@@ -980,7 +1014,11 @@ function AdminAppointments() {
             setIsSavingAppointment(true);
             try {
                 const payload = {
-                    customerId: formData.clientId,
+                    customerId: isWalkIn ? 'admin' : formData.clientId,
+                    guestEmail: isWalkIn ? formData.guestEmail : null,
+                    guestPhone: isWalkIn ? formData.guestPhone : null,
+                    walkInHealthNotes: isWalkIn ? formData.walkInHealthNotes : null,
+                    walkInWaiverConfirmed: isWalkIn ? formData.walkInWaiverConfirmed : false,
                     artistId: formData.artistId,
                     secondaryArtistId: formData.secondaryArtistId || null,
                     commissionSplit: formData.commissionSplit || 50,
@@ -2311,7 +2349,83 @@ function AdminAppointments() {
                                             <div className="admin-st-d295c8d6" style={{ justifyContent: 'flex-start' }}>
                                                 <div>
                                                     <label className="premium-input-label">Client Information</label>
-                                                    {formData.clientId ? (
+                                                    
+                                                    {/* Walk-In Toggle */}
+                                                    {!selectedAppointment && (
+                                                        <div 
+                                                            className={`walkin-toggle-container ${isWalkIn ? 'active' : ''}`}
+                                                            onClick={() => {
+                                                                setIsWalkIn(!isWalkIn);
+                                                                if (!isWalkIn) {
+                                                                    setFormData(prev => ({ ...prev, clientId: null }));
+                                                                    setClientSearch('');
+                                                                }
+                                                            }}
+                                                        >
+                                                            <div className={`walkin-toggle-track ${isWalkIn ? 'active' : ''}`}>
+                                                                <div className="walkin-toggle-knob"></div>
+                                                            </div>
+                                                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: isWalkIn ? '#92400e' : '#64748b' }}>
+                                                                Walk-In Guest (No Account)
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {isWalkIn ? (
+                                                        <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                                            <div className="premium-input-group" style={{ marginBottom: '10px' }}>
+                                                                <label className={`admin-st-b8618eb2 ${errors.guestEmail ? 'text-red-500' : ''}`}>Guest Name *</label>
+                                                                <input 
+                                                                    type="text" 
+                                                                    value={formData.guestEmail} 
+                                                                    onChange={(e) => handleInputChange('guestEmail', e.target.value)} 
+                                                                    className={`premium-input-v2 ${errors.guestEmail ? 'border-red-500 bg-red-50 field-error-shake' : ''}`} 
+                                                                    placeholder="Enter walk-in name" 
+                                                                />
+                                                                {errors.guestEmail && <span className="text-red-500" style={{ fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.guestEmail}</span>}
+                                                            </div>
+                                                            <div className="premium-input-group" style={{ marginBottom: '10px' }}>
+                                                                <label className={`admin-st-b8618eb2 ${errors.guestPhone ? 'text-red-500' : ''}`}>Contact Number *</label>
+                                                                <input 
+                                                                    type="text" 
+                                                                    value={formData.guestPhone} 
+                                                                    onChange={(e) => handleInputChange('guestPhone', e.target.value)} 
+                                                                    className={`premium-input-v2 ${errors.guestPhone ? 'border-red-500 bg-red-50 field-error-shake' : ''}`} 
+                                                                    placeholder="e.g. 09123456789" 
+                                                                />
+                                                                {errors.guestPhone && <span className="text-red-500" style={{ fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.guestPhone}</span>}
+                                                            </div>
+                                                            <div className="premium-input-group" style={{ marginBottom: '10px' }}>
+                                                                <label className="admin-st-b8618eb2">Health Conditions / Allergies</label>
+                                                                <textarea 
+                                                                    value={formData.walkInHealthNotes} 
+                                                                    onChange={(e) => handleInputChange('walkInHealthNotes', e.target.value)} 
+                                                                    className="premium-input-v2" 
+                                                                    placeholder="Note any medical conditions or allergies..." 
+                                                                    rows={2}
+                                                                    style={{ resize: 'vertical' }}
+                                                                />
+                                                            </div>
+                                                            {(formData.serviceType !== 'Consultation') && (
+                                                                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', marginTop: '8px', padding: '10px', background: errors.walkInWaiverConfirmed ? '#fef2f2' : '#fff', border: `1px solid ${errors.walkInWaiverConfirmed ? '#ef4444' : '#e2e8f0'}`, borderRadius: '8px' }} className={errors.walkInWaiverConfirmed ? 'field-error-shake' : ''}>
+                                                                    <input 
+                                                                        type="checkbox" 
+                                                                        checked={formData.walkInWaiverConfirmed} 
+                                                                        onChange={(e) => {
+                                                                            handleInputChange('walkInWaiverConfirmed', e.target.checked);
+                                                                            if (e.target.checked) setErrors(prev => ({ ...prev, walkInWaiverConfirmed: '' }));
+                                                                        }} 
+                                                                        style={{ marginTop: '3px' }}
+                                                                    />
+                                                                    <div style={{ fontSize: '0.8rem', color: '#334155' }}>
+                                                                        <strong style={{ color: errors.walkInWaiverConfirmed ? '#ef4444' : '#0f172a' }}>Physical Waiver Confirmed *</strong>
+                                                                        <br />I confirm this walk-in client has signed the required physical liability waiver for this session.
+                                                                    </div>
+                                                                </label>
+                                                            )}
+                                                            {errors.walkInWaiverConfirmed && <span className="text-red-500" style={{ fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.walkInWaiverConfirmed}</span>}
+                                                        </div>
+                                                    ) : formData.clientId ? (
                                                         <div className="admin-st-013bb379" style={{ padding: '12px', alignItems: 'center' }}>
                                                             <div className="admin-st-b0dbc89c" style={{ gap: '16px' }}>
                                                                 {selectedAppointment && selectedAppointment.clientAvatar ? (
@@ -2355,8 +2469,10 @@ function AdminAppointments() {
                                                                     onFocus={() => setClientDropdownOpen(true)}
                                                                     onBlur={() => setTimeout(() => setClientDropdownOpen(false), 200)}
                                                                     maxLength={100}
+                                                                    className={errors.clientId ? 'border-red-500 bg-red-50 field-error-shake' : ''}
                                                                 />
                                                             </div>
+                                                            {errors.clientId && <span className="text-red-500" style={{ fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.clientId}</span>}
                                                             {(clientDropdownOpen || clientSearch) && (
                                                                 <div className="glass-card admin-st-83ac1cb2">
                                                                     {directoryLoading ? (
@@ -3358,15 +3474,19 @@ function AdminAppointments() {
                                             </>
                                         )}
                                     </div>
-                                    <button className="btn btn-primary admin-st-a3930dd9" onClick={handleSave} disabled={isSavingAppointment} style={{ opacity: isSavingAppointment ? 0.7 : 1, cursor: isSavingAppointment ? 'not-allowed' : 'pointer' }}>
-                                        {isSavingAppointment ? 'Saving...' : (selectedAppointment ? 'Update Appointment' : 'Create Appointment')}
-                                    </button>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <button 
+                                            className="btn btn-secondary" 
+                                            onClick={() => closeModal()} 
+                                            style={{ color: '#475569', borderColor: '#cbd5e1', background: '#f8fafc' }}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button className="btn btn-primary admin-st-a3930dd9" onClick={handleSave} disabled={isSavingAppointment} style={{ opacity: isSavingAppointment ? 0.7 : 1, cursor: isSavingAppointment ? 'not-allowed' : 'pointer' }}>
+                                            {isSavingAppointment ? 'Saving...' : (selectedAppointment ? 'Update Appointment' : 'Create Appointment')}
+                                        </button>
+                                    </div>
                                 </div>
-                                <button className="btn btn-secondary admin-st-2b5b349d" onClick={() => closeModal()} onMouseEnter={(e) => e.target.style.backgroundColor = '#e2e8f0'}
-                                    onMouseLeave={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-                                >
-                                    Close
-                                </button>
                             </div>
                         </div>
                     </div>

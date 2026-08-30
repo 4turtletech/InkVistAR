@@ -1,5 +1,56 @@
 /* Admin Appointments Styles */
 
+/* ── Validation Error Utilities ── */
+.border-red-500 { border-color: #ef4444 !important; }
+.bg-red-50 { background-color: #fef2f2 !important; }
+.text-red-500 { color: #ef4444 !important; }
+
+/* Error shake animation */
+@keyframes errorShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-4px); }
+    40%, 80% { transform: translateX(4px); }
+}
+.field-error-shake { animation: errorShake 0.4s ease; }
+
+/* ── Walk-In Toggle Switch ── */
+.walkin-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.walkin-toggle-container:hover { background: #f1f5f9; }
+.walkin-toggle-container.active {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-color: #fde68a;
+}
+.walkin-toggle-track {
+    width: 40px; height: 22px;
+    border-radius: 12px;
+    background: #cbd5e1;
+    position: relative;
+    transition: background 0.25s ease;
+    flex-shrink: 0;
+}
+.walkin-toggle-track.active { background: #be9055; }
+.walkin-toggle-knob {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    top: 2px; left: 2px;
+    transition: left 0.25s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.walkin-toggle-track.active .walkin-toggle-knob { left: 20px; }
+
 .appointment-filters {
     padding: 0 2rem;
 }
