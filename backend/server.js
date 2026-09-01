@@ -36,6 +36,7 @@ const { CONSENT_EXISTS_SQL } = require('./services/checkoutConsentPolicy');
 const { createConsentRouter } = require('./routes/consents');
 const { normalizeHealthScreeningInput } = require('./services/healthScreeningPolicy');
 const { normalizePhilippineMobileNumber } = require('./services/phoneNumber');
+const { buildAdminAppointmentConflictCheck } = require('./services/appointmentConflictPolicy');
 const { createSessionInventoryService, InventoryOperationError } = require('./services/sessionInventoryService');
 const { createFinancialLedgerService, summarizeAppointmentFinances } = require('./services/financialLedgerService');
 const { InvoiceRecordInputError, InvoiceRecordNotFoundError, buildInvoiceUpdate, updateInvoiceRecord } = require('./services/invoiceRecordService');
@@ -5629,14 +5630,19 @@ app.post('/api/admin/appointments', async (req, res) => {
           `;
           checkParams = [resolvedCustomerId, date, startTime, date, startTime];
         } else {
-          // Admin booking: check specific artist or customer collision
-          checkQuery = `
-            SELECT id FROM appointments 
-            WHERE appointment_date = ? AND start_time = ? AND status NOT IN ('cancelled', 'rejected') AND is_deleted = 0
-            AND (artist_id = ? OR customer_id = ?)
-            FOR UPDATE
-          `;
-          checkParams = [date, startTime, artistId, customerId];
+          // Walk-ins share a system placeholder customer, so using customer_id
+          // here would incorrectly make unrelated guests conflict. Continue to
+          // block a double-booked artist; check customer conflicts only for
+          // registered clients with their own account.
+          const adminConflictCheck = buildAdminAppointmentConflictCheck({
+            date,
+            startTime,
+            artistId,
+            customerId,
+            isWalkIn: isAdminWalkInBooking,
+          });
+          checkQuery = adminConflictCheck.query;
+          checkParams = adminConflictCheck.params;
         }
 
         connection.query(checkQuery, checkParams, (checkErr, checkResults) => {

@@ -71,6 +71,170 @@
     color: #6d28d9;
 }
 
+/* List View owns its presentation. Do not rely on styles from another lazy route. */
+.appointments-page .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 0 0 1.5rem;
+    padding: 0;
+}
+
+.appointments-page .stat-item {
+    min-width: 0;
+    padding: 1.1rem 1.25rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.appointments-page .stat-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.appointments-page .stat-count {
+    color: #1e293b;
+    font-size: 1.5rem;
+    font-weight: 750;
+    line-height: 1;
+}
+
+.appointments-page .table-card-container {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.appointments-page .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.appointments-page .data-table thead {
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.appointments-page .data-table th {
+    padding: 0.9rem 1rem;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.045em;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.appointments-page .data-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #eef2f7;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.appointments-page .data-table tbody tr {
+    transition: background-color 0.18s ease;
+}
+
+.appointments-page .data-table tbody tr:hover {
+    background: #fffcf8;
+}
+
+.appointments-page .data-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.appointments-page .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.32rem 0.72rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+
+.appointments-page .badge.status-scheduled {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.appointments-page .badge.status-completed {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.appointments-page .badge.status-confirmed {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.appointments-page .badge.status-in-progress {
+    background: #cffafe;
+    color: #0e7490;
+}
+
+.appointments-page .badge.status-incomplete,
+.appointments-page .badge.status-rejected {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.appointments-page .badge.status-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.appointments-page .badge.status-cancelled {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.appointments-page .actions-cell {
+    white-space: nowrap;
+}
+
+.appointments-page .action-btn.edit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 0.4rem 0.8rem;
+    border: 0;
+    border-radius: 7px;
+    background: #1e293b;
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.appointments-page .action-btn.edit-btn:hover {
+    background: #0f172a;
+}
+
+.appointments-page .no-data {
+    padding: 3rem 1rem !important;
+    color: #94a3b8 !important;
+    text-align: center !important;
+}
+
+@media (max-width: 1100px) {
+    .appointments-page .stats-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 768px) {
     .admin-page-with-sidenav .appointments-page {
         padding: 1rem 0.75rem 2rem !important;
@@ -83,6 +247,18 @@
     .calendar-day-cell {
         min-height: 60px !important;
         padding: 4px !important;
+    }
+
+    .appointments-page .stats-row {
+        gap: 0.75rem;
+    }
+
+    .appointments-page .stat-item {
+        padding: 0.9rem;
+    }
+
+    .appointments-page .stat-count {
+        font-size: 1.25rem;
     }
 }
 
