@@ -13,6 +13,7 @@ import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 import { getDisplayCode, formatTime12Hour, formatStatus } from '../utils/formatters';
+import { getAppointmentStatusDialog } from '../utils/appointmentStatusDialog';
 import { filterName, filterDigits, clampNumber, normalizePhilippineMobileNumber } from '../utils/validation';
 import CustomSelect from '../components/CustomSelect';
 import { generateReportHeader, downloadCsv, escapeCsv } from '../utils/csvExport';
@@ -651,7 +652,7 @@ function AdminAppointments() {
         });
     };
 
-    const showConfirm = (titleOrMessage, messageOrOnConfirm, maybeOnConfirm) => {
+    const showConfirm = (titleOrMessage, messageOrOnConfirm, maybeOnConfirm, options = {}) => {
         let title, message, onConfirm;
 
         if (typeof messageOrOnConfirm === 'function') {
@@ -672,7 +673,9 @@ function AdminAppointments() {
             title: title || 'Confirm Action',
             message,
             onConfirm: confirmHandler,
-            type: 'info',
+            type: options.type || 'info',
+            confirmText: options.confirmText,
+            cancelText: options.cancelText,
             isAlert: !onConfirm
         });
     };
@@ -701,11 +704,11 @@ function AdminAppointments() {
             }
         }
 
-        const actionVerb = status === 'confirmed' ? 'confirm' : status === 'completed' ? 'complete' : 'cancel';
+        const dialog = getAppointmentStatusDialog(status);
 
         showConfirm(
-            `Confirm ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-            `Are you sure you want to ${actionVerb} this appointment for ${clientName}? A notification will be sent to them.`,
+            dialog.title,
+            `Are you sure you want to ${dialog.actionVerb} this appointment for ${clientName}? A notification will be sent to them.`,
             async () => {
                 try {
                     await Axios.put(`${API_URL}/api/appointments/${id}/status`, { status });
@@ -714,7 +717,8 @@ function AdminAppointments() {
                 } catch (error) {
                     console.error('Error updating status:', error);
                 }
-            }
+            },
+            dialog
         );
     };
 

@@ -20,9 +20,11 @@ const ConfirmModal = ({
     const isSuccess = type === "success";
     const isInfo = type === "info";
     const isLogout = type === "logout";
+    const isReject = type === "reject";
 
     const getIcon = () => {
         if (isLogout) return <LogOut size={32} />;
+        if (isReject) return <TriangleAlert size={32} />;
         if (isDanger) return <Trash2 size={32} />;
         if (isSuccess) return <CheckCircle2 size={32} />;
         if (isInfo) return <Info size={32} />;
@@ -30,14 +32,14 @@ const ConfirmModal = ({
     };
 
     const getIconBg = () => {
-        if (isLogout || isDanger) return '#fee2e2';
+        if (isLogout || isDanger || isReject) return '#fee2e2';
         if (isSuccess) return '#dcfce7';
         if (isInfo) return '#eff6ff';
         return '#fef3c7';
     };
 
     const getIconColor = () => {
-        if (isLogout || isDanger) return '#dc2626';
+        if (isLogout || isDanger || isReject) return '#dc2626';
         if (isSuccess) return '#16a34a';
         if (isInfo) return '#3b82f6';
         return '#d97706';
