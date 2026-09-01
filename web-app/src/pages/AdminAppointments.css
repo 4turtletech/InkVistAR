@@ -1,5 +1,10 @@
 /* Admin Appointments Styles */
 
+/* Match the consistent inner gutter used throughout the admin portal. */
+.admin-page-with-sidenav .appointments-page {
+    padding: 2rem;
+}
+
 /* ── Validation Error Utilities ── */
 .border-red-500 { border-color: #ef4444 !important; }
 .bg-red-50 { background-color: #fef2f2 !important; }
@@ -67,6 +72,10 @@
 }
 
 @media (max-width: 768px) {
+    .admin-page-with-sidenav .appointments-page {
+        padding: 1rem 0.75rem 2rem !important;
+    }
+
     .filters-section {
         grid-template-columns: 1fr;
     }

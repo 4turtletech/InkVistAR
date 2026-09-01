@@ -1387,7 +1387,7 @@ function AdminAppointments() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-page page-container-enter">
+            <div className="admin-page page-container-enter appointments-page">
                 {/* Print Only Header */}
                 <div className="print-only-header">
                     <div className="admin-st-c6657cae">
