@@ -11,11 +11,14 @@ import {
 } from 'react-native';
 import { ArrowLeft, Send, MessageSquare, Radio, X as XIcon } from 'lucide-react-native';
 import { io } from 'socket.io-client';
-import { colors, typography, spacing, borderRadius, shadows } from '../src/theme';
+import { typography, borderRadius, shadows } from '../src/theme';
+import { useTheme } from '../src/context/ThemeContext';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { API_BASE_URL, getChatHistory, getSocketAuthToken } from '../src/utils/api';
 
 export const AdminChat = ({ navigation }) => {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const [liveSessions, setLiveSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -161,7 +164,7 @@ export const AdminChat = ({ navigation }) => {
       <View style={styles.sessionTop}>
         <Text style={styles.sessionName}>{item.name}</Text>
         <View style={styles.liveBadge}>
-          <Radio size={10} color={colors.success} />
+          <Radio size={10} color={theme.success} />
           <Text style={styles.liveBadgeText}>Live</Text>
         </View>
       </View>
@@ -192,7 +195,7 @@ export const AdminChat = ({ navigation }) => {
     return (
       <View style={[styles.msgRow, isAdmin ? styles.msgRowRight : styles.msgRowLeft]}>
         <View style={[styles.msgBubble, isAdmin ? styles.msgBubbleAdmin : styles.msgBubbleUser]}>
-          <Text style={[styles.msgText, isAdmin && { color: '#ffffff' }]}>{item.text}</Text>
+          <Text style={[styles.msgText, isAdmin && styles.msgTextAdmin]}>{item.text}</Text>
         </View>
       </View>
     );
@@ -207,7 +210,7 @@ export const AdminChat = ({ navigation }) => {
             if (selectedSession) setSelectedSession(null);
             else navigation?.goBack?.();
           }} style={styles.backBtn}>
-            <ArrowLeft size={22} color={colors.textPrimary} />
+            <ArrowLeft size={22} color={theme.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{selectedSession ? selectedSession.name : 'Support Chat'}</Text>
         </View>
@@ -276,11 +279,11 @@ export const AdminChat = ({ navigation }) => {
               value={inputValue}
               onChangeText={setInputValue}
               placeholder="Type a message..."
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={theme.textTertiary}
               onSubmitEditing={handleSend}
             />
             <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
-              <Send size={18} color="#ffffff" />
+              <Send size={18} color={theme.backgroundDeep} />
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -289,84 +292,95 @@ export const AdminChat = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+const getStyles = (theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
-    backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border,
+    backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
+    ...shadows.subtle,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  backBtn: { padding: 4 },
-  headerTitle: { ...typography.h3, color: colors.textPrimary },
+  backBtn: {
+    width: 38, height: 38, borderRadius: 19, backgroundColor: theme.surfaceLight,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  headerTitle: { ...typography.h3, color: theme.textPrimary },
   closeBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: colors.error, paddingHorizontal: 12, paddingVertical: 6, borderRadius: borderRadius.md,
+    backgroundColor: theme.error, paddingHorizontal: 12, paddingVertical: 8, borderRadius: borderRadius.round,
   },
   closeBtnText: { ...typography.bodyXSmall, color: '#ffffff', fontWeight: '700' },
   clearEndedBtn: {
     marginLeft: 8,
-    backgroundColor: colors.textTertiary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: borderRadius.md,
+    backgroundColor: theme.surfaceLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: borderRadius.md,
   },
-  clearEndedText: { ...typography.bodyXSmall, color: '#ffffff', fontWeight: '700' },
-  connectionError: { ...typography.bodySmall, color: colors.error, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#fef2f2' },
+  clearEndedText: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '700' },
+  connectionError: {
+    ...typography.bodySmall, color: theme.error, paddingHorizontal: 16,
+    paddingVertical: 8, backgroundColor: theme.errorBg,
+  },
 
   // List
   listContent: { padding: 16 },
   emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   sessionCard: {
-    backgroundColor: '#ffffff', padding: 14, borderRadius: borderRadius.xl,
-    marginBottom: 10, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: theme.surface, padding: 14, borderRadius: borderRadius.xl,
+    marginBottom: 10, borderWidth: 1, borderColor: theme.border, ...shadows.subtle,
   },
-  sessionCardActive: { borderColor: colors.primary, borderWidth: 2 },
-  endedSessionCard: { opacity: 0.78, borderColor: colors.borderLight, borderStyle: 'dashed' },
+  sessionCardActive: { borderColor: theme.gold, borderWidth: 2 },
+  endedSessionCard: { opacity: 0.78, borderColor: theme.borderLight, borderStyle: 'dashed' },
   sessionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  sessionName: { ...typography.body, fontWeight: '600', color: colors.textPrimary },
+  sessionName: { ...typography.body, fontWeight: '600', color: theme.textPrimary },
   liveBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: colors.successBg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: borderRadius.round,
+    backgroundColor: theme.successBg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: borderRadius.round,
   },
-  liveBadgeText: { ...typography.bodyXSmall, color: colors.success, fontWeight: '700' },
+  liveBadgeText: { ...typography.bodyXSmall, color: theme.success, fontWeight: '700' },
   endedBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: colors.borderLight, paddingHorizontal: 8, paddingVertical: 3, borderRadius: borderRadius.round,
+    backgroundColor: theme.surfaceLight, paddingHorizontal: 8, paddingVertical: 3, borderRadius: borderRadius.round,
   },
-  endedBadgeText: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '700' },
-  sessionPreview: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: 4 },
-  sessionTime: { ...typography.bodyXSmall, color: colors.textTertiary, textAlign: 'right' },
-  endedSection: { borderTopWidth: 1, borderTopColor: colors.borderLight, paddingBottom: 20 },
+  endedBadgeText: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '700' },
+  sessionPreview: { ...typography.bodySmall, color: theme.textSecondary, marginBottom: 4 },
+  sessionTime: { ...typography.bodyXSmall, color: theme.textTertiary, textAlign: 'right' },
+  endedSection: { borderTopWidth: 1, borderTopColor: theme.borderLight, paddingBottom: 20 },
   endedSectionHeaderRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 16, marginTop: 4, marginBottom: 2,
   },
-  endedSectionTitle: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '700' },
+  endedSectionTitle: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '700' },
   clearAllEndedBtn: {
-    backgroundColor: colors.textTertiary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: borderRadius.round,
+    backgroundColor: theme.surfaceLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: borderRadius.round,
   },
-  clearAllEndedText: { ...typography.bodyXSmall, color: '#ffffff', fontWeight: '700' },
+  clearAllEndedText: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '700' },
 
   // Chat
   chatContent: { padding: 16, paddingBottom: 8 },
   msgRow: { marginBottom: 8, flexDirection: 'row' },
   msgRowLeft: { justifyContent: 'flex-start' },
   msgRowRight: { justifyContent: 'flex-end' },
-  msgBubble: { maxWidth: '80%', padding: 12, borderRadius: 16 },
-  msgBubbleUser: { backgroundColor: colors.lightBgSecondary, borderBottomLeftRadius: 4 },
-  msgBubbleAdmin: { backgroundColor: colors.primary, borderBottomRightRadius: 4 },
-  msgText: { ...typography.body, color: colors.textPrimary },
+  msgBubble: { maxWidth: '80%', padding: 12, borderRadius: 16, ...shadows.subtle },
+  msgBubbleUser: {
+    backgroundColor: theme.surface, borderBottomLeftRadius: 4,
+    borderWidth: 1, borderColor: theme.border,
+  },
+  msgBubbleAdmin: { backgroundColor: theme.gold, borderBottomRightRadius: 4 },
+  msgText: { ...typography.body, color: theme.textPrimary },
+  msgTextAdmin: { color: theme.backgroundDeep },
 
   // Input
   inputBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 12, backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: colors.border,
+    padding: 12, backgroundColor: theme.surface, borderTopWidth: 1, borderTopColor: theme.border,
   },
   textInput: {
-    flex: 1, backgroundColor: colors.lightBgSecondary, color: colors.textPrimary,
+    flex: 1, backgroundColor: theme.surfaceLight, color: theme.textPrimary,
     paddingHorizontal: 16, paddingVertical: 10, borderRadius: borderRadius.round,
-    ...typography.body,
+    borderWidth: 1, borderColor: theme.border, ...typography.body,
   },
   sendBtn: {
-    width: 42, height: 42, borderRadius: 21, backgroundColor: colors.primary,
-    justifyContent: 'center', alignItems: 'center',
+    width: 42, height: 42, borderRadius: 21, backgroundColor: theme.gold,
+    justifyContent: 'center', alignItems: 'center', ...shadows.subtle,
   },
 });

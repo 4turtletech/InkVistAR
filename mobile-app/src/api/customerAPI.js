@@ -23,10 +23,11 @@ export const bookAppointment = async (appointmentData) => {
   });
 };
 
-// Cancel appointment
-export const cancelAppointment = async (appointmentId) => {
+// Cancel an appointment owned by the authenticated customer.
+export const cancelAppointment = async (appointmentId, { reason, isGracePeriod = false } = {}) => {
   return fetchAPI(`/customer/appointments/${appointmentId}/cancel`, {
     method: 'PUT',
+    body: JSON.stringify({ reason, isGracePeriod }),
   });
 };
 

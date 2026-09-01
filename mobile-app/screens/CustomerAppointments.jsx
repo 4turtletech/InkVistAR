@@ -19,7 +19,8 @@ import { useTheme } from '../src/context/ThemeContext';
 import { colors, typography, borderRadius, shadows } from '../src/theme';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
-import { getCustomerAppointments, updateAppointmentStatus, createCheckoutSession, createConsentRecord, getAppointmentConsent, getPaymentStatus, getCustomerTransactions, API_URL } from '../src/utils/api';
+import { getCustomerAppointments, createCheckoutSession, createConsentRecord, getAppointmentConsent, getPaymentStatus, getCustomerTransactions, API_URL } from '../src/utils/api';
+import { cancelAppointment } from '../src/api/customerAPI';
 
 const ITEMS_PER_PAGE = 5;
 const PAYMENT_WAIVER_TEXT = [
@@ -336,12 +337,17 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
   const onRefresh = () => { setRefreshing(true); fetchAppointments(); };
   const changeMonth = (inc) => { const d = new Date(currentMonth); d.setMonth(d.getMonth() + inc); setCurrentMonth(d); };
 
-  const handleCancel = (id) => {
-    Alert.alert('Cancel Appointment', 'Are you sure?', [
+  const handleCancel = (appointment) => {
+    const status = String(appointment?.status || '').toLowerCase();
+    const isConfirmedBooking = status !== 'pending';
+    Alert.alert('Cancel Appointment', 'Are you sure you want to cancel this appointment?', [
       { text: 'No', style: 'cancel' },
       { text: 'Yes, Cancel', onPress: async () => {
         try {
-          const r = await updateAppointmentStatus(id, 'cancelled');
+          const r = await cancelAppointment(appointment.id, {
+            reason: 'Cancelled by customer through the mobile application.',
+            isGracePeriod: isConfirmedBooking,
+          });
           if (r.success) { Alert.alert('Cancelled', 'Your appointment has been cancelled.'); setSelectedAppointment(null); fetchAppointments(); }
           else Alert.alert('Error', r.message || 'Failed.');
         } catch (e) { Alert.alert('Error', 'Could not connect.'); }
@@ -640,7 +646,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
                 <AnimatedTouchable style={[modalS.cancelBtn, { flex: 1, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border }]} onPress={() => { Alert.alert('Reschedule Request', 'To reschedule, please contact your artist directly or message the studio via the Chat portal.', [{ text: 'Go to Chat', onPress: () => { handleSelectAppointment(null); navigation.navigate('Chat'); } }, { text: 'Close', style: 'cancel' }]); }}>
                   <Text style={[modalS.cancelText, { color: theme.textPrimary }]}>Reschedule</Text>
                 </AnimatedTouchable>
-                <AnimatedTouchable style={[modalS.cancelBtn, { flex: 1, marginTop: 0 }]} onPress={() => handleCancel(selectedAppointment.id)}>
+                <AnimatedTouchable style={[modalS.cancelBtn, { flex: 1, marginTop: 0 }]} onPress={() => handleCancel(selectedAppointment)}>
                   <Text style={modalS.cancelText}>Cancel</Text>
                 </AnimatedTouchable>
               </View>
