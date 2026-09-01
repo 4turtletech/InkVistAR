@@ -27,5 +27,6 @@ ar-tattoo-native/
 .vscode/
 /AR/
 /backups/
+/Documentation/
 # AI Rules
 gemini.md
