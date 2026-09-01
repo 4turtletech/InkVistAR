@@ -5225,6 +5225,21 @@ app.get('/api/admin/appointments/:id', (req, res) => {
 app.post('/api/admin/appointments', async (req, res) => {
   let { customerId, clientEmail, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod, guestEmail, guestPhone, tattooPrice, piercingPrice, waiverAcceptedAt, photoMarketingConsent, piercingJewelry, totalSessions, sessionNumber, projectId, consentData, healthScreeningData } = req.body;
 
+  const isAdminWalkInBooking = customerId === 'admin' && !isFromWizard;
+  if (isAdminWalkInBooking && !String(guestPhone || '').trim()) {
+    return res.status(400).json({ success: false, message: 'A contact number is required for walk-in appointments.' });
+  }
+  if (String(guestPhone || '').trim()) {
+    const normalizedGuestPhone = normalizePhilippineMobileNumber(guestPhone);
+    if (!normalizedGuestPhone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Enter a valid Philippine mobile number (for example, 09171234567).'
+      });
+    }
+    guestPhone = normalizedGuestPhone;
+  }
+
   // Verify reCAPTCHA for public wizard submissions only
   if (isFromWizard) {
     const captchaValid = await verifyCaptcha(captchaToken, {
@@ -9032,21 +9047,6 @@ app.get('/api/appointments/:id/waiver-document', async (req, res) => {
   const appointmentId = Number(req.params.id);
   if (!Number.isInteger(appointmentId) || appointmentId <= 0) {
     return res.status(400).json({ success: false, message: 'A valid appointment ID is required.' });
-  }
-
-  const isAdminWalkInBooking = customerId === 'admin' && !isFromWizard;
-  if (isAdminWalkInBooking && !String(guestPhone || '').trim()) {
-    return res.status(400).json({ success: false, message: 'A contact number is required for walk-in appointments.' });
-  }
-  if (String(guestPhone || '').trim()) {
-    const normalizedGuestPhone = normalizePhilippineMobileNumber(guestPhone);
-    if (!normalizedGuestPhone) {
-      return res.status(400).json({
-        success: false,
-        message: 'Enter a valid Philippine mobile number (for example, 09171234567).'
-      });
-    }
-    guestPhone = normalizedGuestPhone;
   }
 
   try {
