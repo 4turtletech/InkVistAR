@@ -2306,11 +2306,12 @@
 }
 
 .admin-st-c52b9668 {
-    flex: 1;
-    padding: 15px;
+    flex: 0 0 auto;
+    width: auto;
+    padding: 10px 16px;
     background: #fff;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
     font-weight: 700;
 }
 

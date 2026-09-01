@@ -23,6 +23,36 @@ const getTodayDateInputValue = () => {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 };
 
+const WALK_IN_DETAILS_PATTERN = /\n?\[Walk-In Details\]\n([\s\S]*?)\n\[\/Walk-In Details\]\n?/i;
+
+const parseWalkInDetails = (notes = '') => {
+    const normalizedNotes = String(notes || '').replace(/\\n/g, '\n');
+    const detailsBlock = normalizedNotes.match(WALK_IN_DETAILS_PATTERN)?.[1] || '';
+    const nameMatch = normalizedNotes.match(/(?:^|\n)Name:\s*([^\n]+)/i);
+    const healthMatch = detailsBlock.match(/(?:^|\n)Health\/Allergies:\s*([^\n]*)/i);
+
+    return {
+        name: nameMatch?.[1]?.trim() || '',
+        healthNotes: healthMatch?.[1]?.trim() || '',
+    };
+};
+
+const stripWalkInDetails = (notes = '') => String(notes || '')
+    .replace(WALK_IN_DETAILS_PATTERN, '\n')
+    .trim();
+
+const buildWalkInNotes = (notes, guestName, healthNotes) => {
+    const regularNotes = stripWalkInDetails(notes);
+    const details = [
+        '[Walk-In Details]',
+        `Name: ${String(guestName || '').trim()}`,
+        `Health/Allergies: ${String(healthNotes || '').trim() || 'None declared'}`,
+        '[/Walk-In Details]',
+    ].join('\n');
+
+    return regularNotes ? `${details}\n\n${regularNotes}` : details;
+};
+
 const formatDuration = (totalSeconds) => {
     if (!totalSeconds || totalSeconds <= 0) return 'N/A';
     const hrs = Math.floor(totalSeconds / 3600);
@@ -369,11 +399,14 @@ function AdminAppointments() {
                 const mappedAppointments = response.data.data.map(apt => {
                     let finalClientName = apt.client_name;
                     const isGuest = !!apt.is_guest_placeholder;
-                    if (isGuest && apt.notes) {
-                        const nameMatch = apt.notes.match(/Name:\s*(.+?)(?:\\n|\n|$)/);
-                        if (nameMatch && nameMatch[1]) {
-                            finalClientName = nameMatch[1].trim();
-                        }
+                    const walkInDetails = parseWalkInDetails(apt.notes);
+                    const guestFieldLooksLikeEmail = String(apt.guest_email || '').includes('@');
+                    const storedGuestName = walkInDetails.name
+                        || (!guestFieldLooksLikeEmail ? String(apt.guest_email || '').trim() : '')
+                        || apt.client_name
+                        || '';
+                    if (isGuest) {
+                        finalClientName = storedGuestName || 'Guest (Unregistered)';
                     } else if (apt.guest_email && apt.notes) {
                         const nameMatch = apt.notes.match(/Name:\s*(.+?)(?:\\n|\n|$)/);
                         if (nameMatch && nameMatch[1]) {
@@ -394,7 +427,7 @@ function AdminAppointments() {
                         time: apt.start_time,
                         status: apt.status,
                         paymentStatus: apt.payment_status,
-                        notes: apt.notes,
+                        notes: stripWalkInDetails(apt.notes),
                         beforePhoto: apt.before_photo,
                         referenceImage: apt.reference_image,
                         afterPhoto: apt.after_photo,
@@ -429,6 +462,11 @@ function AdminAppointments() {
                         clientHealthConditions: Array.isArray(apt.client_health_conditions) ? apt.client_health_conditions : [],
                         clientAllergens: Array.isArray(apt.client_allergens) ? apt.client_allergens : [],
                         isGuestPlaceholder: !!apt.is_guest_placeholder,
+                        guestName: storedGuestName,
+                        guestContactEmail: apt.guest_email || '',
+                        guestPhone: apt.guest_phone || '',
+                        walkInHealthNotes: apt.walk_in_health_notes || walkInDetails.healthNotes || '',
+                        walkInWaiverConfirmed: !!apt.waiver_accepted_at,
                         project_id: apt.project_id || null,
                         projectStatus: apt.project_status || null,
                         projectSessionsPlanned: apt.project_sessions_planned || null,
@@ -713,14 +751,14 @@ function AdminAppointments() {
         setErrors({});
 
         // Detect walk-in appointments
-        const appointmentIsWalkIn = !!appointment.is_guest_placeholder;
+        const appointmentIsWalkIn = !!(appointment.isGuestPlaceholder ?? appointment.is_guest_placeholder);
         setIsWalkIn(appointmentIsWalkIn);
 
         // Check if the stored artistId is a real artist (not admin placeholder)
         const storedArtistId = appointment.artistId || appointment.artist_id;
         const isRealArtist = artists.some(a => String(a.id) === String(storedArtistId));
 
-        setFormData({
+        const editFormData = {
             clientId: appointment.clientId || appointment.customer_id,
             artistId: isRealArtist ? storedArtistId : '',
             secondaryArtistId: appointment.secondary_artist_id || '',
@@ -749,42 +787,14 @@ function AdminAppointments() {
             projectId: appointment.project_id || null,
             discountAmount: appointment.discountAmount || 0,
             discountType: appointment.discountType || 'flat',
-            guestEmail: appointment.guest_email || '',
-            guestPhone: appointment.guest_phone || '',
-            walkInHealthNotes: appointment.walk_in_health_notes || '',
-            walkInWaiverConfirmed: !!appointment.walk_in_waiver_confirmed
-        });
-        setClientSearch(appointment.clientName);
-        initialFormDataRef.current = {
-            clientId: appointment.clientId || appointment.customer_id,
-            artistId: isRealArtist ? storedArtistId : '',
-            secondaryArtistId: appointment.secondary_artist_id || '',
-            commissionSplit: appointment.commission_split || 50,
-            serviceType: appointment.serviceType || appointment.service_type,
-            designTitle: appointment.designTitle || appointment.design_title,
-            date: appointment.date || appointment.appointment_date,
-            time: appointment.time || appointment.start_time,
-            status: appointment.status,
-            paymentStatus: (!appointment.price || appointment.price <= 0) ? 'unpaid' : (appointment.paymentStatus || appointment.payment_status || 'unpaid'),
-            notes: appointment.notes,
-            price: appointment.price,
-            tattooPrice: appointment.tattooPrice || appointment.tattoo_price || 0,
-            piercingPrice: appointment.piercingPrice || appointment.piercing_price || 0,
-            beforePhoto: appointment.beforePhoto,
-            referenceImage: appointment.referenceImage,
-            manualPaidAmount: appointment.manualPaidAmount || 0,
-            manualPaymentMethod: appointment.manualPaymentMethod || 'Cash',
-            rejectionReason: appointment.rejectionReason || '',
-            rescheduleReason: '',
-            isReferral: !!appointment.isReferral,
-            consultationNotes: appointment.consultationNotes || '',
-            quotedPrice: appointment.quotedPrice || '',
-            sessionNumber: appointment.sessionNumber || '',
-            totalSessions: appointment.totalSessions || '',
-            projectId: appointment.project_id || null,
-            discountAmount: appointment.discountAmount || 0,
-            discountType: appointment.discountType || 'flat'
+            guestEmail: appointment.guestName || appointment.guest_email || '',
+            guestPhone: appointment.guestPhone || appointment.guest_phone || '',
+            walkInHealthNotes: appointment.walkInHealthNotes || appointment.walk_in_health_notes || '',
+            walkInWaiverConfirmed: !!(appointment.walkInWaiverConfirmed ?? appointment.walk_in_waiver_confirmed ?? appointment.waiverAcceptedAt)
         };
+        setFormData(editFormData);
+        setClientSearch(appointment.clientName);
+        initialFormDataRef.current = { ...editFormData };
         openModal();
         // Fetch any pending reschedule request for this appointment
         setPendingRescheduleRequest(null);
@@ -1033,11 +1043,19 @@ function AdminAppointments() {
             setIsSavingAppointment(true);
             try {
                 const payload = {
-                    customerId: isWalkIn ? 'admin' : formData.clientId,
-                    guestEmail: isWalkIn ? formData.guestEmail : null,
-                    guestPhone: isWalkIn ? normalizePhilippineMobileNumber(formData.guestPhone) : null,
-                    walkInHealthNotes: isWalkIn ? formData.walkInHealthNotes : null,
-                    walkInWaiverConfirmed: isWalkIn ? formData.walkInWaiverConfirmed : false,
+                    customerId: isWalkIn && !selectedAppointment ? 'admin' : formData.clientId,
+                    ...(isWalkIn ? {
+                        // Admin walk-ins provide a name and phone, not an email.
+                        // The name is persisted in the structured notes below.
+                        guestEmail: null,
+                        customerName: formData.guestEmail.trim(),
+                        guestPhone: normalizePhilippineMobileNumber(formData.guestPhone),
+                        walkInHealthNotes: formData.walkInHealthNotes,
+                        walkInWaiverConfirmed: formData.walkInWaiverConfirmed,
+                        waiverAcceptedAt: formData.walkInWaiverConfirmed
+                            ? (selectedAppointment?.waiverAcceptedAt || new Date().toISOString())
+                            : null,
+                    } : {}),
                     artistId: formData.artistId,
                     secondaryArtistId: formData.secondaryArtistId || null,
                     commissionSplit: formData.commissionSplit || 50,
@@ -1046,7 +1064,9 @@ function AdminAppointments() {
                     date: formData.date,
                     startTime: formData.time,
                     status: formData.status,
-                    notes: formData.notes,
+                    notes: isWalkIn
+                        ? buildWalkInNotes(formData.notes, formData.guestEmail, formData.walkInHealthNotes)
+                        : formData.notes,
                     price: finalPrice,
                     beforePhoto: formData.beforePhoto,
                     manualPaidAmount: parseFloat(formData.manualPaidAmount) || 0,
@@ -1099,7 +1119,22 @@ function AdminAppointments() {
                 payload.projectId = resolvedProjectId;
 
                 if (selectedAppointment) {
-                    await Axios.put(`${API_URL}/api/admin/appointments/${selectedAppointment.id}`, payload);
+                    const isCompletingSession = formData.status === 'completed'
+                        && selectedAppointment.status !== 'completed';
+                    const appointmentPayload = { ...payload };
+
+                    // Completion must use the operational status endpoint so held
+                    // materials are consumed and completion notifications are fired.
+                    if (isCompletingSession) delete appointmentPayload.status;
+
+                    await Axios.put(`${API_URL}/api/admin/appointments/${selectedAppointment.id}`, appointmentPayload);
+
+                    if (isCompletingSession) {
+                        await Axios.put(`${API_URL}/api/appointments/${selectedAppointment.id}/status`, {
+                            status: 'completed',
+                            price: finalPrice,
+                        });
+                    }
 
                     if (resolvedProjectId && !hasExistingProject) {
                         Axios.put(`${API_URL}/api/projects/${resolvedProjectId}/link-session`, {

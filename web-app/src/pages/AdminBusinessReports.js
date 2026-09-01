@@ -5,6 +5,7 @@ import AdminSideNav from '../components/AdminSideNav';
 import { API_URL } from '../config';
 import './PortalStyles.css';
 import './AdminStyles.css';
+import './AdminBusinessReports.css';
 
 function AdminBusinessReports() {
     const [reportType, setReportType] = useState('sales'); // 'sales' or 'inventory'
@@ -126,8 +127,8 @@ function AdminBusinessReports() {
         const lowStockItems = [];
         
         inventory.forEach(item => {
-            const qty = parseInt(item.quantity) || 0;
-            const min = parseInt(item.min_stock_level) || 0;
+            const qty = parseInt(item.current_stock ?? item.quantity) || 0;
+            const min = parseInt(item.min_stock ?? item.min_stock_level) || 0;
             const cost = parseFloat(item.cost) || parseFloat(item.retail_price) || 0;
             
             totalItems += qty;
@@ -135,7 +136,7 @@ function AdminBusinessReports() {
             
             if (qty <= min) {
                 lowStockCount++;
-                lowStockItems.push(item);
+                lowStockItems.push({ ...item, reportQuantity: qty, reportMinStock: min });
             }
         });
         
@@ -203,7 +204,7 @@ function AdminBusinessReports() {
             rows.push([]);
             rows.push(['Low Stock Alerts', 'Current Qty', 'Min Threshold']);
             inventoryReport.lowStockItems.forEach(item => {
-                rows.push([`"${item.name}"`, item.quantity, item.min_stock_level]);
+                rows.push([`"${item.name}"`, item.reportQuantity, item.reportMinStock]);
             });
         }
         
@@ -268,7 +269,7 @@ function AdminBusinessReports() {
                 <table>
                     <thead><tr><th>Item Name</th><th>Current Stock</th><th>Minimum Threshold</th></tr></thead>
                     <tbody>
-                        ${inventoryReport.lowStockItems.map(p => `<tr><td>${p.name}</td><td style="color:#ef4444;font-weight:bold;">${p.quantity}</td><td>${p.min_stock_level}</td></tr>`).join('')}
+                        ${inventoryReport.lowStockItems.map(p => `<tr><td>${p.name}</td><td style="color:#ef4444;font-weight:bold;">${p.reportQuantity}</td><td>${p.reportMinStock}</td></tr>`).join('')}
                         ${inventoryReport.lowStockItems.length === 0 ? '<tr><td colspan="3" style="text-align:center">All stock levels are healthy.</td></tr>' : ''}
                     </tbody>
                 </table>
@@ -315,10 +316,11 @@ function AdminBusinessReports() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-page page-container-enter">
-                <header className="portal-header" style={{ marginBottom: '24px' }}>
-                    <div className="header-title">
+            <div className="admin-page page-container-enter business-reports-page">
+                <header className="portal-header business-reports-header">
+                    <div className="header-title business-reports-title">
                         <h1>Business Reports</h1>
+                        <p className="header-subtitle">Generate aggregated insights for sales and inventory management.</p>
                     </div>
                     <div className="header-actions">
                         <button className="btn btn-secondary" onClick={exportCSV} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -329,10 +331,9 @@ function AdminBusinessReports() {
                         </button>
                     </div>
                 </header>
-                <p className="header-subtitle" style={{ marginTop: '-15px', marginBottom: '24px' }}>Generate aggregated insights for Sales and Inventory management.</p>
 
                 {loading ? null : reportType === 'sales' && salesReport ? (
-                    <div className="analytics-dashboard-layout" style={{ marginBottom: '24px' }}>
+                    <div className="reports-metrics-grid">
                         <div className="card glass-card">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                                 <div style={{ padding: '8px', background: '#ecfdf5', borderRadius: '8px', color: '#10b981' }}><DollarSign size={20} /></div>
@@ -356,7 +357,7 @@ function AdminBusinessReports() {
                         </div>
                     </div>
                 ) : reportType === 'inventory' && inventoryReport ? (
-                    <div className="analytics-dashboard-layout" style={{ marginBottom: '24px' }}>
+                    <div className="reports-metrics-grid">
                         <div className="card glass-card">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                                 <div style={{ padding: '8px', background: '#fef3c7', borderRadius: '8px', color: '#d97706' }}><Box size={20} /></div>
@@ -381,8 +382,8 @@ function AdminBusinessReports() {
                     </div>
                 ) : null}
 
-                <div className="premium-filter-bar premium-filter-bar--stacked glass-card">
-                    <div className="premium-search-box--full">
+                <div className="premium-filter-bar premium-filter-bar--stacked glass-card reports-filter-panel">
+                    <div className="premium-search-box premium-search-box--full">
                         <Search size={18} className="search-icon" />
                         <input 
                             type="text" 
@@ -408,7 +409,7 @@ function AdminBusinessReports() {
                             </button>
                         </div>
                         
-                        <div className="filter-group" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <div className="filter-group reports-date-filters">
                             <div className="date-picker-wrapper">
                                 <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginRight: '8px' }}>From</label>
                                 <input 
@@ -427,7 +428,7 @@ function AdminBusinessReports() {
                                     onChange={(e) => setEndDate(e.target.value)}
                                 />
                             </div>
-                            <button className="icon-btn-v2" onClick={fetchData} title="Refresh Data">
+                            <button type="button" className="reports-refresh-button" onClick={fetchData} title="Refresh data" aria-label="Refresh report data">
                                 <RefreshCw size={18} className={loading ? 'spinning' : ''} />
                             </button>
                         </div>
@@ -442,20 +443,20 @@ function AdminBusinessReports() {
                 ) : reportType === 'sales' && salesReport ? (
                     <div className="dashboard-grid fade-in" style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         {/* Mix Table */}
-                        <div className="grid-2col" style={{ gap: '24px' }}>
+                        <div className="grid-2col reports-content-grid">
                             <div className="glass-card">
                                 <div className="card-header-v2">
                                     <div className="header-title"><h2>Bestselling Retail Products</h2></div>
                                 </div>
-                                <table className="premium-table">
+                                <div className="reports-table-scroll"><table className="premium-table">
                                     <thead><tr><th>Product</th><th>Qty Sold</th><th>Revenue</th></tr></thead>
                                     <tbody>
                                         {salesReport.topProducts
                                             .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
                                             .map((p, i) => (
                                                 <tr key={i}>
-                                                    <td style={{ fontWeight: 600 }}>{p.name}</td>
-                                                    <td>{p.quantity}</td>
+                                                    <td data-label="Product" style={{ fontWeight: 600 }}>{p.name}</td>
+                                                    <td data-label="Qty Sold">{p.quantity}</td>
                                                     <td style={{ fontWeight: 600, color: '#10b981' }}>₱{p.revenue.toLocaleString()}</td>
                                                 </tr>
                                             ))}
@@ -463,78 +464,78 @@ function AdminBusinessReports() {
                                             <tr><td colSpan="3" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>No retail data matches your search.</td></tr>
                                         )}
                                     </tbody>
-                                </table>
+                                </table></div>
                             </div>
                             
                             <div className="glass-card">
                                 <div className="card-header-v2">
                                     <div className="header-title"><h2>Revenue by Source</h2></div>
                                 </div>
-                                <table className="premium-table">
+                                <div className="reports-table-scroll"><table className="premium-table">
                                     <thead><tr><th>Source</th><th>Amount</th><th>% of Total</th></tr></thead>
                                     <tbody>
                                         <tr>
-                                            <td style={{ fontWeight: 600 }}>Tattoo Services</td>
+                                            <td data-label="Source" style={{ fontWeight: 600 }}>Tattoo Services</td>
                                             <td style={{ fontWeight: 600 }}>₱{salesReport.serviceRevenue.toLocaleString()}</td>
                                             <td>{salesReport.netRevenue > 0 ? ((salesReport.serviceRevenue / salesReport.netRevenue) * 100).toFixed(1) : 0}%</td>
                                         </tr>
                                         <tr>
-                                            <td style={{ fontWeight: 600 }}>Retail POS</td>
+                                            <td data-label="Source" style={{ fontWeight: 600 }}>Retail POS</td>
                                             <td style={{ fontWeight: 600 }}>₱{salesReport.retailRevenue.toLocaleString()}</td>
                                             <td>{salesReport.netRevenue > 0 ? ((salesReport.retailRevenue / salesReport.netRevenue) * 100).toFixed(1) : 0}%</td>
                                         </tr>
                                     </tbody>
-                                </table>
+                                </table></div>
                             </div>
                         </div>
                     </div>
                 ) : reportType === 'inventory' && inventoryReport ? (
                     <div className="dashboard-grid fade-in" style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                        <div className="grid-2col" style={{ gap: '24px' }}>
+                        <div className="grid-2col reports-content-grid">
                             <div className="glass-card">
                                 <div className="card-header-v2">
                                     <div className="header-title"><h2>Highest Turnover (Most Consumed)</h2></div>
                                 </div>
-                                <table className="premium-table">
+                                <div className="reports-table-scroll"><table className="premium-table">
                                     <thead><tr><th>Item Name</th><th>Consumed</th><th>Restocked</th></tr></thead>
                                     <tbody>
                                         {inventoryReport.topConsumed
                                             .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
                                             .map((p, i) => (
                                                 <tr key={i}>
-                                                    <td style={{ fontWeight: 600 }}>{p.name}</td>
-                                                    <td style={{ fontWeight: 600, color: '#f59e0b' }}>-{p.consumed}</td>
-                                                    <td style={{ color: '#10b981' }}>+{p.added}</td>
+                                                    <td data-label="Item" style={{ fontWeight: 600 }}>{p.name}</td>
+                                                    <td data-label="Consumed" style={{ fontWeight: 600, color: '#f59e0b' }}>-{p.consumed}</td>
+                                                    <td data-label="Restocked" style={{ color: '#10b981' }}>+{p.added}</td>
                                                 </tr>
                                             ))}
                                         {inventoryReport.topConsumed.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
                                             <tr><td colSpan="3" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>No consumption matches your search.</td></tr>
                                         )}
                                     </tbody>
-                                </table>
+                                </table></div>
                             </div>
                             
                             <div className="glass-card">
                                 <div className="card-header-v2">
                                     <div className="header-title"><h2>Low Stock / Reorder Alerts</h2></div>
                                 </div>
-                                <table className="premium-table">
+                                <div className="reports-table-scroll"><table className="premium-table">
                                     <thead><tr><th>Item Name</th><th>Current Stock</th><th>Min Threshold</th></tr></thead>
                                     <tbody>
                                         {inventoryReport.lowStockItems
                                             .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
                                             .map((p, i) => (
                                                 <tr key={i}>
-                                                    <td style={{ fontWeight: 600 }}>{p.name}</td>
-                                                    <td style={{ fontWeight: 700, color: '#ef4444' }}>{p.quantity}</td>
-                                                    <td>{p.min_stock_level}</td>
+                                                    <td data-label="Item" style={{ fontWeight: 600 }}>{p.name}</td>
+                                                    <td data-label="Current Stock" style={{ fontWeight: 700, color: '#ef4444' }}>{p.reportQuantity}</td>
+                                                    <td data-label="Minimum">{p.reportMinStock}</td>
                                                 </tr>
                                             ))}
                                         {inventoryReport.lowStockItems.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
                                             <tr><td colSpan="3" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>No low stock alerts match your search.</td></tr>
                                         )}
                                     </tbody>
-                                </table>
+                                </table></div>
                             </div>
                         </div>
                     </div>

@@ -2038,7 +2038,7 @@ function sendReceiptEmail(customerEmail, invoiceData) {
  * @param {boolean} isGuest - Whether the customer is a guest (no account)
  */
 function sendConsultationSummaryEmail(recipientEmail, recipientName, consultationData, isGuest = false) {
-  if (!recipientEmail) return;
+  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(recipientEmail))) return;
 
   try {
     const { bookingCode, designTitle, date, artistName, consultationMethod, consultationNotes, quotedPrice } = consultationData;
@@ -6020,7 +6020,13 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   const body = req.body || {};
 
   // SANITIZE INPUTS to prevent DB conversion errors (e.g. empty strings for numbers/dates)
-  const customerId = body.customerId ? parseInt(body.customerId) : undefined;
+  let customerId;
+  if (body.customerId !== undefined && body.customerId !== null && body.customerId !== '') {
+    customerId = Number(body.customerId);
+    if (!Number.isInteger(customerId) || customerId <= 0) {
+      return res.status(400).json({ success: false, message: 'A valid customer is required.' });
+    }
+  }
   const artistId = body.artistId ? (body.artistId === 'null' || body.artistId === '' ? null : parseInt(body.artistId)) : undefined;
   const secondaryArtistId = body.secondaryArtistId !== undefined ? (body.secondaryArtistId === null || body.secondaryArtistId === '' || String(body.secondaryArtistId) === 'null' ? null : parseInt(body.secondaryArtistId)) : undefined;
   const commissionSplit = body.commissionSplit !== undefined ? (body.commissionSplit === '' ? 50 : parseInt(body.commissionSplit)) : undefined;
@@ -6038,6 +6044,31 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   const consultationMethod = body.consultationMethod;
   const consultationNotes = body.consultationNotes;
   const quotedPrice = body.quotedPrice !== undefined ? (body.quotedPrice === '' || body.quotedPrice === null ? null : parseFloat(body.quotedPrice)) : undefined;
+  let guestPhone;
+  if (body.guestPhone !== undefined) {
+    guestPhone = body.guestPhone === null || body.guestPhone === ''
+      ? null
+      : normalizePhilippineMobileNumber(body.guestPhone);
+    if (body.guestPhone && !guestPhone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Enter a valid Philippine mobile number (for example, 09171234567).'
+      });
+    }
+  }
+
+  let waiverAcceptedAt;
+  if (body.waiverAcceptedAt !== undefined) {
+    if (!body.waiverAcceptedAt) {
+      waiverAcceptedAt = null;
+    } else {
+      const waiverDate = new Date(body.waiverAcceptedAt);
+      if (Number.isNaN(waiverDate.getTime())) {
+        return res.status(400).json({ success: false, message: 'Invalid waiver confirmation date.' });
+      }
+      waiverAcceptedAt = waiverDate.toISOString().slice(0, 19).replace('T', ' ');
+    }
+  }
 
   // Date/Time Sanitization: convert empty strings to null for MySQL
   const date = body.date === '' ? null : body.date;
@@ -6078,6 +6109,8 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   if (consultationMethod !== undefined) { updates.push('consultation_method = ?'); params.push(consultationMethod); }
   if (consultationNotes !== undefined) { updates.push('consultation_notes = ?'); params.push(consultationNotes); }
   if (quotedPrice !== undefined) { updates.push('quoted_price = ?'); params.push(quotedPrice); }
+  if (guestPhone !== undefined) { updates.push('guest_phone = ?'); params.push(guestPhone); }
+  if (waiverAcceptedAt !== undefined) { updates.push('waiver_accepted_at = ?'); params.push(waiverAcceptedAt); }
 
   // Multi-session tracking (Task 1.2)
   if (body.sessionNumber !== undefined) {
@@ -6229,7 +6262,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
  * @param {string} [footerTip] - Optional tip/CTA text at the bottom
  */
 function sendGuestStatusEmail(guestEmail, guestName, bookingCode, subject, headingText, headingColor, bodyMessage, detailRows, footerTip) {
-  if (!guestEmail) return;
+  if (!guestEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(guestEmail))) return;
   try {
     const detailHtml = detailRows.map(r =>
       `<p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">${r.label}:</strong> <span style="color:#C19A6B;${r.mono ? 'font-family:monospace;font-weight:700;' : ''}">${r.value}</span></p>`
@@ -6409,9 +6442,15 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         };
 
         // ── Guest notification context ──
-        const guestEmail = oldAppt.guest_email || null;
+        const storedGuestContact = oldAppt.guest_email || null;
+        const guestEmail = storedGuestContact && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(storedGuestContact))
+          ? storedGuestContact
+          : null;
         const guestPhone = oldAppt.guest_phone || null;
-        const guestName = (oldAppt.notes && oldAppt.notes.match(/Client:\s*(.+?)(?:\n|$)/)) ? oldAppt.notes.match(/Client:\s*(.+?)(?:\n|$)/)[1].trim() : 'Valued Guest';
+        const guestNameMatch = oldAppt.notes && oldAppt.notes.match(/(?:Name|Client):\s*(.+?)(?:\n|$)/i);
+        const guestName = guestNameMatch?.[1]?.trim()
+          || (storedGuestContact && !String(storedGuestContact).includes('@') ? String(storedGuestContact).trim() : '')
+          || 'Valued Guest';
         const guestBookingCode = oldAppt.booking_code || `#${id}`;
         const guestDesign = oldAppt.design_title || 'Consultation';
         const formatGuestDate = (d) => { try { return new Date(d).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); } catch { return d || 'TBD'; } };
