@@ -13,10 +13,15 @@ import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 import { getDisplayCode, formatTime12Hour, formatStatus } from '../utils/formatters';
-import { filterName, filterDigits, clampNumber } from '../utils/validation';
+import { filterName, filterDigits, clampNumber, normalizePhilippineMobileNumber } from '../utils/validation';
 import CustomSelect from '../components/CustomSelect';
 import { generateReportHeader, downloadCsv, escapeCsv } from '../utils/csvExport';
 import SessionTimeline from '../components/SessionTimeline';
+
+const getTodayDateInputValue = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+};
 
 const formatDuration = (totalSeconds) => {
     if (!totalSeconds || totalSeconds <= 0) return 'N/A';
@@ -196,6 +201,16 @@ function AdminAppointments() {
         switch (field) {
             case 'clientId':
                 if (!value) errorMsg = "Client is required";
+                break;
+            case 'guestEmail':
+                if (!String(value || '').trim()) errorMsg = "Walk-in name is required";
+                break;
+            case 'guestPhone':
+                if (!String(value || '').trim()) {
+                    errorMsg = "Walk-in phone is required";
+                } else if (!normalizePhilippineMobileNumber(value)) {
+                    errorMsg = "Enter a valid PH mobile number (e.g. 09171234567)";
+                }
                 break;
             case 'serviceType':
                 if (!value || !value.trim()) errorMsg = "Service type is required";
@@ -924,7 +939,11 @@ function AdminAppointments() {
         const newErrors = {};
         if (isWalkIn) {
             if (!formData.guestEmail || !formData.guestEmail.trim()) newErrors.guestEmail = "Walk-in name is required";
-            if (!formData.guestPhone || !formData.guestPhone.trim()) newErrors.guestPhone = "Walk-in phone is required";
+            if (!formData.guestPhone || !formData.guestPhone.trim()) {
+                newErrors.guestPhone = "Walk-in phone is required";
+            } else if (!normalizePhilippineMobileNumber(formData.guestPhone)) {
+                newErrors.guestPhone = "Enter a valid PH mobile number (e.g. 09171234567)";
+            }
             if (isTattooSession && !formData.walkInWaiverConfirmed) newErrors.walkInWaiverConfirmed = "Waiver confirmation is required";
         } else {
             if (!formData.clientId) newErrors.clientId = "Client is required";
@@ -1016,7 +1035,7 @@ function AdminAppointments() {
                 const payload = {
                     customerId: isWalkIn ? 'admin' : formData.clientId,
                     guestEmail: isWalkIn ? formData.guestEmail : null,
-                    guestPhone: isWalkIn ? formData.guestPhone : null,
+                    guestPhone: isWalkIn ? normalizePhilippineMobileNumber(formData.guestPhone) : null,
                     walkInHealthNotes: isWalkIn ? formData.walkInHealthNotes : null,
                     walkInWaiverConfirmed: isWalkIn ? formData.walkInWaiverConfirmed : false,
                     artistId: formData.artistId,
@@ -1132,6 +1151,10 @@ function AdminAppointments() {
 
     const handleConfirmReschedule = async () => {
         if (!rescheduleModal.date) return showAlert('Date Required', 'Please select a new date.', 'warning');
+        const today = getTodayDateInputValue();
+        if (rescheduleModal.date < today) {
+            return showAlert('Invalid Date', 'Sessions cannot be rescheduled to a date that has already passed.', 'warning');
+        }
         if (formData.serviceType === 'Consultation' && !rescheduleModal.time) return showAlert('Time Required', 'Please select a new time.', 'warning');
 
         try {
@@ -2387,13 +2410,19 @@ function AdminAppointments() {
                                                             <div className="premium-input-group" style={{ marginBottom: '10px' }}>
                                                                 <label className={`admin-st-b8618eb2 ${errors.guestPhone ? 'text-red-500' : ''}`}>Contact Number *</label>
                                                                 <input 
-                                                                    type="text" 
+                                                                    id="walk-in-contact-number"
+                                                                    type="tel"
+                                                                    inputMode="tel"
+                                                                    autoComplete="tel"
+                                                                    maxLength={18}
                                                                     value={formData.guestPhone} 
                                                                     onChange={(e) => handleInputChange('guestPhone', e.target.value)} 
                                                                     className={`premium-input-v2 ${errors.guestPhone ? 'border-red-500 bg-red-50 field-error-shake' : ''}`} 
-                                                                    placeholder="e.g. 09123456789" 
+                                                                    placeholder="e.g. 09171234567"
+                                                                    aria-invalid={Boolean(errors.guestPhone)}
+                                                                    aria-describedby={errors.guestPhone ? 'walk-in-contact-number-error' : undefined}
                                                                 />
-                                                                {errors.guestPhone && <span className="text-red-500" style={{ fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.guestPhone}</span>}
+                                                                {errors.guestPhone && <span id="walk-in-contact-number-error" className="text-red-500" style={{ fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.guestPhone}</span>}
                                                             </div>
                                                             <div className="premium-input-group" style={{ marginBottom: '10px' }}>
                                                                 <label className="admin-st-b8618eb2">Health Conditions / Allergies</label>
@@ -3441,9 +3470,10 @@ function AdminAppointments() {
                                                         type="button"
                                                         className="btn"
                                                         onClick={() => {
+                                                            const today = getTodayDateInputValue();
                                                             setRescheduleModal({
                                                                 isOpen: true,
-                                                                date: formData.date || '',
+                                                                date: formData.date && formData.date >= today ? formData.date : today,
                                                                 time: formData.time || '',
                                                                 reason: ''
                                                             });
@@ -3548,7 +3578,13 @@ function AdminAppointments() {
                         <div className="modal-body">
                             <div className="premium-input-group">
                                 <label className="admin-st-b8618eb2">New Date</label>
-                                <input type="date" value={rescheduleModal.date} onChange={e => setRescheduleModal({ ...rescheduleModal, date: e.target.value })} className="premium-input-v2" />
+                                <input
+                                    type="date"
+                                    min={getTodayDateInputValue()}
+                                    value={rescheduleModal.date}
+                                    onChange={e => setRescheduleModal({ ...rescheduleModal, date: e.target.value })}
+                                    className="premium-input-v2"
+                                />
                             </div>
                             <div className="premium-input-group" style={{ marginTop: '16px' }}>
                                 <label className="admin-st-b8618eb2">New Time</label>

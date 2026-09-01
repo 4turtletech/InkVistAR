@@ -1,14 +1,12 @@
 /**
- * Session Payment Validation Utility
- * Determines whether a session can be started based on service type and payment status.
+ * Session Payment Reminder Utility
+ * Describes what the artist should be reminded about without blocking work.
  *
  * Rules:
  *   - Consultation: always free, no payment required
- *   - Tattoo Session (first/new): downpayment required (downpayment_paid or paid)
- *   - Tattoo Session (follow-up): must be fully paid
- *   - Piercing (first/new): downpayment required (standard ₱500, downpayment_paid or paid)
- *   - Piercing (follow-up): must be fully paid
- *   - Tattoo + Piercing bundle: same rules as tattoo (downpayment for first, full for follow-up)
+ *   - Fully paid services: no reminder
+ *   - Partially paid services: remind the artist that a balance remains
+ *   - Unpaid services: remind the artist that payment may be collected afterward
  */
 
 /**
@@ -34,13 +32,15 @@ const getServiceCategory = (serviceType) => {
 };
 
 /**
- * Determines whether a session can be started and the reason if not.
+ * Describes the payment reminder shown to an artist before a session.
+ * Payment is intentionally not a blocker because the studio may collect it
+ * after the procedure.
  *
  * @param {Object} session - The appointment/session object from the API
  * @param {string} session.service_type - e.g. 'Tattoo Session', 'Piercing', 'Consultation'
  * @param {string} session.payment_status - e.g. 'unpaid', 'pending', 'downpayment_paid', 'paid'
  * @param {string} session.notes - appointment notes (used to detect follow-ups)
- * @returns {{ canStart: boolean, reason: string, category: string, isFollowUp: boolean }}
+ * @returns {{ canStart: boolean, needsReminder: boolean, reason: string, label: string, category: string, isFollowUp: boolean }}
  */
 export const getSessionPaymentStatus = (session) => {
     const category = getServiceCategory(session.service_type);
@@ -49,49 +49,40 @@ export const getSessionPaymentStatus = (session) => {
 
     // Consultations are always free
     if (category === 'consultation') {
-        return { canStart: true, reason: '', category, isFollowUp: false };
+        return { canStart: true, needsReminder: false, reason: '', label: '', category, isFollowUp: false };
     }
 
-    // Follow-up sessions (tattoo, piercing, or bundle) must be fully paid
+    if (paymentStatus === 'paid') {
+        return { canStart: true, needsReminder: false, reason: '', label: '', category, isFollowUp };
+    }
+
+    // Payment is a reminder only; it never prevents the artist from working.
     if (isFollowUp) {
-        const isPaid = paymentStatus === 'paid';
         return {
-            canStart: isPaid,
-            reason: isPaid ? '' : 'Full payment is required before starting a follow-up session. Please ensure the balance has been settled.',
+            canStart: true,
+            needsReminder: true,
+            reason: 'Payment has not been completed. The customer may settle the balance after the session.',
+            label: 'Payment reminder: balance not yet settled',
             category,
             isFollowUp: true
         };
     }
 
-    // First/new sessions: require at least a downpayment
-    const hasDownpayment = paymentStatus === 'downpayment_paid' || paymentStatus === 'paid';
-    const serviceLabel = category === 'piercing' ? 'piercing' : category === 'bundle' ? 'tattoo & piercing' : 'tattoo';
+    const hasDownpayment = paymentStatus === 'downpayment_paid';
     return {
-        canStart: hasDownpayment,
-        reason: hasDownpayment ? '' : `A downpayment is required before starting this ${serviceLabel} session. The client's payment must be verified first.`,
+        canStart: true,
+        needsReminder: true,
+        reason: hasDownpayment
+            ? 'A partial payment is recorded. The customer may settle the remaining balance after the session.'
+            : 'No payment is recorded yet. The customer may pay after the session.',
+        label: hasDownpayment ? 'Payment reminder: remaining balance due' : 'Payment reminder: not paid yet',
         category,
         isFollowUp: false
     };
 };
 
 /**
- * Checks if a session should appear in the artist's daily queue.
- * Uses the same logic as getSessionPaymentStatus but intended for filtering.
+ * Payment must never hide an assigned session from the artist's daily queue.
+ * The queue shows the appointment and the action displays a payment reminder.
  */
-export const shouldShowInQueue = (session) => {
-    const category = getServiceCategory(session.service_type);
-
-    // Consultations always show in queue
-    if (category === 'consultation') return true;
-
-    const paymentStatus = (session.payment_status || '').toLowerCase();
-    const isFollowUp = isFollowUpSession(session);
-
-    if (isFollowUp) {
-        // Follow-ups only show if fully paid
-        return paymentStatus === 'paid';
-    }
-
-    // First/new sessions show if at least downpayment received
-    return paymentStatus === 'downpayment_paid' || paymentStatus === 'paid';
-};
+export const shouldShowInQueue = () => true;

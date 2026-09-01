@@ -24,7 +24,7 @@ test('extracts the ten-digit local number for editable mobile fields', () => {
 });
 
 test('rejects malformed or non-mobile Philippine numbers', () => {
-  ['8171234567', '917123456', '+6391712345678', '', null].forEach((value) => {
+  ['8171234567', '917123456', '+6391712345678', 'abc09171234567', '09+171234567', '', null].forEach((value) => {
     assert.equal(normalizePhilippineMobileNumber(value), null);
   });
 });

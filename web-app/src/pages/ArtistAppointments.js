@@ -11,6 +11,7 @@ import './AdminUsers.css';
 import { API_URL } from '../config';
 import { getDisplayCode, formatTime12Hour, formatStatus, getStatusColor } from '../utils/formatters';
 import { generateReportHeader, downloadCsv } from '../utils/csvExport';
+import { getSessionPaymentStatus } from '../utils/sessionPayment';
 
 function ArtistAppointments() {
     const [appointments, setAppointments] = useState([]);
@@ -687,6 +688,7 @@ function ArtistAppointments() {
                                     {selectedAppointment && (() => {
                                         const myRole = selectedAppointment.assigned_role || 'primary';
                                         const isDual = ['tattoo', 'piercing', 'both'].includes(myRole) && selectedAppointment.secondary_artist_id;
+                                        const payCheck = getSessionPaymentStatus(selectedAppointment);
                                         const roleBadge = isDual ? (
                                             myRole === 'both' ? { icon: '', label: 'Tattoo & Piercing Staff', bg: '#be9055', color: '#fff' }
                                             : myRole === 'piercing' ? { icon: '', label: 'Piercing Staff', bg: '#be9055', color: '#fff' }
@@ -914,13 +916,21 @@ function ArtistAppointments() {
                                                         </>
                                                     )}
                                                     {['confirmed', 'in_progress'].includes(selectedAppointment.status) && (
-                                                        <button
-                                                            onClick={() => { setSelectedAppointment(null); navigate(`/artist/sessions?appointment=${selectedAppointment.id}`); }}
-                                                            className="btn btn-primary"
-                                                            style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '500', color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                                        >
-                                                            <PenTool size={14} /> Manage Session
-                                                        </button>
+                                                        <div className="session-manage-action">
+                                                            <button
+                                                                onClick={() => { setSelectedAppointment(null); navigate(`/artist/sessions?appointment=${selectedAppointment.id}`); }}
+                                                                className="btn btn-primary"
+                                                                title={payCheck.needsReminder ? payCheck.reason : 'Manage Session'}
+                                                                style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', fontWeight: '500', color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                            >
+                                                                <PenTool size={14} /> Manage Session
+                                                            </button>
+                                                            {payCheck.needsReminder && (
+                                                                <span className="session-payment-reminder">
+                                                                    {payCheck.label}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     )}
                                                     <button onClick={() => setSelectedAppointment(null)} className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: '500', color: '#334155' }}>Close</button>
                                                 </div>

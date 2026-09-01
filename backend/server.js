@@ -304,6 +304,10 @@ function getLocalDatetime(date = new Date()) {
   return localDate.toISOString().slice(0, 19).replace('T', ' ');
 }
 
+function getManilaDateString(date = new Date()) {
+  return new Date(date.getTime() + (8 * 60 * 60 * 1000)).toISOString().slice(0, 10);
+}
+
 // Generate Kiosk-style Booking Code
 function generateBookingCode(origin, serviceType, insertId) {
   const originCode = origin === 'W' ? 'W' : 'O';
@@ -4506,6 +4510,9 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
       const currentDateNorm = new Date(appt.appointment_date);
       newDateObj.setHours(0, 0, 0, 0);
       currentDateNorm.setHours(0, 0, 0, 0);
+      if (String(newDate).slice(0, 10) < getManilaDateString()) {
+        return res.status(400).json({ success: false, message: 'Sessions cannot be rescheduled to a date that has already passed.' });
+      }
       if (newDateObj <= currentDateNorm) {
         return res.status(400).json({ success: false, message: 'You can only reschedule to a later date than your current appointment.' });
       }
@@ -6140,6 +6147,23 @@ app.put('/api/admin/appointments/:id', (req, res) => {
       return res.status(404).json({ success: false, message: 'Appointment not found.' });
     }
     const oldAppt = oldApptResults[0];
+
+    // A historical appointment may still be edited, but moving any session to
+    // a date before today is never a valid reschedule. Enforce this server-side
+    // so mobile clients or direct API requests cannot bypass the date picker.
+    if (date) {
+      const requestedDate = String(date).slice(0, 10);
+      const oldDate = oldAppt.appointment_date instanceof Date
+        ? oldAppt.appointment_date.toISOString().slice(0, 10)
+        : String(oldAppt.appointment_date || '').slice(0, 10);
+      const today = getManilaDateString();
+      if (requestedDate !== oldDate && requestedDate < today) {
+        return res.status(400).json({
+          success: false,
+          message: 'Sessions cannot be rescheduled to a date that has already passed.'
+        });
+      }
+    }
 
     db.query(query, params, (err, result) => {
       if (err) {
@@ -8969,6 +8993,21 @@ app.get('/api/appointments/:id/waiver-document', async (req, res) => {
   const appointmentId = Number(req.params.id);
   if (!Number.isInteger(appointmentId) || appointmentId <= 0) {
     return res.status(400).json({ success: false, message: 'A valid appointment ID is required.' });
+  }
+
+  const isAdminWalkInBooking = customerId === 'admin' && !isFromWizard;
+  if (isAdminWalkInBooking && !String(guestPhone || '').trim()) {
+    return res.status(400).json({ success: false, message: 'A contact number is required for walk-in appointments.' });
+  }
+  if (String(guestPhone || '').trim()) {
+    const normalizedGuestPhone = normalizePhilippineMobileNumber(guestPhone);
+    if (!normalizedGuestPhone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Enter a valid Philippine mobile number (for example, 09171234567).'
+      });
+    }
+    guestPhone = normalizedGuestPhone;
   }
 
   try {

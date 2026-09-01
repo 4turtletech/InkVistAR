@@ -3,7 +3,10 @@ const PH_LOCAL_MOBILE_PATTERN = /^9\d{9}$/;
 function extractPhilippineLocalMobileNumber(value) {
   if (value === undefined || value === null) return null;
 
-  const digits = String(value).replace(/\D/g, '');
+  const input = String(value).trim();
+  if (!/^\+?[\d\s()-]+$/.test(input)) return null;
+
+  const digits = input.replace(/\D/g, '');
   let localNumber = digits;
 
   if (digits.startsWith('63')) localNumber = digits.slice(2);

@@ -939,7 +939,9 @@ function ArtistSessions() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {sessions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(session => (
+                                            {sessions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(session => {
+                                                const payCheck = getSessionPaymentStatus(session);
+                                                return (
                                                 <tr key={session.id} onClick={() => { setViewingApt(session); setIsDetailsOpen(true); }} style={{ cursor: 'pointer' }}>
                                                     <td data-label="Time">
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
@@ -951,12 +953,24 @@ function ArtistSessions() {
                                                     <td data-label="Design">{session.design_title}</td>
                                                     <td data-label="Status"><span className={`badge status-${getStatusColor(session.status)}`}>{formatStatus(session.status)}</span></td>
                                                     <td data-label="Action">
-                                                        <button className="btn btn-primary" onClick={(e) => { e.stopPropagation(); handleManageSession(session); }} style={{ padding: '6px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                            <PenTool size={14} /> Manage Session
-                                                        </button>
+                                                        <div className="session-manage-action">
+                                                            <button
+                                                                className="btn btn-primary"
+                                                                title={payCheck.needsReminder ? payCheck.reason : 'Manage Session'}
+                                                                onClick={(e) => { e.stopPropagation(); handleManageSession(session); }}
+                                                                style={{ padding: '6px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                            >
+                                                                <PenTool size={14} /> Manage Session
+                                                            </button>
+                                                            {payCheck.needsReminder && (
+                                                                <span className="session-payment-reminder">
+                                                                    {payCheck.label}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
-                                            ))}
+                                            );})}
                                         </tbody>
                                     </table>
                                 </div>
@@ -1101,9 +1115,25 @@ function ArtistSessions() {
                             </div>
                             <div className="modal-footer">
                                 <button className="btn btn-secondary" onClick={() => setIsDetailsOpen(false)}>Close</button>
-                                <button className="btn btn-primary" onClick={() => { setIsDetailsOpen(false); handleManageSession(viewingApt); }}>
-                                    Go to Management
-                                </button>
+                                {(() => {
+                                    const payCheck = getSessionPaymentStatus(viewingApt);
+                                    return (
+                                        <div className="session-manage-action">
+                                            <button
+                                                className="btn btn-primary"
+                                                title={payCheck.needsReminder ? payCheck.reason : 'Go to Management'}
+                                                onClick={() => { setIsDetailsOpen(false); handleManageSession(viewingApt); }}
+                                            >
+                                                Go to Management
+                                            </button>
+                                            {payCheck.needsReminder && (
+                                                <span className="session-payment-reminder">
+                                                    {payCheck.label}
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </div>
                     </div>
@@ -1783,34 +1813,25 @@ function ArtistSessions() {
                                             className="btn btn-primary" 
                                             style={{ 
                                                 padding: '10px 24px',
-                                                opacity: (payCheck.canStart && !isStartingProcedure && !isProjectClosed) ? 1 : 0.6,
-                                                cursor: (payCheck.canStart && !isStartingProcedure && !isProjectClosed) ? 'pointer' : 'not-allowed'
+                                                opacity: (!isStartingProcedure && !isProjectClosed) ? 1 : 0.6,
+                                                cursor: (!isStartingProcedure && !isProjectClosed) ? 'pointer' : 'not-allowed'
                                             }} 
-                                            title={isProjectClosed ? 'Project is completed' : (payCheck.canStart ? 'Start Session' : payCheck.reason)}
+                                            title={isProjectClosed ? 'Project is completed' : (payCheck.needsReminder ? payCheck.reason : 'Start Session')}
                                             disabled={isStartingProcedure || isProjectClosed}
                                             onClick={() => {
                                                 if (isProjectClosed) {
                                                     showAlert('Project Closed', 'This project has been marked as completed. Contact admin to reopen.', 'warning');
                                                     return;
                                                 }
-                                                if (!payCheck.canStart || isStartingProcedure) {
-                                                    if (!payCheck.canStart) {
-                                                        showAlert(
-                                                            payCheck.isFollowUp ? 'Full Payment Required' : 'Downpayment Required',
-                                                            payCheck.reason,
-                                                            'warning'
-                                                        );
-                                                    }
-                                                    return;
-                                                }
+                                                if (isStartingProcedure) return;
                                                 handleUpdateStatus('in_progress');
                                             }}
                                         >
                                             <Play size={16} /> {isStartingProcedure ? 'Starting...' : 'Start Procedure'}
                                         </button>
-                                        {!payCheck.canStart && (
-                                            <span style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 600 }}>
-                                                * {payCheck.isFollowUp ? 'Full payment required' : 'Payment required to begin'}
+                                        {payCheck.needsReminder && (
+                                            <span className="session-payment-reminder">
+                                                {payCheck.label}. Customer may pay after the session.
                                             </span>
                                         )}
                                     </div>

@@ -19,6 +19,25 @@ export const filterDigits = (val) => {
 };
 
 /**
+ * Accepts common Philippine mobile formats and returns a consistent E.164
+ * value. Examples: 09171234567, 9171234567, and +639171234567.
+ */
+export const normalizePhilippineMobileNumber = (value) => {
+    if (value === undefined || value === null) return null;
+
+    const input = String(value).trim();
+    if (!/^\+?[\d\s()-]+$/.test(input)) return null;
+
+    const digits = input.replace(/\D/g, '');
+    let localNumber = digits;
+
+    if (localNumber.startsWith('63')) localNumber = localNumber.slice(2);
+    if (localNumber.startsWith('0')) localNumber = localNumber.slice(1);
+
+    return /^9\d{9}$/.test(localNumber) ? `+63${localNumber}` : null;
+};
+
+/**
  * Clamps a number between a min and max value.
  */
 export const clampNumber = (val, min, max) => {
