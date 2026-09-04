@@ -1386,7 +1386,7 @@ POST /api/admin/appointments
 
 **Notifications Triggered:**
 1. **Customer (Maria):** "Your request for a Filipino Sun & Stars Tribute session on May 15, 2026 at 2:00 PM has been received. We will review it shortly!"
-2. **All Admins/Managers:** "New Consultation request: 'Filipino Sun & Stars Tribute' for 2026-05-15. Please review and assign pricing."
+2. **All Admins (Studio Managers):** "New Consultation request: 'Filipino Sun & Stars Tribute' for 2026-05-15. Please review and assign pricing."
 
 ---
 

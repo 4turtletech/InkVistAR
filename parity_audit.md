@@ -40,7 +40,7 @@ This document serves as the master checklist to ensure 100% functional, structur
 
 ### User Status & Suspension Workflows
 *   **Web App:** Features a dedicated "Manage Status" modal allowing admins to toggle between Active, Deactivated, and Banned. It forces the admin to provide a "Reason" for banning/deactivation and specifies a duration.
-*   **Mobile App:** Lacks the "Manage Status" modal entirely. Status (Active/Suspended) can only be toggled for Admins/Managers via the Edit form. Customers and Artists do not have a dedicated status toggle mechanism from the main list.
+*   **Mobile App:** Lacks the "Manage Status" modal entirely. Status (Active/Suspended) can only be toggled for Admin (Studio Manager) accounts via the Edit form. Customers and Artists do not have a dedicated status toggle mechanism from the main list.
 
 ### Deletion & Data Recovery (Soft vs Permanent)
 *   **Web App:** Enforces a two-step deletion process: "Soft Delete" (moves them to a 'deleted' status where they can be "Restored") and "Permanent Delete" (Erase) which includes a mandatory 3-second destructive confirmation countdown.

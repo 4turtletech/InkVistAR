@@ -6,6 +6,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 ### 1. Anti-Hallucination Rules
 - **Do NOT hallucinate database fields, APIs, or files.** Always refer to the exact Database Tables and API Endpoints documented below.
 - **Read Before Modifying:** Always use `view_file` to read the target code before writing an update. Do not guess the structure of a component.
+- **Canonical Role Model:** InkVistAR has three functional roles: **Customer, Artist, and Admin (Studio Manager)**. "Admin" and "Manager" describe the same studio role with the same responsibilities and permissions; Manager is a title or legacy technical alias, not a separate fourth role. Do not create separate Manager workflows, reduced Manager permissions, or Manager-only UI. Existing `manager` account values, routes, or components are legacy compatibility and must be treated as Admin-equivalent unless the user explicitly requests their removal.
 - **Soft Deletes Only:** Never DELETE rows from the database. Always use the `is_deleted` flag for appointments, portfolio_works, inventory, and users. For Admin appointments, the 'Delete' UI action is officially deprecated; strictly use the notification-driven 'Reschedule' workflow.
 - **System Flow Accuracy:** Refer to the `Updated_Activity_Diagram.md` for the correct booking, payment, and scheduling flows.
 - **Mandatory Auto-Documentation & Self-Updating Guidelines (Gemini/Agent Rule):** The AI Agent MUST automatically update this `guidelines.md` file whenever it modifies database schemas, API endpoints, core UI patterns, or system logic. Do not wait for the user to ask you to document changes. The AI must treat this file as a living document and seamlessly update it in the *same changeset* as the code modifications.
@@ -104,7 +105,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 
 ### 4. Payment Resolution Flow
 - **When an artist marks a session as `completed`, the backend MUST check if the appointment has an outstanding balance** (`total_paid < price` or `price <= 0` meaning unquoted).
-- If an outstanding balance exists, a `payment_action_required` notification is fired to **all admin/manager users**.
+- If an outstanding balance exists, a `payment_action_required` notification is fired to **all Admin (Studio Manager) users**, including accounts stored under the legacy `manager` alias.
 - **Admins receive an immediate popup modal** (via `PaymentAlertOverlay` component) on whatever page they are currently on.
 - The popup shows the appointment's financial summary (Total Quoted, Collected, Remaining) and allows inline "Record Payment" or navigation to the appointment.
 - **Dismissing the popup** does NOT resolve the alert — a persistent **toast notification** remains at bottom-right, and a **pulsing red dot** persists on the sidebar's Notifications menu item.
@@ -130,7 +131,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 
 | Table | Key Columns |
 |-------|-------------|
-| **users** | id, name, email, password_hash, user_type (admin/manager/artist/customer), phone, is_verified, is_deleted |
+| **users** | id, name, email, password_hash, user_type (`admin`, legacy Admin alias `manager`, `artist`, `customer`), phone, is_verified, is_deleted |
 | **artists** | user_id, studio_name, experience_years, specialization, hourly_rate, commission_rate, rating, total_reviews, profile_image, phone |
 | **customers** | user_id, phone, location, notes |
 | **appointments** | id, booking_code, customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, end_time, service_type, design_title, price, manual_paid_amount, manual_payment_method, notes, reference_image, draft_image, before_photo, after_photo, status, payment_status, session_duration, audit_log, reschedule_count, device_id, consultation_method, guest_email, guest_phone, is_referral, consultation_notes, quoted_price, tattoo_price, piercing_price, is_deleted |
@@ -253,8 +254,8 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `GET/POST/DELETE /api/admin/expenses` - Studio expenses (overhead) CRUD
 - `PUT /api/admin/expenses/:id` - Update a studio expense entry
 
-### Manager
-- `GET /api/manager/dashboard` - Manager dashboard stats (subset of admin)
+### Admin / Studio Manager Compatibility
+- `GET /api/manager/dashboard` - Legacy compatibility route for the Admin (Studio Manager) dashboard; it does not define a separate functional role
 
 ### Reviews
 - `POST /api/reviews` - Submit a new review (customer → artist)
@@ -334,7 +335,7 @@ BACKEND_URL=https://inkvistar-api.onrender.com
 ## Security Enforcement
 
 - **High-Risk HTTP Routes:** `backend/middleware/highRiskProtection.js` protects admin, payment/payout, customer health/profile, appointment/project, artist earnings/session, notification/report, inventory/POS, and invoice routes. Authorization identity always comes from `req.auth`, never a request-body user ID or the legacy `X-Admin-Id` header. Resource ownership is loaded from the database before access is granted.
-- **Socket.IO Rooms:** `backend/services/socketAuthorization.js` requires admin/manager authentication for admin tracking, verifies artist assignment before joining session rooms, limits customers to their own support room, and binds anonymous live-support sockets to one guest room.
+- **Socket.IO Rooms:** `backend/services/socketAuthorization.js` requires Admin authentication (including the legacy `manager` alias) for admin tracking, verifies artist assignment before joining session rooms, limits customers to their own support room, and binds anonymous live-support sockets to one guest room.
 - **Payment Webhook:** `/api/payments/webhook` is the only unauthenticated payment endpoint. It requires `PAYMONGO_WEBHOOK_SECRET`, a valid HMAC signature, and a timestamp within five minutes.
 - **Security Regression Suite:** Run `npm test` from `backend/` before deploying authentication, authorization, recovery, or payment changes. The suite covers unauthenticated and wrong-role admin access, cross-customer profile access, artist appointment assignment, public role escalation, expired/reused tokens, and unsigned PayMongo webhooks.
 - **Native Registration CAPTCHA:** Mobile registration obtains a short-lived reCAPTCHA v3 `mobile_register` token from the approved website origin through a WebView bridge. The app may override that page with `EXPO_PUBLIC_CAPTCHA_WEB_URL`; `RECAPTCHA_SECRET_KEY` remains backend-only. The website must use the matching `REACT_APP_RECAPTCHA_SITE_KEY`, and every production hostname must be registered in both Google reCAPTCHA and `RECAPTCHA_ALLOWED_HOSTNAMES`. The backend selects `RECAPTCHA_MOBILE_MIN_SCORE` only from the `mobile_register` action signed into Google's verification response—never from a client-supplied platform flag. Do not send `req.ip` to Google unless Express is configured with a trusted proxy chain that produces the actual client address.
@@ -424,7 +425,7 @@ BACKEND_URL=https://inkvistar-api.onrender.com
     - **SMS:** Sent via `sendSMS()` (Semaphore API) if `guestPhone` is provided. Includes booking code, design idea, date/time.
     - **Email:** Sent via `sendResendEmail()` using `buildEmailHtml()` if `guestEmail` is provided. Uses the dark luxury branded template with full booking details (Ref Code, Design Idea, Date, Time, Method) and a tip encouraging account creation.
     - **Both are sent** if both contact methods are provided. If only one is available, only that channel is used.
-    - **Admin Notification:** All admin/manager users receive an in-app notification (`createNotification`) with the guest's name, design idea, contact info, and booking code. No emojis in notification titles.
+    - **Admin Notification:** All Admin (Studio Manager) users, including accounts stored under the legacy `manager` alias, receive an in-app notification (`createNotification`) with the guest's name, design idea, contact info, and booking code. No emojis in notification titles.
     - **Data Storage:** Guest contact info is stored in dedicated `guest_email` and `guest_phone` columns on the `appointments` table (not just inside the `notes` field).
 26. **Guest Account Migration Flow:** When a guest later creates an InkVistAR account with the same email they used for a prior booking:
     - **Registration (`/api/register`):** After user creation, the backend runs `UPDATE appointments SET customer_id = ? WHERE guest_email = ? AND customer_id != ?` to migrate all orphan appointments to the new account. Returns `migratedCount` in the response.
@@ -495,11 +496,11 @@ BACKEND_URL=https://inkvistar-api.onrender.com
     - **Focus rings:** Interactive elements use brand gold (`#be9055`) focus rings, NOT indigo (`#667eea`).
     - **Exception:** Semantic data-viz colors in charts and status badges are NOT button overrides and are preserved.
 
-37. **Manager Portal (Read-Only Subset):**
-    - Manager users (`user_type='manager'`) access a limited portal via `ManagerPortal.js` with `ManagerSideNav.js`.
-    - **Pages:** `ManagerAnalytics.js`, `ManagerAppointments.js`, `ManagerUsers.js` — read-only views of admin data.
-    - **Dashboard:** `GET /api/manager/dashboard` returns the same stats as admin dashboard.
-    - Managers receive the same notifications as admins (including `payment_action_required`).
+37. **Admin (Studio Manager) Role Equivalence:**
+    - Admin and Manager are the same functional role. The preferred product-facing name is **Admin** or **Studio Manager**.
+    - `user_type='manager'`, `ManagerPortal.js`, `ManagerSideNav.js`, `ManagerAnalytics.js`, `ManagerAppointments.js`, `ManagerUsers.js`, and `/api/manager/*` are legacy compatibility names. They must not be used as justification for a separate or reduced-permission business role.
+    - Accounts stored as `admin` or the legacy `manager` alias must receive the same Admin workflow, capabilities, and notifications, including `payment_action_required`.
+    - Do not add a fourth "Manager" persona to functional tests, diagrams, user stories, or UI role selectors.
 
 38. **Component Registry (Reusable Components):**
     - `WaiverFormModal.js` / `WaiverFormModal.css` — Digital waiver/consent form modal for appointments.

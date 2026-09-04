@@ -99,11 +99,6 @@ function AdminUsers() {
     const [createErrors, setCreateErrors] = useState({});
     const [showCreatePassword, setShowCreatePassword] = useState(false);
     const [showCreateConfirmPassword, setShowCreateConfirmPassword] = useState(false);
-    const [createPasswordFocused, setCreatePasswordFocused] = useState(false);
-    const [createPasswordFeedback, setCreatePasswordFeedback] = useState({
-        hasMinLength: false, hasUppercase: false, hasLowercase: false,
-        hasNumber: false, hasSymbol: false
-    });
     const [createSubmitAttempted, setCreateSubmitAttempted] = useState(false);
     const [profileImagePreview, setProfileImagePreview] = useState(null);
 
@@ -216,9 +211,7 @@ function AdminUsers() {
         setCreateErrors({});
         setShowCreatePassword(false);
         setShowCreateConfirmPassword(false);
-        setCreatePasswordFocused(false);
         setCreateSubmitAttempted(false);
-        setCreatePasswordFeedback({ hasMinLength: false, hasUppercase: false, hasLowercase: false, hasNumber: false, hasSymbol: false });
         setProfileImagePreview(null);
     };
 
@@ -814,8 +807,6 @@ function AdminUsers() {
         setCreateErrors({});
         setShowCreatePassword(false);
         setShowCreateConfirmPassword(false);
-        setCreatePasswordFocused(false);
-        setCreatePasswordFeedback({ hasMinLength: false, hasUppercase: false, hasLowercase: false, hasNumber: false, hasSymbol: false });
         setProfileImagePreview(null);
         openCreateModalAnim();
     };
@@ -858,10 +849,13 @@ function AdminUsers() {
             else if (value.length !== 10) error = 'Phone number must be exactly 10 digits';
         }
         if (name === 'password') {
-            const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
             if (!value) error = 'Password is required';
-            else if (value.length < 8) error = 'Must be at least 8 characters';
-            else if (!strongRegex.test(value)) error = 'Needs uppercase, lowercase, number, and symbol';
+            else if (value.length < 8) error = 'Use at least 8 characters';
+            else if (!/[A-Z]/.test(value)) error = 'Add at least one uppercase letter';
+            else if (!/[a-z]/.test(value)) error = 'Add at least one lowercase letter';
+            else if (!/\d/.test(value)) error = 'Add at least one number';
+            else if (!/[@$!%*?&#]/.test(value)) error = 'Add at least one special character: @ $ ! % * ? & or #';
+            else if (!/^[A-Za-z\d@$!%*?&#]+$/.test(value)) error = 'Use only letters, numbers, and the supported special characters';
         }
         if (name === 'confirmPassword') {
             if (!value) error = 'Please confirm your password';
@@ -878,16 +872,6 @@ function AdminUsers() {
         return error === '';
     };
 
-    const syncCreatePasswordFeedback = (passwordValue) => {
-        setCreatePasswordFeedback({
-            hasMinLength: passwordValue.length >= 8,
-            hasUppercase: /[A-Z]/.test(passwordValue),
-            hasLowercase: /[a-z]/.test(passwordValue),
-            hasNumber: /[0-9]/.test(passwordValue),
-            hasSymbol: /[@$!%*?&#]/.test(passwordValue)
-        });
-    };
-
     const handleCreateFieldChange = (name, value) => {
         let sanitized = value;
         if (name === 'firstName' || name === 'lastName') sanitized = filterName(value).slice(0, 50);
@@ -898,10 +882,6 @@ function AdminUsers() {
         else if (name === 'age') sanitized = filterDigits(value).slice(0, 3);
         const nextFormData = { ...createFormData, [name]: sanitized };
         setCreateFormData(nextFormData);
-
-        if (name === 'password') {
-            syncCreatePasswordFeedback(sanitized);
-        }
 
         if (createErrors[name]) setCreateErrors(prev => ({ ...prev, [name]: '' }));
         if (createSubmitAttempted || createErrors.password || createErrors.confirmPassword) {
@@ -917,11 +897,7 @@ function AdminUsers() {
     };
 
     const isCreatePasswordStrong = () => {
-        return createPasswordFeedback.hasMinLength &&
-            createPasswordFeedback.hasUppercase &&
-            createPasswordFeedback.hasLowercase &&
-            createPasswordFeedback.hasNumber &&
-            createPasswordFeedback.hasSymbol;
+        return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/.test(createFormData.password);
     };
 
     const isCreateFormValid = () => {
@@ -1678,7 +1654,7 @@ function AdminUsers() {
                                             onChange={handleProfileImageChange} />
                                     </div>
                                 </div>
-                                {createErrors.profileImage && <small style={{ color: '#ef4444', display: 'block', textAlign: 'center', marginTop: '-16px', marginBottom: '12px', fontSize: '0.8rem' }}>{createErrors.profileImage}</small>}
+                                {createErrors.profileImage && <small className="admin-inline-error admin-inline-error-centered">{createErrors.profileImage}</small>}
                                 <p style={{ textAlign: 'center', margin: '-12px 0 20px', fontSize: '0.8rem', color: '#94a3b8' }}>Click to upload profile photo (optional)</p>
 
                                 <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
@@ -1688,7 +1664,7 @@ function AdminUsers() {
                                             placeholder="e.g. Juan" value={createFormData.firstName}
                                             onChange={(e) => handleCreateFieldChange('firstName', e.target.value)}
                                             onBlur={() => handleCreateBlur('firstName')} maxLength={50} />
-                                        {createErrors.firstName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.firstName}</small>}
+                                        {createErrors.firstName && <small className="admin-inline-error">{createErrors.firstName}</small>}
                                     </div>
                                     <div className="form-group" style={{ flex: 1 }}>
                                         <label className="premium-label">Last Name *</label>
@@ -1696,7 +1672,7 @@ function AdminUsers() {
                                             placeholder="e.g. dela Cruz" value={createFormData.lastName}
                                             onChange={(e) => handleCreateFieldChange('lastName', e.target.value)}
                                             onBlur={() => handleCreateBlur('lastName')} maxLength={50} />
-                                        {createErrors.lastName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.lastName}</small>}
+                                        {createErrors.lastName && <small className="admin-inline-error">{createErrors.lastName}</small>}
                                     </div>
                                     <div className="form-group" style={{ width: '90px', flexShrink: 0 }}>
                                         <label className="premium-label">Suffix</label>
@@ -1713,7 +1689,7 @@ function AdminUsers() {
                                             placeholder="email@example.com" value={createFormData.email}
                                             onChange={(e) => handleCreateFieldChange('email', e.target.value)}
                                             onBlur={() => handleCreateBlur('email')} maxLength={254} />
-                                        {createErrors.email && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.email}</small>}
+                                        {createErrors.email && <small className="admin-inline-error">{createErrors.email}</small>}
                                     </div>
                                     <div className="form-group">
                                         <label className="premium-label">User Role *</label>
@@ -1738,7 +1714,7 @@ function AdminUsers() {
                                                 onChange={(e) => handleCreateFieldChange('phone', e.target.value.replace(/^0+/, ''))}
                                                 onBlur={() => handleCreateBlur('phone')} maxLength={10} />
                                         </div>
-                                        {createErrors.phone && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.phone}</small>}
+                                        {createErrors.phone && <small className="admin-inline-error">{createErrors.phone}</small>}
                                     </div>
                                     <div className="form-group">
                                         <label className="premium-label">Age</label>
@@ -1746,7 +1722,7 @@ function AdminUsers() {
                                             placeholder="e.g. 25" value={createFormData.age}
                                             onChange={(e) => handleCreateFieldChange('age', e.target.value)}
                                             onBlur={() => handleCreateBlur('age')} />
-                                        {createErrors.age && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.age}</small>}
+                                        {createErrors.age && <small className="admin-inline-error">{createErrors.age}</small>}
                                     </div>
                                 </div>
                                 <div className="form-row">
@@ -1757,8 +1733,7 @@ function AdminUsers() {
                                                 style={{ paddingRight: '44px' }}
                                                 placeholder="Secure password" value={createFormData.password}
                                                 onChange={(e) => handleCreateFieldChange('password', e.target.value)}
-                                                onFocus={() => setCreatePasswordFocused(true)}
-                                                onBlur={() => { handleCreateBlur('password'); if (!createFormData.password) setCreatePasswordFocused(false); }}
+                                                onBlur={() => handleCreateBlur('password')}
                                                 onPaste={(e) => e.preventDefault()} maxLength={128} />
                                             <button type="button" onClick={() => setShowCreatePassword(!showCreatePassword)}
                                                 style={{
@@ -1771,7 +1746,7 @@ function AdminUsers() {
                                                 {showCreatePassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                             </button>
                                         </div>
-                                        {createErrors.password && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.password}</small>}
+                                        {createErrors.password && <small className="admin-inline-error">{createErrors.password}</small>}
                                     </div>
                                     <div className="form-group">
                                         <label className="premium-label">Confirm Password *</label>
@@ -1793,24 +1768,7 @@ function AdminUsers() {
                                                 {showCreateConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                             </button>
                                         </div>
-                                        {createErrors.confirmPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.confirmPassword}</small>}
-                                    </div>
-                                </div>
-                                {/* Password Rule Checklist */}
-                                <div style={{ overflow: 'hidden', maxHeight: createPasswordFocused ? '200px' : '0', opacity: createPasswordFocused ? 1 : 0, transition: 'max-height 0.3s ease, opacity 0.3s ease', marginTop: createPasswordFocused ? '4px' : '0', marginBottom: '8px' }}>
-                                    <div>
-                                        {[
-                                            { met: createPasswordFeedback.hasMinLength, hint: 'At least 8 characters' },
-                                            { met: createPasswordFeedback.hasUppercase, hint: 'At least 1 uppercase letter' },
-                                            { met: createPasswordFeedback.hasLowercase, hint: 'At least 1 lowercase letter' },
-                                            { met: createPasswordFeedback.hasNumber, hint: 'At least 1 number' },
-                                            { met: createPasswordFeedback.hasSymbol, hint: 'At least 1 special character: @ $ ! % * ? & or #' }
-                                        ].map((rule) => (
-                                            <div key={rule.hint} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', color: rule.met ? '#15803d' : '#64748b', fontSize: '0.82rem', fontWeight: rule.met ? 600 : 500 }}>
-                                                <span style={{ width: '16px', display: 'inline-flex', justifyContent: 'center' }}>{rule.met ? 'OK' : '-'}</span>
-                                                <span>{rule.hint}</span>
-                                            </div>
-                                        ))}
+                                        {createErrors.confirmPassword && <small className="admin-inline-error">{createErrors.confirmPassword}</small>}
                                     </div>
                                 </div>
                             </div>

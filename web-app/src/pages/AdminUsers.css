@@ -488,6 +488,28 @@
     box-shadow: 0 0 0 3px rgba(190, 144, 85, 0.1);
 }
 
+.admin-page .form-input.error {
+    border-color: #dc2626 !important;
+    background-color: #fff7f7 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+}
+
+.admin-page .admin-inline-error {
+    display: block;
+    min-height: 1rem;
+    margin-top: 0.35rem;
+    color: #dc2626;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.admin-page .admin-inline-error-centered {
+    margin-top: -1rem;
+    margin-bottom: 0.75rem;
+    text-align: center;
+}
+
 .form-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

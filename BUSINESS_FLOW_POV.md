@@ -1,6 +1,6 @@
 # InkVistAR Business Flows (Point of View)
 
-This document outlines the operational business flow of InkVistAR from the perspective of the three main roles: Customer, Admin, and Artist. These workflows reflect the strict logic and safeguards hardcoded into the system.
+This document outlines the operational business flow of InkVistAR from the perspective of the three main roles: Customer, Admin (Studio Manager), and Artist. **Admin and Manager are the same studio role**, not separate personas. These workflows reflect the strict logic and safeguards hardcoded into the system.
 
 ---
 
@@ -27,7 +27,7 @@ This document outlines the operational business flow of InkVistAR from the persp
 
 ---
 
-## 2. Admin / Studio Staff POV
+## 2. Admin (Studio Manager) / Studio Staff POV
 
 1. **Receiving Requests**
    - Admin receives a push/in-app notification of a new `pending` booking.
