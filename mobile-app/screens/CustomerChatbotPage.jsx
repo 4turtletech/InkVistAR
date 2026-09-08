@@ -111,10 +111,15 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
-      if (state === 'active') setHistoryRefresh(value => value + 1);
+      if (state === 'active') {
+        setHistoryRefresh(value => value + 1);
+        if (isHumanModeRef.current && socketRef.current?.connected) {
+          socketRef.current.emit('resume_support_session', { room });
+        }
+      }
     });
     return () => subscription.remove();
-  }, []);
+  }, [room]);
 
   // Restore messages sent while this screen was closed, including after socket
   // reconnects. Merge with live events instead of overwriting them with a snapshot.
@@ -148,7 +153,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
     const socket = socketRef.current;
     if (isHumanMode && socket?.connected) {
       socket.emit('join_room', room);
-      socket.emit('start_support_session', { room, name: currentUserName });
+      socket.emit('resume_support_session', { room });
     }
   }, [isHumanMode, room, currentUserName]);
 
@@ -178,7 +183,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
       setIsConnected(true);
       socket.emit('join_room', room);
       if (isHumanModeRef.current) {
-        socket.emit('start_support_session', { room, name: currentUserName });
+        socket.emit('resume_support_session', { room });
       }
     };
     const onDisconnect = () => { console.log('[CHAT] Socket disconnected'); setIsConnected(false); };
@@ -194,6 +199,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
     };
 
     const onClose = () => {
+      isHumanModeRef.current = false;
       setIsHumanMode(false);
       setHumanMessages(prev => [...prev, { id: `sys-reset-${Date.now()}`, sender: 'system', text: 'Live chat ended. Returning to AI assistant.', timestamp: new Date() }]);
     };
@@ -282,6 +288,10 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
     if (isHumanMode) return;
     if (!isShopOpen) { Alert.alert('Agents Offline', 'Live support: 1 PM - 8 PM. Use AI Assistant for now.'); return; }
     if (!isConnected) { Alert.alert('Connection Issue', 'Unable to reach live support. Please check your internet connection and try again.'); return; }
+    // Start only on a user gesture. Restoring a saved mode merely checks whether
+    // that server-side session is still active (including after an offline End).
+    socketRef.current.emit('join_room', room);
+    socketRef.current.emit('start_support_session', { room, name: currentUserName });
     setIsHumanMode(true);
   };
 

@@ -11334,7 +11334,20 @@ io.on('connection', (socket) => {
 
   // ═══════════ END DUAL-ARTIST SESSION SYNC ═══════════
 
-  // Customer initiates a live support session
+  // Restoration is read-only: an offline client must not recreate a chat that
+  // staff already ended. Only an explicit Live Agent action starts a session.
+  socket.on('resume_support_session', (data, acknowledge) => {
+    const { room } = data || {};
+    if (!socketAuthorizer.authorizeSupportRoom(socket, room) || !socket.rooms.has(room)) {
+      if (typeof acknowledge === 'function') acknowledge({ success: false });
+      return rejectSocketAction(socket, 'resume_support_session');
+    }
+    const active = Boolean(activeSupportSessions[room]);
+    if (!active) socket.emit('session_closed');
+    if (typeof acknowledge === 'function') acknowledge({ success: true, active });
+  });
+
+  // Customer explicitly initiates a live support session.
   socket.on('start_support_session', (data) => {
     const { room } = data || {};
     if (!socketAuthorizer.authorizeSupportRoom(socket, room) || !socket.rooms.has(room)) {

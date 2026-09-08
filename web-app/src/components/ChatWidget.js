@@ -63,6 +63,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const socketRef = useRef(null);
+  const explicitLiveStartRef = useRef(false);
   const [isLiveConnected, setIsLiveConnected] = useState(false);
   const [lastMessageTime, setLastMessageTime] = useState(0);
   const [recentMessages, setRecentMessages] = useState([]);
@@ -164,7 +165,12 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
       setIsLiveConnected(true);
       socket.emit('join_room', activeRoom);
       if (isHumanMode && !isAdminMode) {
-        socket.emit('start_support_session', { room: activeRoom, name: userName });
+        if (explicitLiveStartRef.current) {
+          explicitLiveStartRef.current = false;
+          socket.emit('start_support_session', { room: activeRoom, name: userName });
+        } else {
+          socket.emit('resume_support_session', { room: activeRoom });
+        }
       }
     };
 
@@ -192,6 +198,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
 
     const sessionClosedHandler = () => {
       if (!isAdminMode) {
+        explicitLiveStartRef.current = false;
         setIsHumanMode(false);
         setHumanMessages([{ id: 'system-reset', sender: 'system', text: "Live chat ended by the agent. Returning to AI assistant.", timestamp: new Date() }]);
         sessionStorage.removeItem('chat_isHumanMode');
@@ -205,6 +212,12 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
     socket.on('authorization_error', authorizationErrorHandler);
     socket.on('receive_message', receiveMessageHandler);
     socket.on('session_closed', sessionClosedHandler);
+    const visibilityHandler = () => {
+      if (document.visibilityState === 'visible' && socket.connected && !isAdminMode) {
+        socket.emit('resume_support_session', { room: activeRoom });
+      }
+    };
+    document.addEventListener('visibilitychange', visibilityHandler);
 
     // Listen for read receipts
     const messagesReadHandler = (data) => {
@@ -221,6 +234,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
     socket.connect();
 
     return () => {
+      document.removeEventListener('visibilitychange', visibilityHandler);
       if (socketRef.current === socket) socketRef.current = null;
       socket.disconnect();
       setIsLiveConnected(false);
@@ -380,7 +394,10 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
                   className={`chat-mode-btn ${isHumanMode ? 'active' : ''}`}
                   onClick={() => {
                     if (!isHumanMode && !isShopOpen) return;
-                    if (!isHumanMode) setIsHumanMode(true);
+                    if (!isHumanMode) {
+                      explicitLiveStartRef.current = true;
+                      setIsHumanMode(true);
+                    }
                   }}
                   title={!isShopOpen ? 'Live agents are currently offline (Hours: 1 PM - 8 PM)' : isHumanMode ? 'Currently chatting with an agent' : 'Switch to Live Agent'}
                   aria-pressed={isHumanMode}
