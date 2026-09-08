@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView,
-  Modal, TextInput, RefreshControl, Image, Animated, KeyboardAvoidingView, Platform, Switch, Alert,
+  Modal, TextInput, RefreshControl, Image, Animated, KeyboardAvoidingView, Platform, Switch, Alert, Keyboard,
 } from 'react-native';
 import {
   LogOut, Edit3, X, ChevronDown, ChevronUp, Lock, User, Phone, Briefcase,
@@ -19,6 +19,7 @@ import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { getInitials, formatCurrency } from '../src/utils/formatters';
 import { getArtistDashboard, updateArtistProfile, changeArtistPassword } from '../src/utils/api';
+import { nationalPHPhone, artistPhoneError, artistPhonePayload, artistPasswordRules, artistPasswordErrors } from '../src/utils/artistProfileValidation';
 
 export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
   const { theme, isDark, toggleTheme, hapticsEnabled, toggleHaptics } = useTheme();
@@ -35,6 +36,9 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
   const [showPwd, setShowPwd] = useState(false);
   const [pwdForm, setPwdForm] = useState({ current: '', new: '', confirm: '' });
   const [pwdErrors, setPwdErrors] = useState({});
+  const [profileErrors, setProfileErrors] = useState({});
+  const [pwdTouched, setPwdTouched] = useState({});
+  const [saveError, setSaveError] = useState('');
   const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
   const [alertModal, setAlertModal] = useState({ visible: false, title: '', message: '' });
@@ -65,7 +69,10 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
   const onRefresh = () => { setRefreshing(true); fetchProfile(); };
 
   const handleEdit = () => {
-    setEditForm({ ...profile, profile_image: pendingImage || profile.profile_image || '' });
+    setEditForm({ ...profile, phone: nationalPHPhone(profile.phone), profile_image: pendingImage || profile.profile_image || '' });
+    setProfileErrors({});
+    setPwdTouched({});
+    setSaveError('');
     setShowPwd(false);
     setPwdForm({ current: '', new: '', confirm: '' });
     setPwdErrors({});
@@ -73,14 +80,18 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
   };
 
   const handleSave = async () => {
+    if (loading) return;
+    Keyboard.dismiss();
+    setSaveError('');
     if (showPwd) {
-      const fieldErrors = {};
-      if (!pwdForm.current) fieldErrors.current = 'Current password is required';
-      if (!pwdForm.new) fieldErrors.new = 'New password is required';
-      if (!pwdForm.confirm) fieldErrors.confirm = 'Please confirm your new password';
-      if (pwdForm.confirm && pwdForm.new !== pwdForm.confirm) fieldErrors.confirm = 'New passwords do not match';
+      const fieldErrors = artistPasswordErrors(pwdForm);
+      setPwdTouched({ current: true, new: true, confirm: true });
       setPwdErrors(fieldErrors);
       if (Object.keys(fieldErrors).length > 0) return;
+    } else {
+      const phone = artistPhoneError(editForm.phone);
+      setProfileErrors({ phone });
+      if (phone) return;
     }
 
     setLoading(true);
@@ -91,7 +102,7 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
           if ((pwdRes.message || '').toLowerCase().includes('current password')) {
             setPwdErrors(prev => ({ ...prev, current: pwdRes.message }));
           }
-          setAlertModal({ visible: true, title: 'Security Error', message: pwdRes.message || 'Failed to change password.' }); setLoading(false); return;
+          setSaveError(pwdRes.message || 'Failed to change password.'); return;
         }
         setPwdForm({ current: '', new: '', confirm: '' });
         setPwdErrors({});
@@ -106,21 +117,21 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
         return;
       }
       // Include pending image in the save payload
-      const payload = { ...editForm };
+      const payload = { ...editForm, phone: artistPhonePayload(editForm.phone) };
       if (pendingImage) payload.profileImage = pendingImage;
       const res = await updateArtistProfile(userId, payload);
       if (res.success) {
-        const updatedProfile = { ...editForm, profile_image: pendingImage || editForm.profile_image };
+        const updatedProfile = { ...payload, profile_image: pendingImage || editForm.profile_image };
         setAlertModal({ visible: true, title: 'Success', message: 'Profile updated successfully' });
         setProfile(updatedProfile);
         setPendingImage(null);
         setEditModalVisible(false);
       } else {
-        setAlertModal({ visible: true, title: 'Error', message: res.message || 'Failed to update profile' });
+        setSaveError(res.message || 'Failed to update profile');
       }
     } catch (e) {
       console.error('handleSave error:', e);
-      setAlertModal({ visible: true, title: 'Error', message: 'An unexpected error occurred. Please try again.' });
+      setSaveError('An unexpected error occurred. Please try again.');
     }
     finally { setLoading(false); }
   };
@@ -264,7 +275,7 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
                 <X size={22} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {[
                 { label: 'Full Name', key: 'name', kb: 'default' },
                 { label: 'Phone Number (+63)', key: 'phone', kb: 'number-pad' },
@@ -273,12 +284,13 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
                 <View key={field.key}>
                   <Text style={styles.inputLabel}>{field.label}</Text>
                   <TextInput
-                    style={styles.input}
-                    value={String(editForm[field.key] || '')}
+                    style={[styles.input, profileErrors[field.key] && styles.inputError]}
+                    value={String(editForm[field.key] ?? '')}
                     onChangeText={t => {
                       if (field.key === 'phone') {
-                        const digits = t.replace(/\D/g, '').replace(/^0+/, '').slice(0, 10);
+                        const digits = nationalPHPhone(t);
                         setEditForm({ ...editForm, [field.key]: digits });
+                        setProfileErrors(prev => ({ ...prev, phone: artistPhoneError(digits) }));
                       } else {
                         setEditForm({ ...editForm, [field.key]: t });
                       }
@@ -286,8 +298,10 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
                     keyboardType={field.kb}
                     placeholderTextColor={theme.textTertiary}
                     placeholder={field.key === 'phone' ? '9XXXXXXXXX' : ''}
-                    maxLength={field.key === 'phone' ? 10 : undefined}
+                    onBlur={() => { if (field.key === 'phone') setProfileErrors(prev => ({ ...prev, phone: artistPhoneError(editForm.phone) })); }}
+                    maxLength={field.key === 'phone' ? 20 : undefined}
                   />
+                  {!!profileErrors[field.key] && <Text style={styles.fieldErrorText}>{profileErrors[field.key]}</Text>}
                 </View>
               ))}
 
@@ -324,7 +338,7 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
                 </View>
               )}
 
-              <TouchableOpacity style={styles.pwdToggle} onPress={() => { setShowPwd(!showPwd); setPwdErrors({}); }} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.pwdToggle} onPress={() => { setShowPwd(!showPwd); setPwdErrors({}); setPwdTouched({}); setSaveError(''); }} activeOpacity={0.8}>
                 <View style={{ marginRight: 6 }}><Lock size={16} color={theme.gold} /></View>
                 <Text style={styles.pwdToggleText}>{showPwd ? 'Hide Password Settings' : 'Change Password'}</Text>
                 <View style={{ marginLeft: 6 }}>{showPwd ? <ChevronUp size={16} color={theme.gold} /> : <ChevronDown size={16} color={theme.gold} />}</View>
@@ -345,9 +359,20 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
                           secureTextEntry={!showPassword[f.key]}
                           value={pwdForm[f.key]}
                           onChangeText={t => {
-                            setPwdForm({ ...pwdForm, [f.key]: t });
-                            setPwdErrors(prev => ({ ...prev, [f.key]: '' }));
+                            const next = { ...pwdForm, [f.key]: t };
+                            setPwdForm(next);
+                            const validation = artistPasswordErrors(next);
+                            setPwdErrors(prev => ({ ...prev,
+                              [f.key]: pwdTouched[f.key] || t ? validation[f.key] : '',
+                              ...(f.key === 'new' && (pwdTouched.confirm || next.confirm) ? { confirm: validation.confirm } : {}),
+                            }));
                           }}
+                          onBlur={() => {
+                            setPwdTouched(prev => ({ ...prev, [f.key]: true }));
+                            setPwdErrors(prev => ({ ...prev, [f.key]: artistPasswordErrors(pwdForm)[f.key] }));
+                          }}
+                          autoCapitalize="none"
+                          autoCorrect={false}
                           placeholderTextColor={theme.textTertiary}
                         />
                         <TouchableOpacity onPress={() => setShowPassword(p => ({ ...p, [f.key]: !p[f.key] }))} style={{ position: 'absolute', right: 12 }}>
@@ -355,12 +380,18 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
                         </TouchableOpacity>
                       </View>
                       {pwdErrors[f.key] ? <Text style={styles.fieldErrorText}>{pwdErrors[f.key]}</Text> : null}
+                      {f.key === 'new' && artistPasswordRules(pwdForm.new).map(rule => (
+                        <Text key={rule.label} style={[styles.fieldErrorText, { color: rule.met ? theme.success : theme.textSecondary }]}>
+                          {rule.met ? '✓' : '○'} {rule.label}
+                        </Text>
+                      ))}
                     </View>
                   ))}
                 </View>
               )}
 
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.8}>
+              {!!saveError && <Text accessibilityRole="alert" style={styles.fieldErrorText}>{saveError}</Text>}
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading} activeOpacity={0.8}>
                 <Text style={styles.saveBtnText}>Save Changes</Text>
                 <View style={{ marginLeft: 8 }}><Check size={18} color={theme.backgroundDeep} /></View>
               </TouchableOpacity>

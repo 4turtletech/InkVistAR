@@ -11,11 +11,10 @@ import { typography, borderRadius, shadows } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { API_URL, getCustomerAppointments } from '../src/utils/api';
 import { formatTime } from '../src/utils/formatters';
+import { tattooBodyParts, piercingBodyParts, calendarCells, shiftCalendarMonth, changeBookingServices, toggleBookingPlacement, bookingPlacementErrors } from '../src/utils/bookingValidation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const tattooBodyParts = ["Face", "Neck", "Chest", "Back", "Left Shoulder", "Right Shoulder", "Left Upper Arm", "Right Upper Arm", "Left Forearm", "Right Forearm", "Left Wrist", "Right Wrist", "Left Hand", "Right Hand", "Left Ribs", "Right Ribs", "Left Hip", "Right Hip", "Left Thigh", "Right Thigh", "Left Calf", "Right Calf", "Left Ankle", "Right Ankle", "Other"];
-const piercingBodyParts = ["Left Ear Lobe", "Right Ear Lobe", "Left Helix", "Right Helix", "Left Tragus", "Right Tragus", "Left Conch", "Right Conch", "Left Industrial", "Right Industrial", "Left Nostril", "Right Nostril", "Septum", "Left Eyebrow", "Right Eyebrow", "Lip/Oral", "Navel", "Left Nipple", "Right Nipple", "Other"];
 
 export function CustomerBooking({ customerId, onBack, initialUser }) {
   const { theme: colors } = useTheme();
@@ -61,6 +60,8 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
     onlinePlatform: '',
     notes: '',
     placement: [],
+    tattooPlacement: [],
+    piercingPlacement: [],
     placementNotes: '',
     referenceImage: null,
     artistId: null, // Now optional
@@ -186,13 +187,16 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
         } else {
           arr = arr.filter(x => x !== item);
         }
-        return { ...prev, [field]: arr };
+        return changeBookingServices(prev, arr);
       }
+
+      if (field === 'tattooPlacement' || field === 'piercingPlacement') return toggleBookingPlacement(prev, field, item);
 
       const isAdding = !arr.includes(item);
       return { ...prev, [field]: isAdding ? [...arr, item] : arr.filter(x => x !== item) };
     });
     if (errors[field]) setErrors(p => ({ ...p, [field]: '' }));
+    if (field === 'selectedServices') setErrors(p => ({ ...p, tattooPlacement: '', piercingPlacement: '', placementNotes: '' }));
   };
 
   const validateSingleField = (field) => {
@@ -225,11 +229,7 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
         newErrors.onlinePlatform = "Select a platform.";
       }
     } else if (step === 3) {
-      if (formData.placement.length === 0) newErrors.placement = "Select at least one placement.";
-      const placementNotesLength = formData.placementNotes.trim().length;
-      if (formData.placement.includes('Other') && placementNotesLength === 0) newErrors.placementNotes = "Specify location notes.";
-      else if (formData.placement.includes('Other') && placementNotesLength < 5) newErrors.placementNotes = "Location notes must be at least 5 characters.";
-      else if (formData.placement.includes('Other') && formData.placementNotes.length > 150) newErrors.placementNotes = "Location notes must not exceed 150 characters.";
+      Object.assign(newErrors, bookingPlacementErrors(formData));
     } else if (step === 4) {
       if (!formData.date) newErrors.date = "Select a date.";
       const showTime = formData.selectedServices.includes('Consultation') || formData.selectedServices.includes('Piercing');
@@ -271,6 +271,12 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
   };
 
   const submitBooking = async () => {
+    const placementErrors = bookingPlacementErrors(formData);
+    if (Object.keys(placementErrors).length) {
+      setErrors(placementErrors);
+      setStep(3);
+      return;
+    }
     setLoading(true);
     try {
       let followupNote = '';
@@ -508,15 +514,16 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
             {(showTattoo && showPiercing) && <Text style={[styles.label, { color: colors.gold, marginTop: 4, marginBottom: 8, textTransform: 'none' }]}>Tattoo Placement</Text>}
             <View style={styles.pillContainer}>
               {tattooBodyParts.map(part => {
-                const isSelected = formData.placement.includes(part);
+                const isSelected = formData.tattooPlacement.includes(part);
                 return (
-                  <TouchableOpacity key={`tattoo-${part}`} style={[styles.pill, isSelected && styles.pillActive]} onPress={() => toggleArrayField('placement', part)}>
+                  <TouchableOpacity key={`tattoo-${part}`} style={[styles.pill, isSelected && styles.pillActive, errors.tattooPlacement && styles.inputError]} onPress={() => toggleArrayField('tattooPlacement', part)}>
                     {isSelected && <Check size={14} color={colors.backgroundDeep} style={{ marginRight: 4 }} />}
                     <Text style={[styles.pillTxt, isSelected && styles.pillTxtActive]}>{part}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
+            {!!errors.tattooPlacement && <Text style={styles.errorTxt}>{errors.tattooPlacement}</Text>}
           </>
         )}
 
@@ -525,19 +532,19 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
             {(showTattoo && showPiercing) && <Text style={[styles.label, { color: colors.gold, marginTop: 16, marginBottom: 8, textTransform: 'none' }]}>Piercing Placement</Text>}
             <View style={styles.pillContainer}>
               {piercingBodyParts.map(part => {
-                const isSelected = formData.placement.includes(part);
+                const isSelected = formData.piercingPlacement.includes(part);
                 return (
-                  <TouchableOpacity key={`piercing-${part}`} style={[styles.pill, isSelected && styles.pillActive]} onPress={() => toggleArrayField('placement', part)}>
+                  <TouchableOpacity key={`piercing-${part}`} style={[styles.pill, isSelected && styles.pillActive, errors.piercingPlacement && styles.inputError]} onPress={() => toggleArrayField('piercingPlacement', part)}>
                     {isSelected && <Check size={14} color={colors.backgroundDeep} style={{ marginRight: 4 }} />}
                     <Text style={[styles.pillTxt, isSelected && styles.pillTxtActive]}>{part}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
+            {!!errors.piercingPlacement && <Text style={styles.errorTxt}>{errors.piercingPlacement}</Text>}
           </>
         )}
 
-        {errors.placement && <Text style={styles.errorTxt}>{errors.placement}</Text>}
 
       {formData.placement.includes('Other') && (
         <View style={styles.inputWrap}>
@@ -583,9 +590,9 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
         
         <View style={styles.calCard}>
           <View style={styles.calHeader}>
-            <TouchableOpacity onPress={() => { setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1))); triggerFeedback(); }}><ChevronLeft color={colors.textPrimary} /></TouchableOpacity>
+            <TouchableOpacity onPress={() => { setCurrentMonth(month => shiftCalendarMonth(month, -1)); triggerFeedback(); }}><ChevronLeft color={colors.textPrimary} /></TouchableOpacity>
             <Text style={styles.monthText}>{currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}</Text>
-            <TouchableOpacity onPress={() => { setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1))); triggerFeedback(); }}><ChevronRight color={colors.textPrimary} /></TouchableOpacity>
+            <TouchableOpacity onPress={() => { setCurrentMonth(month => shiftCalendarMonth(month, 1)); triggerFeedback(); }}><ChevronRight color={colors.textPrimary} /></TouchableOpacity>
           </View>
           
           <View style={styles.calWeekdays}>
@@ -595,9 +602,10 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
           </View>
 
           <View style={styles.daysGrid}>
-            {[...Array(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate())].map((_, i) => {
-              const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
-              const checkDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i + 1);
+            {calendarCells(currentMonth.getFullYear(), currentMonth.getMonth()).map((day, i) => {
+              if (day === null) return <View key={`empty-${i}`} style={styles.daySlot} accessible={false} />;
+              const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const checkDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
               const isSelected = formData.date === dateStr;
               const isPast = checkDate <= today;
               const isTooFar = checkDate > maxDate;
@@ -635,14 +643,16 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
               }
 
               return (
+                <View key={dateStr} style={styles.daySlot}>
                 <TouchableOpacity 
-                  key={i} 
                   style={[styles.dayCell, { backgroundColor: bgColor }, isSelected && styles.dayCellActive, isDisabled && { opacity: 0.5 }]} 
+                  accessibilityLabel={checkDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                   onPress={() => { if(!isDisabled) { triggerFeedback(); handleInput('date', dateStr); } }}
                   disabled={isDisabled}
                 >
-                  <Text style={[styles.dayText, { color: txtColor }, isSelected && styles.dayTextActive]}>{i + 1}</Text>
+                  <Text style={[styles.dayText, { color: txtColor }, isSelected && styles.dayTextActive]}>{day}</Text>
                 </TouchableOpacity>
+                </View>
               );
             })}
           </View>
@@ -846,10 +856,11 @@ const getStyles = (colors) => StyleSheet.create({
   calCard: { backgroundColor: colors.darkBgSecondary, borderRadius: borderRadius.lg, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.border },
   calHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   monthText: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
-  calWeekdays: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4, marginBottom: 8 },
-  calWeekdayTxt: { width: '13%', textAlign: 'center', ...typography.bodySmall, color: colors.textTertiary, fontWeight: '700' },
-  daysGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', gap: 6 },
-  dayCell: { width: '12%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', borderRadius: borderRadius.sm, position: 'relative' },
+  calWeekdays: { flexDirection: 'row', marginBottom: 8 },
+  calWeekdayTxt: { width: '14.285714%', textAlign: 'center', ...typography.bodySmall, color: colors.textTertiary, fontWeight: '700' },
+  daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  daySlot: { width: '14.285714%', padding: 3 },
+  dayCell: { width: '100%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', borderRadius: borderRadius.sm, position: 'relative' },
   dayCellActive: { shadowColor: colors.gold, shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.3, shadowRadius: 4, elevation: 3 },
   dayText: { ...typography.bodySmall, color: colors.textPrimary, fontWeight: '600' },
   dayTextActive: { color: colors.backgroundDeep, fontWeight: '700' },
