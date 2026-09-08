@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const { DEFAULT_COMMISSION_RATE } = require('../services/commissionPolicy');
 const {
   BOOTSTRAP_ADMIN_ENABLED,
   DEMO_ACCOUNTS_ENABLED,
@@ -71,8 +72,8 @@ async function seedDemoAccounts(database) {
       await database.query(
         `INSERT IGNORE INTO artists
           (user_id, studio_name, experience_years, specialization, hourly_rate, commission_rate)
-         VALUES (?, 'InkVistAR Demo Studio', 1, 'Demo Artist', 150.00, 0.30)`,
-        [userId]
+         VALUES (?, 'InkVistAR Demo Studio', 1, 'Demo Artist', 150.00, ?)`,
+        [userId, DEFAULT_COMMISSION_RATE]
       );
     }
 

@@ -1,3 +1,4 @@
+import { artistCommission } from '../src/utils/commissionPolicy';
 /**
  * ArtistSessions.jsx -- Today's Session Queue (Gilded Noir v2)
  * Theme-aware, animated, haptic feedback, horizontal card queue.
@@ -67,8 +68,9 @@ export const ArtistSessions = ({ artistId, onBack, navigation, route }) => {
   const onRefresh = () => { setRefreshing(true); fetchTodaySessions(); };
 
   const renderSession = ({ item, index }) => {
-    const rate = parseFloat(item.commission_rate) || 0.30;
-    const commission = (item.price || 0) * rate;
+    const share = artistCommission(item, artistId);
+    const rate = share.effectiveRate;
+    const commission = share.artistShare;
     const rateLabel = `${(rate * 100).toFixed(0)}%`;
     return (
       <StaggerItem index={index}>

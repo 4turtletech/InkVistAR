@@ -1,3 +1,4 @@
+import { resolveCommissionRate, artistCommission } from '../utils/commissionPolicy';
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import Axios from 'axios';
@@ -770,7 +771,7 @@ function AdminUsers() {
             .filter(a => a.status === 'completed')
             .map(a => ({
                 ...a, amount: a.price || 0,
-                commission: (a.price || 0) * (artistDetails.profile.commission_rate || 0.30)
+                commission: artistCommission(a, selectedArtist.id).artistShare
             }));
 
         return (
@@ -782,7 +783,7 @@ function AdminUsers() {
                     </div>
                 </div>
                 <table className="data-table">
-                    <thead><tr><th>Date</th><th>Client</th><th>Total Amount</th><th>Artist Commission ({((artistDetails.profile.commission_rate || 0.30) * 100)}%)</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Client</th><th>Total Amount</th><th>Artist Commission ({((resolveCommissionRate(artistDetails.profile.commission_rate)) * 100)}%)</th></tr></thead>
                     <tbody>
                         {earnings.map(e => (
                             <tr key={e.id}>

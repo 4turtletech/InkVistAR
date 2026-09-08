@@ -50,7 +50,7 @@ export function ArtistEarnings({ onBack, artistId }) {
   
   const [sessionEarnings, setSessionEarnings] = useState([]);
   const [payoutHistory, setPayoutHistory] = useState([]);
-  const [commissionRate, setCommissionRate] = useState(30);
+  const [commissionRate, setCommissionRate] = useState(60);
 
   useEffect(() => { fetchEarnings(); }, [artistId]);
 
@@ -406,7 +406,7 @@ export function ArtistEarnings({ onBack, artistId }) {
                                     <View style={styles.txDetails}>
                                         <Text style={styles.txClient}>{tx.client_name || 'Client'}</Text>
                                         <Text style={styles.txDesign} numberOfLines={1}>
-                                            {tx.isCollab ? `Collab ${tx.splitPercent}%` : tx.isReferral ? 'Referral (70%)' : 'Solo'} — {tx.design_title}
+                                            {tx.isCollab ? `Collab ${tx.splitPercent}%` : tx.isReferral ? 'Referral' : 'Solo'} — {tx.design_title}
                                         </Text>
                                         <Text style={styles.txDate}>{new Date(tx.appointment_date).toLocaleDateString()}</Text>
                                     </View>

@@ -1,3 +1,4 @@
+import { resolveCommissionRate, artistCommission } from '../src/utils/commissionPolicy';
 /**
  * ArtistDashboard.jsx -- Premium Artist Home Screen (Gilded Noir v2)
  * Full theme support, spring animations, haptics, sound effects.
@@ -136,7 +137,7 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
   const artistName = artist?.name || userName;
   const artistSpecialization = artist?.specialization || 'Tattoo Artist';
   const artistExperience = artist?.experience_years || '0';
-  const artistCommission = ((artist?.commission_rate || 0.30) * 100).toFixed(0);
+  const artistCommission = ((resolveCommissionRate(artist?.commission_rate)) * 100).toFixed(0);
   const artistProfileImage = artist?.profile_image || '';
 
   const today = new Date();
@@ -193,7 +194,6 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
     const label = d.toLocaleString('en-US', { month: 'short' });
     monthMap[key] = { month: label, sortKey: key, earned: 0 };
   }
-  const commRate = artist.commission_rate || 0.30;
   appointments.forEach(apt => {
     if ((apt.status || '').toLowerCase() !== 'completed') return;
     if ((apt.payment_status || '').toLowerCase() !== 'paid') return;
@@ -201,7 +201,7 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
     const d = new Date(apt.appointment_date);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     if (monthMap[key]) {
-      monthMap[key].earned += (parseFloat(apt.price || 0) * commRate);
+      monthMap[key].earned += artistCommission(apt, userId).artistShare;
     }
   });
   const monthlyEarningsTrend = Object.values(monthMap).sort((a, b) => a.sortKey.localeCompare(b.sortKey));

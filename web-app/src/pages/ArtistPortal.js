@@ -1,3 +1,4 @@
+import { artistCommission } from '../utils/commissionPolicy';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -167,19 +168,18 @@ function ArtistPortal() {
             monthMap[key] = { month: label, sortKey: key, earned: 0, sessions: 0 };
         }
         // Sum completed+paid appointments
-        const commRate = artist.commission_rate || 0.30;
         appointments.forEach(apt => {
             if ((apt.status || '').toLowerCase() !== 'completed') return;
             if ((apt.payment_status || '').toLowerCase() !== 'paid') return;
             const d = new Date(apt.appointment_date);
             const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             if (monthMap[key]) {
-                monthMap[key].earned += (parseFloat(apt.price || 0) * commRate);
+                monthMap[key].earned += artistCommission(apt, artistId).artistShare;
                 monthMap[key].sessions += 1;
             }
         });
         return Object.values(monthMap).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-    }, [appointments, artist.commission_rate]);
+    }, [appointments, artistId]);
 
     // ── Cumulative earnings trend for mini AreaChart in Total Earnings card ──
     const cumulativeEarningsTrend = useMemo(() => {

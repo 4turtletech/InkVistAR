@@ -1,3 +1,4 @@
+import { resolveCommissionRate } from '../src/utils/commissionPolicy';
 /**
  * AdminStaff.jsx -- Artist & Staff Management
  * Handles staff profiles, commission tracking, and schedule views.
@@ -82,7 +83,7 @@ export const AdminStaff = ({ navigation }) => {
               </View>
               <StatusBadge status="active" />
               <View style={styles.commissionBadge}>
-                <Text style={styles.commissionText}>{((item.commission_rate || 0.3) * 100).toFixed(0)}% Commission</Text>
+                <Text style={styles.commissionText}>{((resolveCommissionRate(item.commission_rate)) * 100).toFixed(0)}% Commission</Text>
               </View>
             </View>
           </View>
@@ -167,7 +168,7 @@ export const AdminStaff = ({ navigation }) => {
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Commission Rate</Text>
-                  <Text style={styles.detailValue}>{((selectedStaff.commission_rate || 0.3) * 100).toFixed(0)}%</Text>
+                  <Text style={styles.detailValue}>{((resolveCommissionRate(selectedStaff.commission_rate)) * 100).toFixed(0)}%</Text>
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Joined Date</Text>

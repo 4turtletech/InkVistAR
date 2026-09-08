@@ -29,7 +29,7 @@ function ArtistEarnings() {
     const [rawStats, setRawStats] = useState({
         totalEarned: 0, pendingFromUnpaid: 0, totalPaidOut: 0, balanceToPay: 0
     });
-    const [commissionRate, setCommissionRate] = useState(30);
+    const [commissionRate, setCommissionRate] = useState(60);
     const [loading, setLoading] = useState(true);
     const [periodFilter, setPeriodFilter] = useState('all');
     const [customStartDate, setCustomStartDate] = useState('');
@@ -184,7 +184,7 @@ function ArtistEarnings() {
                 new Date(s.appointment_date).toLocaleDateString(),
                 s.client_name || '—',
                 s.design_title || '',
-                s.isCollab ? `Collab ${s.splitPercent}%` : (s.isReferral ? 'Referral (70%)' : 'Solo'),
+                s.isCollab ? `Collab ${s.splitPercent}%` : (s.isReferral ? 'Referral' : 'Solo'),
                 `₱${(s.basePrice || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                 `₱${(s.artistShare || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                 (s.effectivePaymentStatus || s.payment_status) === 'paid' ? 'Paid' : 'Unpaid'
@@ -442,7 +442,7 @@ function ArtistEarnings() {
                                                                 </span>
                                                             ) : session.isReferral ? (
                                                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                                                                    Referral (70%)
+                                                                    Referral
                                                                 </span>
                                                             ) : (
                                                                 <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Solo</span>

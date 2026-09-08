@@ -28,7 +28,7 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [profile, setProfile] = useState({
     name: userName || '', email: userEmail || '', phone: '',
-    experience_years: 0, specialization: 'General', commission_rate: 0.30,
+    experience_years: 0, specialization: 'General', commission_rate: 0.60,
     profile_image: '',
   });
   const [editModalVisible, setEditModalVisible] = useState(false);

@@ -1,3 +1,4 @@
+import { resolveCommissionRate, artistCommission } from '../../utils/commissionPolicy';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, Alert, FlatList, Image } from 'react-native';
 import { X, User, Calendar, Save, Palette, DollarSign, Globe, Lock } from 'lucide-react-native';
@@ -54,7 +55,7 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
           name: dashboardRes.artist?.name || '',
           specialization: dashboardRes.artist?.specialization || '',
           experience_years: String(dashboardRes.artist?.experience_years || 0),
-          commission_rate: String(dashboardRes.artist?.commission_rate || 0.3)
+          commission_rate: String(resolveCommissionRate(dashboardRes.artist?.commission_rate))
         });
       }
     } catch (e) {
@@ -180,9 +181,8 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
   };
 
   const renderEarningsItem = ({ item }) => {
-    const commissionRate = artistData.profile.commission_rate || 0.3;
     const amount = item.price || 0;
-    const commission = amount * commissionRate;
+    const commission = artistCommission(item, artist.id).artistShare;
     return (
       <View style={styles.earningCard}>
         <View style={styles.earningLeft}>
@@ -280,7 +280,7 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
                   <TextInput style={styles.input} value={formData.experience_years} onChangeText={t => setFormData({ ...formData, experience_years: t })} keyboardType="numeric" />
                   
                   <Text style={styles.inputLabel}>Commission Rate (%) - Fixed</Text>
-                  <TextInput style={[styles.input, styles.inputDisabled]} value={String((artistData.profile.commission_rate || 0.3) * 100) + '%'} editable={false} />
+                  <TextInput style={[styles.input, styles.inputDisabled]} value={String((resolveCommissionRate(artistData.profile.commission_rate)) * 100) + '%'} editable={false} />
 
                   <View style={styles.statsRow}>
                     <View style={styles.statBox}>
@@ -326,7 +326,7 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
                   ListHeaderComponent={() => {
                     const totalComm = artistData.appointments
                       .filter(a => a.status === 'completed')
-                      .reduce((sum, a) => sum + ((a.price || 0) * (artistData.profile.commission_rate || 0.3)), 0);
+                      .reduce((sum, a) => sum + artistCommission(a, artist.id).artistShare, 0);
                     return (
                       <View style={[styles.statBox, { marginBottom: 16, width: '100%', alignItems: 'center' }]}>
                         <Text style={styles.statLabel}>Total Commission Earned</Text>
@@ -424,4 +424,3 @@ const getStyles = (colors) => StyleSheet.create({
   toggleThumb: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#ffffff' },
   toggleThumbActive: { transform: [{ translateX: 18 }] },
 });
-

@@ -1,3 +1,4 @@
+import { artistCommission } from '../utils/commissionPolicy';
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -433,19 +434,18 @@ function AdminStaff() {
     );
 
     const renderEarningsTab = () => {
-        const baseRate = artistDetails.profile.commission_rate || 0.30;
-        const REFERRAL_RATE = 0.70;
 
         const earnings = artistDetails.appointments
             .filter(a => a.status === 'completed')
             .map(a => {
                 const isReferral = !!a.is_referral;
                 const isSolo = !a.secondary_artist_id;
-                const effectiveRate = (isReferral && isSolo) ? REFERRAL_RATE : baseRate;
+                const share = artistCommission(a, selectedArtist.id);
+                const effectiveRate = share.effectiveRate;
                 return {
                     ...a,
                     amount: a.price || 0,
-                    commission: (a.price || 0) * effectiveRate,
+                    commission: share.artistShare,
                     isReferral: isReferral && isSolo,
                     effectiveRate
                 };

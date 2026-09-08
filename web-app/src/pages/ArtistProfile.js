@@ -1,3 +1,4 @@
+import { resolveCommissionRate } from '../utils/commissionPolicy';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
@@ -129,7 +130,7 @@ function ArtistProfile() {
                         specialization: data.specialization || '',
                         hourly_rate: data.hourly_rate || 0,
                         experience_years: data.experience_years || 0,
-                        commission_rate: (data.commission_rate || 0) * 100,
+                        commission_rate: (resolveCommissionRate(data.commission_rate)) * 100,
                         profile_image: data.profile_image || '',
                         bio: data.bio || ''
                     });
@@ -236,7 +237,6 @@ function ArtistProfile() {
                 studio_name: profile.studio_name,
                 specialization: profile.specialization,
                 experience_years: profile.experience_years,
-                commission_rate: 0.30,
                 profileImage: profile.profile_image,
                 bio: profile.bio
             });
@@ -276,7 +276,7 @@ function ArtistProfile() {
                     specialization: data.specialization || '',
                     hourly_rate: data.hourly_rate || 0,
                     experience_years: data.experience_years || 0,
-                    commission_rate: (data.commission_rate || 0) * 100,
+                    commission_rate: (resolveCommissionRate(data.commission_rate)) * 100,
                     profile_image: data.profile_image || '',
                     bio: data.bio || ''
                 });

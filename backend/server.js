@@ -21,6 +21,7 @@ const { initializeControlledAccounts } = require('./utils/accountBootstrap');
 const { createTokenService } = require('./services/tokenService');
 const { createPasswordRecoveryService } = require('./services/passwordRecoveryService');
 const { isStrongPassword, PASSWORD_POLICY_MESSAGE } = require('./services/passwordPolicy');
+const { DEFAULT_COMMISSION_RATE, resolveCommissionRate, normalizeCommissionSplit, artistCommission } = require('./services/commissionPolicy');
 const { publicAccountType, isAdminCreatableAccountType } = require('./services/registrationPolicy');
 const { createAuthenticate } = require('./middleware/authenticate');
 const { createHighRiskProtection } = require('./middleware/highRiskProtection');
@@ -453,7 +454,7 @@ db.getConnection((err, connection) => {
         experience_years INT,
         specialization VARCHAR(255),
         hourly_rate DECIMAL(10, 2),
-        commission_rate DECIMAL(5, 2) DEFAULT 0.30,
+        commission_rate DECIMAL(5, 2) DEFAULT 0.60,
         rating DECIMAL(3, 2) DEFAULT 5.00,
         total_reviews INT DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -471,7 +472,7 @@ db.getConnection((err, connection) => {
       db.query("SHOW COLUMNS FROM artists LIKE 'commission_rate'", (err, results) => {
         if (!err && results.length === 0) {
           console.log('[MIGRATE] Migrating artists table: Adding commission_rate column...');
-          db.query("ALTER TABLE artists ADD COLUMN commission_rate DECIMAL(5, 2) DEFAULT 0.30");
+          db.query("ALTER TABLE artists ADD COLUMN commission_rate DECIMAL(5, 2) DEFAULT 0.60");
           console.log('[OK] Added commission_rate column');
         }
       });
@@ -3468,7 +3469,7 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
       COALESCE(a.experience_years, 0) as experience_years,
       COALESCE(a.specialization, 'General Artist') as specialization,
       COALESCE(a.hourly_rate, 0) as hourly_rate,
-      COALESCE(a.commission_rate, 0.30) as commission_rate,
+      0.60 as commission_rate,
       COALESCE(a.rating, 0) as rating,
       COALESCE(a.total_reviews, 0) as total_reviews,
       a.profile_image,
@@ -3518,16 +3519,18 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
         ap.status,
         ap.price,
         ap.payment_status,
+        ap.artist_id, ap.secondary_artist_id, ap.commission_split, ap.discount_amount, ap.discount_type,
         u.name as client_name
       FROM appointments ap
       JOIN users u ON ap.customer_id = u.id
-      WHERE ap.artist_id = ? AND ap.status != 'cancelled' AND ap.is_deleted = 0
+      WHERE (ap.artist_id = ? OR ap.secondary_artist_id = ?) AND ap.status != 'cancelled' AND ap.is_deleted = 0
       ORDER BY ap.appointment_date ASC, ap.start_time ASC
     `;
 
-    db.query(appointmentsQuery, [artistId], (apptErr, apptResults) => {
+    db.query(appointmentsQuery, [artistId, artistId], (apptErr, apptResults) => {
       const appointments = apptResults || [];
-      const commissionRate = artist.commission_rate || 0.30;
+      const commissionRate = resolveCommissionRate(artist.commission_rate);
+      artist.commission_rate = commissionRate;
 
       // Calculate earnings correctly (Completed & Paid only, net of commission)
       // Robust case-insensitive comparison
@@ -3537,7 +3540,7 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
       );
 
       const totalEarnings = paidCompletedAppts.reduce((sum, apt) =>
-        sum + (parseFloat(apt.price || 0) * commissionRate), 0
+        sum + artistCommission(apt, artistId).artistShare, 0
       );
 
       // Current month earnings
@@ -3545,7 +3548,7 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
       const currentMonthEarnings = paidCompletedAppts.filter(apt => {
         const aptDate = new Date(apt.appointment_date);
         return aptDate.getMonth() === now.getMonth() && aptDate.getFullYear() === now.getFullYear();
-      }).reduce((sum, apt) => sum + (parseFloat(apt.price || 0) * commissionRate), 0);
+      }).reduce((sum, apt) => sum + artistCommission(apt, artistId).artistShare, 0);
 
       // Fetch portfolio works
       db.query('SELECT * FROM portfolio_works WHERE artist_id = ? AND is_deleted = 0 ORDER BY created_at DESC LIMIT 10', [artistId], (worksErr, worksResults) => {
@@ -3602,7 +3605,7 @@ app.get('/api/artist/:artistId/appointments', (req, res) => {
       ap.*,
       u.name as client_name,
       u.email as client_email,
-      ar.commission_rate,
+      0.60 as commission_rate,
       cust.health_conditions as client_health_conditions,
       cust.allergens as client_allergens,
       (SELECT COALESCE(SUM(sm.quantity * i.cost), 0) FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ap.id AND sm.status != 'released') as total_material_cost,
@@ -3772,9 +3775,7 @@ app.put('/api/artist/profile/:id', (req, res) => {
       params.push(safeExperienceYears);
     }
 
-    // Lock commission rate to 30%
-    artistQuery += ', commission_rate = ?';
-    params.push(0.30);
+    // Profile edits must not change compensation, even if the client submits a rate.
 
     if (safeStudioName !== undefined) {
       artistQuery += ', studio_name = ?';
@@ -5127,7 +5128,7 @@ app.get('/api/admin/appointments', (req, res) => {
       END as client_email,
       u_art.name as artist_name,
       u_sec.name as secondary_artist_name,
-      ar.commission_rate,
+      0.60 as commission_rate,
       ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid,
       ap.manual_payment_method,
       CASE WHEN COALESCE(ap.is_guest_placeholder, 0) = 1 THEN NULL ELSE cust.profile_image END as client_avatar,
@@ -5186,7 +5187,7 @@ app.get('/api/admin/appointments/:id', (req, res) => {
       u_cust.email as client_email,
       u_art.name as artist_name,
       u_sec.name as secondary_artist_name,
-      ar.commission_rate,
+      0.60 as commission_rate,
       ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid,
       ap.manual_payment_method,
       cust.profile_image as client_avatar,
@@ -5225,6 +5226,9 @@ app.get('/api/admin/appointments/:id', (req, res) => {
 // POST create a new appointment (Admin)
 app.post('/api/admin/appointments', async (req, res) => {
   let { customerId, clientEmail, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod, guestEmail, guestPhone, tattooPrice, piercingPrice, waiverAcceptedAt, photoMarketingConsent, piercingJewelry, totalSessions, sessionNumber, projectId, consentData, healthScreeningData } = req.body;
+
+  try { commissionSplit = normalizeCommissionSplit(commissionSplit); }
+  catch (error) { return res.status(400).json({ success: false, message: error.message }); }
 
   const isAdminWalkInBooking = customerId === 'admin' && !isFromWizard;
   if (isAdminWalkInBooking && !String(guestPhone || '').trim()) {
@@ -5410,7 +5414,7 @@ app.post('/api/admin/appointments', async (req, res) => {
               (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, waiver_accepted_at, piercing_jewelry, is_guest_placeholder, project_id, session_number, total_sessions)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `;
-          conn.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedWaiverAt, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0, resolvedProjectId, sanitizedSessionNumber, sanitizedTotalSessions], (err, result) => {
+          conn.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedWaiverAt, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0, resolvedProjectId, sanitizedSessionNumber, sanitizedTotalSessions], (err, result) => {
             if (err) {
               // Graceful fallback if new columns don't exist yet (first deploy)
               if (err.code === 'ER_BAD_FIELD_ERROR') {
@@ -5420,7 +5424,7 @@ app.post('/api/admin/appointments', async (req, res) => {
                     (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, piercing_jewelry, is_guest_placeholder)
                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?)
                 `;
-                return conn.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (fbErr, fbResult) => {
+                return conn.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (fbErr, fbResult) => {
                   if (fbErr) {
                     console.error('[ERROR] Fallback INSERT also failed:', fbErr);
                     return conn.rollback(() => { conn.release(); res.status(500).json({ success: false, message: 'Database error: ' + fbErr.message }); });
@@ -5795,7 +5799,7 @@ app.post('/api/admin/appointments', async (req, res) => {
               (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, waiver_accepted_at, piercing_jewelry, is_guest_placeholder)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?)
           `;
-          connection.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, waiverAcceptedAt || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (err, result) => {
+          connection.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, waiverAcceptedAt || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (err, result) => {
             if (err) {
               // Graceful fallback if waiver_accepted_at column doesn't exist yet
               if (err.code === 'ER_BAD_FIELD_ERROR' && err.message.includes('waiver_accepted_at')) {
@@ -5805,7 +5809,7 @@ app.post('/api/admin/appointments', async (req, res) => {
                 (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, piercing_jewelry, is_guest_placeholder)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?)
             `;
-                return connection.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (fbErr, fbResult) => {
+                return connection.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (fbErr, fbResult) => {
                   if (fbErr) {
                     console.error('[ERROR] Fallback INSERT also failed:', fbErr);
                     return connection.rollback(() => { connection.release(); res.status(500).json({ success: false, message: 'Database error: ' + fbErr.message }); });
@@ -6050,7 +6054,12 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   }
   const artistId = body.artistId ? (body.artistId === 'null' || body.artistId === '' ? null : parseInt(body.artistId)) : undefined;
   const secondaryArtistId = body.secondaryArtistId !== undefined ? (body.secondaryArtistId === null || body.secondaryArtistId === '' || String(body.secondaryArtistId) === 'null' ? null : parseInt(body.secondaryArtistId)) : undefined;
-  const commissionSplit = body.commissionSplit !== undefined ? (body.commissionSplit === '' ? 50 : parseInt(body.commissionSplit)) : undefined;
+  let commissionSplit;
+  try {
+    commissionSplit = body.commissionSplit === undefined ? undefined : normalizeCommissionSplit(body.commissionSplit);
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
   const price = body.price !== undefined ? (body.price === '' ? 0 : parseFloat(body.price)) : undefined;
   const manualPaidAmount = body.manualPaidAmount !== undefined ? (body.manualPaidAmount === '' ? 0 : parseFloat(body.manualPaidAmount)) : undefined;
 
@@ -6870,7 +6879,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
           if (isRegisteredUser) {
             createNotification(currentData.customer_id, 'Session Fee Update', `The total price for your session #${id} has been set to ₱${parseFloat(price).toLocaleString()}. Please pay the required reservation fee/down payment to successfully secure your booking.`, 'system', id);
           }
-          notifyArtist('Session Price Set', `The price for session #${id} has been finalized at ₱${parseFloat(price).toLocaleString()}. Your 30% commission will be ₱${(parseFloat(price) * 0.30).toLocaleString()} upon completion.`, 'price_update');
+          notifyArtist('Session Price Set', `The price for session #${id} has been finalized at ₱${parseFloat(price).toLocaleString()}. The artist pool is 60%, divided by the agreed split for collaborations. See your earnings ledger for the applicable share.`, 'price_update');
 
           // ── Guest Email + SMS: Price Quote ──
           if (guestEmail) {
@@ -6915,9 +6924,9 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         // 5. Referral Status Change — Notify artist
         if (isReferral !== undefined && !!isReferral !== !!oldAppt.is_referral) {
           if (isReferral) {
-            notifyArtist('Referral Commission Activated', `Session #${id} for "${guestDesign}" has been marked as your referral. Your commission is now 70% Artist / 30% Studio.`, 'referral_activated');
+            notifyArtist('Artist Referral Recorded', `Session #${id} for "${guestDesign}" has been marked as your referral. The standard 60% artist pool is unchanged.`, 'referral_activated');
           } else {
-            notifyArtist('Referral Commission Removed', `Session #${id} for "${guestDesign}" is no longer marked as a referral. Commission reverted to 30% Artist / 70% Studio.`, 'referral_removed');
+            notifyArtist('Artist Referral Removed', `Session #${id} for "${guestDesign}" is no longer marked as a referral. The standard 60% artist pool is unchanged.`, 'referral_removed');
           }
         }
       }
@@ -7595,10 +7604,13 @@ app.put('/api/appointments/:id/status', async (req, res) => {
             });
           });
 
-          if (appointment.artist_id && appointment.artist_id > 1) {
-            const artistCommission = currentPrice * 0.30;
-            db.query('INSERT INTO payouts (artist_id, amount, payout_method, status, reference_no, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-              [appointment.artist_id, artistCommission, 'System Default', 'Pending', `Commission Session #${id}`, getLocalDatetime()]);
+          const commissionAppointment = { ...appointment, price: currentPrice };
+          const payoutArtistIds = [...new Set([appointment.artist_id, appointment.secondary_artist_id].map(Number))].filter(artistId => artistId > 1);
+          for (const payoutArtistId of payoutArtistIds) {
+              const share = artistCommission(commissionAppointment, payoutArtistId).artistShare;
+              if (share <= 0) continue;
+              db.query('INSERT INTO payouts (artist_id, amount, payout_method, status, reference_no, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+                [payoutArtistId, share, 'System Default', 'Pending', `Commission Session #${id}`, getLocalDatetime()]);
           }
         });
 
@@ -7727,13 +7739,11 @@ app.get('/api/admin/pending-payment-alerts', (req, res) => {
 app.get('/api/artist/:id/earnings-ledger', (req, res) => {
   const { id } = req.params;
 
-  // Commission rate is hardcoded to 30% per business rules (gemini.md Section 1)
-  // The DB column is ignored to prevent drift — referral 70% is handled per-appointment via is_referral flag
-  db.query('SELECT COALESCE(commission_rate, 0.30) as commission_rate FROM artists WHERE user_id = ?', [id], (rateErr, rateResults) => {
+  // Fixed 60% artist pool; only the agreed collaboration split changes an artist's share.
+  db.query('SELECT commission_rate FROM artists WHERE user_id = ?', [id], (rateErr, rateResults) => {
     if (rateErr) return res.status(500).json({ success: false, message: 'Database error fetching commission rate' });
 
-    const ARTIST_RATE = 0.30; // Enforced: 30% commission guarantee
-    const REFERRAL_RATE = 0.70; // Referral: 70% artist / 30% studio
+    const ARTIST_RATE = resolveCommissionRate(rateResults[0]?.commission_rate);
 
     // 2. Get Completed Appointments
     const apptsQuery = `
@@ -7762,73 +7772,16 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
         // e.g. commission_split=50 means primary gets 50% of pool, secondary gets 50%
         // e.g. commission_split=60 means primary gets 60% of pool, secondary gets 40%
         const calculations = appts.map(a => {
-          // Calculate effective price after discount (Task 1.3)
-          let effectivePrice = a.price || 0;
-          const rawDiscount = parseFloat(a.discount_amount) || 0;
-          if (rawDiscount > 0) {
-            if (a.discount_type === 'percent') {
-              effectivePrice = effectivePrice * (1 - rawDiscount / 100);
-            } else {
-              effectivePrice = Math.max(0, effectivePrice - rawDiscount);
-            }
-          }
-
-          let artistShare;
-          const isCollab = !!a.secondary_artist_id;
-          const isPrimary = Number(a.artist_id) === Number(id);
-          let splitPercent = 100;
-          let collabPartnerName = null;
-          let serviceLine = null; // The service line this artist is being paid from
-
-          if (isCollab) {
-            // Determine if this is a dual-service session with split pricing
-            const hasSplitPricing = a.tattoo_price !== null && a.piercing_price !== null;
-
-            if (hasSplitPricing) {
-              // Per-service-line commission: use service-line prices (discount already factored into total)
-              const discountRatio = a.price > 0 ? effectivePrice / a.price : 1;
-              if (isPrimary) {
-                artistShare = a.tattoo_price * discountRatio * ARTIST_RATE;
-                splitPercent = Math.round((a.tattoo_price / a.price) * 100) || 0;
-                collabPartnerName = a.secondary_artist_name;
-                serviceLine = 'Tattoo';
-              } else {
-                artistShare = a.piercing_price * discountRatio * ARTIST_RATE;
-                splitPercent = Math.round((a.piercing_price / a.price) * 100) || 0;
-                collabPartnerName = a.primary_artist_name;
-                serviceLine = 'Piercing';
-              }
-            } else {
-              // Legacy collab or dual-tattoo-artist session: split by percentage slider
-              const split = a.commission_split || 50;
-              if (isPrimary) {
-                artistShare = effectivePrice * ARTIST_RATE * (split / 100);
-                splitPercent = split;
-                collabPartnerName = a.secondary_artist_name;
-              } else {
-                artistShare = effectivePrice * ARTIST_RATE * ((100 - split) / 100);
-                splitPercent = 100 - split;
-                collabPartnerName = a.primary_artist_name;
-              }
-            }
-          } else {
-            // Solo session: apply referral rate if flagged
-            const effectiveRate = a.is_referral ? REFERRAL_RATE : ARTIST_RATE;
-            artistShare = effectivePrice * effectiveRate;
-          }
+          const share = artistCommission(a, id);
+          const collabPartnerName = share.isCollab ? (share.isPrimary ? a.secondary_artist_name : a.primary_artist_name) : null;
           return {
             ...a,
-            artistShare,
-            basePrice: effectivePrice,
+            ...share,
             originalPrice: a.price,
-            discountAmount: rawDiscount,
+            discountAmount: parseFloat(a.discount_amount) || 0,
             discountType: a.discount_type,
-            studioShare: effectivePrice - artistShare,
-            isCollab,
-            isPrimary,
-            splitPercent,
             collabPartnerName,
-            serviceLine,
+            serviceLine: null, // Agreed collaboration share, not an implicit service-price split.
             isReferral: !!a.is_referral,
             totalPaid: a.total_paid || 0,
             // Cross-check: if total_paid covers full price, treat as paid regardless of stale payment_status
@@ -7913,11 +7866,11 @@ app.get('/api/admin/payout-alerts', (req, res) => {
       COALESCE((
         SELECT SUM(
           CASE 
-            WHEN a.commission_split IS NOT NULL AND a.secondary_artist_id = u.id 
-              THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.30 * ((100 - a.commission_split) / 100)
-            WHEN a.commission_split IS NOT NULL AND a.artist_id = u.id 
-              THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.30 * (a.commission_split / 100)
-            ELSE ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.30
+            WHEN a.secondary_artist_id != a.artist_id AND a.secondary_artist_id = u.id
+              THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.60 * ((100 - COALESCE(a.commission_split, 50)) / 100)
+            WHEN a.secondary_artist_id IS NOT NULL AND a.secondary_artist_id != a.artist_id AND a.artist_id = u.id
+              THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.60 * (COALESCE(a.commission_split, 50) / 100)
+            ELSE ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.60
           END
         )
         FROM appointments a
@@ -9358,7 +9311,7 @@ app.post('/api/admin/users', async (req, res) => {
 
       // If artist, create artist profile
       if (type === 'artist') {
-        db.query('INSERT INTO artists (user_id, studio_name, profile_image) VALUES (?, ?, ?)', [newUserId, 'New Studio', profileImage || null]);
+        db.query('INSERT INTO artists (user_id, studio_name, profile_image, commission_rate) VALUES (?, ?, ?, ?)', [newUserId, 'New Studio', profileImage || null, DEFAULT_COMMISSION_RATE]);
       }
 
       // Create customer profile with extra fields (profileImage, age, gender)
@@ -11833,11 +11786,11 @@ function startPayoutReminders() {
         COALESCE((
           SELECT SUM(
             CASE 
-              WHEN a.commission_split IS NOT NULL AND a.secondary_artist_id = u.id 
-                THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.30 * ((100 - a.commission_split) / 100)
-              WHEN a.commission_split IS NOT NULL AND a.artist_id = u.id 
-                THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.30 * (a.commission_split / 100)
-              ELSE ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.30
+              WHEN a.secondary_artist_id != a.artist_id AND a.secondary_artist_id = u.id
+                THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.60 * ((100 - COALESCE(a.commission_split, 50)) / 100)
+              WHEN a.secondary_artist_id IS NOT NULL AND a.secondary_artist_id != a.artist_id AND a.artist_id = u.id
+                THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.60 * (COALESCE(a.commission_split, 50) / 100)
+              ELSE ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.60
             END
           )
           FROM appointments a

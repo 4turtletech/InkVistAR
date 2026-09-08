@@ -14,3 +14,4 @@ require('./captchaPolicy.test');
 require('./chatbotResilience.test');
 require('./expoPushService.test');
 require('./invoiceRecordService.test');
+require('./commissionPolicy.test');

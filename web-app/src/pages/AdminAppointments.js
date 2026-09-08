@@ -1,3 +1,4 @@
+import { artistCommission } from '../utils/commissionPolicy';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -444,7 +445,7 @@ function AdminAppointments() {
                         consultationNotes: apt.consultation_notes || '',
                         quotedPrice: apt.quoted_price || '',
                         secondary_artist_id: apt.secondary_artist_id || null,
-                        commission_split: apt.commission_split || 50,
+                        commission_split: apt.commission_split ?? 50,
                         isReferral: !!apt.is_referral,
                         sessionDuration: apt.session_duration || null,
                         auditLog: apt.audit_log || null,
@@ -766,7 +767,7 @@ function AdminAppointments() {
             clientId: appointment.clientId || appointment.customer_id,
             artistId: isRealArtist ? storedArtistId : '',
             secondaryArtistId: appointment.secondary_artist_id || '',
-            commissionSplit: appointment.commission_split || 50,
+            commissionSplit: appointment.commission_split ?? 50,
             serviceType: appointment.serviceType || appointment.service_type,
             designTitle: appointment.designTitle || appointment.design_title,
             date: appointment.date || appointment.appointment_date,
@@ -906,7 +907,7 @@ function AdminAppointments() {
                 clientId: appointment.clientId || appointment.customer_id,
                 artistId: appointment.artistId || appointment.artist_id,
                 secondaryArtistId: appointment.secondary_artist_id || '',
-                commissionSplit: appointment.commission_split || 50,
+                commissionSplit: appointment.commission_split ?? 50,
                 serviceType: appointment.serviceType || appointment.service_type,
                 designTitle: appointment.designTitle || appointment.design_title,
                 date: new Date().toISOString().split('T')[0],
@@ -1062,7 +1063,7 @@ function AdminAppointments() {
                     } : {}),
                     artistId: formData.artistId,
                     secondaryArtistId: formData.secondaryArtistId || null,
-                    commissionSplit: formData.commissionSplit || 50,
+                    commissionSplit: formData.commissionSplit ?? 50,
                     serviceType: formData.serviceType,
                     designTitle: formData.designTitle,
                     date: formData.date,
@@ -1201,7 +1202,7 @@ function AdminAppointments() {
                 customerId: formData.clientId,
                 artistId: formData.artistId,
                 secondaryArtistId: formData.secondaryArtistId || null,
-                commissionSplit: formData.commissionSplit || 50,
+                commissionSplit: formData.commissionSplit ?? 50,
                 serviceType: formData.serviceType,
                 designTitle: formData.designTitle,
                 date: rescheduleModal.date,
@@ -2167,7 +2168,7 @@ function AdminAppointments() {
                                                 clientId: selectedAppointment.clientId || selectedAppointment.customer_id,
                                                 artistId: isRealArtist ? storedArtistId : '',
                                                 secondaryArtistId: selectedAppointment.secondary_artist_id || '',
-                                                commissionSplit: selectedAppointment.commission_split || 50,
+                                                commissionSplit: selectedAppointment.commission_split ?? 50,
                                                 serviceType: selectedAppointment.serviceType || selectedAppointment.service_type,
                                                 designTitle: selectedAppointment.designTitle || selectedAppointment.design_title,
                                                 date: selectedAppointment.date || selectedAppointment.appointment_date,
@@ -2785,18 +2786,18 @@ function AdminAppointments() {
                                                                         )}
                                                                     </div>
                                                                 </div>
-                                                                {/* Commission split slider: only for collab tattoo sessions (NOT for Tattoo + Piercing dual-service) */}
-                                                                {formData.secondaryArtistId && formData.serviceType !== 'Consultation' && formData.serviceType !== 'Tattoo + Piercing' && (
+                                                                {/* Commission split slider: agreed share of the fixed 60% artist pool */}
+                                                                {formData.secondaryArtistId && formData.serviceType !== 'Consultation' && (
                                                                     <div className="admin-st-953ba7ac">
-                                                                        <label className="admin-st-15b3be7e">Split % (Artist 1/Artist 2):</label>
-                                                                        <input type="number" min="1" max="99" value={formData.commissionSplit} onChange={(e) => setFormData({ ...formData, commissionSplit: clampNumber(e.target.value, 1, 99) })} className="premium-input-v2 admin-st-e070afd8" disabled={selectedAppointment?.status === 'completed'} />
+                                                                        <label className="admin-st-15b3be7e">Split of 60% Artist Pool (Artist 1/Artist 2):</label>
+                                                                        <input type="number" min="0" max="100" value={formData.commissionSplit} onChange={(e) => setFormData({ ...formData, commissionSplit: clampNumber(e.target.value, 0, 100) })} className="premium-input-v2 admin-st-e070afd8" disabled={selectedAppointment?.status === 'completed'} />
                                                                         <span className="admin-st-7206c648">/ {100 - (formData.commissionSplit || 0)}</span>
                                                                     </div>
                                                                 )}
-                                                                {/* Dual-service note: commission is per-service-line */}
+                                                                {/* Dual-service note: agreed split of the combined pool */}
                                                                 {formData.secondaryArtistId && formData.serviceType === 'Tattoo + Piercing' && (
                                                                     <div style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: '0.75rem', color: '#166534', fontWeight: 500 }}>
-                                                                        <CheckCircle size={12} style={{ display: 'inline', verticalAlign: '-2px' }} /> Commission calculated per service line — Tattoo Artist earns from tattoo quote, Piercer earns from piercing quote.
+                                                                        <CheckCircle size={12} style={{ display: 'inline', verticalAlign: '-2px' }} /> The artists divide 60% of the combined session total using the agreed split above. The studio retains 40%.
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -2811,10 +2812,9 @@ function AdminAppointments() {
 
                                                         const handleReferralToggle = (e) => {
                                                             const newValue = e.target.checked;
-                                                            const newSplit = newValue ? '70% Artist / 30% Studio' : '30% Artist / 70% Studio';
                                                             showConfirm(
                                                                 newValue ? 'Enable Artist Referral' : 'Remove Artist Referral',
-                                                                `This will change the commission split to ${newSplit}. Proceed?`,
+                                                                'This changes the referral label only. The 60% artist pool and agreed collaboration split stay unchanged. Proceed?',
                                                                 () => {
                                                                     handleInputChange('isReferral', newValue);
                                                                     setConfirmDialog(prev => ({ ...prev, isOpen: false }));
@@ -2846,7 +2846,7 @@ function AdminAppointments() {
                                                                     />
                                                                     <span>Artist Referral</span>
                                                                     {formData.isReferral && (
-                                                                        <span style={{ marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>70/30</span>
+                                                                        <span style={{ marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>Referral</span>
                                                                     )}
                                                                 </label>
                                                             </div>
@@ -3117,12 +3117,12 @@ function AdminAppointments() {
                                                                 {formData.secondaryArtistId && (Number(formData.tattooPrice) > 0 || Number(formData.piercingPrice) > 0) && (
                                                                     <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
-                                                                            <span><Syringe size={13} style={{ display: 'inline', verticalAlign: '-2px' }} /> {artists.find(a => String(a.id) === String(formData.artistId))?.name || 'Tattoo Artist'} earns (30%):</span>
-                                                                            <span style={{ fontWeight: 600, color: '#059669' }}>₱{(Number(formData.tattooPrice) * 0.30).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                            <span><Syringe size={13} style={{ display: 'inline', verticalAlign: '-2px' }} /> {artists.find(a => String(a.id) === String(formData.artistId))?.name || 'Tattoo Artist'} earns ({(artistCommission({ price: formData.price, artist_id: formData.artistId, secondary_artist_id: formData.secondaryArtistId, commission_split: formData.commissionSplit }, formData.artistId).effectiveRate * 100).toFixed(0)}%):</span>
+                                                                            <span style={{ fontWeight: 600, color: '#059669' }}>₱{artistCommission({ price: formData.price, artist_id: formData.artistId, secondary_artist_id: formData.secondaryArtistId, commission_split: formData.commissionSplit }, formData.artistId).artistShare.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                                         </div>
                                                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
-                                                                            <span><Wrench size={13} style={{ display: 'inline', verticalAlign: '-2px' }} /> {artists.find(a => String(a.id) === String(formData.secondaryArtistId))?.name || 'Piercer'} earns (30%):</span>
-                                                                            <span style={{ fontWeight: 600, color: '#059669' }}>₱{(Number(formData.piercingPrice) * 0.30).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                            <span><Wrench size={13} style={{ display: 'inline', verticalAlign: '-2px' }} /> {artists.find(a => String(a.id) === String(formData.secondaryArtistId))?.name || 'Piercer'} earns ({(artistCommission({ price: formData.price, artist_id: formData.artistId, secondary_artist_id: formData.secondaryArtistId, commission_split: formData.commissionSplit }, formData.secondaryArtistId).effectiveRate * 100).toFixed(0)}%):</span>
+                                                                            <span style={{ fontWeight: 600, color: '#059669' }}>₱{artistCommission({ price: formData.price, artist_id: formData.artistId, secondary_artist_id: formData.secondaryArtistId, commission_split: formData.commissionSplit }, formData.secondaryArtistId).artistShare.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                                         </div>
                                                                     </div>
                                                                 )}

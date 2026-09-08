@@ -1,3 +1,4 @@
+import { artistCommission } from '../src/utils/commissionPolicy';
 /**
  * ArtistSchedule.jsx -- Calendar + List Schedule (Gilded Noir v2)
  * Theme-aware, animated, gold accents. Filters, sort, calendar, appointment cards, detail & add modals.
@@ -515,8 +516,8 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
                       <Text style={modalS.valueBoldPrice}>₱{parseFloat(selectedAppointment.price || 0).toLocaleString()}</Text>
                     </View>
                     <View style={modalS.statItem}>
-                      <Text style={modalS.labelSmall}>Your Cut ({((parseFloat(selectedAppointment.commission_rate) || 0.30) * 100).toFixed(0)}%)</Text>
-                      <Text style={modalS.valueBoldCut}>₱{((parseFloat(selectedAppointment.price || 0) * (parseFloat(selectedAppointment.commission_rate) || 0.30))).toLocaleString()}</Text>
+                      <Text style={modalS.labelSmall}>Your Cut ({((artistCommission(selectedAppointment, artistId).effectiveRate) * 100).toFixed(0)}%)</Text>
+                      <Text style={modalS.valueBoldCut}>₱{artistCommission(selectedAppointment, artistId).artistShare.toLocaleString()}</Text>
                     </View>
                   </View>
 
