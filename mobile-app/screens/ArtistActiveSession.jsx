@@ -18,6 +18,8 @@ import { useTheme } from '../src/context/ThemeContext';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { fetchAPI } from '../src/utils/api';
 import { HealthAlertPanel } from '../src/components/shared/HealthAlertPanel';
+import { useSessionTimer } from '../src/hooks/useSessionTimer';
+import { mergeSessionDetails } from '../src/utils/sessionState';
 
 export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const { theme: colors, hapticsEnabled } = useTheme();
@@ -25,16 +27,18 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
 
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(appointment?.status || 'confirmed');
-  const [sessionData, setSessionData] = useState({ notes: appointment?.notes || '', beforePhoto: null, afterPhoto: null });
+  const [sessionData, setSessionData] = useState(() => mergeSessionDetails({ notes: '', beforePhoto: null, afterPhoto: null }, appointment || {}));
+  const savedDetails = useRef(sessionData);
+  const editedFields = useRef({});
+  const [detailsReady, setDetailsReady] = useState(false);
+  const [detailsError, setDetailsError] = useState('');
+  const { elapsedSeconds, isPaused, setPaused, auditLog, setAuditLog, timerReady, timerError } = useSessionTimer(appointment, status);
   const [sessionMaterials, setSessionMaterials] = useState([]);
   const [sessionCost, setSessionCost] = useState(0);
   const [inventoryItems, setInventoryItems] = useState([]);
   const [serviceKits, setServiceKits] = useState({});
   const [addingMaterial, setAddingMaterial] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const [trackerVisible, setTrackerVisible] = useState(false);
-  const [auditLog, setAuditLog] = useState([]);
   const [abortModalVisible, setAbortModalVisible] = useState(false);
   const [abortReason, setAbortReason] = useState('');
   const [draftImage, setDraftImage] = useState(null);
@@ -49,21 +53,18 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
 
   useEffect(() => { 
+    let cancelled = false;
     fetchInventory(); 
     fetchServiceKits(); 
-    fetchSessionImages();
-    if (status === 'in_progress') fetchSessionMaterials();
+    fetchSessionImages(() => cancelled);
     // B-M1: load project timeline
     if (appointment?.project_id) fetchProjectTimeline(appointment.project_id);
 
-    // Initialize Audit Log
-    if (appointment?.audit_log) {
-      try {
-        setAuditLog(typeof appointment.audit_log === 'string' ? JSON.parse(appointment.audit_log) : appointment.audit_log);
-      } catch (e) {
-        console.warn('Failed to parse audit log');
-      }
-    }
+    return () => { cancelled = true; };
+  }, [appointment?.id]);
+
+  useEffect(() => {
+    if (status === 'in_progress') fetchSessionMaterials();
   }, [appointment?.id, status]);
 
   // Keyboard visibility tracking (for extra bottom padding)
@@ -111,13 +112,22 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     finally { setProjectTimelineLoading(false); }
   };
 
-  const fetchSessionImages = async () => {
+  const fetchSessionImages = async (isCancelled = () => false) => {
     if (!appointment?.id) return;
+    setDetailsReady(false);
+    setDetailsError('');
+    const restoreDetails = (details) => {
+      if (isCancelled()) return;
+      savedDetails.current = mergeSessionDetails(savedDetails.current, details);
+      setSessionData(current => mergeSessionDetails(current, details, editedFields.current));
+      setDraftImage(details.draft_image || appointment?.draft_image || null);
+      setRefImage(details.reference_image || appointment?.reference_image || null);
+      setDetailsReady(true);
+    };
     try {
       const r = await fetchAPI(`/appointments/${appointment.id}/details`);
       if (r.success && r.appointment) {
-        if (r.appointment.draft_image) setDraftImage(r.appointment.draft_image);
-        if (r.appointment.reference_image) setRefImage(r.appointment.reference_image);
+        restoreDetails(r.appointment);
         return;
       }
     } catch (e) { /* endpoint may not exist yet on production */ }
@@ -127,29 +137,21 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
       if (appointment?.artist_id) {
         const r2 = await fetchAPI(`/artist/${appointment.artist_id}/appointments`);
         if (r2.success && r2.appointments) {
-          const match = r2.appointments.find(a => a.id === appointment.id);
-          if (match) {
-            if (match.draft_image) setDraftImage(match.draft_image);
-            if (match.reference_image) setRefImage(match.reference_image);
+          const match = r2.appointments.find(a => String(a.id) === String(appointment.id));
+          if (match && ['notes', 'before_photo', 'after_photo'].every(field => Object.prototype.hasOwnProperty.call(match, field))) {
+            restoreDetails(match);
             return;
           }
         }
       }
     } catch (e) { /* fallback failed too */ }
 
-    // Fallback 2: from passed props (usually truncated but worth trying)
+    if (isCancelled()) return;
+    // Keep existing previews, but do not save incomplete/stale data over server details.
     if (appointment?.draft_image) setDraftImage(appointment.draft_image);
     if (appointment?.reference_image) setRefImage(appointment.reference_image);
+    setDetailsError('Could not load saved session details. Please go back and reopen the session before saving.');
   };
-
-  // Timer logic
-  useEffect(() => {
-    let interval;
-    if (status === 'in_progress' && !isPaused) {
-      interval = setInterval(() => setElapsedSeconds(p => p + 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [status, isPaused]);
 
   const formatTime = (totalSecs) => {
     const h = Math.floor(totalSecs / 3600);
@@ -173,14 +175,25 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     return result?.message || fallback;
   };
 
-  const saveSessionDetails = () => fetchAPI(`/appointments/${appointment.id}/details`, {
+  const saveSessionDetails = async () => {
+    if (!detailsReady) return { success: false, message: 'Wait for saved session details to load before saving.' };
+    const snapshot = { ...sessionData };
+    const result = await fetchAPI(`/appointments/${appointment.id}/details`, {
     method: 'PUT',
     body: JSON.stringify({
       notes: sessionData.notes,
       beforePhoto: sessionData.beforePhoto,
       afterPhoto: sessionData.afterPhoto,
     }),
-  });
+    });
+    if (result.success) savedDetails.current = snapshot;
+    return result;
+  };
+
+  const editSessionField = (field, value) => {
+    editedFields.current[field] = true;
+    setSessionData(current => ({ ...current, [field]: value }));
+  };
 
   const handleQuickAdd = async (inventoryId, quantity = 1) => {
     setAddingMaterial(true);
@@ -210,13 +223,14 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { showAlert('Permission Denied', 'Photo access is required.'); return; }
     let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', allowsEditing: true, quality: 0.5, base64: true });
-    if (!result.canceled) setSessionData(p => ({ ...p, [type]: `data:image/jpeg;base64,${result.assets[0].base64}` }));
+    if (!result.canceled) editSessionField(type, `data:image/jpeg;base64,${result.assets[0].base64}`);
   };
 
   const processStatusUpdate = async (newStatus, isFullyComplete = true, nextAuditLog = auditLog) => {
+    if (loading || !timerReady || !detailsReady) return;
     setLoading(true);
     try {
-      if (newStatus === 'completed' && (sessionData.notes || sessionData.beforePhoto || sessionData.afterPhoto)) {
+      if (['in_progress', 'completed'].includes(newStatus) && (sessionData.notes || sessionData.beforePhoto || sessionData.afterPhoto)) {
         const detailsResult = await saveSessionDetails();
         if (!detailsResult.success) {
           showAlert('Error', getSessionRequestError(detailsResult, 'Failed to save the session documentation.'));
@@ -240,6 +254,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
       });
 
       if (r.success) {
+        setAuditLog(nextAuditLog);
         setStatus(newStatus);
         if (newStatus === 'completed') showAlert('Session Completed', `Session marked as complete. Total material cost: P${sessionCost.toLocaleString()}.`, () => onComplete?.());
         else if (newStatus === 'incomplete') showAlert('Session Aborted', 'Session has been marked as incomplete.', () => onComplete?.());
@@ -249,6 +264,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   };
 
   const handleUpdateStatus = async (newStatus) => {
+    if (loading || !timerReady || !detailsReady) return;
     if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     let nextAuditLog = auditLog;
@@ -266,7 +282,6 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
         note: 'Artist initiated the session.'
       };
       nextAuditLog = [...auditLog, startEvent];
-      setAuditLog(nextAuditLog);
     }
 
     if (newStatus === 'completed') {
@@ -294,7 +309,6 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
         [
           { text: 'Needs Another', style: 'cancel', onPress: () => {
             const completionLog = [...auditLog, { timestamp: new Date().toISOString(), event: 'Session Partially Completed', note: 'Needs another session' }];
-            setAuditLog(completionLog);
             processStatusUpdate('completed', false, completionLog);
           }},
           { text: 'Fully Complete', onPress: () => processStatusUpdate('completed', true, auditLog) }
@@ -319,14 +333,13 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     
     // Append abort event
     const newLog = [...auditLog, { timestamp: new Date().toISOString(), event: 'Session Aborted', note: `Reason: ${abortReason}` }];
-    setAuditLog(newLog);
     
     // We pass the abortReason in state which will be picked up by processStatusUpdate
     await processStatusUpdate('incomplete', false, newLog);
   };
 
   const handleSaveDetails = async () => {
-    if (!appointment?.id) return;
+    if (!appointment?.id || loading || !detailsReady) return false;
     if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLoading(true);
     try {
@@ -334,24 +347,24 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
       r.success
         ? showAlert('Success', 'Session details saved!')
         : showAlert('Error', getSessionRequestError(r, 'Failed to save the session details.'));
-    } catch (e) { showAlert('Error', 'Connection failed'); } finally { setLoading(false); }
+      return Boolean(r.success);
+    } catch (e) { showAlert('Error', 'Connection failed'); return false; } finally { setLoading(false); }
   };
 
   const handlePauseResume = () => {
+    if (!timerReady || loading) return;
     if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (isPaused) {
       setAuditLog(prev => [...prev, { timestamp: new Date().toISOString(), event: 'Session Resumed', note: 'Artist resumed the session.' }]);
-      setIsPaused(false);
+      setPaused(false);
     } else {
       setAuditLog(prev => [...prev, { timestamp: new Date().toISOString(), event: 'Session Paused', note: 'Artist paused the session.' }]);
-      setIsPaused(true);
+      setPaused(true);
     }
   };
 
   const hasUnsavedChanges = () => {
-    if (status === 'in_progress') return true;
-    const origNotes = appointment?.notes || '';
-    return sessionData.notes !== origNotes || sessionData.beforePhoto !== null || sessionData.afterPhoto !== null;
+    return Object.keys(sessionData).some(field => sessionData[field] !== savedDetails.current[field]);
   };
 
   const handleBackIntercept = () => {
@@ -364,8 +377,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
         [
           { text: 'Discard Changes', style: 'cancel', onPress: onBack },
           { text: 'Save & Close', onPress: async () => {
-            await handleSaveDetails();
-            onBack();
+            if (await handleSaveDetails()) onBack();
           }}
         ]
       );
@@ -408,10 +420,13 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
         </View>
 
         <View style={styles.content}>
+          {!detailsReady && !detailsError && <Text style={{ color: colors.textSecondary, marginBottom: 12 }}>Loading saved session details...</Text>}
+          {!!detailsError && <Text accessibilityRole="alert" style={{ color: colors.error, marginBottom: 12 }}>{detailsError}</Text>}
+          {!!timerError && <Text accessibilityRole="alert" style={{ color: colors.error, marginBottom: 12 }}>{timerError}</Text>}
           {/* Action Buttons & Timer */}
           <View style={styles.actionSection}>
             {status === 'confirmed' && (
-              <AnimatedTouchable style={[styles.actionBtn, { backgroundColor: colors.gold }]} onPress={() => handleUpdateStatus('in_progress')} disabled={loading}>
+              <AnimatedTouchable style={[styles.actionBtn, { backgroundColor: colors.gold }]} onPress={() => handleUpdateStatus('in_progress')} disabled={loading || !detailsReady || !timerReady}>
                 <View style={{ marginRight: 10 }}><Play size={18} color={colors.backgroundDeep} /></View>
                 <Text style={[styles.actionBtnText, { color: colors.backgroundDeep }]}>Start Session</Text>
               </AnimatedTouchable>
@@ -420,26 +435,26 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
             {status === 'in_progress' && (
               <View style={styles.timerContainer}>
                 <View style={[styles.statusRing, isPaused && { borderColor: colors.gold }]}>
-                  <Text style={[styles.timerText, isPaused && { color: colors.gold }]}>{formatTime(elapsedSeconds)}</Text>
+                  <Text style={[styles.timerText, isPaused && { color: colors.gold }]}>{timerReady ? formatTime(elapsedSeconds) : '--:--:--'}</Text>
                   <Text style={styles.timerLabel}>{isPaused ? 'SESSION PAUSED' : 'SESSION DURATION'}</Text>
                 </View>
 
                 {/* Pause/Resume and Complete Buttons Row */}
                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
-                  <AnimatedTouchable style={[styles.actionBtn, { flex: 1, backgroundColor: isPaused ? colors.gold : colors.surfaceLight, borderWidth: 1, borderColor: colors.gold }]} onPress={handlePauseResume} disabled={loading}>
+                  <AnimatedTouchable style={[styles.actionBtn, { flex: 1, backgroundColor: isPaused ? colors.gold : colors.surfaceLight, borderWidth: 1, borderColor: colors.gold }]} onPress={handlePauseResume} disabled={loading || !timerReady}>
                     <View style={{ marginRight: 10 }}>
                       {isPaused ? <Play size={18} color={colors.backgroundDeep} /> : <Pause size={18} color={colors.gold} />}
                     </View>
                     <Text style={[styles.actionBtnText, { color: isPaused ? colors.backgroundDeep : colors.gold }]}>{isPaused ? 'Resume' : 'Pause'}</Text>
                   </AnimatedTouchable>
                   
-                  <AnimatedTouchable style={[styles.actionBtn, { flex: 1, backgroundColor: colors.success }]} onPress={() => handleUpdateStatus('completed')} disabled={loading}>
+                  <AnimatedTouchable style={[styles.actionBtn, { flex: 1, backgroundColor: colors.success }]} onPress={() => handleUpdateStatus('completed')} disabled={loading || !detailsReady || !timerReady}>
                     <View style={{ marginRight: 10 }}><CheckCircle2 size={18} color="#ffffff" /></View>
                     <Text style={styles.actionBtnText}>Complete</Text>
                   </AnimatedTouchable>
                 </View>
                 
-                <AnimatedTouchable style={[styles.actionBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.error, marginTop: 12 }]} onPress={handleAbortSession} disabled={loading}>
+                <AnimatedTouchable style={[styles.actionBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.error, marginTop: 12 }]} onPress={handleAbortSession} disabled={loading || !detailsReady || !timerReady}>
                   <View style={{ marginRight: 10 }}><XCircle size={18} color={colors.error} /></View>
                   <Text style={[styles.actionBtnText, { color: colors.error }]}>Abort Session</Text>
                 </AnimatedTouchable>
@@ -632,8 +647,8 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
           <View ref={r => { notesYRef.current = r; }}>
             <Text style={styles.sectionTitle}>Session Notes</Text>
             <View style={styles.notesCard}>
-              <TextInput style={styles.notesInput} placeholder="Record session details, skin reaction, etc..." placeholderTextColor={colors.textTertiary} value={sessionData.notes} onChangeText={t => setSessionData(p => ({ ...p, notes: t }))} multiline numberOfLines={4} onFocus={scrollToNotes} />
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveDetails} disabled={loading} activeOpacity={0.8}>
+              <TextInput style={styles.notesInput} placeholder="Record session details, skin reaction, etc..." placeholderTextColor={colors.textTertiary} value={sessionData.notes} onChangeText={t => editSessionField('notes', t)} multiline numberOfLines={4} onFocus={scrollToNotes} />
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveDetails} disabled={loading || !detailsReady} activeOpacity={0.8}>
                 <View style={{ marginRight: 10 }}><Save size={18} color={colors.backgroundDeep} /></View>
                 <Text style={styles.saveBtnText}>Save Details</Text>
               </TouchableOpacity>
