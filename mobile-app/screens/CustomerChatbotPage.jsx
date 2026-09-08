@@ -6,7 +6,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
-  SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Animated,
+  SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Animated, AppState,
 } from 'react-native';
 import { ArrowLeft, Sparkles, User, Cpu, SendHorizontal, Wifi, WifiOff, LogOut } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -14,7 +14,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../src/context/ThemeContext';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { typography, borderRadius, shadows } from '../src/theme';
-import { sendChatMessage, API_BASE_URL, getSocketAuthToken } from '../src/utils/api';
+import { sendChatMessage, API_BASE_URL, getSocketAuthToken, getChatHistory } from '../src/utils/api';
+import { mergeSupportHistory, appendSupportMessage } from '../src/utils/supportChatHistory';
 import io from 'socket.io-client';
 
 const CHAT_UNAVAILABLE_MESSAGE = 'AI assistance is temporarily limited. Please retry in a moment or switch to Live Support.';
@@ -73,6 +74,9 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const [historyRefresh, setHistoryRefresh] = useState(0);
   const scrollRef = useRef(null);
   const socketRef = useRef(null);
   const isHumanModeRef = useRef(false);
@@ -86,10 +90,14 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
 
   useEffect(() => {
     let mounted = true;
+    setIsChatModeHydrated(false);
+    setIsHumanMode(false);
+    setHumanMessages([{ id: 'sys-1', sender: 'system', text: 'Welcome to Live Support.', timestamp: new Date() }]);
     AsyncStorage.getItem(liveModeStorageKey)
       .then(value => {
         if (mounted && value === 'true') setIsHumanMode(true);
       })
+      .catch(() => {})
       .finally(() => {
         if (mounted) setIsChatModeHydrated(true);
       });
@@ -100,6 +108,39 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
     if (!isChatModeHydrated) return;
     AsyncStorage.setItem(liveModeStorageKey, isHumanMode ? 'true' : 'false').catch(() => {});
   }, [isChatModeHydrated, isHumanMode, liveModeStorageKey]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') setHistoryRefresh(value => value + 1);
+    });
+    return () => subscription.remove();
+  }, []);
+
+  // Restore messages sent while this screen was closed, including after socket
+  // reconnects. Merge with live events instead of overwriting them with a snapshot.
+  useEffect(() => {
+    let active = true;
+    if (!isHumanMode || !userId) {
+      setHistoryLoading(false);
+      setHistoryError('');
+      return () => { active = false; };
+    }
+    setHistoryLoading(true);
+    setHistoryError('');
+    const loadHistory = async () => {
+      try {
+        const result = await getChatHistory(room);
+        if (!result.success || !Array.isArray(result.messages)) throw new Error('History unavailable');
+        if (active) setHumanMessages(current => mergeSupportHistory(current, result.messages));
+      } catch (_) {
+        if (active) setHistoryError('Previous messages could not be loaded. Your live chat is still open.');
+      } finally {
+        if (active) setHistoryLoading(false);
+      }
+    };
+    loadHistory();
+    return () => { active = false; };
+  }, [isHumanMode, isConnected, room, userId, historyRefresh]);
 
   // Keep the current chat mode available to reconnect handlers without recreating the socket.
   useEffect(() => {
@@ -149,7 +190,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
 
     const onMsg = (data) => {
       if (data.room !== room) return;
-      setHumanMessages(prev => [...prev, { id: Date.now() + Math.random(), sender: data.sender, text: data.text, timestamp: new Date() }]);
+      setHumanMessages(prev => appendSupportMessage(prev, data));
     };
 
     const onClose = () => {
@@ -216,7 +257,6 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
 
   const sendMessageHandler = async (text) => {
     if (text.trim().length === 0 || isLoading) return;
-    if (inputValue === text) setInputValue('');
 
     if (isHumanMode) {
       if (!socketRef.current?.connected) {
@@ -228,10 +268,12 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
         }]);
         return;
       }
+      if (inputValue === text) setInputValue('');
       const data = { room, sender: currentUserName, text: text.trim() };
       socketRef.current.emit('send_message', data);
       setHumanMessages(prev => [...prev, { id: Date.now(), sender: currentUserName, text: text.trim(), timestamp: new Date() }]);
     } else {
+      if (inputValue === text) setInputValue('');
       await requestAiResponse(text);
     }
   };
@@ -310,6 +352,17 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
 
         {/* Messages */}
         <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={styles.msgContent} showsVerticalScrollIndicator={false}>
+          {isHumanMode && historyLoading && (
+            <View style={styles.typingRow}><ActivityIndicator size="small" color={theme.textTertiary} /><Text style={styles.typingText}>Loading previous messages...</Text></View>
+          )}
+          {isHumanMode && !!historyError && (
+            <View accessibilityLiveRegion="polite">
+              <Text style={styles.systemText}>{historyError}</Text>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Retry loading chat history" onPress={() => setHistoryRefresh(value => value + 1)} style={styles.retryButton}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           {(isHumanMode ? humanMessages : botMessages).map(msg => (
             <AnimatedMessageBubble
               key={msg.id}
@@ -344,7 +397,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
         <View style={styles.inputBar}>
           <TextInput
             style={[styles.input, isFocused && { borderColor: theme.gold, backgroundColor: theme.surface }]}
-            placeholder={isHumanMode ? 'Type a message to an artist...' : 'Ask me anything about tattoos...'}
+            placeholder={isHumanMode ? 'Type a message to support...' : 'Ask me anything about tattoos...'}
             placeholderTextColor={theme.textTertiary}
             value={inputValue}
             onChangeText={setInputValue}
