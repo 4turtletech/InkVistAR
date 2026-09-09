@@ -10,7 +10,7 @@ import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import { typography, borderRadius, shadows } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
-import { API_URL, getCustomerAppointments } from '../src/utils/api';
+import { API_URL, getCustomerAppointments, createCustomerAppointment } from '../src/utils/api';
 import { formatTime } from '../src/utils/formatters';
 import { tattooBodyParts, piercingBodyParts, calendarCells, shiftCalendarMonth, changeBookingServices, toggleBookingPlacement, bookingPlacementErrors } from '../src/utils/bookingValidation';
 
@@ -24,6 +24,7 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
   const [step, setStep] = useState(1);
   const TOTAL_STEPS = 5;
   const [loading, setLoading] = useState(false);
+  const bookingSubmissionInFlight = useRef(false);
   const [errors, setErrors] = useState({});
   const [completedAppointments, setCompletedAppointments] = useState([]);
   const [completedAppointmentsLoading, setCompletedAppointmentsLoading] = useState(false);
@@ -272,12 +273,16 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
   };
 
   const submitBooking = async () => {
+    if (bookingSubmissionInFlight.current) return;
     const placementErrors = bookingPlacementErrors(formData);
     if (Object.keys(placementErrors).length) {
       setErrors(placementErrors);
       setStep(3);
       return;
     }
+    bookingSubmissionInFlight.current = true;
+    setErrors(prev => ({ ...prev, submission: '' }));
+    Keyboard.dismiss();
     setLoading(true);
     try {
       let followupNote = '';
@@ -297,6 +302,7 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
         startTime: formData.time,
         endTime: formData.time,
         serviceType: getDerivedServiceType(),
+        consultationMethod: formData.selectedServices.includes('Consultation') ? formData.consultationMethod : null,
         designTitle: formData.designTitle,
         notes: `Method: ${formData.consultationMethod} ${formData.onlinePlatform}\nPlacement: ${formData.placement.join(', ')} ${formData.placementNotes}\nNotes: ${formData.notes}${followupNote}`,
         referenceImage: formData.referenceImage,
@@ -305,18 +311,25 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
         guestPhone: fullPhone
       };
 
-      const r = await (await fetch(`${API_URL}/customer/appointments`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })).json();
+      const r = await createCustomerAppointment(payload);
       
       if (r.success) {
-        Alert.alert('Booking Confirmed', 'Your session request has been successfully sent!', [{ text: 'Great!', onPress: onBack }]);
+        Alert.alert('Booking Request Sent', 'Your request has been sent and is awaiting studio confirmation.', [{ text: 'Great!', onPress: onBack }]);
       } else {
-        Alert.alert('Booking Failed', r.message || 'Please try again.');
+        bookingSubmissionInFlight.current = false;
+        const message = r.status === 401
+          ? 'Your session has expired. Please sign in again before submitting your booking.'
+          : r.error
+            ? 'Could not confirm the server response. Check My Appointments before retrying to avoid a duplicate request.'
+            : (r.message || 'Could not submit the booking. Please try again.');
+        setErrors(prev => ({ ...prev, submission: message }));
+        setLoading(false);
       }
-    } catch (e) { Alert.alert('Error', 'Could not connect to server.'); }
-    finally { setLoading(false); }
+    } catch (e) {
+      bookingSubmissionInFlight.current = false;
+      setLoading(false);
+      setErrors(prev => ({ ...prev, submission: 'Could not connect to the server. Check My Appointments before retrying to avoid a duplicate request.' }));
+    }
   };
 
   // ----- RENDERERS -----
@@ -750,6 +763,7 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
       </ScrollView>
 
       <View style={styles.bottomBar}>
+        {errors.submission ? <Text accessibilityLiveRegion="polite" style={styles.errorTxt}>{errors.submission}</Text> : null}
         <TouchableOpacity style={styles.nextBtn} onPress={step === TOTAL_STEPS ? submitBooking : handleNext} disabled={loading}>
           {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.nextTxt}>{step === TOTAL_STEPS ? 'Confirm Booking' : 'Next Step'}</Text>}
         </TouchableOpacity>

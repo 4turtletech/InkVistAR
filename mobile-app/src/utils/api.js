@@ -23,7 +23,7 @@ const getAccessTokenExpiry = (token) => {
 // Enhanced fetch helper with better error handling
 export const fetchAPI = async (endpoint, options = {}) => {
   const url = `${API_URL}${endpoint}`; // This now correctly uses the dev or prod URL
-  const { skipAuthRefresh = false, ...requestOptions } = options;
+  const { skipAuthRefresh = false, requireAuth = false, ...requestOptions } = options;
   
   console.log(`📤 API Request: ${options.method || 'GET'} ${url}`);
   
@@ -33,7 +33,11 @@ export const fetchAPI = async (endpoint, options = {}) => {
   };
 
   // Add auth token if available
-  const token = await getAuthToken();
+  let token = await getAuthToken();
+  if (requireAuth && !token) token = await refreshMobileSession();
+  if (requireAuth && !token) {
+    return { success: false, status: 401, message: 'Your session has expired. Please sign in again to continue.' };
+  }
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }
@@ -308,8 +312,18 @@ export const getArtistPortfolio = async (artistId) => {
 // Artist: Add Work
 export const addArtistWork = async (artistId, workData) => {
   return fetchAPI('/artist/portfolio', {
+    requireAuth: true,
     method: 'POST',
     body: JSON.stringify({ artistId, ...workData })
+  });
+};
+
+// Artist: Edit an existing work using the same authenticated/refreshable transport.
+export const updateArtistWork = async (workId, workData) => {
+  return fetchAPI(`/artist/portfolio/${workId}`, {
+    requireAuth: true,
+    method: 'PUT',
+    body: JSON.stringify(workData),
   });
 };
 
@@ -464,6 +478,7 @@ export const getArtistAvailability = async (artistId) => {
 export const createCustomerAppointment = async (appointmentData) => {
   return fetchAPI('/customer/appointments', {
     method: 'POST',
+    requireAuth: true,
     body: JSON.stringify(appointmentData)
   });
 };

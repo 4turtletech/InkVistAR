@@ -2,10 +2,10 @@
  * ArtistWorks.jsx -- Portfolio Manager (Gilded Noir v2)
  * Theme-aware, animated, haptic feedback. Search, category chips, sort, grid, upload/detail modals.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, SafeAreaView, Image, Modal, ActivityIndicator, RefreshControl, Platform,
+  ScrollView, SafeAreaView, Image, Modal, ActivityIndicator, RefreshControl, Platform, Keyboard,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -18,8 +18,8 @@ import { useTheme } from '../src/context/ThemeContext';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
-import { getArtistPortfolio, addArtistWork, deleteArtistWork, updateArtistWorkVisibility } from '../src/utils/api';
-import { API_URL } from '../src/config';
+import { getArtistPortfolio, addArtistWork, updateArtistWork, deleteArtistWork, updateArtistWorkVisibility } from '../src/utils/api';
+import { getPortfolioTitleError } from '../src/utils/portfolioValidation';
 
 const CAT_ICONS = { all: Grid3x3, Realism: Eye, Traditional: Palette, Japanese: Brush, Tribal: Flame, 'Fine Line': Pencil };
 
@@ -48,6 +48,11 @@ export function ArtistWorks({ onBack, artistId }) {
   const [alertModal, setAlertModal] = useState({ visible: false, title: '', message: '' });
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState('');
+  const submissionInFlight = useRef(false);
+  const uploadScrollRef = useRef(null);
 
   const categories = [
     { id: 'all', label: 'All' }, { id: 'Realism', label: 'Realism' }, { id: 'Traditional', label: 'Traditional' },
@@ -57,12 +62,8 @@ export function ArtistWorks({ onBack, artistId }) {
   useEffect(() => { loadPortfolio(); }, [artistId]);
 
   useEffect(() => {
-    if (newWorkTitle.length > 0) {
-      if (newWorkTitle.length < 3 || newWorkTitle.length > 50) setTitleError('Title must be between 3 and 50 characters.');
-      else if (!/^[a-zA-Z0-9 ]+$/.test(newWorkTitle)) setTitleError('Only letters, numbers, and spaces allowed.');
-      else setTitleError('');
-    } else setTitleError('');
-  }, [newWorkTitle]);
+    setTitleError(hasSubmitted || newWorkTitle.length > 0 ? getPortfolioTitleError(newWorkTitle) : '');
+  }, [newWorkTitle, hasSubmitted]);
 
   const loadPortfolio = async () => { if (!artistId) return; setLoading(true); const r = await getArtistPortfolio(artistId); if (r.success) setWorks(r.works || []); setLoading(false); };
 
@@ -70,17 +71,26 @@ export function ArtistWorks({ onBack, artistId }) {
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { setAlertModal({ visible: true, title: 'Permission needed', message: 'Photo access is required.' }); return; }
+    if (status !== 'granted') { setImageError('Photo access is required. Enable it in your device settings or use an image URL.'); return; }
     let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 3], quality: 0.5, base64: true });
-    if (!result.canceled) setNewWorkImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+    if (!result.canceled) { setNewWorkImage(`data:image/jpeg;base64,${result.assets[0].base64}`); setImageError(''); }
   };
 
-  const resetForm = () => { setNewWorkTitle(''); setNewWorkImage(''); setImageError(''); setNewWorkDescription(''); setNewWorkPriceEstimate(''); setTitleError(''); setIsPublic(true); setEditingWorkId(null); setUploadType('url'); };
+  const resetForm = () => { setNewWorkTitle(''); setNewWorkImage(''); setImageError(''); setNewWorkDescription(''); setNewWorkPriceEstimate(''); setTitleError(''); setNewWorkCategory('Realism'); setIsPublic(true); setEditingWorkId(null); setUploadType('url'); setHasSubmitted(false); setSubmissionError(''); };
+  const closeUploadModal = () => {
+    if (submissionInFlight.current) return;
+    Keyboard.dismiss();
+    setShowUploadModal(false);
+    resetForm();
+  };
 
   const getNormalizedImageValue = (rawValue) => {
     if (!rawValue) return '';
     let cleaned = rawValue.trim().replace(/^["']|["']$/g, '').replace(/[\r\n\t]/g, '').replace(/&amp;/gi, '&');
     if (cleaned.startsWith('data:image/')) return cleaned;
+    // Native image loaders require a canonical scheme even though URLs allow mixed case.
+    cleaned = cleaned.replace(/^https?:\/\//i, scheme => scheme.toLowerCase());
+    if (/^www\./i.test(cleaned)) cleaned = `https://${cleaned}`;
 
     const driveMatch = cleaned.match(/^https?:\/\/drive\.google\.com\/file\/d\/([^/]+)/i);
     if (driveMatch) cleaned = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
@@ -125,31 +135,51 @@ export function ArtistWorks({ onBack, artistId }) {
   });
 
   const handleUploadWork = async () => {
-    if (!newWorkTitle.trim() || titleError) return;
+    if (submissionInFlight.current) return;
+    Keyboard.dismiss();
+    setHasSubmitted(true);
+    setSubmissionError('');
+    const nextTitleError = getPortfolioTitleError(newWorkTitle);
     const imageValidation = validateImageValue(newWorkImage);
-    if (!imageValidation.valid) {
-      setImageError(imageValidation.message);
-      setAlertModal({ visible: true, title: 'Invalid Image', message: imageValidation.message });
+    setTitleError(nextTitleError);
+    setImageError(imageValidation.valid ? '' : imageValidation.message);
+    if (nextTitleError || !imageValidation.valid) {
+      uploadScrollRef.current?.scrollTo({ y: 0, animated: true });
       return;
     }
-    if (!imageValidation.value.startsWith('data:image/')) {
-      const isAccessible = await verifyRemoteImage(imageValidation.value);
-      if (!isAccessible) {
-        const message = 'This URL is not a publicly accessible image. Copy the direct image address (not the webpage address) and try again.';
-        setImageError(message);
-        setAlertModal({ visible: true, title: 'Image Cannot Be Opened', message });
-        return;
+    // A synchronous lock is required before the first await, not just React state.
+    submissionInFlight.current = true;
+    setIsSubmitting(true);
+    try {
+      if (!imageValidation.value.startsWith('data:image/')) {
+        const isAccessible = await verifyRemoteImage(imageValidation.value);
+        if (!isAccessible) {
+          setImageError('This URL is not a publicly accessible image. Copy the direct image address (not the webpage address) and try again.');
+          uploadScrollRef.current?.scrollTo({ y: 0, animated: true });
+          return;
+        }
       }
+      const sanitize = (t) => t.trim().replace(/<[^>]*>?/gm, '');
+      const payload = { title: sanitize(newWorkTitle), description: sanitize(newWorkDescription), category: newWorkCategory, imageUrl: imageValidation.value, isPublic, priceEstimate: newWorkPriceEstimate ? sanitize(newWorkPriceEstimate) : null };
+      const result = editingWorkId
+        ? await updateArtistWork(editingWorkId, payload)
+        : await addArtistWork(artistId, payload);
+      if (result.success) {
+        setShowUploadModal(false);
+        setAlertModal({ visible: true, title: 'Success!', message: editingWorkId ? 'Work updated.' : 'Uploaded to portfolio.' });
+        resetForm();
+        loadPortfolio();
+      } else {
+        setSubmissionError(result.error
+          ? 'Could not confirm the save. Close this form and refresh your portfolio before retrying to avoid duplicates.'
+          : result.message || 'Could not save this work. Please try again.');
+      }
+    } catch (error) {
+      setSubmissionError('Could not confirm the save. Close this form and refresh your portfolio before retrying to avoid duplicates.');
+    } finally {
+      submissionInFlight.current = false;
+      setIsSubmitting(false);
     }
-    const sanitize = (t) => t.trim().replace(/<[^>]*>?/gm, '');
-    const payload = { title: sanitize(newWorkTitle), description: sanitize(newWorkDescription), category: newWorkCategory, imageUrl: imageValidation.value, isPublic, priceEstimate: newWorkPriceEstimate ? sanitize(newWorkPriceEstimate) : null };
-    setLoading(true);
-    let result;
-    if (editingWorkId) { try { result = await (await fetch(`${API_URL}/artist/portfolio/${editingWorkId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })).json(); } catch (e) { result = { success: false, message: 'Network error.' }; } }
-    else result = await addArtistWork(artistId, payload);
-    setLoading(false);
-    if (result.success) { setAlertModal({ visible: true, title: 'Success!', message: editingWorkId ? 'Work updated.' : 'Uploaded to portfolio.' }); resetForm(); setShowUploadModal(false); loadPortfolio(); }
-    else setAlertModal({ visible: true, title: 'Error', message: result.message || 'Failed.' });
   };
 
   const handleEditWork = (w) => { setEditingWorkId(w.id); setNewWorkTitle(w.title); setNewWorkDescription(w.description || ''); setNewWorkCategory(w.category || 'Realism'); setIsPublic(w.is_public === 1 || w.is_public === true); setNewWorkImage(w.image_url); setImageError(''); setNewWorkPriceEstimate(w.price_estimate ? String(w.price_estimate) : ''); setUploadType(w.image_url?.startsWith('data:') ? 'upload' : 'url'); setShowUploadModal(true); };
@@ -287,14 +317,15 @@ export function ArtistWorks({ onBack, artistId }) {
       </ScrollView>
 
       {/* Upload/Edit Modal */}
-      <Modal visible={showUploadModal} transparent animationType="slide">
+      <Modal visible={showUploadModal} transparent animationType="slide" onRequestClose={closeUploadModal}>
         <View style={modalS.overlay}>
           <View style={modalS.sheet}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={modalS.header}><Text style={modalS.title}>{editingWorkId ? 'Edit Work' : 'Add New Work'}</Text><TouchableOpacity onPress={() => { setShowUploadModal(false); resetForm(); }}><X size={22} color={colors.textPrimary} /></TouchableOpacity></View>
+            <ScrollView ref={uploadScrollRef} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" pointerEvents={isSubmitting ? 'none' : 'auto'}>
+              <View style={modalS.header}><Text style={modalS.title}>{editingWorkId ? 'Edit Work' : 'Add New Work'}</Text><TouchableOpacity disabled={isSubmitting} onPress={closeUploadModal}><X size={22} color={colors.textPrimary} /></TouchableOpacity></View>
 
               {/* Image Source */}
-              <View style={modalS.group}><Text style={modalS.label}>Image Source</Text>
+              <Text style={modalS.label}>* Required fields</Text>
+              <View style={modalS.group}><Text style={modalS.label}>Image Source *</Text>
                 <View style={modalS.tabWrap}>
                   {['url', 'upload'].map(t => <TouchableOpacity key={t} style={[modalS.tab, uploadType === t && modalS.tabActive]} onPress={() => setUploadType(t)}><Text style={[modalS.tabText, uploadType === t && modalS.tabTextActive]}>{t === 'url' ? 'URL' : 'Upload'}</Text></TouchableOpacity>)}
                 </View>
@@ -312,12 +343,13 @@ export function ArtistWorks({ onBack, artistId }) {
                       autoCapitalize="none"
                       autoCorrect={false}
                     />
-                    {imageError ? <Text style={modalS.error}>{imageError}</Text> : null}
                     {getNormalizedImageValue(newWorkImage) ? (
                       <View style={modalS.urlPreviewWrap}>
                         <Image
+                          key={getNormalizedImageValue(newWorkImage)}
                           source={{ uri: getNormalizedImageValue(newWorkImage) }}
                           style={modalS.imgPreview}
+                          onLoad={() => setImageError('')}
                           onError={() => setImageError('Preview failed. Use a direct, publicly accessible image URL.')}
                         />
                       </View>
@@ -330,12 +362,13 @@ export function ArtistWorks({ onBack, artistId }) {
                     )}
                   </TouchableOpacity>
                 )}
+                {imageError ? <Text style={modalS.error} accessibilityLiveRegion="polite">{imageError}</Text> : null}
               </View>
 
-              <View style={modalS.group}><Text style={modalS.label}>Title</Text><TextInput style={[modalS.input, titleError && { borderColor: colors.error }]} placeholder="Enter title" placeholderTextColor={colors.textTertiary} value={newWorkTitle} onChangeText={setNewWorkTitle} />{titleError ? <Text style={modalS.error}>{titleError}</Text> : null}</View>
-              <View style={modalS.group}><Text style={modalS.label}>Description</Text><TextInput style={[modalS.input, { height: 80, textAlignVertical: 'top' }]} placeholder="Tell more about this piece..." placeholderTextColor={colors.textTertiary} value={newWorkDescription} onChangeText={setNewWorkDescription} multiline /></View>
+              <View style={modalS.group}><Text style={modalS.label}>Title *</Text><TextInput style={[modalS.input, titleError && { borderColor: colors.error }]} placeholder="Enter title" placeholderTextColor={colors.textTertiary} value={newWorkTitle} onChangeText={setNewWorkTitle} maxLength={50} />{titleError ? <Text style={modalS.error} accessibilityLiveRegion="polite">{titleError}</Text> : null}</View>
+              <View style={modalS.group}><Text style={modalS.label}>Description (optional)</Text><TextInput style={[modalS.input, { height: 80, textAlignVertical: 'top' }]} placeholder="Tell more about this piece..." placeholderTextColor={colors.textTertiary} value={newWorkDescription} onChangeText={setNewWorkDescription} multiline /></View>
 
-              <View style={modalS.group}><Text style={modalS.label}>Category</Text>
+              <View style={modalS.group}><Text style={modalS.label}>Category *</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {categories.filter(c => c.id !== 'all').map(c => (
                     <TouchableOpacity key={c.id} style={[modalS.catOpt, newWorkCategory === c.id && modalS.catOptActive]} onPress={() => setNewWorkCategory(c.id)}>
@@ -346,16 +379,18 @@ export function ArtistWorks({ onBack, artistId }) {
                 </ScrollView>
               </View>
 
-              <View style={modalS.group}><Text style={modalS.label}>Price Estimate (P)</Text><TextInput style={modalS.input} placeholder="e.g. 2500" placeholderTextColor={colors.textTertiary} value={newWorkPriceEstimate} onChangeText={setNewWorkPriceEstimate} keyboardType="numeric" /></View>
+              <View style={modalS.group}><Text style={modalS.label}>Price Estimate (P, optional)</Text><TextInput style={modalS.input} placeholder="e.g. 2500" placeholderTextColor={colors.textTertiary} value={newWorkPriceEstimate} onChangeText={setNewWorkPriceEstimate} keyboardType="numeric" /></View>
 
               <View style={modalS.group}><Text style={modalS.label}>Settings</Text><VisibilityToggle value={isPublic} onToggle={() => setIsPublic(!isPublic)} /></View>
 
               <View style={modalS.actions}>
-                <AnimatedTouchable style={modalS.cancelBtn} onPress={() => { setShowUploadModal(false); resetForm(); }}><Text style={modalS.cancelText}>Cancel</Text></AnimatedTouchable>
-                <AnimatedTouchable style={[modalS.uploadBtn, (!newWorkTitle.trim() || !!titleError) && { opacity: 0.5 }]} onPress={handleUploadWork} disabled={!newWorkTitle.trim() || !!titleError}>
-                  <Text style={modalS.uploadText}>{editingWorkId ? 'Save Changes' : 'Upload Work'}</Text>
+                <AnimatedTouchable style={modalS.cancelBtn} disabled={isSubmitting} onPress={closeUploadModal}><Text style={modalS.cancelText}>Cancel</Text></AnimatedTouchable>
+                <AnimatedTouchable style={[modalS.uploadBtn, isSubmitting && { opacity: 0.5 }]} onPress={handleUploadWork} disabled={isSubmitting}>
+                  {isSubmitting ? <ActivityIndicator color={colors.backgroundDeep} /> : null}
+                  <Text style={modalS.uploadText}>{isSubmitting ? 'Saving...' : editingWorkId ? 'Save Changes' : 'Upload Work'}</Text>
                 </AnimatedTouchable>
               </View>
+              {submissionError ? <Text style={modalS.error} accessibilityLiveRegion="polite">{submissionError}</Text> : null}
             </ScrollView>
           </View>
         </View>

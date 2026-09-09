@@ -11,6 +11,7 @@ require('./financialLedger.test');
 require('./migrationService.test');
 require('./phoneNumber.test');
 require('./appointmentConflictPolicy.test');
+require('./appointmentNotificationPolicy.test');
 require('./captchaPolicy.test');
 require('./chatbotResilience.test');
 require('./groqProvider.test');

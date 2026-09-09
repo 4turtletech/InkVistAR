@@ -40,6 +40,7 @@ const { createConsentRouter } = require('./routes/consents');
 const { normalizeHealthScreeningInput } = require('./services/healthScreeningPolicy');
 const { normalizePhilippineMobileNumber } = require('./services/phoneNumber');
 const { buildAdminAppointmentConflictCheck } = require('./services/appointmentConflictPolicy');
+const { isRegisteredAppointmentCustomer, getAppointmentScheduleChange } = require('./services/appointmentNotificationPolicy');
 const { createSessionInventoryService, InventoryOperationError } = require('./services/sessionInventoryService');
 const { createFinancialLedgerService, summarizeAppointmentFinances } = require('./services/financialLedgerService');
 const { InvoiceRecordInputError, InvoiceRecordNotFoundError, buildInvoiceUpdate, updateInvoiceRecord } = require('./services/invoiceRecordService');
@@ -6444,24 +6445,14 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
   });
 
   // Smart Notifications Logic
-  db.query('SELECT customer_id, artist_id, status FROM appointments WHERE id = ?', [id], (e, r) => {
+  db.query('SELECT ap.customer_id, ap.artist_id, ap.status, ap.is_guest_placeholder, u.user_type AS customer_type FROM appointments ap LEFT JOIN users u ON u.id = ap.customer_id WHERE ap.id = ?', [id], (e, r) => {
     try {
       if (!e && r.length) {
         const currentData = r[0];
         let notificationsSent = false;
 
-        // Safer Date Parsing
-        const parseDateOnly = (d) => {
-          if (!d) return null;
-          try {
-            return new Date(d).toISOString().split('T')[0];
-          } catch (err) {
-            return null;
-          }
-        };
-
-        const oldDate = parseDateOnly(oldAppt.appointment_date);
-        const newDate = parseDateOnly(date);
+        const scheduleChange = getAppointmentScheduleChange(oldAppt, { date, startTime });
+        const isRegisteredUser = isRegisteredAppointmentCustomer(currentData);
 
         // Helper to avoid notifying admin users posing as placeholder artists
         const notifyArtist = (title, msg, type) => {
@@ -6475,11 +6466,11 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         };
 
         // ── Guest notification context ──
-        const storedGuestContact = oldAppt.guest_email || null;
+        const storedGuestContact = isRegisteredUser ? null : (oldAppt.guest_email || null);
         const guestEmail = storedGuestContact && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(storedGuestContact))
           ? storedGuestContact
           : null;
-        const guestPhone = oldAppt.guest_phone || null;
+        const guestPhone = isRegisteredUser ? null : (oldAppt.guest_phone || null);
         const guestNameMatch = oldAppt.notes && oldAppt.notes.match(/(?:Name|Client):\s*(.+?)(?:\n|$)/i);
         const guestName = guestNameMatch?.[1]?.trim()
           || (storedGuestContact && !String(storedGuestContact).includes('@') ? String(storedGuestContact).trim() : '')
@@ -6491,7 +6482,6 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         const displayDate = formatGuestDate(date || oldAppt.appointment_date);
         const displayTime = formatGuestTime(startTime || oldAppt.start_time);
         const accountTip = 'Create an InkVistAR account with this email to track your booking, receive real-time updates, and manage future appointments.';
-        const isRegisteredUser = !guestEmail && currentData.customer_id;
         const isTattooSession = (oldAppt.service_type || '').toLowerCase().includes('tattoo') || (!(oldAppt.service_type || '').toLowerCase().includes('consultation') && !(oldAppt.service_type || '').toLowerCase().includes('piercing'));
 
         // ── Pre-care conditioning plan HTML block (for tattoo sessions only) ──
@@ -6513,17 +6503,17 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         `;
 
         // 1. Check for Rescheduling
-        if ((newDate && oldDate && newDate !== oldDate) || (startTime !== undefined && startTime !== oldAppt.start_time)) {
+        if (scheduleChange.changed) {
           const reasonText = rescheduleReason ? `\n\nReason: ${rescheduleReason}` : '';
           if (isRegisteredUser) {
-            createNotification(currentData.customer_id, 'Appointment Rescheduled', `Your appointment #${id} has been rescheduled to ${date} at ${startTime}.${reasonText}`, 'appointment_rescheduled', id);
+            createNotification(currentData.customer_id, 'Appointment Rescheduled', `Your appointment #${id} has been rescheduled to ${scheduleChange.date} at ${scheduleChange.startTime}.${reasonText}`, 'appointment_rescheduled', id);
           }
-          notifyArtist('Session Rescheduled', `Your session #${id} has been rescheduled to ${date}${startTime ? ' at ' + startTime : ''}. Please update your schedule accordingly.`, 'appointment_rescheduled');
+          notifyArtist('Session Rescheduled', `Your session #${id} has been rescheduled to ${scheduleChange.date}${scheduleChange.startTime ? ' at ' + scheduleChange.startTime : ''}. Please update your schedule accordingly.`, 'appointment_rescheduled');
 
           // ── Guest Email + SMS: Rescheduled ──
           if (guestEmail) {
-            const newDisplayDate = formatGuestDate(date);
-            const newDisplayTime = formatGuestTime(startTime || oldAppt.start_time);
+            const newDisplayDate = formatGuestDate(scheduleChange.date);
+            const newDisplayTime = formatGuestTime(scheduleChange.startTime);
             const reasonLine = rescheduleReason ? ` Reason: ${rescheduleReason}.` : '';
             sendGuestStatusEmail(guestEmail, guestName, guestBookingCode,
               `Booking Rescheduled [${guestBookingCode}]`,
@@ -6539,13 +6529,13 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
           }
           if (guestPhone) {
             const reasonSms = rescheduleReason ? ` Reason: ${rescheduleReason}.` : '';
-            sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your consultation has been rescheduled to ${formatGuestDate(date)} at ${formatGuestTime(startTime || oldAppt.start_time)}.${reasonSms}`);
+            sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your consultation has been rescheduled to ${formatGuestDate(scheduleChange.date)} at ${formatGuestTime(scheduleChange.startTime)}.${reasonSms}`);
           }
 
           // ── Registered User Email: Rescheduled ──
           if (isRegisteredUser) {
-            const newDisplayDate2 = formatGuestDate(date);
-            const newDisplayTime2 = formatGuestTime(startTime || oldAppt.start_time);
+            const newDisplayDate2 = formatGuestDate(scheduleChange.date);
+            const newDisplayTime2 = formatGuestTime(scheduleChange.startTime);
             const reasonLine2 = rescheduleReason ? ` Reason: ${rescheduleReason}.` : '';
             sendRegisteredUserStatusEmail(db, currentData.customer_id,
               'Appointment Rescheduled',
@@ -6571,7 +6561,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
             }
             notifyArtist('Appointment Confirmed', `Appointment #${id} has been accepted and confirmed.`, 'appointment_confirmed');
             // SMS + Push
-            db.query('SELECT u.phone, a.name as artist_name, ap.appointment_date FROM users u JOIN appointments ap ON ap.customer_id = u.id LEFT JOIN users a ON a.id = ap.artist_id WHERE ap.id = ?', [id], (e2, r2) => {
+            if (isRegisteredUser) db.query('SELECT u.phone, a.name as artist_name, ap.appointment_date FROM users u JOIN appointments ap ON ap.customer_id = u.id LEFT JOIN users a ON a.id = ap.artist_id WHERE ap.id = ?', [id], (e2, r2) => {
               if (!e2 && r2.length) {
                 const { phone, artist_name, appointment_date } = r2[0];
                 if (phone) sendSMS(phone, appointmentConfirmedSMS(artist_name || 'your artist', appointment_date));
