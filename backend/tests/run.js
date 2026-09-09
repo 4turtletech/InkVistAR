@@ -13,6 +13,7 @@ require('./phoneNumber.test');
 require('./appointmentConflictPolicy.test');
 require('./captchaPolicy.test');
 require('./chatbotResilience.test');
+require('./groqProvider.test');
 require('./expoPushService.test');
 require('./invoiceRecordService.test');
 require('./commissionPolicy.test');

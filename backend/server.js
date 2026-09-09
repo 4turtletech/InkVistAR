@@ -5,6 +5,8 @@ const mysql = require('mysql2');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const Groq = require('groq-sdk');
+const { DEFAULT_GROQ_MODEL, groqRequest } = require('./services/groqProvider');
+const { getFallbackResponse } = require('./services/chatbotFallback');
 const crypto = require('crypto');
 // Provide fetch for Node runtimes that lack the global (e.g., Node 16 on some hosts)
 const fetch = global.fetch || require('node-fetch');
@@ -2165,6 +2167,7 @@ function getAdminId(req) {
 
 // ========== GENERATIVE AI CHATBOT SETUP (Groq) ==========
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_MODEL = process.env.GROQ_MODEL?.trim() || DEFAULT_GROQ_MODEL;
 let groq = null;
 if (GROQ_API_KEY) {
   try {
@@ -2182,10 +2185,10 @@ async function verifyGroq() {
   }
   try {
     console.log('[INFO] Verifying Groq API Key...');
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [{ role: 'user', content: 'Hello' }],
-      model: 'llama-3.3-70b-versatile',
-    });
+    await groq.chat.completions.create(
+      groqRequest({ message: 'Reply with OK only.', model: GROQ_MODEL }),
+      { timeout: 12000, maxRetries: 0 }
+    );
     console.log('[OK] Groq API connection verified.');
   } catch (error) {
     console.error('[ERROR] Groq API Check Failed:', error.message);
@@ -10835,37 +10838,7 @@ app.get('/api/invoices/:orderId', (req, res) => {
 });
 
 
-// Helper: Simple Rule-based Chatbot (Fallback)
-function getFallbackResponse(message, context = {}) {
-  const msg = message.toLowerCase();
-  const studio = context.studio || {};
-  const has = (words) => words.some(w => new RegExp(`\\b${w}\\b`).test(msg));
-
-  const studioName = typeof studio.name === 'string' && studio.name.trim() ? studio.name.trim() : 'the studio';
-  const studioAddress = typeof studio.address === 'string' && studio.address.trim() ? studio.address.trim() : 'their location';
-  const studioContact = typeof studio.phone === 'string' && studio.phone.trim() ? studio.phone.trim() : 'their contact number';
-
-  if (has(['price', 'cost', 'rate', 'charge', 'fee', 'quote', 'estimate', 'pricing', 'how much', 'price range'])) {
-    return `To help you plan ahead, here is a general estimate guide from ${studioName}. These are baselines only; final pricing is confirmed during consultation based on design complexity, size, and style.`;
-  }
-  if (has(['book', 'appointment', 'schedule', 'consultation', 'session', 'reserve'])) {
-    return "You can book an appointment by tapping 'Book Consultation' on our site or app, or log in and start a booking from there.";
-  }
-  if (has(['location', 'address', 'located', 'directions', 'nearby', 'proximity', 'how to get there', 'find you', 'close to', 'near'])) {
-    return `We are located at ${studioAddress}. You can also reach us via ${studioContact} for updated directions and hours.`;
-  }
-  if (has(['style', 'design', 'tattoo ideas', 'portfolio', 'artwork', 'gallery', 'inspiration', 'examples'])) {
-    return "We offer a wide range of styles and can work with your vision. Check the Portfolio on our landing page for ideas.";
-  }
-  if (has(['hello', 'hi', 'hey', 'help', 'support', 'assist', 'inquire', 'greet', 'sup', 'yo', "what's up", 'how are you', 'good morning', 'good afternoon', 'good evening'])) {
-    return `Hi there! I'm ${studioName}'s assistant. How can I help you today?`;
-  }
-  if (has(['aftercare', 'after care', 'heal', 'healing', 'clean', 'peeling', 'moisturize', 'ointment', 'wash', 'tattoo care'])) {
-    return "Keep your fresh ink clean and hydrated daily: wash gently, avoid direct sunlight, and avoid scratching.";
-  }
-
-  return "I'm not sure about that one. For specific questions, please contact us directly or visit the studio. We'd love to help!";
-}
+// Rule-based fallback responses live in services/chatbotFallback.js.
 
 
 // ========== AR FEATURES ==========
@@ -11071,18 +11044,10 @@ const loadChatbotContext = async () => {
 
 const chatbotResponder = createChatbotResponder({
   provider: GROQ_API_KEY && groq ? async ({ message, systemPrompt, timeoutMs }) => {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: message },
-      ],
-      model: 'llama-3.3-70b-versatile',
-      temperature: 0.7,
-      max_tokens: 500,
-    }, {
-      timeout: timeoutMs,
-      maxRetries: 0,
-    });
+    const chatCompletion = await groq.chat.completions.create(
+      groqRequest({ message, systemPrompt, model: GROQ_MODEL }),
+      { timeout: timeoutMs, maxRetries: 0 }
+    );
     return chatCompletion?.choices?.[0]?.message?.content;
   } : null,
   fallback: getFallbackResponse,
@@ -11221,7 +11186,7 @@ ${aftercareInstructions}
 ${customInstructions ? '=== ADDITIONAL INSTRUCTIONS ===\n' + customInstructions : ''}`.trim();
 
     const result = await chatbotResponder.respond({ message, context, systemPrompt });
-    console.log(`[CHATBOT] Response served by ${result.source}.`);
+    console.log(`[CHATBOT] Response served by ${result.source}; reason=${result.reason || 'ok'}; model=${GROQ_MODEL}.`);
     return res.json({ success: true, response: result.response, degraded: result.degraded });
   } catch (error) {
     if (error instanceof ChatbotInputError) {

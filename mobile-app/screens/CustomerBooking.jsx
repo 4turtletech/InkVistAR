@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
-  ActivityIndicator, Alert, Image, Animated, Dimensions, Keyboard, SafeAreaView, Platform, StatusBar
+  ActivityIndicator, Alert, Image, Animated, Dimensions, Keyboard
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ChevronLeft, ChevronRight, Camera, CalendarCheck, MapPin, Check, Info, Star, CreditCard, Ticket, Clock, User, Plus, History, X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -778,7 +779,7 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
 
 const getStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 16, backgroundColor: colors.backgroundDeep },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 16, backgroundColor: colors.backgroundDeep },
   headerTitle: { ...typography.h2, color: colors.textPrimary },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.darkBgSecondary, justifyContent: 'center', alignItems: 'center' },
   progressTrack: { height: 4, backgroundColor: colors.border, marginHorizontal: 32, marginTop: 10, borderRadius: 2, overflow: 'hidden' },

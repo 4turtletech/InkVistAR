@@ -4,6 +4,7 @@
  * Features: Stock CRUD, low-stock alerts, search, filter, add/edit modal, stock transactions
  */
 
+import { normalizeInventoryItem } from '../src/utils/inventoryState';
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput,
@@ -13,7 +14,7 @@ import * as ImagePicker from 'expo-image-picker';
 import {
   Search, Plus, Pencil, Trash2, X, Package, AlertTriangle,
   TrendingDown, TrendingUp, Archive, ChevronLeft, ChevronRight,
-  Printer, Download, History, Layers, Filter, Camera, ArrowUpDown, RotateCcw, SortAsc, Check
+  Download, History, Layers, Filter, Camera, ArrowUpDown, RotateCcw, SortAsc, Check
 } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
@@ -24,7 +25,7 @@ import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { ConfirmModal } from '../src/components/shared/ConfirmModal';
 import { formatCurrency } from '../src/utils/formatters';
-import { buildReportHTML, generateCSV, exportCSV, printOrSharePDF } from '../src/utils/exportHelpers';
+import { generateCSV, exportCSV } from '../src/utils/exportHelpers';
 import {
   getAdminInventory, createAdminInventory, updateAdminInventory,
   deleteAdminInventory, restoreAdminInventory, fetchAPI,
@@ -94,13 +95,7 @@ export const AdminInventory = ({ navigation }) => {
     setLoading(true);
     const result = await getAdminInventory(archivedOnly ? 'deleted' : 'active');
     if (result.success) {
-      const normalizedItems = (result.data || result.inventory || []).map(item => ({
-        ...item,
-        current_stock: Number(item.current_stock ?? item.currentStock ?? 0),
-        min_stock: Number(item.min_stock ?? item.minStock ?? 0),
-        max_stock: Number(item.max_stock ?? item.maxStock ?? 0),
-        cost_per_unit: Number(item.cost_per_unit ?? item.cost ?? 0),
-      }));
+      const normalizedItems = (result.data || result.inventory || []).map(normalizeInventoryItem);
       setItems(normalizedItems);
     } else {
       Alert.alert('Inventory Error', result.message || 'Could not load inventory.');
@@ -402,42 +397,6 @@ export const AdminInventory = ({ navigation }) => {
     return 'Optimal';
   };
 
-  const handlePrint = async () => {
-    if (!filtered.length) {
-      Alert.alert('Nothing to Print', 'There are no inventory items in the current filtered view.');
-      return;
-    }
-
-    const headerRows = filtered.map((item) => [
-      item.name || 'N/A',
-      item.category || 'General',
-      String(item.current_stock || 0),
-      item.unit || 'pcs',
-      `₱${formatCurrency(item.cost_per_unit || 0)}`,
-      getStockStatus(item),
-    ]);
-
-    const html = buildReportHTML({
-      title: 'Inventory Status Report',
-      subtitle: `Generated on ${new Date().toLocaleString()}`,
-      metrics: [
-        { label: 'Filtered Items', value: String(filtered.length) },
-        { label: 'Low Stock', value: String(filtered.filter((item) => (Number(item.current_stock) || 0) > 0 && (Number(item.current_stock) || 0) <= (Number(item.min_stock) || 0)).length) },
-        { label: 'Out of Stock', value: String(filtered.filter((item) => (Number(item.current_stock) || 0) <= 0).length) },
-        { label: 'Inventory View', value: showArchived ? 'Archived Only' : 'Active Only' },
-      ],
-      tables: [
-        {
-          title: 'Inventory Items',
-          headers: ['Item Name', 'Category', 'Current Stock', 'Unit', 'Cost', 'Status'],
-          rows: headerRows,
-        },
-      ],
-    });
-
-    await printOrSharePDF(html);
-  };
-
   const handleExportCSV = async () => {
     if (!filtered.length) {
       Alert.alert('Nothing to Export', 'There are no inventory items in the current filtered view.');
@@ -544,9 +503,6 @@ export const AdminInventory = ({ navigation }) => {
       {/* Header Actions */}
       <View style={styles.actionRow}>
         <View style={styles.actionGroup}>
-          <AnimatedTouchable style={styles.iconBtnHeader} onPress={handlePrint}>
-            <Printer size={16} color={theme.textPrimary} />
-          </AnimatedTouchable>
           <AnimatedTouchable style={styles.iconBtnHeader} onPress={handleExportCSV}>
             <Download size={16} color={theme.textPrimary} />
           </AnimatedTouchable>

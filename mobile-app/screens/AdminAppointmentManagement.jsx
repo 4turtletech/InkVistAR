@@ -7,7 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, Alert, Modal, ScrollView, SafeAreaView,
+  TextInput, Alert, Modal, ScrollView,
   RefreshControl, Image, Animated, PanResponder, ActivityIndicator,
 } from 'react-native';
 import {
@@ -16,7 +16,7 @@ import {
   ChevronLeft, ChevronRight, Filter, ChevronDown,
   ShieldCheck, List, Archive, LayoutGrid, Layers, Circle,
 } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
 import { typography, spacing, borderRadius, shadows } from '../src/theme';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
@@ -31,6 +31,7 @@ import {
   getAdminAppointments, updateAppointmentByAdmin, deleteAppointmentByAdmin,
   createAppointmentByAdmin, API_BASE_URL, getAllUsersForAdmin, fetchAPI,
 } from '../src/utils/api';
+import { sessionTimeSelection } from '../src/utils/adminFormValidation';
 import { sanitizeNumeric, sanitizeEmail, isValidEmail, sanitizeText } from '../src/utils/validators';
 
 const formatMaterialTraceability = (material) => [
@@ -306,7 +307,7 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
     setRescheduleNotes('');
     setSelectedAppt(appt);
     setEditDate(appt ? (appt.appointment_date ? appt.appointment_date.split('T')[0] : '') : '');
-    setEditTime(appt ? appt.start_time || '' : '');
+    setEditTime(sessionTimeSelection(appt?.start_time));
     setEditStatus(appt ? appt.status || 'pending' : 'pending');
     setEditPrice(appt ? String(appt.price || appt.total_price || '') : '');
     setEditDiscountType(appt ? (appt.discount_type || 'flat') : 'flat');
@@ -618,7 +619,7 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
   const renderItem = ({ item, index }) => <SwipeableCard item={item} index={index} />;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>

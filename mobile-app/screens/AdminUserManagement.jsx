@@ -7,12 +7,12 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, Alert, Modal, KeyboardAvoidingView, Platform, SafeAreaView,
+  TextInput, Alert, Modal, KeyboardAvoidingView, Platform, Keyboard,
   RefreshControl, ScrollView, Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Search, Plus, Pencil, Trash2, X, UserPlus, Shield, ChevronDown, ChevronLeft, Users, Camera, ArrowUpDown, ShieldCheck, ShieldOff, RotateCcw, Ban, Eye, EyeOff } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
 import { typography, spacing, borderRadius, shadows } from '../src/theme';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
@@ -31,7 +31,9 @@ import {
   updateUserByAdmin,
   updateUserStatusByAdmin,
 } from '../src/utils/api';
-import { sanitizeText, sanitizeEmail, isValidEmail, sanitizePhone } from '../src/utils/validators';
+import { adminUserErrors } from '../src/utils/adminFormValidation';
+import { nationalPHPhone } from '../src/utils/artistProfileValidation';
+import { sanitizeText, sanitizeEmail } from '../src/utils/validators';
 
 const getRoleColors = (theme) => ({
   admin: { bg: theme.warningBg || 'rgba(245, 158, 11, 0.15)', text: theme.warning || '#f59e0b' },
@@ -81,8 +83,10 @@ export const AdminUserManagement = ({ navigation }) => {
     ];
   };
 
-  const isPasswordValid = (pass) => {
-    return passwordChecks(pass).every(item => item.met);
+  const updateFormField = (field, value) => {
+    const next = { ...formData, [field]: value };
+    setFormData(next);
+    if (createSubmitAttempted) setFormErrors(adminUserErrors(next, Boolean(editingUser)));
   };
 
   // Sort
@@ -138,7 +142,7 @@ export const AdminUserManagement = ({ navigation }) => {
       setFormData({
         name: user.name, email: user.email,
         type: user.user_type || 'customer', password: '',
-        phone: user.phone || '', status: user.is_deleted ? 'suspended' : 'active',
+        confirmPassword: '', phone: nationalPHPhone(user.phone), status: user.is_deleted ? 'suspended' : 'active',
       });
       setProfileImage(user.profile_image || null);
     } else {
@@ -154,27 +158,13 @@ export const AdminUserManagement = ({ navigation }) => {
   const handleSaveUser = async () => {
     const sName = sanitizeText(formData.name);
     const sEmail = sanitizeEmail(formData.email);
-    const sPhone = sanitizePhone(formData.phone);
+    const sPhone = nationalPHPhone(formData.phone);
+    Keyboard.dismiss();
 
-    const nextErrors = {};
-    if (!sName) nextErrors.name = 'Name is required';
-    if (!sEmail) nextErrors.email = 'Email is required';
-    else if (!isValidEmail(sEmail)) nextErrors.email = 'Please enter a valid email address';
-    if (!editingUser && !formData.password) nextErrors.password = 'Password is required';
-    else if (!editingUser && !isPasswordValid(formData.password)) nextErrors.password = 'Complete every password requirement below';
-    if (!editingUser && !formData.confirmPassword) nextErrors.confirmPassword = 'Please confirm password';
-    else if (!editingUser && formData.password !== formData.confirmPassword) nextErrors.confirmPassword = 'Passwords do not match';
-
+    const nextErrors = adminUserErrors({ ...formData, name: sName, email: sEmail, phone: sPhone }, Boolean(editingUser));
     setCreateSubmitAttempted(true);
     setFormErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
-      Alert.alert('Validation Error', 'Please correct the highlighted fields.');
-      return;
-    }
-    if (sPhone && sPhone.startsWith('0')) {
-      Alert.alert('Validation Error', 'Phone number cannot start with 0. Use format: 9XXXXXXXXX');
-      return;
-    }
+    if (Object.keys(nextErrors).length > 0) return;
 
     const payload = { ...formData, name: sName, email: sEmail, phone: sPhone };
     if (profileImage) payload.profile_image = profileImage;
@@ -340,7 +330,7 @@ export const AdminUserManagement = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>User Management</Text>
@@ -514,7 +504,7 @@ export const AdminUserManagement = ({ navigation }) => {
       />
 
       {/* Add/Edit Modal for Admins & Managers */}
-      <Modal visible={modalVisible && (!editingUser || ['admin', 'manager'].includes(editingUser.user_type))} animationType="fade" transparent>
+      <Modal visible={modalVisible && (!editingUser || ['admin', 'manager'].includes(editingUser.user_type))} animationType="fade" transparent onRequestClose={() => { Keyboard.dismiss(); setModalVisible(false); }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
@@ -524,6 +514,7 @@ export const AdminUserManagement = ({ navigation }) => {
               </AnimatedTouchable>
             </View>
 
+            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ paddingBottom: 16 }}>
             {/* Avatar Picker */}
             <View style={{ alignItems: 'center', marginVertical: 16 }}>
               <AnimatedTouchable onPress={pickProfileImage} style={styles.avatarPickerBtn}>
@@ -541,35 +532,41 @@ export const AdminUserManagement = ({ navigation }) => {
               <Text style={{ ...typography.bodyXSmall, color: theme.textTertiary, marginTop: 6 }}>Tap to set profile photo</Text>
             </View>
 
+            <Text style={styles.inputLabel}>Full Name <Text style={{ color: theme.error }}>*</Text></Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, formErrors.name && { borderColor: theme.error }]}
+              accessibilityLabel="Full Name, required"
               placeholder="Full Name"
               placeholderTextColor={theme.textTertiary}
               value={formData.name}
-              onChangeText={t => setFormData({ ...formData, name: t })}
+              onChangeText={t => updateFormField('name', t)}
             />
+            {formErrors.name ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{formErrors.name}</Text> : null}
+            <Text style={styles.inputLabel}>Email <Text style={{ color: theme.error }}>*</Text></Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, formErrors.email && { borderColor: theme.error }]}
+              accessibilityLabel="Email, required"
               placeholder="Email"
               placeholderTextColor={theme.textTertiary}
               value={formData.email}
-              onChangeText={t => setFormData({ ...formData, email: t })}
+              onChangeText={t => updateFormField('email', t)}
               autoCapitalize="none"
               keyboardType="email-address"
             />
+            {formErrors.email ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{formErrors.email}</Text> : null}
+            <Text style={styles.inputLabel}>Phone Number (+63) <Text style={{ color: theme.error }}>*</Text></Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, formErrors.phone && { borderColor: theme.error }]}
+              accessibilityLabel="PH Phone Number, required"
               placeholder="9XXXXXXXXX"
               placeholderTextColor={theme.textTertiary}
               value={formData.phone}
-              onChangeText={t => {
-                const digits = t.replace(/\D/g, '').replace(/^0+/, '').slice(0, 10);
-                setFormData({ ...formData, phone: digits });
-              }}
+              onChangeText={t => updateFormField('phone', nationalPHPhone(t))}
               keyboardType="number-pad"
-              maxLength={10}
+              maxLength={16}
             />
 
+            {formErrors.phone ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{formErrors.phone}</Text> : null}
             {/* Role Selector */}
             <Text style={styles.inputLabel}>Role</Text>
             <View style={styles.typeRow}>
@@ -615,19 +612,10 @@ export const AdminUserManagement = ({ navigation }) => {
                 <View style={[styles.input, { flexDirection: 'row', alignItems: 'center', padding: 0 }]}>
                   <TextInput
                     style={{ flex: 1, padding: 14, color: theme.textPrimary, ...typography.body }}
-                    placeholder="Password (min. 8 characters)"
+                    placeholder="Password * (min. 8 characters)"
                     placeholderTextColor={theme.textTertiary}
                     value={formData.password}
-                    onChangeText={t => {
-                      setFormData({ ...formData, password: t });
-                      if (createSubmitAttempted) {
-                        setFormErrors(prev => ({
-                          ...prev,
-                          password: t && isPasswordValid(t) ? '' : (t ? 'Complete every password requirement below' : 'Password is required'),
-                          confirmPassword: formData.confirmPassword && formData.confirmPassword !== t ? 'Passwords do not match' : prev.confirmPassword,
-                        }));
-                      }
-                    }}
+                    onChangeText={t => updateFormField('password', t)}
                     secureTextEntry={!showPassword}
                   />
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 14 }}>
@@ -655,15 +643,10 @@ export const AdminUserManagement = ({ navigation }) => {
                   ]}>
                     <TextInput
                       style={{ flex: 1, padding: 14, color: theme.textPrimary, ...typography.body }}
-                      placeholder="Confirm Password"
+                      placeholder="Confirm Password *"
                       placeholderTextColor={theme.textTertiary}
                       value={formData.confirmPassword}
-                      onChangeText={t => {
-                        setFormData({ ...formData, confirmPassword: t });
-                        if (createSubmitAttempted || formErrors.confirmPassword) {
-                          setFormErrors(prev => ({ ...prev, confirmPassword: !t ? 'Please confirm password' : (t !== formData.password ? 'Passwords do not match' : '') }));
-                        }
-                      }}
+                      onChangeText={t => updateFormField('confirmPassword', t)}
                       secureTextEntry={!showConfirmPassword}
                     />
                     <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={{ padding: 14 }}>
@@ -684,6 +667,7 @@ export const AdminUserManagement = ({ navigation }) => {
               </>
             )}
 
+            </ScrollView>
             {/* Actions */}
             <View style={styles.modalActions}>
               <AnimatedTouchable style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
@@ -896,7 +880,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
   modalCard: {
-    backgroundColor: theme.surface, borderRadius: borderRadius.xxl, padding: 24,
+    backgroundColor: theme.surface, borderRadius: borderRadius.xxl, padding: 24, maxHeight: '92%',
     ...shadows.cardStrong, borderWidth: 1, borderColor: theme.borderLight,
   },
   modalHeader: {
@@ -907,6 +891,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
     width: 32, height: 32, borderRadius: 16, backgroundColor: theme.surfaceLight,
     justifyContent: 'center', alignItems: 'center',
   },
+  fieldError: { color: theme.error, fontSize: 12, marginTop: -10, marginBottom: 10 },
   inputLabel: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '600', marginBottom: 8, marginTop: 8 },
   input: {
     backgroundColor: theme.surfaceLight, color: theme.textPrimary,

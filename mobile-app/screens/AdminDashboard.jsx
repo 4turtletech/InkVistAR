@@ -1,4 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
+import { inventoryAlerts as getInventoryAlerts } from '../src/utils/inventoryState';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
@@ -103,16 +104,10 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
 
       // Inventory low-stock alerts
       try {
-        const invRes = await getAdminInventory();
+        const invRes = await getAdminInventory('active');
         if (invRes.success) {
           const items = invRes.data || invRes.inventory || invRes.items || [];
-          const outOfStock = items.filter(i => (i.quantity || i.stock || 0) <= 0);
-          const lowStock = items.filter(i => {
-            const qty = i.quantity || i.stock || 0;
-            const min = i.minimum_stock || i.reorder_level || 5;
-            return qty > 0 && qty <= min;
-          });
-          setInventoryAlerts({ outOfStock, lowStock });
+          setInventoryAlerts(getInventoryAlerts(items));
         }
       } catch (e) {
         console.warn('Inventory alert fetch error:', e);

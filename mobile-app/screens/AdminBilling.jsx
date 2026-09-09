@@ -3,11 +3,12 @@
  * Handles invoice tracking and artist payouts.
  */
 
+import { invoiceFormErrors } from '../src/utils/adminFormValidation';
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, Alert, Modal, ScrollView, SafeAreaView,
-  RefreshControl, KeyboardAvoidingView, Platform
+  RefreshControl, KeyboardAvoidingView, Platform, Keyboard
 } from 'react-native';
 import {
   Search, FileText, Banknote, Plus, X, ChevronLeft, Eye, Filter, CheckCircle, Clock, AlertCircle,
@@ -56,6 +57,21 @@ export const AdminBilling = ({ navigation }) => {
   // Create Invoice
   const [createInvoiceModal, setCreateInvoiceModal] = useState(false);
   const [invoiceForm, setInvoiceForm] = useState({ clientName: '', serviceType: 'Tattoo Session', amount: '', reference: '', notes: '' });
+
+  const [invoiceErrors, setInvoiceErrors] = useState({});
+  const [invoiceAttempted, setInvoiceAttempted] = useState(false);
+  const changeInvoiceField = (field, value) => {
+    const next = { ...invoiceForm, [field]: value };
+    setInvoiceForm(next);
+    if (invoiceAttempted) setInvoiceErrors(invoiceFormErrors(next));
+  };
+  const closeCreateInvoice = () => {
+    Keyboard.dismiss();
+    setCreateInvoiceModal(false);
+    setInvoiceErrors({});
+    setInvoiceAttempted(false);
+    setInvoiceForm({ clientName: '', serviceType: 'Tattoo Session', amount: '', reference: '', notes: '' });
+  };
 
   // Custom Date Range
   const [customDateModal, setCustomDateModal] = useState(false);
@@ -160,15 +176,12 @@ export const AdminBilling = ({ navigation }) => {
 
   const handleCreateInvoice = async () => {
     const { clientName, serviceType, amount, reference, notes } = invoiceForm;
-    if (!clientName.trim()) {
-      Alert.alert('Validation Error', 'Client name is required.');
-      return;
-    }
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      Alert.alert('Validation Error', 'Please enter a valid amount greater than 0.');
-      return;
-    }
+    Keyboard.dismiss();
+    const errors = invoiceFormErrors(invoiceForm);
+    setInvoiceAttempted(true);
+    setInvoiceErrors(errors);
+    if (Object.keys(errors).length) return;
+    const parsedAmount = Number(amount);
     try {
       const data = await fetchAPI('/admin/invoices', {
         method: 'POST',
@@ -183,8 +196,7 @@ export const AdminBilling = ({ navigation }) => {
       });
       if (data.success) {
         Alert.alert('Success', 'Invoice created successfully.');
-        setCreateInvoiceModal(false);
-        setInvoiceForm({ clientName: '', serviceType: 'Tattoo Session', amount: '', reference: '', notes: '' });
+        closeCreateInvoice();
         loadData();
       } else {
         Alert.alert('Error', data.message || 'Failed to create invoice');
@@ -624,25 +636,27 @@ export const AdminBilling = ({ navigation }) => {
       </Modal>
 
       {/* Create Invoice Modal */}
-      <Modal visible={createInvoiceModal} transparent animationType="slide" onRequestClose={() => setCreateInvoiceModal(false)}>
+      <Modal visible={createInvoiceModal} transparent animationType="slide" onRequestClose={closeCreateInvoice}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Create Invoice</Text>
-              <AnimatedTouchable onPress={() => setCreateInvoiceModal(false)}>
+              <AnimatedTouchable onPress={closeCreateInvoice}>
                 <X size={22} color={theme.textSecondary} />
               </AnimatedTouchable>
             </View>
-            <ScrollView style={styles.modalBody}>
-              <Text style={styles.inputLabel}>Client Name</Text>
+            <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+              <Text style={styles.inputLabel}>Client Name <Text style={{ color: theme.error }}>*</Text></Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, invoiceErrors.clientName && { borderColor: theme.error }]}
+                accessibilityLabel="Client name, required"
                 placeholder="e.g. Juan Dela Cruz"
                 placeholderTextColor={theme.textTertiary}
                 value={invoiceForm.clientName}
-                onChangeText={t => setInvoiceForm({...invoiceForm, clientName: t})}
+                onChangeText={t => changeInvoiceField('clientName', t)}
               />
 
+              {invoiceErrors.clientName ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{invoiceErrors.clientName}</Text> : null}
               <Text style={styles.inputLabel}>Service Type</Text>
               <View style={styles.statusRow}>
                 {['Tattoo Session', 'Consultation', 'Touch-up', 'Retail / POS', 'Other'].map(srv => (
@@ -656,15 +670,17 @@ export const AdminBilling = ({ navigation }) => {
                 ))}
               </View>
 
-              <Text style={styles.inputLabel}>Amount (PHP)</Text>
+              <Text style={styles.inputLabel}>Amount (PHP) <Text style={{ color: theme.error }}>*</Text></Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, invoiceErrors.amount && { borderColor: theme.error }]}
+                accessibilityLabel="Amount, required"
                 placeholder="e.g. 3500"
                 placeholderTextColor={theme.textTertiary}
                 value={invoiceForm.amount}
-                onChangeText={t => setInvoiceForm({...invoiceForm, amount: t})}
+                onChangeText={t => changeInvoiceField('amount', t)}
                 keyboardType="numeric"
               />
+              {invoiceErrors.amount ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{invoiceErrors.amount}</Text> : null}
 
               <Text style={styles.inputLabel}>Reference Number (Optional)</Text>
               <TextInput
@@ -796,6 +812,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: theme.border },
   modalTitle: { ...typography.h3, color: theme.textPrimary },
   modalBody: { padding: 20 },
+  fieldError: { color: theme.error, fontSize: 12, marginTop: -8, marginBottom: 14 },
   inputLabel: { ...typography.bodySmall, color: theme.textSecondary, marginBottom: 8, fontWeight: '600' },
   input: { backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.md, padding: 14, color: theme.textPrimary, ...typography.body, marginBottom: 20 },
   statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
