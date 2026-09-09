@@ -387,8 +387,6 @@ function AppContent() {
       if (navigation) {
         navigation.navigate('login', { prefillEmail: email, message: result.message });
       }
-    } else {
-      Alert.alert('Registration Failed', result.message || 'Please try again');
     }
     return result;
   }, []);

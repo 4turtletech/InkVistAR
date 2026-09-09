@@ -337,20 +337,20 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
         {/* Forgot Password Modal */}
         <Modal visible={showForgotModal} transparent animationType="fade" onRequestClose={() => { Keyboard.dismiss(); setResetEmailError(''); setShowForgotModal(false); }}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
-            <View style={styles.modalCard}>
+            <View style={[styles.modalCard, { backgroundColor: theme.surface, borderColor: theme.borderGold }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Reset Password</Text>
+                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Reset Password</Text>
                 <TouchableOpacity onPress={() => { Keyboard.dismiss(); setResetEmailError(''); setShowForgotModal(false); }} style={styles.modalClose}>
-                  <X size={20} color={colors.textSecondary} />
+                  <X size={20} color={theme.textSecondary} />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.modalText}>Enter your email to receive a one-time password recovery code.</Text>
-              <View style={[styles.inputWrap, { marginBottom: resetEmailError ? 6 : 16 }, resetEmailError && styles.inputError]}>
-                <Mail size={18} color={colors.textTertiary} style={styles.inputIcon} />
+              <Text style={[styles.modalText, { color: theme.textSecondary }]}>Enter your email to receive a one-time password recovery code.</Text>
+              <View style={[styles.inputWrap, { marginBottom: resetEmailError ? 6 : 16, backgroundColor: theme.darkBgSecondary, borderColor: theme.border }, resetEmailError && styles.inputError]}>
+                <Mail size={18} color={theme.textTertiary} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: theme.textPrimary }]}
                   placeholder="your@email.com"
-                  placeholderTextColor={colors.textTertiary}
+                  placeholderTextColor={theme.textTertiary}
                   value={resetEmail}
                   onChangeText={(text) => {
                     setResetEmail(text.replace(/\s/g, ''));
@@ -358,7 +358,7 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
                   }}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  selectionColor={colors.gold}
+                  selectionColor={theme.gold}
                   returnKeyType="done"
                   onSubmitEditing={handleResetSubmit}
                 />

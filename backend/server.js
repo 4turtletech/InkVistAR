@@ -1960,18 +1960,13 @@ async function sendEmail(to, subject, html) {
 const generateNumericOtp = () => crypto.randomInt(100000, 1000000).toString();
 
 async function sendPasswordRecoveryEmail({ email, token }) {
-  const recoveryUrl = new URL('/login', FRONTEND_URL);
-  recoveryUrl.hash = new URLSearchParams({ recoveryEmail: email, recoveryToken: token }).toString();
   const html = buildEmailHtml(`
     <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Reset Your Password</h2>
     <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">A password recovery request was received</p>
-    <p style="margin:0 0 16px;">Use the recovery code below, or select the button to continue in your browser.</p>
+    <p style="margin:0 0 16px;">Return to the InkVistAR password recovery screen and enter the recovery code below.</p>
     <div style="margin:20px 0;padding:16px;background:#1a1a1a;border:2px solid rgba(193,154,107,0.3);border-radius:12px;text-align:center;word-break:break-all;">
       <span style="font-size:20px;font-weight:800;letter-spacing:2px;color:#C19A6B;font-family:'Courier New',monospace;">${token}</span>
     </div>
-    <p style="text-align:center;margin:22px 0;">
-      <a href="${recoveryUrl.toString()}" style="display:inline-block;background:#C19A6B;color:#111827;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700;">Continue Password Reset</a>
-    </p>
     <p style="margin:0 0 8px;font-size:13px;color:#64748b;text-align:center;">This code expires in 30 minutes and can be used only once.</p>
     <p style="margin:0;font-size:12px;color:#555;text-align:center;">If you did not request this, you can safely ignore this email. Your password has not changed.</p>
   `);

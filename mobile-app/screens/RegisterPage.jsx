@@ -19,6 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
 import {
   ArrowRight,
+  AlertCircle,
   Check,
   Eye,
   EyeOff,
@@ -246,6 +247,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
     }
 
     setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => (prev.submit ? { ...prev, submit: null } : prev));
 
     if (name === 'password') {
       const nextFeedback = getPasswordFeedback(value);
@@ -304,14 +306,31 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
         captchaToken,
       );
 
-      if (!result?.success) setSubmitted(false);
+      if (!result?.success) {
+        const message = result?.message || 'Registration failed. Please review your details and try again.';
+        const isEmailConflict = /email/i.test(message) && /(already|exists?|registered|in use)/i.test(message);
+
+        setErrors((prev) => ({
+          ...prev,
+          email: isEmailConflict ? message : prev.email,
+          submit: message,
+        }));
+        setSubmitted(false);
+        triggerShake();
+      }
     } catch (error) {
-      showToast(error?.message || 'Registration Failed', 'error');
+      setErrors((prev) => ({
+        ...prev,
+        submit: error?.message || 'Registration failed. Please check your connection and try again.',
+      }));
       setSubmitted(false);
+      triggerShake();
     }
   };
 
   const handleSubmit = () => {
+    setErrors((prev) => ({ ...prev, submit: null }));
+
     if (!validateForm()) {
       triggerShake();
       return;
@@ -457,10 +476,15 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
         )}
       </TouchableOpacity>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        enabled={Platform.OS === 'ios'}
+        style={styles.flex}
+      >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           showsVerticalScrollIndicator={false}
         >
           <Animated.View
@@ -716,6 +740,20 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
                     );
                   })}
                 </View>
+              </View>
+            ) : null}
+
+            {errors.submit ? (
+              <View
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+                style={[
+                  styles.submitError,
+                  { backgroundColor: `${theme.error}12`, borderColor: theme.error },
+                ]}
+              >
+                <AlertCircle size={16} color={theme.error} />
+                <Text style={[styles.submitErrorText, { color: theme.error }]}>{errors.submit}</Text>
               </View>
             ) : null}
 
@@ -1040,6 +1078,22 @@ const styles = StyleSheet.create({
   },
   healthSection: {
     marginBottom: 14,
+  },
+  submitError: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
+  },
+  submitErrorText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '600',
   },
   healthLabel: {
     fontSize: 11,
