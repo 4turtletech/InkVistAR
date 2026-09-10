@@ -142,3 +142,18 @@ test('inventory referenced by session history cannot be permanently deleted', as
   assert.equal(fake.calls.some(({ sql }) => sql.startsWith('DELETE FROM inventory')), false);
   assert.equal(fake.lifecycle.rolledBack, 1);
 });
+
+test('manual stock changes require and preserve an audit reason', async () => {
+  const missingReason = createFakePool();
+  await assert.rejects(
+    missingReason.service.adjustStock({ inventoryId: 5, type: 'in', quantity: 2, reason: '   ', userId: 1 }),
+    (error) => error.code === 'reason_required'
+  );
+  assert.deepEqual(missingReason.lifecycle, { began: 0, committed: 0, rolledBack: 0, released: 0 });
+
+  const recorded = createFakePool();
+  await recorded.service.adjustStock({ inventoryId: 5, type: 'out', quantity: 2, reason: ' Used for workstation setup ', userId: 1 });
+  const auditInsert = recorded.calls.find(({ sql }) => sql.includes('INSERT INTO inventory_transactions'));
+  assert.equal(auditInsert.params[3], 'Used for workstation setup');
+  assert.equal(recorded.lifecycle.committed, 1);
+});

@@ -269,6 +269,10 @@ function createSessionInventoryService(pool) {
     if (!['in', 'out'].includes(type)) throw new InventoryOperationError('Invalid stock transaction type.');
     const id = asPositiveInteger(inventoryId, 'Inventory ID');
     const qty = asPositiveInteger(quantity, 'Quantity');
+    const normalizedReason = String(reason || '').trim();
+    if (!normalizedReason) {
+      throw new InventoryOperationError('Reason/Notes is required.', 400, 'reason_required');
+    }
     return withTransaction(async (connection) => {
       const [items] = await connection.query('SELECT * FROM inventory WHERE id = ? FOR UPDATE', [id]);
       const item = items[0];
@@ -297,7 +301,7 @@ function createSessionInventoryService(pool) {
       await connection.query(
         `INSERT INTO inventory_transactions (inventory_id, type, quantity, reason, user_id, item_price)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [id, type, qty, String(reason || '').trim() || null, userId || null, itemPrice]
+        [id, type, qty, normalizedReason, userId || null, itemPrice]
       );
       return { item, quantity: qty };
     });

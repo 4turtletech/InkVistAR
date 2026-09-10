@@ -72,7 +72,8 @@ test('screen uses authenticated helper, structured method, inline errors and sub
   assert.doesNotMatch(screen, /fetch\(`\$\{API_URL\}\/customer\/appointments/);
   assert.match(screen, /consultationMethod: formData.selectedServices.includes\('Consultation'\)/);
   assert.match(screen, /if \(bookingSubmissionInFlight.current\) return/);
-  assert.match(screen, /Booking Request Sent/);
+  assert.match(screen, /if \(r\.success\) \{\s*onBack\(\);/);
+  assert.doesNotMatch(screen, /Booking Request Sent|Alert\.alert/);
   assert.doesNotMatch(screen, /Alert.alert\('Booking Confirmed'/);
   assert.match(screen, /errors.submission.*accessibilityLiveRegion/);
 });

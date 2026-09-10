@@ -3,7 +3,7 @@
  * Themed with lucide icons. Preserves filters, pagination, detail modal, payment WebView.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   SafeAreaView, ActivityIndicator, Modal, Platform, RefreshControl, Animated, Image, Alert, TextInput
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import * as Haptics from 'expo-haptics';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../src/context/ThemeContext';
 import { colors, typography, borderRadius, shadows } from '../src/theme';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
@@ -83,6 +84,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [appointmentsError, setAppointmentsError] = useState('');
   const [viewMode, setViewMode] = useState('list');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -100,6 +102,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
     paymentConsent: false, healthDataConsent: false,
     photoConsent: false, marketingConsent: false
   });
+  const [consentErrors, setConsentErrors] = useState({});
   const [modalTab, setModalTab] = useState('details');
   const [apptTransactions, setApptTransactions] = useState([]);
   const fabPulse = useRef(new Animated.Value(1)).current;
@@ -143,20 +146,31 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
     }
   };
 
-  useEffect(() => { if (customerId) fetchAppointments(); }, [customerId]);
-
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async ({ showLoader = true } = {}) => {
+    if (!customerId) return;
     try {
-      if (!refreshing) setLoading(true);
+      if (showLoader) setLoading(true);
+      setAppointmentsError('');
       const r = await getCustomerAppointments(customerId);
       if (r.success) {
         const normalized = (r.appointments || []).map(normalizePaymentState);
         setAppointments(normalized);
         checkPaymentStatuses(normalized);
+      } else {
+        setAppointmentsError(r.message || 'Appointments could not be loaded. Please try again.');
       }
-    } catch (e) { console.log('Fetch error:', e); }
+    } catch (e) {
+      console.log('Fetch error:', e);
+      setAppointmentsError('Appointments could not be loaded. Check your connection and try again.');
+    }
     finally { setLoading(false); setRefreshing(false); }
-  };
+  }, [customerId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchAppointments();
+    }, [fetchAppointments])
+  );
 
   const checkPaymentStatuses = async (list) => {
     const toCheck = list.filter(a => !isAppointmentFullyPaid(a) && parseFloat(a.price || 0) > 0);
@@ -193,6 +207,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
 
   const reviewConsentForPayment = (type, customAmt = null) => {
     setPendingPayment({ type, customAmt });
+    setConsentErrors({});
     setConsentForm({
       ageConfirmed: false, signatureEvidence: '', procedureConsent: false,
       paymentConsent: false, healthDataConsent: false,
@@ -221,18 +236,14 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
 
   const submitConsentAndPay = async () => {
     if (!selectedAppointment || !pendingPayment) return;
-    if (!consentForm.ageConfirmed) {
-      Alert.alert('Age Confirmation Required', 'Confirm that you are 18 years old or older.');
-      return;
-    }
-    if (consentForm.signatureEvidence.trim().length < 3) {
-      Alert.alert('Signature Required', 'Type your full name as your electronic signature.');
-      return;
-    }
-    if (!consentForm.procedureConsent || !consentForm.paymentConsent || !consentForm.healthDataConsent) {
-      Alert.alert('Required Consent', 'Procedure, payment, and health-data consent must each be accepted.');
-      return;
-    }
+    const nextErrors = {};
+    if (!consentForm.ageConfirmed) nextErrors.ageConfirmed = 'Confirm that you are 18 years old or older.';
+    if (!consentForm.procedureConsent) nextErrors.procedureConsent = 'Procedure consent is required.';
+    if (!consentForm.paymentConsent) nextErrors.paymentConsent = 'Payment and no-refund policy consent is required.';
+    if (!consentForm.healthDataConsent) nextErrors.healthDataConsent = 'Health-data storage consent is required.';
+    if (consentForm.signatureEvidence.trim().length < 3) nextErrors.signatureEvidence = 'Type your full legal name.';
+    setConsentErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
 
     setPaymentLoading(true);
     const result = await createConsentRecord(selectedAppointment.id, {
@@ -242,7 +253,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
     });
     if (!result.success) {
       setPaymentLoading(false);
-      Alert.alert('Consent Not Saved', result.message || 'Please review the form and try again.');
+      setConsentErrors({ submission: result.message || 'Consent could not be saved. Please review the form and try again.' });
       return;
     }
 
@@ -334,7 +345,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
     } catch (e) { console.log('Refresh error:', e); }
     setSelectedAppointment(null);
   };
-  const onRefresh = () => { setRefreshing(true); fetchAppointments(); };
+  const onRefresh = () => { setRefreshing(true); fetchAppointments({ showLoader: false }); };
   const changeMonth = (inc) => { const d = new Date(currentMonth); d.setMonth(d.getMonth() + inc); setCurrentMonth(d); };
 
   const handleCancel = (appointment) => {
@@ -482,7 +493,15 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
         )}
 
         {/* List */}
-        {loading ? <PremiumLoader message="Loading appointments..." /> : (
+        {loading ? <PremiumLoader message="Loading appointments..." /> : appointmentsError ? (
+          <View style={styles.loadErrorCard}>
+            <Text accessibilityRole="alert" style={styles.loadErrorTitle}>Unable to load appointments</Text>
+            <Text style={styles.loadErrorText}>{appointmentsError}</Text>
+            <AnimatedTouchable style={styles.retryButton} onPress={() => fetchAppointments()}>
+              <Text style={styles.retryButtonText}>Try Again</Text>
+            </AnimatedTouchable>
+          </View>
+        ) : (
           <View>
             {displayed.length > 0 ? displayed.map((item, i) => renderItem(item, i)) : (
               <EmptyState icon={Calendar} title="No appointments found" subtitle="Tap + to schedule a new one" />
@@ -685,12 +704,12 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
       </Modal>
 
       {/* Consent Review Modal: kept inside the mobile payment flow. */}
-      <Modal visible={showConsentModal} animationType="slide" transparent onRequestClose={() => { if (!paymentLoading) setShowConsentModal(false); }}>
+      <Modal visible={showConsentModal} animationType="slide" transparent onRequestClose={() => { if (!paymentLoading) { setShowConsentModal(false); setConsentErrors({}); } }}>
         <View style={modalS.overlay}>
           <View style={modalS.content}>
             <View style={modalS.header}>
               <Text style={modalS.title}>Consent &amp; Waiver</Text>
-              {!paymentLoading && <AnimatedTouchable onPress={() => setShowConsentModal(false)}><X size={22} color={theme.textSecondary} /></AnimatedTouchable>}
+              {!paymentLoading && <AnimatedTouchable onPress={() => { setShowConsentModal(false); setConsentErrors({}); }}><X size={22} color={theme.textSecondary} /></AnimatedTouchable>}
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={{ ...typography.bodySmall, color: theme.textSecondary, lineHeight: 20, marginBottom: 16 }}>
@@ -705,28 +724,39 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
                 ['photoConsent', 'Photo and portfolio consent (optional)', false],
                 ['marketingConsent', 'Marketing messages consent (optional)', false]
               ].map(([field, label, required]) => (
-                <TouchableOpacity
-                  key={field}
-                  onPress={() => setConsentForm(current => ({ ...current, [field]: !current[field] }))}
-                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10 }}
-                >
-                  {consentForm[field]
-                    ? <CheckCircle size={21} color={theme.success} />
-                    : <Circle size={21} color={theme.textTertiary} />}
-                  <Text style={{ ...typography.bodySmall, color: theme.textPrimary, flex: 1 }}>
-                    {label}{required ? ' *' : ''}
-                  </Text>
-                </TouchableOpacity>
+                <View key={field}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setConsentForm(current => ({ ...current, [field]: !current[field] }));
+                      setConsentErrors(current => ({ ...current, [field]: '' }));
+                    }}
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10 }}
+                  >
+                    {consentForm[field]
+                      ? <CheckCircle size={21} color={theme.success} />
+                      : <Circle size={21} color={consentErrors[field] ? theme.error : theme.textTertiary} />}
+                    <Text style={{ ...typography.bodySmall, color: consentErrors[field] ? theme.error : theme.textPrimary, flex: 1 }}>
+                      {label}{required ? ' *' : ''}
+                    </Text>
+                  </TouchableOpacity>
+                  {consentErrors[field] ? <Text accessibilityRole="alert" style={modalS.inlineError}>{consentErrors[field]}</Text> : null}
+                </View>
               ))}
 
               <Text style={[modalS.label, { marginTop: 12 }]}>Electronic Signature</Text>
               <TextInput
                 value={consentForm.signatureEvidence}
-                onChangeText={(value) => setConsentForm(current => ({ ...current, signatureEvidence: value }))}
+                onChangeText={(value) => {
+                  setConsentForm(current => ({ ...current, signatureEvidence: value }));
+                  setConsentErrors(current => ({ ...current, signatureEvidence: '', submission: '' }));
+                }}
                 placeholder="Type your full legal name"
                 placeholderTextColor={theme.textTertiary}
-                style={{ color: theme.textPrimary, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.md, padding: 12, marginBottom: 18 }}
+                style={{ color: theme.textPrimary, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: consentErrors.signatureEvidence ? theme.error : theme.border, borderRadius: borderRadius.md, padding: 12, marginBottom: consentErrors.signatureEvidence ? 4 : 18 }}
               />
+              {consentErrors.signatureEvidence ? <Text accessibilityRole="alert" style={[modalS.inlineError, { marginBottom: 18 }]}>{consentErrors.signatureEvidence}</Text> : null}
+
+              {consentErrors.submission ? <Text accessibilityRole="alert" style={[modalS.inlineError, modalS.submissionError]}>{consentErrors.submission}</Text> : null}
 
               <AnimatedTouchable
                 onPress={submitConsentAndPay}
@@ -837,6 +867,11 @@ const getStyles = (theme) => StyleSheet.create({
   cardRight: { alignItems: 'flex-end', justifyContent: 'center', gap: 6 },
   statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: borderRadius.sm, flexDirection: 'row', alignItems: 'center' },
   statusPillText: { ...typography.bodyXSmall, fontWeight: '700', textTransform: 'capitalize' },
+  loadErrorCard: { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.error, borderRadius: borderRadius.xl, padding: 20, alignItems: 'center' },
+  loadErrorTitle: { ...typography.h4, color: theme.error, textAlign: 'center', marginBottom: 6 },
+  loadErrorText: { ...typography.bodySmall, color: theme.textSecondary, textAlign: 'center', marginBottom: 14 },
+  retryButton: { backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.md, paddingHorizontal: 20, paddingVertical: 10 },
+  retryButtonText: { ...typography.button, color: theme.textPrimary },
   pagination: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderTopWidth: 1, borderTopColor: theme.border },
   pageBtn: { padding: 8, borderRadius: borderRadius.md, backgroundColor: theme.surfaceLight },
   pageInfo: { ...typography.bodySmall, color: theme.textTertiary },
@@ -863,4 +898,6 @@ const getModalStyles = (theme) => StyleSheet.create({
   cancelText: { ...typography.body, color: theme.error, fontWeight: '700' },
   closeBtn: { backgroundColor: theme.surfaceLight, padding: 12, borderRadius: borderRadius.md, alignItems: 'center', marginTop: 4 },
   closeBtnText: { ...typography.body, color: theme.textSecondary, fontWeight: '600' },
+  inlineError: { ...typography.bodyXSmall, color: theme.error, marginLeft: 31, marginTop: -4, marginBottom: 6 },
+  submissionError: { marginLeft: 0, marginTop: 0, marginBottom: 10, textAlign: 'center' },
 });

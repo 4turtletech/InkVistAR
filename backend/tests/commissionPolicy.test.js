@@ -157,22 +157,9 @@ test('new booking saves do not replace an agreed zero share with 50', () => {
   assert.match(serverSource, /commissionSplit = normalizeCommissionSplit\(commissionSplit\)/);
 });
 
-test('pending commission entries divide the pool and never allocate it twice', () => {
-  const start = serverSource.indexOf('          const commissionAppointment =');
-  const end = serverSource.indexOf('\n        });', start);
-  assert.ok(start > 0 && end > start);
-  for (const [secondary, split, expected] of [[74, 50, [300, 300]], [74, 70, [420, 180]], [74, 0, [600]], [73, 50, [600]], [null, 50, [600]]]) {
-    const calls = [];
-    vm.runInNewContext(serverSource.slice(start, end), {
-      appointment: { price: 1000, artist_id: 73, secondary_artist_id: secondary, commission_split: split },
-      currentPrice: 1000, id: 1, artistCommission,
-      getLocalDatetime: () => '2026-09-08 00:00:00',
-      db: { query(sql, params) { calls.push({ sql, params }); } },
-    });
-    assert.deepEqual(calls.map(call => call.params[1]), expected);
-    assert.equal(calls.reduce((total, call) => total + call.params[1], 0), 600);
-    assert.ok(calls.every(call => call.params[3] === 'Pending'));
-  }
+test('completing a session does not create a fake pending payout record', () => {
+  assert.doesNotMatch(serverSource, /INSERT INTO payouts[\s\S]{0,300}System Default[\s\S]{0,100}Pending/);
+  assert.match(serverSource, /A payout row is created only after an admin actually disburses money/);
 });
 
 test('invalid requested agreement is rejected before creating any booking', async () => {

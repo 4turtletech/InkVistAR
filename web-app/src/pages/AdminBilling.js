@@ -46,9 +46,13 @@ function AdminBilling() {
     const [customStartDate, setCustomStartDate] = useState('');
     const [customEndDate, setCustomEndDate] = useState('');
     const [payouts, setPayouts] = useState([]);
+    const [payoutBalances, setPayoutBalances] = useState([]);
     const [artists, setArtists] = useState([]);
     const [payoutModal, setPayoutModal] = useState({ mounted: false, visible: false });
     const [newPayout, setNewPayout] = useState({ artistId: '', amount: '', method: 'Bank Transfer', reference: '' });
+    const [payoutFeedback, setPayoutFeedback] = useState(null);
+    const [payoutSubmitting, setPayoutSubmitting] = useState(false);
+    const payoutSubmittingRef = useRef(false);
 
     // Payout filter states
     const [payoutSearchTerm, setPayoutSearchTerm] = useState('');
@@ -124,7 +128,34 @@ function AdminBilling() {
 
     const handlePayoutChange = (field, value) => {
         setNewPayout(prev => ({ ...prev, [field]: value }));
+        setPayoutFeedback(null);
         validatePayoutField(field, value);
+    };
+
+    const selectedPayoutBalance = payoutBalances.find(balance => String(balance.artistId) === String(newPayout.artistId));
+
+    const openPayoutModal = (balance = null) => {
+        setNewPayout({
+            artistId: balance ? String(balance.artistId) : '',
+            amount: balance && balance.availableBalance > 0 ? Number(balance.availableBalance).toFixed(2) : '',
+            method: 'Bank Transfer',
+            reference: ''
+        });
+        setPayoutErrors({});
+        setPayoutFeedback(null);
+        setPayoutModal({ mounted: true, visible: true });
+    };
+
+    const handlePayoutArtistChange = (artistId) => {
+        const balance = payoutBalances.find(item => String(item.artistId) === String(artistId));
+        setNewPayout(prev => ({
+            ...prev,
+            artistId,
+            amount: balance && balance.availableBalance > 0 ? Number(balance.availableBalance).toFixed(2) : ''
+        }));
+        setPayoutFeedback(null);
+        validatePayoutField('artistId', artistId);
+        setPayoutErrors(prev => ({ ...prev, amount: '' }));
     };
 
     // Pagination state
@@ -236,11 +267,13 @@ function AdminBilling() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [invRes, settingsRes, artistRes, usersRes] = await Promise.all([
+            const [invRes, settingsRes, artistRes, usersRes, pRes, balanceRes] = await Promise.all([
                 Axios.get(`${API_URL}/api/admin/invoices`),
                 Axios.get(`${API_URL}/api/admin/settings`),
                 Axios.get(`${API_URL}/api/customer/artists`),
-                Axios.get(`${API_URL}/api/admin/users`)
+                Axios.get(`${API_URL}/api/admin/users`),
+                Axios.get(`${API_URL}/api/admin/payouts`),
+                Axios.get(`${API_URL}/api/admin/payout-balances`).catch(() => ({ data: { success: false, data: [] } }))
             ]);
 
             if (invRes.data.success) setInvoices(invRes.data.data);
@@ -252,9 +285,8 @@ function AdminBilling() {
                 setCustomers(usersRes.data.data.filter(u => u.user_type === 'customer' && !u.is_deleted));
             }
             
-            // Real payouts fetch
-            const pRes = await Axios.get(`${API_URL}/api/admin/payouts`);
             if (pRes.data.success) setPayouts(pRes.data.data);
+            if (balanceRes.data.success) setPayoutBalances(balanceRes.data.data || []);
 
             setLoading(false);
         } catch (error) {
@@ -349,25 +381,38 @@ function AdminBilling() {
 
     const handlePayoutSubmit = async (e) => {
         e.preventDefault();
+        if (payoutSubmittingRef.current) return;
         const artistValid = validatePayoutField('artistId', newPayout.artistId);
         const amountValid = validatePayoutField('amount', newPayout.amount);
+        const amount = Number(newPayout.amount);
+        const available = Number(selectedPayoutBalance?.availableBalance || 0);
 
+        if (amountValid && amount > available) {
+            setPayoutErrors(prev => ({ ...prev, amount: `Amount cannot exceed the available balance of ₱${available.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.` }));
+            setPayoutFeedback({ type: 'error', message: 'Please enter an amount within the available balance.' });
+            return;
+        }
         if (!artistValid || !amountValid) {
-            showAlert("Error", "Please fix validation errors before saving.", "warning");
+            setPayoutFeedback({ type: 'error', message: 'Please fix the highlighted fields.' });
             return;
         }
 
         try {
+            payoutSubmittingRef.current = true;
+            setPayoutSubmitting(true);
+            setPayoutFeedback(null);
             const res = await Axios.post(`${API_URL}/api/admin/payouts`, newPayout);
             if (res.data.success) {
-                showAlert("Success", "Payout recorded successfully", "success");
-                setPayoutModal({ mounted: false, visible: false });
-                setNewPayout({ artistId: '', amount: '', method: 'Bank Transfer', reference: '' });
+                await fetchData();
+                setPayoutFeedback({ type: 'success', message: `Payout recorded. Remaining balance: ₱${Number(res.data.remainingBalance || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.` });
+                setNewPayout(prev => ({ ...prev, amount: '', reference: '' }));
                 setPayoutErrors({});
-                fetchData();
             }
         } catch (error) {
-            showAlert("Error", "Failed to record payout", "danger");
+            setPayoutFeedback({ type: 'error', message: error.response?.data?.message || 'Failed to record payout.' });
+        } finally {
+            payoutSubmittingRef.current = false;
+            setPayoutSubmitting(false);
         }
     };
 
@@ -544,11 +589,7 @@ function AdminBilling() {
                                 <Plus size={18} className="admin-st-c02c7d9c" /> Create Invoice
                             </button>
                         ) : (
-                            <button className="btn btn-primary" onClick={() => {
-                                setNewPayout({ artistId: '', amount: '', method: 'Bank Transfer', reference: '' });
-                                setPayoutErrors({});
-                                setPayoutModal({ mounted: true, visible: true });
-                            }}>
+                            <button className="btn btn-primary" onClick={() => openPayoutModal()}>
                                 <Plus size={18} className="admin-st-c02c7d9c" /> Record Payout
                             </button>
                         )}
@@ -768,10 +809,36 @@ function AdminBilling() {
                                 <span className="stat-count">₱{payouts.reduce((sum, p) => sum + Number(p.amount), 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className="stat-item">
-                                <span className="stat-label">Pending Payouts (Est.)</span>
-                                <span className="stat-count text-warning">₱ --</span>
+                                <span className="stat-label">Available to Pay</span>
+                                <span className="stat-count text-warning">₱{payoutBalances.reduce((sum, balance) => sum + Number(balance.availableBalance || 0), 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
+
+                        <section className="artist-payout-balances" aria-labelledby="artist-payout-balances-title">
+                            <div className="artist-payout-balances__header">
+                                <div>
+                                    <h2 id="artist-payout-balances-title">Artists to Pay</h2>
+                                    <p>Completed and fully paid commissions, minus recorded payouts.</p>
+                                </div>
+                            </div>
+                            <div className="artist-payout-balances__grid">
+                                {payoutBalances.filter(balance => Number(balance.availableBalance) > 0).map(balance => (
+                                    <article className="artist-payout-balance-card" key={balance.artistId}>
+                                        <div>
+                                            <strong>{balance.artistName}</strong>
+                                            <span>Available balance</span>
+                                        </div>
+                                        <div className="artist-payout-balance-card__amount">
+                                            <strong>₱{Number(balance.availableBalance).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                                            <button type="button" className="btn btn-primary" onClick={() => openPayoutModal(balance)}>Pay</button>
+                                        </div>
+                                    </article>
+                                ))}
+                                {payoutBalances.filter(balance => Number(balance.availableBalance) > 0).length === 0 && (
+                                    <div className="artist-payout-balances__empty">No artist payouts are currently due.</div>
+                                )}
+                            </div>
+                        </section>
 
                         <div className="premium-filter-bar premium-filter-bar--stacked">
                             <div className="premium-search-box premium-search-box--full" ref={payoutSearchRef} style={{ position: 'relative' }}>
@@ -1263,11 +1330,17 @@ function AdminBilling() {
                                 <div className="modal-body admin-st-7cea880d">
                                     <div className="form-group admin-st-7002f9ca">
                                         <label className={`admin-st-19644797 ${payoutErrors.artistId ? 'text-red-500' : ''}`}>Target Recipient (Artist)</label>
-                                        <select className={`form-input ${payoutErrors.artistId ? 'border-red-500 bg-red-50' : ''}`} required value={newPayout.artistId} onChange={e => handlePayoutChange('artistId', e.target.value)}>
+                                        <select className={`form-input ${payoutErrors.artistId ? 'border-red-500 bg-red-50' : ''}`} required value={newPayout.artistId} onChange={e => handlePayoutArtistChange(e.target.value)}>
                                             <option value="">Select Professional Artist...</option>
                                             {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                         </select>
                                         {payoutErrors.artistId && <span className="text-red-500 text-xs mt-1 block">{payoutErrors.artistId}</span>}
+                                        {newPayout.artistId && (
+                                            <div className="payout-available-balance">
+                                                <span>Available to pay</span>
+                                                <strong>₱{Number(selectedPayoutBalance?.availableBalance || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="admin-st-c200c71d">
                                         <div className="form-group">
@@ -1280,8 +1353,7 @@ function AdminBilling() {
                                             <select className="form-input" value={newPayout.method} onChange={e => handlePayoutChange('method', e.target.value)}>
                                                 <option value="Bank Transfer">Bank Transfer</option>
                                                 <option value="Cash">Cash Disbursement</option>
-                                                <option value="G-Cash">G-Cash Digital</option>
-                                                <option value="Wallet">System Wallet</option>
+                                                <option value="GCash">GCash</option>
                                             </select>
                                         </div>
                                     </div>
@@ -1289,10 +1361,18 @@ function AdminBilling() {
                                         <label className="admin-st-19644797">Transaction Reference / Memo</label>
                                         <input type="text" className="form-input" placeholder="Bank ref # or payout notes..." value={newPayout.reference} onChange={e => handlePayoutChange('reference', e.target.value.substring(0, 100))} maxLength={100} />
                                     </div>
+                                    <p className="payout-external-note">Record this payout only after the cash, GCash, or bank transfer has been completed outside the system.</p>
+                                    {payoutFeedback && (
+                                        <div className={`payout-inline-feedback payout-inline-feedback--${payoutFeedback.type}`} role="status">
+                                            {payoutFeedback.message}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="modal-footer">
                                     <button type="button" className="btn btn-secondary" onClick={() => setPayoutModal({ mounted: false, visible: false })}>Cancel</button>
-                                    <button type="submit" className="btn btn-primary admin-st-f9a92399">Record Remittance</button>
+                                    <button type="submit" disabled={payoutSubmitting || !newPayout.artistId || !newPayout.amount || Number(selectedPayoutBalance?.availableBalance || 0) <= 0} className="btn btn-primary admin-st-f9a92399">
+                                        {payoutSubmitting ? 'Recording…' : 'Record Payout'}
+                                    </button>
                                 </div>
                             </form>
                         </div>

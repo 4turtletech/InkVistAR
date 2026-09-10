@@ -4,7 +4,7 @@
  */
 
 import { invoiceFormErrors } from '../src/utils/adminFormValidation';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, Alert, Modal, ScrollView, SafeAreaView,
@@ -33,15 +33,16 @@ const getInvoiceSourceId = (invoice) => {
   return invoice?.id;
 };
 
-export const AdminBilling = ({ navigation }) => {
+export const AdminBilling = ({ navigation, route }) => {
   const { theme, hapticsEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const styles = getStyles(theme, insets);
 
-  const [activeTab, setActiveTab] = useState('invoices'); // 'invoices' or 'payouts'
+  const [activeTab, setActiveTab] = useState(route?.params?.tab === 'payouts' ? 'payouts' : 'invoices'); // 'invoices' or 'payouts'
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState([]);
   const [payouts, setPayouts] = useState([]);
+  const [payoutBalances, setPayoutBalances] = useState([]);
   const [artists, setArtists] = useState([]);
   const [search, setSearch] = useState('');
 
@@ -51,6 +52,10 @@ export const AdminBilling = ({ navigation }) => {
   const [sourceFilter, setSourceFilter] = useState('all'); // all | session | pos
   const [payoutModalVisible, setPayoutModalVisible] = useState(false);
   const [payoutForm, setPayoutForm] = useState({ artistId: '', amount: '', method: 'Cash', reference: '' });
+  const [payoutErrors, setPayoutErrors] = useState({});
+  const [payoutFeedback, setPayoutFeedback] = useState(null);
+  const [payoutSubmitting, setPayoutSubmitting] = useState(false);
+  const payoutSubmittingRef = useRef(false);
   const [isEditingInvoice, setIsEditingInvoice] = useState(false);
   const [payoutDetail, setPayoutDetail] = useState(null);
 
@@ -107,16 +112,18 @@ export const AdminBilling = ({ navigation }) => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [invData, payData, artData] = await Promise.all([
+      const [invData, payData, artData, balanceData] = await Promise.all([
         fetchAPI('/admin/invoices'),
         fetchAPI('/admin/payouts'),
         fetchAPI('/admin/users?role=artist'),
+        fetchAPI('/admin/payout-balances').catch(() => ({ success: false, data: [] })),
       ]);
 
       setInvoices(invData.success ? (invData.data || invData.invoices || []) : []);
       setPayouts(payData.success ? (payData.data || payData.payouts || []) : []);
       const allArtUsers = artData.success ? (artData.users || artData.data || []) : [];
       setArtists(allArtUsers.filter(u => u.user_type === 'artist' || u.role === 'artist'));
+      setPayoutBalances(balanceData.success ? (balanceData.data || []) : []);
     } catch (e) {
       console.warn('AdminBilling fetch error:', e);
     } finally {
@@ -140,37 +147,77 @@ export const AdminBilling = ({ navigation }) => {
     loadArtists();
   }, []);
 
+  useEffect(() => {
+    if (route?.params?.tab === 'payouts') setActiveTab('payouts');
+  }, [route?.params?.tab]);
+
+
+  const selectedPayoutBalance = payoutBalances.find(balance => String(balance.artistId) === String(payoutForm.artistId));
+
+  const openPayoutModal = (balance = null) => {
+    setPayoutForm({
+      artistId: balance ? String(balance.artistId) : '',
+      amount: balance && balance.availableBalance > 0 ? Number(balance.availableBalance).toFixed(2) : '',
+      method: 'Cash',
+      reference: '',
+    });
+    setPayoutErrors({});
+    setPayoutFeedback(null);
+    setPayoutModalVisible(true);
+  };
+
+  const selectPayoutArtist = (artistId) => {
+    const balance = payoutBalances.find(item => String(item.artistId) === String(artistId));
+    setPayoutForm(previous => ({
+      ...previous,
+      artistId: String(artistId),
+      amount: balance && balance.availableBalance > 0 ? Number(balance.availableBalance).toFixed(2) : '',
+    }));
+    setPayoutErrors({});
+    setPayoutFeedback(null);
+  };
 
   const handleRecordPayout = async () => {
-    if (!payoutForm.artistId || !payoutForm.amount) {
-      Alert.alert('Validation Error', 'Please select an artist and enter an amount.');
-      return;
-    }
+    if (payoutSubmittingRef.current) return;
+    const errors = {};
+    if (!payoutForm.artistId) errors.artistId = 'Select an artist.';
     const parsedAmount = parseFloat(payoutForm.amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      Alert.alert('Validation Error', 'Amount must be a positive number.');
+    if (isNaN(parsedAmount) || parsedAmount <= 0) errors.amount = 'Enter an amount greater than zero.';
+    const available = Number(selectedPayoutBalance?.availableBalance || 0);
+    if (!errors.amount && parsedAmount > available) {
+      errors.amount = `Amount cannot exceed P${formatCurrency(available)}.`;
+    }
+    if (Object.keys(errors).length) {
+      setPayoutErrors(errors);
+      setPayoutFeedback({ type: 'error', message: 'Please fix the highlighted fields.' });
       return;
     }
     try {
+      payoutSubmittingRef.current = true;
+      setPayoutSubmitting(true);
+      setPayoutFeedback(null);
       const data = await fetchAPI('/admin/payouts', {
         method: 'POST',
         body: JSON.stringify({
           artistId: payoutForm.artistId,
           amount: parsedAmount,
-          paymentMethod: payoutForm.method,
-          referenceNumber: payoutForm.reference,
+          method: payoutForm.method,
+          reference: payoutForm.reference,
         })
       });
       if (data.success) {
-        Alert.alert('Success', 'Payout recorded successfully.');
-        setPayoutModalVisible(false);
-        setPayoutForm({ artistId: '', amount: '', method: 'Cash', reference: '' });
-        loadData();
+        await loadData();
+        setPayoutFeedback({ type: 'success', message: `Payout recorded. Remaining balance: P${formatCurrency(data.remainingBalance || 0)}.` });
+        setPayoutForm(previous => ({ ...previous, amount: '', reference: '' }));
+        setPayoutErrors({});
       } else {
-        Alert.alert('Error', data.message || 'Failed to record payout');
+        setPayoutFeedback({ type: 'error', message: data.message || 'Failed to record payout.' });
       }
     } catch (e) {
-      Alert.alert('Error', 'Network error.');
+      setPayoutFeedback({ type: 'error', message: 'Network error. Please try again.' });
+    } finally {
+      payoutSubmittingRef.current = false;
+      setPayoutSubmitting(false);
     }
   };
 
@@ -284,7 +331,7 @@ export const AdminBilling = ({ navigation }) => {
           </AnimatedTouchable>
         )}
         {activeTab === 'payouts' && (
-          <AnimatedTouchable style={styles.addBtn} onPress={() => setPayoutModalVisible(true)} title="Record payout">
+          <AnimatedTouchable style={styles.addBtn} onPress={() => openPayoutModal()} title="Record payout">
             <Plus size={20} color={theme.backgroundDeep} />
           </AnimatedTouchable>
         )}
@@ -419,6 +466,28 @@ export const AdminBilling = ({ navigation }) => {
           renderItem={activeTab === 'invoices' ? renderInvoice : renderPayout}
           keyExtractor={item => `${item.record_source || 'record'}-${item.id}`}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={activeTab === 'payouts' ? (
+            <View style={styles.balanceSection}>
+              <Text style={styles.balanceSectionTitle}>Artists to Pay</Text>
+              <Text style={styles.balanceSectionSubtitle}>Completed and fully paid commissions, minus recorded payouts.</Text>
+              {payoutBalances.filter(balance => Number(balance.availableBalance) > 0).map(balance => (
+                <View key={String(balance.artistId)} style={styles.balanceCard}>
+                  <View style={styles.balanceCardText}>
+                    <Text style={styles.balanceArtistName}>{balance.artistName}</Text>
+                    <Text style={styles.balanceLabel}>Available balance</Text>
+                    <Text style={styles.balanceAmount}>P{formatCurrency(balance.availableBalance)}</Text>
+                  </View>
+                  <AnimatedTouchable style={styles.balancePayButton} onPress={() => openPayoutModal(balance)}>
+                    <Text style={styles.balancePayButtonText}>Pay</Text>
+                  </AnimatedTouchable>
+                </View>
+              ))}
+              {payoutBalances.filter(balance => Number(balance.availableBalance) > 0).length === 0 && (
+                <Text style={styles.noBalancesText}>No artist payouts are currently due.</Text>
+              )}
+              <Text style={styles.historyHeading}>Payout History</Text>
+            </View>
+          ) : null}
           ListEmptyComponent={<EmptyState icon={activeTab === 'invoices' ? FileText : Banknote} title={`No ${activeTab} found`} />}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={theme.gold} />}
         />
@@ -603,16 +672,32 @@ export const AdminBilling = ({ navigation }) => {
                     <AnimatedTouchable
                       key={String(a.id)}
                       style={[styles.statusBtn, String(payoutForm.artistId) === String(a.id) && styles.statusBtnActive]}
-                      onPress={() => setPayoutForm({...payoutForm, artistId: String(a.id)})}
+                      onPress={() => selectPayoutArtist(a.id)}
                     >
                       <Text style={[styles.statusBtnText, String(payoutForm.artistId) === String(a.id) && styles.statusBtnTextActive]}>{a.name}</Text>
                     </AnimatedTouchable>
                   ))}
                 </ScrollView>
               </View>
+              {payoutErrors.artistId ? <Text style={styles.inlineError}>{payoutErrors.artistId}</Text> : null}
+
+              {payoutForm.artistId ? (
+                <View style={styles.availableBalanceBox}>
+                  <Text style={styles.availableBalanceLabel}>Available to pay</Text>
+                  <Text style={styles.availableBalanceValue}>P{formatCurrency(selectedPayoutBalance?.availableBalance || 0)}</Text>
+                </View>
+              ) : null}
 
               <Text style={styles.inputLabel}>Amount (PHP)</Text>
-              <TextInput style={styles.input} value={payoutForm.amount} onChangeText={t => setPayoutForm({...payoutForm, amount: t})} keyboardType="numeric" placeholder="e.g. 5000" placeholderTextColor={theme.textTertiary} />
+              <TextInput
+                style={[styles.input, payoutErrors.amount && styles.inputError]}
+                value={payoutForm.amount}
+                onChangeText={t => { setPayoutForm({...payoutForm, amount: t}); setPayoutErrors(previous => ({ ...previous, amount: '' })); setPayoutFeedback(null); }}
+                keyboardType="numeric"
+                placeholder="e.g. 5000"
+                placeholderTextColor={theme.textTertiary}
+              />
+              {payoutErrors.amount ? <Text style={styles.inlineError}>{payoutErrors.amount}</Text> : null}
 
               <Text style={styles.inputLabel}>Payment Method</Text>
               <View style={styles.statusRow}>
@@ -626,8 +711,20 @@ export const AdminBilling = ({ navigation }) => {
               <Text style={styles.inputLabel}>Reference Number (Optional)</Text>
               <TextInput style={styles.input} value={payoutForm.reference} onChangeText={t => setPayoutForm({...payoutForm, reference: t})} placeholder="Transaction ID..." placeholderTextColor={theme.textTertiary} />
 
-              <AnimatedTouchable style={styles.saveBtn} onPress={handleRecordPayout}>
-                <Text style={styles.saveBtnText}>Record Payout</Text>
+              <Text style={styles.payoutExternalNote}>Record this only after the cash, GCash, or bank transfer has been completed outside the system.</Text>
+
+              {payoutFeedback ? (
+                <View style={[styles.inlineFeedback, payoutFeedback.type === 'success' ? styles.inlineFeedbackSuccess : styles.inlineFeedbackError]}>
+                  <Text style={[styles.inlineFeedbackText, { color: payoutFeedback.type === 'success' ? theme.success : theme.error }]}>{payoutFeedback.message}</Text>
+                </View>
+              ) : null}
+
+              <AnimatedTouchable
+                style={[styles.saveBtn, (payoutSubmitting || !payoutForm.artistId || !payoutForm.amount || Number(selectedPayoutBalance?.availableBalance || 0) <= 0) && styles.disabledButton]}
+                onPress={handleRecordPayout}
+                disabled={payoutSubmitting || !payoutForm.artistId || !payoutForm.amount || Number(selectedPayoutBalance?.availableBalance || 0) <= 0}
+              >
+                <Text style={styles.saveBtnText}>{payoutSubmitting ? 'Recording...' : 'Record Payout'}</Text>
               </AnimatedTouchable>
               <View style={{height: 20}} />
             </ScrollView>
@@ -804,6 +901,18 @@ const getStyles = (theme, insets) => StyleSheet.create({
   filterPillTextActive: { color: theme.backgroundDeep },
   statChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20 },
   statChipText: { ...typography.bodyXSmall, fontWeight: '700' },
+  balanceSection: { marginBottom: 8 },
+  balanceSectionTitle: { ...typography.h3, color: theme.textPrimary, marginBottom: 4 },
+  balanceSectionSubtitle: { ...typography.bodySmall, color: theme.textSecondary, marginBottom: 12 },
+  balanceCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.xl, padding: 16, marginBottom: 10, ...shadows.subtle },
+  balanceCardText: { flex: 1, paddingRight: 12 },
+  balanceArtistName: { ...typography.h4, color: theme.textPrimary },
+  balanceLabel: { ...typography.bodyXSmall, color: theme.textSecondary, marginTop: 4 },
+  balanceAmount: { ...typography.h3, color: theme.success, marginTop: 2 },
+  balancePayButton: { backgroundColor: theme.gold, minWidth: 68, paddingVertical: 10, paddingHorizontal: 16, borderRadius: borderRadius.md, alignItems: 'center' },
+  balancePayButtonText: { ...typography.bodySmall, color: theme.backgroundDeep, fontWeight: '800' },
+  noBalancesText: { ...typography.bodySmall, color: theme.textSecondary, textAlign: 'center', backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.lg, padding: 18 },
+  historyHeading: { ...typography.h3, color: theme.textPrimary, marginTop: 22, marginBottom: 12 },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.border },
   detailLabel: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '600', textTransform: 'uppercase' },
   detailValue: { ...typography.body, color: theme.textPrimary, textAlign: 'right', fontWeight: '500', flex: 1, marginLeft: 12 },
@@ -815,6 +924,16 @@ const getStyles = (theme, insets) => StyleSheet.create({
   fieldError: { color: theme.error, fontSize: 12, marginTop: -8, marginBottom: 14 },
   inputLabel: { ...typography.bodySmall, color: theme.textSecondary, marginBottom: 8, fontWeight: '600' },
   input: { backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.md, padding: 14, color: theme.textPrimary, ...typography.body, marginBottom: 20 },
+  inputError: { borderColor: theme.error },
+  inlineError: { ...typography.bodyXSmall, color: theme.error, marginTop: -14, marginBottom: 14 },
+  availableBalanceBox: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.successBg || 'rgba(16,185,129,0.12)', borderRadius: borderRadius.md, padding: 12, marginBottom: 18 },
+  availableBalanceLabel: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '600' },
+  availableBalanceValue: { ...typography.h4, color: theme.success },
+  inlineFeedback: { borderWidth: 1, borderRadius: borderRadius.md, padding: 12, marginBottom: 8 },
+  inlineFeedbackSuccess: { backgroundColor: theme.successBg || 'rgba(16,185,129,0.12)', borderColor: theme.success },
+  inlineFeedbackError: { backgroundColor: theme.errorBg || 'rgba(239,68,68,0.1)', borderColor: theme.error },
+  inlineFeedbackText: { ...typography.bodySmall, fontWeight: '600' },
+  payoutExternalNote: { ...typography.bodyXSmall, color: theme.textSecondary, lineHeight: 18, marginTop: -8, marginBottom: 14 },
   statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   statusBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: borderRadius.md, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border },
   statusBtnActive: { backgroundColor: theme.primaryLight, borderColor: theme.gold },
@@ -822,5 +941,6 @@ const getStyles = (theme, insets) => StyleSheet.create({
   statusBtnTextActive: { color: theme.gold },
   saveBtn: { backgroundColor: theme.gold, padding: 16, borderRadius: borderRadius.lg, alignItems: 'center', marginTop: 10 },
   saveBtnText: { ...typography.body, color: theme.backgroundDeep, fontWeight: '700' },
+  disabledButton: { opacity: 0.45 },
   emptyArtistText: { ...typography.bodySmall, color: theme.textTertiary, fontStyle: 'italic', padding: 8 },
 });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
-  ActivityIndicator, Alert, Image, Animated, Dimensions, Keyboard
+  ActivityIndicator, Image, Animated, Dimensions, Keyboard
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ChevronLeft, ChevronRight, Camera, CalendarCheck, MapPin, Check, Info, Star, CreditCard, Ticket, Clock, User, Plus, History, X } from 'lucide-react-native';
@@ -314,7 +314,7 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
       const r = await createCustomerAppointment(payload);
       
       if (r.success) {
-        Alert.alert('Booking Request Sent', 'Your request has been sent and is awaiting studio confirmation.', [{ text: 'Great!', onPress: onBack }]);
+        onBack();
       } else {
         bookingSubmissionInFlight.current = false;
         const message = r.status === 401

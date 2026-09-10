@@ -112,7 +112,8 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
         setAlertModal({
           visible: true,
           title: 'Password Changed',
-          message: 'Your password has been updated. A verification email has been sent — please verify your account and log in again.',
+          message: 'Your password was updated and a 6-digit verification code was sent to your email. Enter it when you sign in again.',
+          onConfirm: onLogout,
         });
         return;
       }
@@ -409,8 +410,12 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
             </View>
             <Text style={{ ...typography.h3, color: theme.textPrimary, marginBottom: 8, textAlign: 'center' }}>{alertModal.title}</Text>
             <Text style={{ ...typography.body, color: theme.textSecondary, marginBottom: 24, textAlign: 'center' }}>{alertModal.message}</Text>
-            <AnimatedTouchable style={[styles.saveBtn, { width: '100%' }]} onPress={() => setAlertModal({ ...alertModal, visible: false })}>
-              <Text style={styles.saveBtnText}>OK</Text>
+            <AnimatedTouchable style={[styles.saveBtn, { width: '100%' }]} onPress={() => {
+              const onConfirm = alertModal.onConfirm;
+              setAlertModal({ ...alertModal, visible: false, onConfirm: undefined });
+              if (onConfirm) onConfirm();
+            }}>
+              <Text style={styles.saveBtnText}>{alertModal.onConfirm ? 'CONTINUE TO LOGIN' : 'OK'}</Text>
             </AnimatedTouchable>
           </View>
         </View>

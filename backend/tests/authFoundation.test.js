@@ -1,4 +1,6 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const test = require('node:test');
 const { authorize } = require('../middleware/authorize');
 const { createAuthenticate } = require('../middleware/authenticate');
@@ -219,4 +221,21 @@ test('web refresh tokens use cookies while mobile tokens use the response body',
   assert.deepEqual(deliverRefreshToken(mobileRequest, response, 'mobile-secret', 'mobile'), { refreshToken: 'mobile-secret' });
   assert.deepEqual(rotateRefreshTokenResponse({ body: { refreshToken: 'old' } }, response, 'next'), { refreshToken: 'next' });
   assert.equal(getRefreshToken({ body: {}, headers: { cookie: 'other=x; inkvistar_refresh=cookie-secret' } }), 'cookie-secret');
+});
+
+test('password changes issue the OTP expected by the next-login verification screen', () => {
+  const serverSource = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+  const customerStart = serverSource.indexOf("app.post('/api/customer/change-password'");
+  const artistStart = serverSource.indexOf("app.post('/api/artist/change-password'");
+  const nextRoute = serverSource.indexOf("app.post('/api/request-email-change'");
+  const customerRoute = serverSource.slice(customerStart, artistStart);
+  const artistRoute = serverSource.slice(artistStart, nextRoute);
+
+  for (const route of [customerRoute, artistRoute]) {
+    assert.match(route, /const otp_code = generateNumericOtp\(\)/);
+    assert.match(route, /otp_expires = new Date\(Date\.now\(\) \+ 5 \* 60 \* 1000\)/);
+    assert.match(route, /verification_token = NULL, otp_code = \?, otp_expires = \?/);
+    assert.match(route, /Password Changed Verification Code/);
+    assert.doesNotMatch(route, /verifyUrl|Verify Email Address/);
+  }
 });

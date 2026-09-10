@@ -8,7 +8,6 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Animated, Easing
 } from 'react-native';
 import { ArrowLeft, CreditCard, Banknote, Receipt, ChevronDown } from 'lucide-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../src/context/ThemeContext';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
@@ -19,9 +18,20 @@ import { EmptyState } from '../src/components/shared/EmptyState';
 import { formatCurrency, formatDate } from '../src/utils/formatters';
 import { getCustomerTransactions } from '../src/utils/api';
 
-const ExpandableTransactionCard = ({ item, theme, styles }) => {
-  const [expanded, setExpanded] = useState(false);
-  const animValue = useRef(new Animated.Value(0)).current;
+const ExpandableTransactionCard = ({ item, theme, styles, initiallyExpanded = false }) => {
+  const [expanded, setExpanded] = useState(initiallyExpanded);
+  const animValue = useRef(new Animated.Value(initiallyExpanded ? 1 : 0)).current;
+
+  useEffect(() => {
+    if (!initiallyExpanded || expanded) return;
+    setExpanded(true);
+    Animated.timing(animValue, {
+      toValue: 1,
+      duration: 300,
+      easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+      useNativeDriver: false,
+    }).start();
+  }, [initiallyExpanded]);
 
   const toggleExpand = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -39,7 +49,7 @@ const ExpandableTransactionCard = ({ item, theme, styles }) => {
   const rotateChevron = animValue.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
 
   return (
-    <AnimatedTouchable style={styles.card} onPress={toggleExpand}>
+    <AnimatedTouchable style={[styles.card, initiallyExpanded && styles.targetedCard]} onPress={toggleExpand}>
       <View style={styles.cardHeader}>
         <View style={[styles.typeTag, { backgroundColor: isDigital ? theme.surfaceLight : theme.gold + '20' }]}>
           {isDigital ? <CreditCard size={12} color={theme.textSecondary} /> : <Banknote size={12} color={theme.gold} />}
@@ -85,28 +95,76 @@ const ExpandableTransactionCard = ({ item, theme, styles }) => {
   );
 };
 
-export const CustomerTransactions = ({ navigation }) => {
+const hasMatchingId = (left, right) => left !== undefined && left !== null
+  && right !== undefined && right !== null
+   && String(left) === String(right);
+
+const findNotificationTransaction = (transactions, route) => {
+  const appointmentId = route?.params?.openAppointmentId;
+  if (appointmentId !== undefined && appointmentId !== null) {
+    return transactions.find(item => hasMatchingId(item.appointment_id, appointmentId));
+  }
+
+  // Backward compatibility for notifications created by older app versions.
+  const legacyId = route?.params?.openTransactionId;
+  if (legacyId === undefined || legacyId === null) return null;
+  return transactions.find(item => [item.id, item.ledger_id, item.invoice_number].some(value => hasMatchingId(value, legacyId))) || null;
+};
+
+export const CustomerTransactions = ({ navigation, route, customerId }) => {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const listRef = useRef(null);
+  const targetedTransaction = findNotificationTransaction(transactions, route);
+  const targetedLedgerId = targetedTransaction?.ledger_id;
 
-  useEffect(() => { loadTransactions(); }, []);
+  useEffect(() => { loadTransactions(); }, [customerId]);
+
+  useEffect(() => {
+    if (!targetedLedgerId) return undefined;
+    const targetIndex = transactions.findIndex(item => item.ledger_id === targetedLedgerId);
+    if (targetIndex < 0) return undefined;
+    const timer = setTimeout(() => {
+      listRef.current?.scrollToIndex({ index: targetIndex, animated: true, viewPosition: 0.15 });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [targetedLedgerId, transactions]);
 
   const loadTransactions = async () => {
     try {
       setLoading(true);
-      const userStr = await AsyncStorage.getItem('user_data');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        const res = await getCustomerTransactions(user.id);
-        if (res.success && res.transactions) setTransactions(res.transactions);
+      setLoadError('');
+      if (!customerId) {
+        setTransactions([]);
+        setLoadError('Your customer account could not be identified. Please sign in again.');
+        return;
       }
-    } catch (e) { console.error('Transactions error:', e); }
+      const res = await getCustomerTransactions(customerId);
+      if (res.success && Array.isArray(res.transactions)) {
+        setTransactions(res.transactions);
+      } else {
+        setTransactions([]);
+        setLoadError(res.message || 'Your transactions could not be loaded. Please try again.');
+      }
+    } catch (e) {
+      console.error('Transactions error:', e);
+      setTransactions([]);
+      setLoadError('Your transactions could not be loaded. Please try again.');
+    }
     finally { setLoading(false); }
   };
 
-  const renderItem = ({ item }) => <ExpandableTransactionCard item={item} theme={theme} styles={styles} />;
+  const renderItem = ({ item }) => (
+    <ExpandableTransactionCard
+      item={item}
+      theme={theme}
+      styles={styles}
+      initiallyExpanded={item.ledger_id === targetedLedgerId}
+    />
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -118,17 +176,28 @@ export const CustomerTransactions = ({ navigation }) => {
         <View style={{ width: 36 }} />
       </View>
 
-      {loading ? <PremiumLoader message="Loading transactions..." /> : transactions.length === 0 ? (
+      {loading ? <PremiumLoader message="Loading transactions..." /> : loadError ? (
+        <View style={styles.errorState}>
+          <Text accessibilityRole="alert" style={styles.errorText}>{loadError}</Text>
+          <TouchableOpacity onPress={loadTransactions} style={styles.retryBtn}>
+            <Text style={styles.retryText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      ) : transactions.length === 0 ? (
         <EmptyState icon={Receipt} title="No transactions" subtitle="Your payment history will appear here" />
       ) : (
         <FlatList
+          ref={listRef}
           data={transactions}
           renderItem={renderItem}
-          keyExtractor={(item, idx) => (item.id || idx).toString()}
+          keyExtractor={(item, idx) => String(item.ledger_id || item.id || idx)}
           contentContainerStyle={styles.listContent}
           onRefresh={loadTransactions}
           refreshing={loading}
           showsVerticalScrollIndicator={false}
+          onScrollToIndexFailed={({ index, averageItemLength }) => {
+            listRef.current?.scrollToOffset({ offset: Math.max(0, index * averageItemLength), animated: true });
+          }}
         />
       )}
     </SafeAreaView>
@@ -149,6 +218,7 @@ const getStyles = (theme) => StyleSheet.create({
     backgroundColor: theme.surface, padding: 16, borderRadius: borderRadius.xl,
     marginBottom: 12, borderWidth: 1, borderColor: theme.border, ...shadows.subtle,
   },
+  targetedCard: { borderColor: theme.gold, borderWidth: 2 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   typeTag: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -165,4 +235,8 @@ const getStyles = (theme) => StyleSheet.create({
   receiptRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   receiptLabel: { ...typography.bodySmall, color: theme.textSecondary },
   receiptValue: { ...typography.bodySmall, color: theme.textPrimary, fontWeight: '500' },
+  errorState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  errorText: { ...typography.body, color: theme.error, textAlign: 'center', marginBottom: 14 },
+  retryBtn: { backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.md, paddingHorizontal: 20, paddingVertical: 10 },
+  retryText: { ...typography.button, color: theme.textPrimary },
 });

@@ -56,6 +56,9 @@ export const AdminInventory = ({ navigation }) => {
   const [txType, setTxType] = useState('in');
   const [txQty, setTxQty] = useState('');
   const [txNotes, setTxNotes] = useState('');
+  const [txErrors, setTxErrors] = useState({});
+  const [txSaving, setTxSaving] = useState(false);
+  const [inventoryFeedback, setInventoryFeedback] = useState(null);
 
   // Delete
   const [deleteModal, setDeleteModal] = useState({ visible: false, itemId: null, itemName: '', isArchived: false });
@@ -198,33 +201,48 @@ export const AdminInventory = ({ navigation }) => {
     setTxType('in');
     setTxQty('');
     setTxNotes('');
+    setTxErrors({});
+    setTxSaving(false);
+    setInventoryFeedback(null);
     setTxModalVisible(true);
   };
 
   const handleTransaction = async () => {
+    if (txSaving) return;
     const sQty = parseInt(sanitizeNumeric(txQty));
+    const reason = sanitizeText(txNotes);
+    const nextErrors = {};
     if (!sQty || isNaN(sQty) || sQty <= 0) {
-      Alert.alert('Validation Error', 'Quantity must be greater than 0');
-      return;
+      nextErrors.quantity = 'Quantity must be greater than 0.';
     }
-    if (!sanitizeText(txNotes)) {
-      Alert.alert('Validation Error', 'Reason/Notes is required');
-      return;
-    }
-    const result = await fetchAPI(`/admin/inventory/${txItem.id}/transaction`, {
-      method: 'POST',
-      body: JSON.stringify({
-        type: txType,
-        quantity: sQty,
-        notes: sanitizeText(txNotes),
-      }),
-    });
-    if (result.success) {
-      Alert.alert('Success', `Stock ${txType === 'in' ? 'added' : 'deducted'} successfully`);
-      setTxModalVisible(false);
-      loadData();
-    } else {
-      Alert.alert('Error', result.message || 'Transaction failed');
+    if (!reason) nextErrors.notes = 'Reason/Notes is required.';
+    setTxErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    setTxSaving(true);
+    try {
+      const result = await fetchAPI(`/admin/inventory/${txItem.id}/transaction`, {
+        method: 'POST',
+        body: JSON.stringify({
+          type: txType,
+          quantity: sQty,
+          reason,
+        }),
+      });
+      if (result.success) {
+        setInventoryFeedback({
+          type: 'success',
+          message: `Stock ${txType === 'in' ? 'added' : 'deducted'} successfully for ${txItem.name}.`,
+        });
+        setTxModalVisible(false);
+        loadData();
+      } else {
+        setTxErrors({ submission: result.message || 'The stock transaction could not be completed.' });
+      }
+    } catch (error) {
+      setTxErrors({ submission: 'The stock transaction could not be completed. Please try again.' });
+    } finally {
+      setTxSaving(false);
     }
   };
 
@@ -500,6 +518,16 @@ export const AdminInventory = ({ navigation }) => {
         </AnimatedTouchable>
       </View>
 
+      {inventoryFeedback ? (
+        <View accessibilityRole="alert" style={styles.successBanner}>
+          <Check size={17} color={theme.success} />
+          <Text style={styles.successBannerText}>{inventoryFeedback.message}</Text>
+          <AnimatedTouchable onPress={() => setInventoryFeedback(null)} style={styles.feedbackCloseBtn}>
+            <X size={16} color={theme.textSecondary} />
+          </AnimatedTouchable>
+        </View>
+      ) : null}
+
       {/* Header Actions */}
       <View style={styles.actionRow}>
         <View style={styles.actionGroup}>
@@ -692,12 +720,12 @@ export const AdminInventory = ({ navigation }) => {
       </Modal>
 
       {/* Stock Transaction Modal */}
-      <Modal visible={txModalVisible} animationType="fade" transparent>
+      <Modal visible={txModalVisible} animationType="fade" transparent onRequestClose={() => setTxModalVisible(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Stock Transaction</Text>
-              <AnimatedTouchable onPress={() => setTxModalVisible(false)} style={styles.closeBtn}>
+              <AnimatedTouchable onPress={() => setTxModalVisible(false)} style={styles.closeBtn} disabled={txSaving}>
                 <X size={20} color={theme.textSecondary} />
               </AnimatedTouchable>
             </View>
@@ -708,26 +736,49 @@ export const AdminInventory = ({ navigation }) => {
 
                 <Text style={styles.inputLabel}>Transaction Type</Text>
                 <View style={styles.typeRow}>
-                  <AnimatedTouchable style={[styles.typeBtn, txType === 'in' && { backgroundColor: theme.success, borderColor: theme.success }]} onPress={() => setTxType('in')}>
+                  <AnimatedTouchable style={[styles.typeBtn, txType === 'in' && { backgroundColor: theme.success, borderColor: theme.success }]} onPress={() => { setTxType('in'); setTxErrors(current => ({ ...current, submission: '' })); }}>
                     <Text style={[styles.typeText, txType === 'in' && { color: theme.backgroundDeep }]}>Stock In</Text>
                   </AnimatedTouchable>
-                  <AnimatedTouchable style={[styles.typeBtn, txType === 'out' && { backgroundColor: theme.error, borderColor: theme.error }]} onPress={() => setTxType('out')}>
+                  <AnimatedTouchable style={[styles.typeBtn, txType === 'out' && { backgroundColor: theme.error, borderColor: theme.error }]} onPress={() => { setTxType('out'); setTxErrors(current => ({ ...current, submission: '' })); }}>
                     <Text style={[styles.typeText, txType === 'out' && { color: theme.backgroundDeep }]}>Stock Out</Text>
                   </AnimatedTouchable>
                 </View>
 
                 <Text style={styles.inputLabel}>Quantity</Text>
-                <TextInput style={styles.input} value={txQty} onChangeText={setTxQty} keyboardType="numeric" placeholder="0" placeholderTextColor={theme.textTertiary} />
+                <TextInput
+                  style={[styles.input, txErrors.quantity && styles.inputError]}
+                  value={txQty}
+                  onChangeText={(value) => {
+                    setTxQty(value);
+                    setTxErrors(current => ({ ...current, quantity: '', submission: '' }));
+                  }}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={theme.textTertiary}
+                />
+                {txErrors.quantity ? <Text accessibilityRole="alert" style={styles.fieldError}>{txErrors.quantity}</Text> : null}
 
-                <Text style={styles.inputLabel}>Notes (Optional)</Text>
-                <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} value={txNotes} onChangeText={setTxNotes} multiline placeholder="Reason for transaction..." placeholderTextColor={theme.textTertiary} />
+                <Text style={styles.inputLabel}>Reason / Notes *</Text>
+                <TextInput
+                  style={[styles.input, { height: 80, textAlignVertical: 'top' }, txErrors.notes && styles.inputError]}
+                  value={txNotes}
+                  onChangeText={(value) => {
+                    setTxNotes(value);
+                    setTxErrors(current => ({ ...current, notes: '', submission: '' }));
+                  }}
+                  multiline
+                  placeholder="Reason for transaction..."
+                  placeholderTextColor={theme.textTertiary}
+                />
+                {txErrors.notes ? <Text accessibilityRole="alert" style={styles.fieldError}>{txErrors.notes}</Text> : null}
+                {txErrors.submission ? <Text accessibilityRole="alert" style={styles.submissionError}>{txErrors.submission}</Text> : null}
 
                 <View style={styles.modalActions}>
-                  <AnimatedTouchable style={styles.cancelBtn} onPress={() => setTxModalVisible(false)}>
+                  <AnimatedTouchable style={styles.cancelBtn} onPress={() => setTxModalVisible(false)} disabled={txSaving}>
                     <Text style={styles.cancelBtnText}>Cancel</Text>
                   </AnimatedTouchable>
-                  <AnimatedTouchable style={[styles.saveBtn, txType === 'out' && { backgroundColor: theme.error }]} onPress={handleTransaction}>
-                    <Text style={styles.saveBtnText}>Submit</Text>
+                  <AnimatedTouchable style={[styles.saveBtn, txType === 'out' && { backgroundColor: theme.error }, txSaving && { opacity: 0.6 }]} onPress={handleTransaction} disabled={txSaving}>
+                    <Text style={styles.saveBtnText}>{txSaving ? 'Updating...' : 'Submit'}</Text>
                   </AnimatedTouchable>
                 </View>
               </View>
@@ -932,6 +983,13 @@ const getStyles = (theme, insets) => StyleSheet.create({
     padding: 12, borderRadius: borderRadius.md, borderWidth: 1, borderColor: theme.warning || '#f59e0b',
   },
   alertText: { ...typography.bodySmall, color: theme.warning, fontWeight: '700' },
+  successBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: theme.successBg, marginHorizontal: 16, marginTop: 12,
+    padding: 12, borderRadius: borderRadius.md, borderWidth: 1, borderColor: theme.success,
+  },
+  successBannerText: { ...typography.bodySmall, color: theme.success, fontWeight: '700', flex: 1 },
+  feedbackCloseBtn: { padding: 4 },
 
   // Search
   searchBar: {
@@ -989,6 +1047,9 @@ const getStyles = (theme, insets) => StyleSheet.create({
     padding: 14, borderRadius: borderRadius.md, marginBottom: 12,
     ...typography.body, borderWidth: 1, borderColor: theme.border,
   },
+  inputError: { borderColor: theme.error },
+  fieldError: { ...typography.bodyXSmall, color: theme.error, marginTop: -8, marginBottom: 10 },
+  submissionError: { ...typography.bodySmall, color: theme.error, textAlign: 'center', marginTop: 4 },
   typeRow: { flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
   typeBtn: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: borderRadius.md, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.borderLight },
   typeBtnActive: { backgroundColor: theme.gold, borderColor: theme.gold },

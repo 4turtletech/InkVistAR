@@ -213,6 +213,113 @@
     padding: 8px 16px;
 }
 
+.artist-payout-balances {
+    margin: 18px 0;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    background: #fff;
+}
+
+.artist-payout-balances__header h2 {
+    margin: 0;
+    color: #1e293b;
+    font-size: 1rem;
+}
+
+.artist-payout-balances__header p {
+    margin: 5px 0 0;
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
+.artist-payout-balances__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.artist-payout-balance-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #f8fafc;
+}
+
+.artist-payout-balance-card > div:first-child,
+.artist-payout-balance-card__amount {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.artist-payout-balance-card span {
+    color: #64748b;
+    font-size: 0.75rem;
+}
+
+.artist-payout-balance-card__amount {
+    align-items: flex-end;
+}
+
+.artist-payout-balance-card__amount > strong {
+    color: #059669;
+}
+
+.artist-payout-balance-card__amount .btn {
+    min-width: 72px;
+    padding: 7px 14px;
+}
+
+.artist-payout-balances__empty {
+    grid-column: 1 / -1;
+    padding: 20px;
+    color: #64748b;
+    text-align: center;
+}
+
+.payout-available-balance {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #ecfdf5;
+    color: #047857;
+    font-size: 0.85rem;
+}
+
+.payout-inline-feedback {
+    padding: 11px 12px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+}
+
+.payout-external-note {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.payout-inline-feedback--error {
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.payout-inline-feedback--success {
+    border: 1px solid #a7f3d0;
+    background: #ecfdf5;
+    color: #047857;
+}
+
 /* ========== MOBILE RESPONSIVE ========== */
 @media (max-width: 768px) {
     .admin-page.page-container-enter {
@@ -272,6 +379,14 @@
         max-width: 100%;
         padding: 1.25rem;
         border-radius: 16px 16px 0 0;
+    }
+
+    .artist-payout-balances {
+        padding: 16px;
+    }
+
+    .artist-payout-balances__grid {
+        grid-template-columns: 1fr;
     }
 
     .preview-modal-header {

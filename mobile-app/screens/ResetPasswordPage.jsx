@@ -6,14 +6,15 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Keyboard,
-  KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback,
+  KeyboardAvoidingView, Modal, Platform, ScrollView, TouchableWithoutFeedback,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Lock, Eye, EyeOff } from 'lucide-react-native';
+import { CheckCircle2, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { colors, typography, borderRadius, shadows } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
+import { mapPasswordRecoveryFailure } from '../src/utils/passwordRecoveryValidation';
 
-export function ResetPasswordPage({ email, onSubmit }) {
+export function ResetPasswordPage({ email, onSubmit, onComplete }) {
   const { theme } = useTheme();
   const [recoveryToken, setRecoveryToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -22,6 +23,7 @@ export function ResetPasswordPage({ email, onSubmit }) {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
   const recoveryTokenRef = useRef(null);
   const passwordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
@@ -64,6 +66,7 @@ export function ResetPasswordPage({ email, onSubmit }) {
       confirmPassword: submitAttempted || confirmPassword || prev.confirmPassword
         ? getConfirmPasswordError(text, confirmPassword)
         : '',
+      submit: '',
     }));
   };
 
@@ -72,6 +75,7 @@ export function ResetPasswordPage({ email, onSubmit }) {
     setErrors(prev => ({
       ...prev,
       confirmPassword: submitAttempted || prev.confirmPassword ? getConfirmPasswordError(newPassword, text) : '',
+      submit: '',
     }));
   };
 
@@ -90,10 +94,25 @@ export function ResetPasswordPage({ email, onSubmit }) {
     if (nextErrors.recoveryToken || nextErrors.password || nextErrors.confirmPassword) return;
     setLoading(true);
     try {
-      await onSubmit(recoveryToken.trim(), newPassword);
+      const result = await onSubmit(recoveryToken.trim(), newPassword);
+      if (result?.success) {
+        setSuccessVisible(true);
+      } else {
+        setErrors((prev) => ({ ...prev, ...mapPasswordRecoveryFailure(result) }));
+      }
+    } catch (error) {
+      setErrors((prev) => ({
+        ...prev,
+        submit: error?.message || 'Unable to update the password. Please check your connection and try again.',
+      }));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSuccessComplete = () => {
+    setSuccessVisible(false);
+    onComplete?.();
   };
 
   return (
@@ -111,9 +130,9 @@ export function ResetPasswordPage({ email, onSubmit }) {
             showsVerticalScrollIndicator={false}
           >
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderGold }]}>
-        <LinearGradient colors={[theme.backgroundDeep, theme.primary]} style={styles.iconWrap}>
-          <Lock size={28} color="#ffffff" />
-        </LinearGradient>
+        <View style={[styles.iconWrap, { backgroundColor: theme.primaryLight, borderColor: theme.gold }]}>
+          <Lock size={28} color={theme.gold} />
+        </View>
         <Text style={[styles.title, { color: theme.textPrimary }]}>Reset Password</Text>
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Enter the recovery code sent to {email}, then choose a new password. The code expires after 30 minutes and works once.</Text>
 
@@ -130,7 +149,7 @@ export function ResetPasswordPage({ email, onSubmit }) {
               onChangeText={(text) => {
                 setRecoveryToken(text.replace(/\s/g, ''));
                 if (submitAttempted || errors.recoveryToken) {
-                  setErrors(prev => ({ ...prev, recoveryToken: getRecoveryTokenError(text) }));
+                  setErrors(prev => ({ ...prev, recoveryToken: getRecoveryTokenError(text), submit: '' }));
                 }
               }}
               autoCapitalize="none"
@@ -170,15 +189,55 @@ export function ResetPasswordPage({ email, onSubmit }) {
           {errors.confirmPassword ? <Text style={[styles.errorText, { color: theme.error }]}>{errors.confirmPassword}</Text> : null}
         </View>
 
-        <TouchableOpacity onPress={handleSubmit} disabled={loading} activeOpacity={0.8}>
+        {errors.submit ? (
+          <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={[styles.submitErrorText, { color: theme.error, borderColor: theme.error, backgroundColor: theme.errorBg }]}>
+            {errors.submit}
+          </Text>
+        ) : null}
+
+        <TouchableOpacity
+          style={styles.buttonContainer}
+          onPress={handleSubmit}
+          disabled={loading}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Submit password reset"
+          accessibilityState={{ disabled: loading, busy: loading }}
+        >
           <LinearGradient colors={[theme.primaryDark, theme.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.button}>
-            {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Update Password</Text>}
+            {loading ? <ActivityIndicator size="small" color="#ffffff" /> : <Text style={styles.buttonText}>Submit</Text>}
           </LinearGradient>
         </TouchableOpacity>
       </View>
           </ScrollView>
       </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
+
+      <Modal
+        visible={successVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={handleSuccessComplete}
+      >
+        <View style={styles.successOverlay}>
+          <View style={[styles.successCard, { backgroundColor: theme.surface, borderColor: theme.borderGold }]}>
+            <View style={[styles.successIcon, { backgroundColor: theme.successBg }]}>
+              <CheckCircle2 size={36} color={theme.success} />
+            </View>
+            <Text style={[styles.successTitle, { color: theme.textPrimary }]}>Password Updated</Text>
+            <Text style={[styles.successMessage, { color: theme.textSecondary }]}>Your password was changed successfully. Sign in again using your new password.</Text>
+            <TouchableOpacity
+              style={[styles.successButton, { backgroundColor: theme.gold }]}
+              onPress={handleSuccessComplete}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.successButtonText, { color: theme.backgroundDeep }]}>Continue to Sign In</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -188,7 +247,7 @@ const styles = StyleSheet.create({
   keyboardWrap: { flex: 1 },
   scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 20 },
   card: { borderRadius: borderRadius.xxl, borderWidth: 1, padding: 28, alignItems: 'center', ...shadows.cardStrong },
-  iconWrap: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  iconWrap: { width: 60, height: 60, borderRadius: 30, borderWidth: 1, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   title: { ...typography.h2, color: colors.textPrimary, textAlign: 'center', marginBottom: 6 },
   subtitle: { ...typography.body, color: colors.textSecondary, textAlign: 'center', marginBottom: 28 },
   inputGroup: { marginBottom: 18, width: '100%' },
@@ -200,9 +259,54 @@ const styles = StyleSheet.create({
   input: { flex: 1, ...typography.body, color: colors.textPrimary },
   inputError: { borderColor: colors.error },
   errorText: { ...typography.bodyXSmall, color: colors.error, marginTop: 4 },
+  submitErrorText: {
+    ...typography.bodySmall,
+    width: '100%',
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
   ruleList: { width: '100%', marginTop: 8, gap: 4 },
   ruleText: { ...typography.bodyXSmall, color: colors.textSecondary },
   ruleTextMet: { color: '#15803d', fontWeight: '600' },
-  button: { height: 48, borderRadius: borderRadius.md, justifyContent: 'center', alignItems: 'center', marginTop: 8, width: '100%' },
+  buttonContainer: { width: '100%', height: 48, marginTop: 8, borderRadius: borderRadius.md, overflow: 'hidden' },
+  button: { width: '100%', height: '100%', borderRadius: borderRadius.md, justifyContent: 'center', alignItems: 'center' },
   buttonText: { ...typography.button, color: '#ffffff', fontSize: 16 },
+  successOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  successCard: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: borderRadius.xxl,
+    padding: 28,
+    ...shadows.cardStrong,
+  },
+  successIcon: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  successTitle: { ...typography.h2, textAlign: 'center', marginBottom: 8 },
+  successMessage: { ...typography.body, textAlign: 'center', lineHeight: 21, marginBottom: 24 },
+  successButton: {
+    width: '100%',
+    minHeight: 48,
+    borderRadius: borderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  successButtonText: { ...typography.button, fontSize: 15 },
 });

@@ -439,7 +439,7 @@ export const updateArtistProfile = async (artistId, profileData) => {
 
 // Customer: Get Appointments
 export const getCustomerAppointments = async (customerId) => {
-  return fetchAPI(`/customer/${customerId}/appointments`);
+  return fetchAPI(`/customer/${customerId}/appointments`, { requireAuth: true });
 };
 
 // Customer: Get Dashboard

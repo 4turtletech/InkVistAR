@@ -24,6 +24,7 @@ const { createTokenService } = require('./services/tokenService');
 const { createPasswordRecoveryService } = require('./services/passwordRecoveryService');
 const { isStrongPassword, PASSWORD_POLICY_MESSAGE } = require('./services/passwordPolicy');
 const { DEFAULT_COMMISSION_RATE, resolveCommissionRate, normalizeCommissionSplit, artistCommission } = require('./services/commissionPolicy');
+const { getAdminPayoutBalances, getArtistPayoutBalance, normalizePayoutInput } = require('./services/payoutService');
 const { publicAccountType, isAdminCreatableAccountType } = require('./services/registrationPolicy');
 const { createAuthenticate } = require('./middleware/authenticate');
 const { createHighRiskProtection } = require('./middleware/highRiskProtection');
@@ -1468,7 +1469,17 @@ db.getConnection((err, connection) => {
         FOREIGN KEY (artist_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `;
-    db.query(payoutsTableQuery, (err) => { if (err) console.error('[WARN] Error checking payouts table:', err.message); else console.log('[OK] Payouts table ready'); });
+    db.query(payoutsTableQuery, (err) => {
+      if (err) return console.error('[WARN] Error checking payouts table:', err.message);
+      console.log('[OK] Payouts table ready');
+      // Legacy System Default rows represented calculated earnings, not money actually disbursed.
+      // Preserve them for auditing but ensure they never reduce an artist's payable balance.
+      db.query(`UPDATE payouts SET status = 'Voided'
+                WHERE status = 'Pending' AND payout_method = 'System Default'`, (legacyErr, result) => {
+        if (legacyErr) console.error('[WARN] Legacy payout cleanup failed:', legacyErr.message);
+        else if (result.affectedRows) console.log(`[MIGRATE] Voided ${result.affectedRows} legacy pending payout record(s)`);
+      });
+    });
 
     // Create Aftercare Templates Table (Admin-configurable daily notifications)
     const aftercareTableQuery = `
@@ -2602,11 +2613,12 @@ app.post('/api/customer/change-password', async (req, res) => {
       return res.status(400).json({ success: false, message: 'New password cannot be the same as the old password' });
     }
 
-    // Hash and update — also revoke verification
+    // Hash and update; require a fresh OTP before the next login.
     const password_hash = await bcrypt.hash(newPassword, 10);
-    const verification_token = crypto.randomBytes(32).toString('hex');
+    const otp_code = generateNumericOtp();
+    const otp_expires = new Date(Date.now() + 5 * 60 * 1000);
 
-    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, is_verified = 0, verification_token = ? WHERE id = ?', [password_hash, verification_token, customerId], async (updateErr) => {
+    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, is_verified = 0, verification_token = NULL, otp_code = ?, otp_expires = ? WHERE id = ?', [password_hash, otp_code, otp_expires, customerId], async (updateErr) => {
       if (updateErr) {
         console.error('[ERROR] Error updating password:', updateErr);
         return res.status(500).json({ success: false, message: 'Failed to update password' });
@@ -2620,24 +2632,22 @@ app.post('/api/customer/change-password', async (req, res) => {
       logAction(customerId, 'PASSWORD_CHANGED', 'Customer changed their password — re-verification required', req.ip || '::1');
       createNotification(customerId, 'Password Changed', 'Your account password was successfully updated.', 'password_change');
 
-      // Send re-verification email
-      const protocol = getProtocol(req);
-      const host = req.get('host');
-      const verifyUrl = `${protocol}://${host}/api/verify?token=${encodeURIComponent(verification_token)}`;
-
+      // Send the OTP expected by the web/mobile verification screen.
       const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Password Changed</h2>
               <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Re-verification required for your security</p>
-              <p style="margin:0 0 16px;">Your password was successfully updated. To protect your account, we need you to verify your email address before you can log in again.</p>
-              <p style="margin:0 0 24px;font-size:13px;color:#94a3b8;">If you did not make this change, please contact our support team immediately.</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
-                <a href="${verifyUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#C19A6B,#8a6c4a);color:#000;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">Verify Email Address</a>
+              <p style="margin:0 0 16px;">Your password was successfully updated. Enter this 6-digit code on the InkVistAR verification screen before logging in again:</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:20px 0;">
+                <div style="display:inline-block;background-color:#1a1a1a;border:2px solid rgba(193,154,107,0.3);border-radius:12px;padding:16px 32px;">
+                  <span style="font-size:36px;font-weight:800;letter-spacing:12px;color:#C19A6B;font-family:'Courier New',monospace;">${otp_code}</span>
+                </div>
               </td></tr></table>
-              <p style="margin:24px 0 0;font-size:12px;color:#555;text-align:center;word-break:break-all;">Or copy this link: <a href="${verifyUrl}" style="color:#C19A6B;text-decoration:none;">${verifyUrl}</a></p>
+              <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#334155;">5 minutes</strong>.</p>
+              <p style="margin:0;font-size:12px;color:#555;text-align:center;">If you did not make this change, contact our support team immediately. Do not share this code with anyone.</p>
       `);
-      sendEmail(user.email, 'InkVistAR: Re-verify Your Account', html);
+      sendEmail(user.email, 'InkVistAR - Password Changed Verification Code', html);
 
-      res.json({ success: true, message: 'Password changed. Please check your email to re-verify your account.', requireReverification: true });
+      res.json({ success: true, message: 'Password changed. Enter the verification code sent to your email before logging in again.', requireReverification: true, expires_in: 300 });
     });
   });
 });
@@ -2682,11 +2692,12 @@ app.post('/api/artist/change-password', async (req, res) => {
       return res.status(400).json({ success: false, message: 'New password cannot be the same as the old password' });
     }
 
-    // Hash and update — also revoke verification
+    // Hash and update; require a fresh OTP before the next login.
     const password_hash = await bcrypt.hash(newPassword, 10);
-    const verification_token = crypto.randomBytes(32).toString('hex');
+    const otp_code = generateNumericOtp();
+    const otp_expires = new Date(Date.now() + 5 * 60 * 1000);
 
-    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, is_verified = 0, verification_token = ? WHERE id = ?', [password_hash, verification_token, artistId], async (updateErr) => {
+    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, is_verified = 0, verification_token = NULL, otp_code = ?, otp_expires = ? WHERE id = ?', [password_hash, otp_code, otp_expires, artistId], async (updateErr) => {
       if (updateErr) {
         console.error('[ERROR] Error updating password:', updateErr);
         return res.status(500).json({ success: false, message: 'Failed to update password' });
@@ -2700,24 +2711,22 @@ app.post('/api/artist/change-password', async (req, res) => {
       logAction(artistId, 'PASSWORD_CHANGED', 'Artist changed their password — re-verification required', req.ip || '::1');
       createNotification(artistId, 'Password Changed', 'Your account password was successfully updated.', 'password_change');
 
-      // Send re-verification email
-      const protocol = getProtocol(req);
-      const host = req.get('host');
-      const verifyUrl = `${protocol}://${host}/api/verify?token=${encodeURIComponent(verification_token)}`;
-
+      // Send the OTP expected by the web/mobile verification screen.
       const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Password Changed</h2>
               <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Re-verification required for your security</p>
-              <p style="margin:0 0 16px;">Your password was successfully updated. To protect your account, we need you to verify your email address before you can log in again.</p>
-              <p style="margin:0 0 24px;font-size:13px;color:#94a3b8;">If you did not make this change, please contact our support team immediately.</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
-                <a href="${verifyUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#C19A6B,#8a6c4a);color:#000;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">Verify Email Address</a>
+              <p style="margin:0 0 16px;">Your password was successfully updated. Enter this 6-digit code on the InkVistAR verification screen before logging in again:</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:20px 0;">
+                <div style="display:inline-block;background-color:#1a1a1a;border:2px solid rgba(193,154,107,0.3);border-radius:12px;padding:16px 32px;">
+                  <span style="font-size:36px;font-weight:800;letter-spacing:12px;color:#C19A6B;font-family:'Courier New',monospace;">${otp_code}</span>
+                </div>
               </td></tr></table>
-              <p style="margin:24px 0 0;font-size:12px;color:#555;text-align:center;word-break:break-all;">Or copy this link: <a href="${verifyUrl}" style="color:#C19A6B;text-decoration:none;">${verifyUrl}</a></p>
+              <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#334155;">5 minutes</strong>.</p>
+              <p style="margin:0;font-size:12px;color:#555;text-align:center;">If you did not make this change, contact our support team immediately. Do not share this code with anyone.</p>
       `);
-      sendEmail(user.email, 'InkVistAR: Re-verify Your Account', html);
+      sendEmail(user.email, 'InkVistAR - Password Changed Verification Code', html);
 
-      res.json({ success: true, message: 'Password changed. Please check your email to re-verify your account.', requireReverification: true });
+      res.json({ success: true, message: 'Password changed. Enter the verification code sent to your email before logging in again.', requireReverification: true, expires_in: 300 });
     });
   });
 });
@@ -7116,7 +7125,7 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
 
               // Send notification and email
               const customerMsg = `Your payment of ₱${actualPayment.toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been recorded. Invoice ${invoiceNumber} is now available. View your receipt from your notifications.`;
-              createNotification(apptData.customer_id, 'Payment Received', customerMsg, 'payment_success', invInsertRes?.insertId || id);
+              createNotification(apptData.customer_id, 'Payment Received', customerMsg, 'payment_success', id);
 
               // Artist payment notifications removed per business rules — only admin receives payment alerts
               // Artists should not see individual payment collection or fully-paid notifications
@@ -7258,7 +7267,7 @@ app.post('/api/admin/billing/record-payment', (req, res) => {
 
               // Send notification to customer
               const customerMsg = `Your payment of ₱${actualPayment.toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been recorded. Invoice ${invoiceNumber} is now available. View your receipt from your notifications.`;
-              createNotification(customerId, 'Payment Received', customerMsg, 'payment_success', invInsertRes?.insertId || appointmentId);
+              createNotification(customerId, 'Payment Received', customerMsg, 'payment_success', appointmentId);
 
               // Artist payment notifications removed per business rules — only admin receives payment alerts
 
@@ -7592,14 +7601,8 @@ app.put('/api/appointments/:id/status', async (req, res) => {
             });
           });
 
-          const commissionAppointment = { ...appointment, price: currentPrice };
-          const payoutArtistIds = [...new Set([appointment.artist_id, appointment.secondary_artist_id].map(Number))].filter(artistId => artistId > 1);
-          for (const payoutArtistId of payoutArtistIds) {
-              const share = artistCommission(commissionAppointment, payoutArtistId).artistShare;
-              if (share <= 0) continue;
-              db.query('INSERT INTO payouts (artist_id, amount, payout_method, status, reference_no, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-                [payoutArtistId, share, 'System Default', 'Pending', `Commission Session #${id}`, getLocalDatetime()]);
-          }
+          // Artist earnings are calculated from completed, fully-paid sessions.
+          // A payout row is created only after an admin actually disburses money.
         });
 
         // ── SESSION ABORTED / INCOMPLETE ──
@@ -7752,7 +7755,7 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
       if (apptsErr) return res.status(500).json({ success: false, message: 'Database error fetching appointments' });
 
       // 3. Get Payout History
-      db.query('SELECT * FROM payouts WHERE artist_id = ? ORDER BY created_at DESC', [id], (payErr, payouts) => {
+      db.query("SELECT * FROM payouts WHERE artist_id = ? AND LOWER(status) IN ('paid', 'completed') ORDER BY created_at DESC", [id], (payErr, payouts) => {
         if (payErr) return res.status(500).json({ success: false, message: 'Database error fetching payouts' });
 
         // Calculate Totals
@@ -7794,7 +7797,7 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
             totalEarned,
             pendingFromUnpaid,
             totalPaidOut,
-            balanceToPay: totalEarned - totalPaidOut
+            balanceToPay: Math.max(0, Math.round((totalEarned - totalPaidOut) * 100) / 100)
           },
           sessions: calculations,
           payouts: payouts
@@ -7810,6 +7813,7 @@ app.get('/api/admin/payouts', (req, res) => {
     SELECT p.*, u.name as artist_name 
     FROM payouts p
     JOIN users u ON p.artist_id = u.id
+    WHERE LOWER(p.status) IN ('paid', 'completed')
     ORDER BY p.created_at DESC
   `;
   db.query(query, (err, results) => {
@@ -7818,28 +7822,78 @@ app.get('/api/admin/payouts', (req, res) => {
   });
 });
 
-// POST Record a Payout (Admin Only)
+// GET artist balances that are currently eligible for payout.
+app.get('/api/admin/payout-balances', async (req, res) => {
+  try {
+    const balances = await getAdminPayoutBalances(db);
+    res.json({ success: true, data: balances });
+  } catch (error) {
+    console.error('[PAYOUT] Failed to calculate balances:', error.message);
+    res.status(500).json({ success: false, message: 'Unable to calculate artist payout balances.' });
+  }
+});
+
+// POST Record an actual Payout (Admin Only)
 app.post('/api/admin/payouts', (req, res) => {
-  const { artistId, amount, method, reference } = req.body;
+  let payout;
+  try {
+    payout = normalizePayoutInput(req.body);
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
 
-  if (!artistId || !amount) return res.status(400).json({ success: false, message: 'Missing required fields' });
+  db.getConnection((connectionError, connection) => {
+    if (connectionError) return res.status(500).json({ success: false, message: 'Unable to start payout transaction.' });
 
-  const query = 'INSERT INTO payouts (artist_id, amount, payout_method, reference_no) VALUES (?, ?, ?, ?)';
-  db.query(query, [artistId, amount, method || 'Bank Transfer', reference || 'N/A'], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+    connection.beginTransaction(async (transactionError) => {
+      if (transactionError) {
+        connection.release();
+        return res.status(500).json({ success: false, message: 'Unable to start payout transaction.' });
+      }
 
-    // Notify the artist about their payout
-    const payoutAmt = parseFloat(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 });
-    const payoutMethod = method || 'Bank Transfer';
-    createNotification(artistId, 'Payout Processed', `A payout of \u20b1${payoutAmt} has been processed for you via ${payoutMethod}.${reference ? ' Reference: ' + reference : ''} Check your account for the funds.`, 'payout_processed', result.insertId);
+      try {
+        // Serializes payout attempts for the same artist so simultaneous requests cannot overpay.
+        await new Promise((resolve, reject) => connection.query(
+          `SELECT id FROM users WHERE id = ? AND user_type = 'artist' AND is_deleted = 0 FOR UPDATE`,
+          [payout.artistId], (error, rows) => error ? reject(error) : rows.length ? resolve() : reject(Object.assign(new Error('Artist not found.'), { statusCode: 404 }))));
 
-    res.json({ success: true, message: 'Payout recorded successfully' });
+        const balance = await getArtistPayoutBalance(connection, payout.artistId);
+        if (!balance) throw Object.assign(new Error('Artist not found.'), { statusCode: 404 });
+        if (payout.amount > balance.availableBalance) {
+          throw Object.assign(new Error(`Amount cannot exceed the available balance of \u20b1${balance.availableBalance.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`), { statusCode: 400 });
+        }
+
+        const result = await new Promise((resolve, reject) => connection.query(
+          `INSERT INTO payouts (artist_id, amount, payout_method, status, reference_no, created_at)
+           VALUES (?, ?, ?, 'Paid', ?, ?)`,
+          [payout.artistId, payout.amount, payout.method, payout.reference, getLocalDatetime()],
+          (error, insertResult) => error ? reject(error) : resolve(insertResult)));
+
+        await new Promise((resolve, reject) => connection.commit(error => error ? reject(error) : resolve()));
+        connection.release();
+
+        const remainingBalance = Math.max(0, Math.round((balance.availableBalance - payout.amount) * 100) / 100);
+        const payoutAmt = payout.amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        createNotification(payout.artistId, 'Payout Processed', `A payout of \u20b1${payoutAmt} has been recorded via ${payout.method}.${payout.reference !== 'N/A' ? ' Reference: ' + payout.reference : ''}`, 'payout_processed', result.insertId);
+        return res.json({
+          success: true,
+          message: 'Payout recorded successfully.',
+          payout: { id: result.insertId, ...payout, status: 'Paid' },
+          remainingBalance,
+        });
+      } catch (error) {
+        connection.rollback(() => connection.release());
+        const statusCode = error.statusCode || 500;
+        if (statusCode === 500) console.error('[PAYOUT] Record payout failed:', error.message);
+        return res.status(statusCode).json({ success: false, message: statusCode === 500 ? 'Unable to record payout.' : error.message });
+      }
+    });
   });
 });
 
 // GET Payout Alerts (Admin Only)
 // Returns artists that are due for payout if today is the 15th or 30th (or last day of month)
-app.get('/api/admin/payout-alerts', (req, res) => {
+app.get('/api/admin/payout-alerts', async (req, res) => {
   const today = new Date();
   const day = today.getDate();
   const isLastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate() === day;
@@ -7849,31 +7903,20 @@ app.get('/api/admin/payout-alerts', (req, res) => {
     return res.json({ success: true, alerts: [] });
   }
 
-  const query = `
-    SELECT u.id as artist_id, u.name as artist_name,
-      COALESCE((
-        SELECT SUM(
-          CASE 
-            WHEN a.secondary_artist_id != a.artist_id AND a.secondary_artist_id = u.id
-              THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.60 * ((100 - COALESCE(a.commission_split, 50)) / 100)
-            WHEN a.secondary_artist_id IS NOT NULL AND a.secondary_artist_id != a.artist_id AND a.artist_id = u.id
-              THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.60 * (COALESCE(a.commission_split, 50) / 100)
-            ELSE ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.60
-          END
-        )
-        FROM appointments a
-        WHERE (a.artist_id = u.id OR a.secondary_artist_id = u.id)
-          AND a.is_deleted = 0 AND a.status IN ('confirmed', 'completed')
-      ), 0) - COALESCE((SELECT SUM(amount) FROM payouts WHERE artist_id = u.id), 0) as unclaimed_balance
-    FROM users u
-    WHERE u.user_type = 'artist' AND u.is_deleted = 0
-    HAVING unclaimed_balance > 0
-  `;
-
-  db.query(query, (err, artists) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error calculating payouts' });
-    res.json({ success: true, alerts: artists });
-  });
+  try {
+    const balances = await getAdminPayoutBalances(db);
+    const alerts = balances
+      .filter(balance => balance.availableBalance > 0)
+      .map(balance => ({
+        artist_id: balance.artistId,
+        artist_name: balance.artistName,
+        unclaimed_balance: balance.availableBalance,
+      }));
+    res.json({ success: true, alerts });
+  } catch (error) {
+    console.error('[PAYOUT] Failed to calculate payout alerts:', error.message);
+    res.status(500).json({ success: false, message: 'Database error calculating payouts' });
+  }
 });
 
 
@@ -10075,7 +10118,7 @@ app.get('/api/admin/analytics', (req, res) => {
     SELECT 
       (SELECT COALESCE(SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)), 0) 
        FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'in' ${invTxDateFilter}) as procurement_total,
-      (SELECT COALESCE(SUM(amount), 0) FROM payouts WHERE 1=1 ${payoutsDateFilter}) as payouts_total
+      (SELECT COALESCE(SUM(amount), 0) FROM payouts WHERE LOWER(status) IN ('paid', 'completed') ${payoutsDateFilter}) as payouts_total
   `;
 
   // 2.5.5 Overhead Expenses (Manual from studio_expenses) — filtered by timeframe
@@ -10090,14 +10133,14 @@ app.get('/api/admin/analytics', (req, res) => {
   // 2.5.6 Expenses Trend — combines payouts + inventory procurements
   const expensesTrendQuery = isDaily
     ? `SELECT sort_key, SUM(v) as v FROM (
-         SELECT DATE(created_at) as sort_key, SUM(amount) as v FROM payouts WHERE 1=1 ${payoutsDateFilter} GROUP BY sort_key
+         SELECT DATE(created_at) as sort_key, SUM(amount) as v FROM payouts WHERE LOWER(status) IN ('paid', 'completed') ${payoutsDateFilter} GROUP BY sort_key
          UNION ALL
          SELECT DATE(t.created_at) as sort_key, SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)) as v
          FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id
          WHERE t.type = 'in' ${invTxDateFilter} GROUP BY sort_key
        ) combined GROUP BY sort_key ORDER BY sort_key ASC`
     : `SELECT sort_key, SUM(v) as v FROM (
-         SELECT DATE_FORMAT(created_at, '%Y-%m') as sort_key, SUM(amount) as v FROM payouts WHERE 1=1 ${payoutsDateFilter} GROUP BY sort_key
+         SELECT DATE_FORMAT(created_at, '%Y-%m') as sort_key, SUM(amount) as v FROM payouts WHERE LOWER(status) IN ('paid', 'completed') ${payoutsDateFilter} GROUP BY sort_key
          UNION ALL
          SELECT DATE_FORMAT(t.created_at, '%Y-%m') as sort_key, SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)) as v
          FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id
@@ -10105,7 +10148,7 @@ app.get('/api/admin/analytics', (req, res) => {
        ) combined GROUP BY sort_key ORDER BY sort_key ASC`;
 
   // 2.6 Fetch raw data for expense audits
-  const payoutsAuditQuery = `SELECT p.*, u.name as artist_name FROM payouts p JOIN users u ON p.artist_id = u.id ORDER BY p.created_at DESC LIMIT 50`;
+  const payoutsAuditQuery = `SELECT p.*, u.name as artist_name FROM payouts p JOIN users u ON p.artist_id = u.id WHERE LOWER(p.status) IN ('paid', 'completed') ORDER BY p.created_at DESC LIMIT 50`;
   const inventoryInAuditQuery = `SELECT t.*, i.name, (t.quantity * COALESCE(t.item_price, i.cost, 0)) as total_cost FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'in' ORDER BY t.created_at DESC LIMIT 50`;
 
   // 2.7 Revenue Audit Logs (individual payments/invoices)
@@ -11743,44 +11786,21 @@ function startPayoutReminders() {
 
     console.log('[INFO] Running bi-weekly payout reminder job...');
 
-    // Find all artists and calculate their unclaimed commission balance
-    const query = `
-      SELECT u.id as artist_id, u.name as artist_name,
-        COALESCE((
-          SELECT SUM(
-            CASE 
-              WHEN a.secondary_artist_id != a.artist_id AND a.secondary_artist_id = u.id
-                THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.60 * ((100 - COALESCE(a.commission_split, 50)) / 100)
-              WHEN a.secondary_artist_id IS NOT NULL AND a.secondary_artist_id != a.artist_id AND a.artist_id = u.id
-                THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.60 * (COALESCE(a.commission_split, 50) / 100)
-              ELSE ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.60
-            END
-          )
-          FROM appointments a
-          WHERE (a.artist_id = u.id OR a.secondary_artist_id = u.id)
-            AND a.is_deleted = 0 AND a.status IN ('confirmed', 'completed')
-        ), 0) - COALESCE((SELECT SUM(amount) FROM payouts WHERE artist_id = u.id), 0) as unclaimed_balance
-      FROM users u
-      WHERE u.user_type = 'artist' AND u.is_deleted = 0
-      HAVING unclaimed_balance >= 500
-    `;
-
-    db.query(query, (err, artists) => {
-      if (err) return console.error('[ERROR] Error calculating payout balances:', err);
-
+    getAdminPayoutBalances(db).then((balances) => {
+      const artists = balances.filter(balance => balance.availableBalance >= 500);
       console.log(`[INFO] Found ${artists.length} artist(s) with unclaimed commissions ≥ ₱500`);
 
       artists.forEach(artist => {
-        const balance = parseFloat(artist.unclaimed_balance).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+        const balance = artist.availableBalance.toLocaleString('en-PH', { minimumFractionDigits: 2 });
         // Deduplicate: only one payout reminder per artist per day
         db.query("SELECT id FROM notifications WHERE user_id = ? AND type = 'payout_processed' AND message LIKE '%available for claiming%' AND DATE(created_at) = CURDATE() LIMIT 1",
-          [artist.artist_id], (dupErr, dupRes) => {
+          [artist.artistId], (dupErr, dupRes) => {
             if (dupErr || (dupRes && dupRes.length > 0)) return;
-            createNotification(artist.artist_id, 'Payout Available', `You have ₱${balance} in commissions available for claiming. Please coordinate with the studio to process your payout.`, 'payout_processed');
+            createNotification(artist.artistId, 'Payout Available', `You have ₱${balance} in commissions available for claiming. Please coordinate with the studio to process your payout.`, 'payout_processed');
           }
         );
       });
-    });
+    }).catch(error => console.error('[ERROR] Error calculating payout balances:', error));
   }, 1000 * 60);
 }
 

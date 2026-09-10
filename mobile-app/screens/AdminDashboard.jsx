@@ -319,7 +319,7 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
           <StaggerItem index={2}>
             <AnimatedTouchable
               style={styles.payoutBanner}
-              onPress={() => navigation?.navigate?.('admin-analytics', { tab: 'payouts' })}
+              onPress={() => navigation?.navigate?.('admin-billing', { tab: 'payouts' })}
               accessibilityLabel="View payout details"
               title="View artist payouts for today"
             >

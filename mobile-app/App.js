@@ -416,15 +416,13 @@ function AppContent() {
   }, [isResetMode]);
 
   const handlePasswordReset = useCallback(async (recoveryToken, newPassword) => {
-    const result = await resetUserPassword(loginEmail, recoveryToken, newPassword);
-    if (result.success) {
-      Alert.alert('Success', 'Password updated successfully! Please login.');
-      setShowResetPassword(false);
-      setIsResetMode(false);
-    } else {
-      Alert.alert('Error', 'Failed to update password: ' + result.message);
-    }
+    return resetUserPassword(loginEmail, recoveryToken, newPassword);
   }, [loginEmail]);
+
+  const handlePasswordResetComplete = useCallback(() => {
+    setShowResetPassword(false);
+    setIsResetMode(false);
+  }, []);
 
   // ============================================================
   // RENDER
@@ -499,7 +497,9 @@ function AppContent() {
                 <Stack.Screen name="booking-create">
                   {(props) => <CustomerBooking {...props} customerId={user.id} initialUser={user} onBack={() => props.navigation.goBack()} />}
                 </Stack.Screen>
-                <Stack.Screen name="customer-transactions" component={CustomerTransactions} />
+                <Stack.Screen name="customer-transactions">
+                  {(props) => <CustomerTransactions {...props} customerId={user.id} />}
+                </Stack.Screen>
                 <Stack.Screen name="customer-review" component={CustomerReview} />
                 <Stack.Screen name="CustomerReports" component={CustomerReports} />
                 <Stack.Screen name="CustomerAftercare" component={CustomerAftercare} />
@@ -521,7 +521,13 @@ function AppContent() {
             </Stack.Screen>
           ) : showResetPassword ? (
             <Stack.Screen name="reset-password">
-              {() => <ResetPasswordPage email={loginEmail} onSubmit={handlePasswordReset} />}
+              {() => (
+                <ResetPasswordPage
+                  email={loginEmail}
+                  onSubmit={handlePasswordReset}
+                  onComplete={handlePasswordResetComplete}
+                />
+              )}
             </Stack.Screen>
           ) : (
             // ----- NOT LOGGED IN -- straight to Login -----

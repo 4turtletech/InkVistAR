@@ -137,7 +137,7 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
   const artistName = artist?.name || userName;
   const artistSpecialization = artist?.specialization || 'Tattoo Artist';
   const artistExperience = artist?.experience_years || '0';
-  const artistCommission = ((resolveCommissionRate(artist?.commission_rate)) * 100).toFixed(0);
+  const artistCommissionPercent = (resolveCommissionRate(artist?.commission_rate) * 100).toFixed(0);
   const artistProfileImage = artist?.profile_image || '';
 
   const today = new Date();
@@ -334,7 +334,7 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.infoLabel}>Commission</Text>
-                <Text style={styles.infoValue}>{artistCommission}%</Text>
+                <Text style={styles.infoValue}>{artistCommissionPercent}%</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <Text style={styles.infoLabel}>Works</Text>

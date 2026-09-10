@@ -210,7 +210,7 @@ export function CustomerNotifications({ onBack, userId }) {
     if (!item.is_read) { await markNotificationAsRead(item.id); setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: true } : n)); }
 
     if (item.type === 'payment_success') {
-      try { navigation.navigate('customer-transactions', { openTransactionId: item.related_id }); } catch (e) { }
+      try { navigation.navigate('customer-transactions', { openAppointmentId: item.related_id }); } catch (e) { }
     } else if (item.type?.startsWith('aftercare_')) {
       try { navigation.navigate('CustomerAftercare'); } catch (e) { }
     } else if (item.type?.startsWith('appointment_') || item.type === 'review_prompt' || item.type === 'system') {

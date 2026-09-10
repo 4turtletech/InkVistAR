@@ -52,3 +52,14 @@ test('mobile source uses safe area views and removes Inventory Print without rem
   assert.doesNotMatch(inventory, /handlePrint|<Printer/);
   assert.match(inventory, /onPress=\{handleExportCSV\}/);
 });
+
+test('stock transactions require notes, send the audit reason and avoid success alerts', () => {
+  const inventory = readFileSync(new URL('../screens/AdminInventory.jsx', import.meta.url), 'utf8');
+  assert.match(inventory, />Reason \/ Notes \*<\/Text>/);
+  assert.match(inventory, /nextErrors\.notes = 'Reason\/Notes is required\.'/);
+  assert.match(inventory, /body: JSON\.stringify\(\{[\s\S]*?quantity: sQty,[\s\S]*?reason,/);
+  assert.match(inventory, /setInventoryFeedback\(\{[\s\S]*?type: 'success'/);
+  assert.doesNotMatch(inventory, /Alert\.alert\('Success', `Stock/);
+  assert.match(inventory, /if \(txSaving\) return/);
+  assert.match(inventory, /disabled=\{txSaving\}/);
+});

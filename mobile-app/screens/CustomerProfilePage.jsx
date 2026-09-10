@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import {
   LogOut, Edit3, X, Phone, MapPin, Palette, Heart, Users, Check,
-  Lock, ShieldAlert, Activity, Eye, EyeOff, Camera, Save
+  Lock, ShieldAlert, Activity, Eye, EyeOff, Camera, Save, CheckCircle2
 } from 'lucide-react-native';
 import { colors, typography, borderRadius } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
@@ -27,7 +27,7 @@ const getPasswordRequirements = (password = '') => ({
   symbol: /[@$!%*?&#]/.test(password),
 });
 
-const AnimatedTouchable = ({ children, onPress, style, activeOpacity = 0.9 }) => {
+const AnimatedTouchable = ({ children, onPress, style, activeOpacity = 0.9, disabled = false }) => {
   const { hapticsEnabled } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
   const pressIn = () => {
@@ -36,7 +36,7 @@ const AnimatedTouchable = ({ children, onPress, style, activeOpacity = 0.9 }) =>
   };
   const pressOut = () => Animated.spring(scale, { toValue: 1, damping: 15, useNativeDriver: true }).start();
   return (
-    <AnimatedTouch style={[style, { transform: [{ scale }] }]} onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} activeOpacity={activeOpacity}>
+    <AnimatedTouch style={[style, { transform: [{ scale }] }]} onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} activeOpacity={activeOpacity} disabled={disabled}>
       {children}
     </AnimatedTouch>
   );
@@ -86,9 +86,9 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const passwordRequestRef = useRef(0);
   
-  const [alertModal, setAlertModal] = useState({ visible: false, title: '', message: '', buttons: [] });
-  const customAlert = (title, message, buttons = []) => {
-    setAlertModal({ visible: true, title, message, buttons });
+  const [alertModal, setAlertModal] = useState({ visible: false, title: '', message: '', buttons: [], type: 'info' });
+  const customAlert = (title, message, buttons = [], type = /success|saved/i.test(title) ? 'success' : 'info') => {
+    setAlertModal({ visible: true, title, message, buttons, type });
   };
 
   const shakeAnimation = useRef(new Animated.Value(0)).current;
@@ -96,6 +96,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const styles = getStyles(theme);
   const [pendingImage, setPendingImage] = useState(null); // holds newly picked image before save
   const [savingAll, setSavingAll] = useState(false);
+  const profileSaveInFlightRef = useRef(false);
   const [editProfileErrors, setEditProfileErrors] = useState({});
 
   useEffect(() => { if (userId) fetchProfile(); }, [userId]);
@@ -152,6 +153,8 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   };
 
   const handleProfileSave = async () => {
+    if (profileSaveInFlightRef.current) return;
+
     const normalizedPhone = normalizePhilippineMobileNumber(editForm.phone);
     if (!normalizedPhone) {
       setEditProfileErrors({ phone: 'Enter 10 digits starting with 9, for example 9171234567.' });
@@ -160,22 +163,26 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
     }
 
     setEditProfileErrors({});
-    setLoading(true);
+    profileSaveInFlightRef.current = true;
+    Keyboard.dismiss();
+    setEditProfileVisible(false);
     try {
       const payload = { ...editForm, phone: normalizedPhone };
       if (pendingImage) payload.profileImage = pendingImage;
       const res = await updateCustomerProfile(userId, payload);
       if (res.success) {
-        Alert.alert('Success', 'Profile updated successfully', [{ text: 'OK' }]);
         const updatedProfile = { ...editForm, phone: normalizedPhone, profile_image: pendingImage || editForm.profile_image };
         setProfile(updatedProfile);
         setPendingImage(null);
-        setEditProfileVisible(false);
+        customAlert('Profile Updated', 'Your profile changes were saved successfully.', [], 'success');
       } else {
-        Alert.alert('Error', res.message || 'Failed to update');
+        customAlert('Update Failed', res.message || 'Failed to update your profile.');
       }
-    } catch (e) { Alert.alert('Error', 'An error occurred'); }
-    finally { setLoading(false); }
+    } catch (e) {
+      customAlert('Update Failed', 'An error occurred while updating your profile.');
+    } finally {
+      profileSaveInFlightRef.current = false;
+    }
   };
 
   const handleSaveAllChanges = async () => {
@@ -364,8 +371,13 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
         const res = await changeCustomerPassword(userId, passwordForm.current, passwordForm.new);
         if (requestId !== passwordRequestRef.current) return;
         if (res.success) {
-          customAlert('Success', 'Password updated successfully');
           closePasswordModal();
+          customAlert(
+            'Password Changed',
+            'Your password was updated and a 6-digit verification code was sent to your email. Enter it when you sign in again.',
+            [{ text: 'Continue to Login', onPress: onLogout }],
+            'success'
+          );
         } else {
           setPasswordError(res.message || 'Failed to update password'); triggerShake();
         }
@@ -836,8 +848,10 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
       <Modal visible={alertModal.visible} animationType="fade" transparent>
         <View style={[styles.modalOverlay, { alignItems: 'center' }]}>
           <View style={[styles.modalCard, { alignItems: 'center', width: '90%' }]}>
-            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: `${theme.gold}20`, justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
-              <ShieldAlert size={24} color={theme.gold} />
+            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: alertModal.type === 'success' ? theme.successBg : `${theme.gold}20`, justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+              {alertModal.type === 'success'
+                ? <CheckCircle2 size={24} color={theme.success} />
+                : <ShieldAlert size={24} color={theme.gold} />}
             </View>
             <Text style={{ ...typography.h3, color: theme.textPrimary, marginBottom: 8, textAlign: 'center' }}>{alertModal.title}</Text>
             <Text style={{ ...typography.body, color: theme.textSecondary, marginBottom: 24, textAlign: 'center' }}>{alertModal.message}</Text>
