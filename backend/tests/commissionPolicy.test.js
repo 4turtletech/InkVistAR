@@ -159,7 +159,8 @@ test('new booking saves do not replace an agreed zero share with 50', () => {
 
 test('completing a session does not create a fake pending payout record', () => {
   assert.doesNotMatch(serverSource, /INSERT INTO payouts[\s\S]{0,300}System Default[\s\S]{0,100}Pending/);
-  assert.match(serverSource, /A payout row is created only after an admin actually disburses money/);
+  assert.match(serverSource, /Completing a session does not imply that money was received/);
+  assert.doesNotMatch(serverSource, /Automatically create a manual invoice for Admin Billing/);
 });
 
 test('invalid requested agreement is rejected before creating any booking', async () => {

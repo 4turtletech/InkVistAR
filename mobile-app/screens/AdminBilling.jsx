@@ -25,7 +25,11 @@ import { ConfirmModal } from '../src/components/shared/ConfirmModal';
 import { formatCurrency, formatDate } from '../src/utils/formatters';
 import { fetchAPI } from '../src/utils/api';
 
-const isEditableInvoiceRecord = (invoice) => invoice?.record_source === 'invoice' || Boolean(invoice?.invoice_number);
+const isEditableInvoiceRecord = (invoice) =>
+  (invoice?.record_source === 'invoice' || Boolean(invoice?.invoice_number)) &&
+  (invoice?.status || '').toLowerCase() === 'pending' &&
+  !invoice?.payment_id && !invoice?.appointment_id;
+const getInvoicePaymentMethod = (invoice) => invoice?.payment_method || 'Not recorded';
 
 const getInvoiceSourceId = (invoice) => {
   if (invoice?.source_id) return invoice.source_id;
@@ -58,10 +62,11 @@ export const AdminBilling = ({ navigation, route }) => {
   const payoutSubmittingRef = useRef(false);
   const [isEditingInvoice, setIsEditingInvoice] = useState(false);
   const [payoutDetail, setPayoutDetail] = useState(null);
+  const [billingFeedback, setBillingFeedback] = useState(null);
 
   // Create Invoice
   const [createInvoiceModal, setCreateInvoiceModal] = useState(false);
-  const [invoiceForm, setInvoiceForm] = useState({ clientName: '', serviceType: 'Tattoo Session', amount: '', reference: '', notes: '' });
+  const [invoiceForm, setInvoiceForm] = useState({ clientName: '', serviceType: 'Tattoo Session', amount: '' });
 
   const [invoiceErrors, setInvoiceErrors] = useState({});
   const [invoiceAttempted, setInvoiceAttempted] = useState(false);
@@ -75,7 +80,7 @@ export const AdminBilling = ({ navigation, route }) => {
     setCreateInvoiceModal(false);
     setInvoiceErrors({});
     setInvoiceAttempted(false);
-    setInvoiceForm({ clientName: '', serviceType: 'Tattoo Session', amount: '', reference: '', notes: '' });
+    setInvoiceForm({ clientName: '', serviceType: 'Tattoo Session', amount: '' });
   };
 
   // Custom Date Range
@@ -222,7 +227,7 @@ export const AdminBilling = ({ navigation, route }) => {
   };
 
   const handleCreateInvoice = async () => {
-    const { clientName, serviceType, amount, reference, notes } = invoiceForm;
+    const { clientName, serviceType, amount } = invoiceForm;
     Keyboard.dismiss();
     const errors = invoiceFormErrors(invoiceForm);
     setInvoiceAttempted(true);
@@ -233,29 +238,27 @@ export const AdminBilling = ({ navigation, route }) => {
       const data = await fetchAPI('/admin/invoices', {
         method: 'POST',
         body: JSON.stringify({
-          clientName: clientName.trim(),
-          serviceType,
+          client: clientName.trim(),
+          type: serviceType,
           amount: parsedAmount,
-          referenceNumber: reference.trim(),
-          notes: notes.trim(),
-          status: 'paid',
+          status: 'Pending',
         })
       });
       if (data.success) {
-        Alert.alert('Success', 'Invoice created successfully.');
+        setBillingFeedback({ type: 'success', message: `${data.invoiceNumber} was saved as a draft invoice.` });
         closeCreateInvoice();
         loadData();
       } else {
-        Alert.alert('Error', data.message || 'Failed to create invoice');
+        setBillingFeedback({ type: 'error', message: data.message || 'Failed to create invoice.' });
       }
     } catch (e) {
-      Alert.alert('Error', 'Network error.');
+      setBillingFeedback({ type: 'error', message: 'Network error. Please try again.' });
     }
   };
 
   const handleUpdateInvoice = async () => {
     if (!isEditableInvoiceRecord(invoiceDetail)) {
-      Alert.alert('Read-only Payment', 'Payment transactions cannot be edited as invoices.');
+      setBillingFeedback({ type: 'error', message: 'Payment transactions cannot be edited as invoices.' });
       return;
     }
     try {
@@ -269,14 +272,14 @@ export const AdminBilling = ({ navigation, route }) => {
         })
       });
       if (data.success) {
-        Alert.alert('Success', 'Invoice updated successfully.');
+        setBillingFeedback({ type: 'success', message: 'Invoice updated successfully.' });
         setInvoiceDetail(null);
         loadData();
       } else {
-        Alert.alert('Error', data.message || 'Failed to update invoice');
+        setBillingFeedback({ type: 'error', message: data.message || 'Failed to update invoice.' });
       }
     } catch (e) {
-      Alert.alert('Error', 'Network error.');
+      setBillingFeedback({ type: 'error', message: 'Network error. Please try again.' });
     }
   };
 
@@ -348,6 +351,12 @@ export const AdminBilling = ({ navigation, route }) => {
           <Text style={[styles.tabText, activeTab === 'payouts' && styles.activeTabText]}>Artist Payouts</Text>
         </TouchableOpacity>
       </View>
+
+      {billingFeedback ? (
+        <View style={[styles.inlineFeedback, billingFeedback.type === 'success' ? styles.inlineFeedbackSuccess : styles.inlineFeedbackError, { marginHorizontal: 16, marginTop: 10 }]}>
+          <Text style={[styles.inlineFeedbackText, { color: billingFeedback.type === 'success' ? theme.success : theme.error }]}>{billingFeedback.message}</Text>
+        </View>
+      ) : null}
 
       <View style={styles.searchBar}>
         <Search size={18} color={theme.textTertiary} />
@@ -453,7 +462,8 @@ export const AdminBilling = ({ navigation, route }) => {
                 const matchesSearch = (i.client_name||'').toLowerCase().includes(q) || (i.invoice_number||'').toLowerCase().includes(q) || (i.service_type||'').toLowerCase().includes(q);
                 const matchesStatus = statusFilter === 'all' || (i.status||'').toLowerCase() === statusFilter;
                 const matchesPer = matchesPeriod(i.created_at || i.date);
-                const matchesSource = sourceFilter === 'all' || (sourceFilter === 'pos' ? (i.source||'').toLowerCase() === 'pos' : (i.source||'').toLowerCase() !== 'pos');
+                const isPos = /retail|pos/i.test(i.service_type || '');
+                const matchesSource = sourceFilter === 'all' || (sourceFilter === 'pos' ? isPos : !isPos);
                 return matchesSearch && matchesStatus && matchesPer && matchesSource;
               })
             : payouts.filter(p => {
@@ -531,6 +541,10 @@ export const AdminBilling = ({ navigation, route }) => {
                       <Text style={styles.detailLabel}>Status</Text>
                       <StatusBadge status={invoiceDetail.status || 'paid'} />
                     </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Payment Method</Text>
+                      <Text style={styles.detailValue}>{getInvoicePaymentMethod(invoiceDetail)}</Text>
+                    </View>
                     {invoiceDetail.appointment_id && (
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Booking</Text>
@@ -585,7 +599,7 @@ export const AdminBilling = ({ navigation, route }) => {
 
                     <Text style={styles.inputLabel}>Payment Status</Text>
                     <View style={styles.statusRow}>
-                      {['Pending', 'Paid', 'Cancelled'].map(s => (
+                      {['Pending', 'Cancelled'].map(s => (
                         <AnimatedTouchable key={s} style={[styles.statusBtn, invoiceDetail.status?.toLowerCase() === s.toLowerCase() && styles.statusBtnActive]} onPress={() => setInvoiceDetail({...invoiceDetail, status: s})}>
                           <Text style={[styles.statusBtnText, invoiceDetail.status?.toLowerCase() === s.toLowerCase() && styles.statusBtnTextActive]}>{s}</Text>
                         </AnimatedTouchable>
@@ -737,7 +751,7 @@ export const AdminBilling = ({ navigation, route }) => {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Create Invoice</Text>
+              <Text style={styles.modalTitle}>Create Draft Invoice</Text>
               <AnimatedTouchable onPress={closeCreateInvoice}>
                 <X size={22} color={theme.textSecondary} />
               </AnimatedTouchable>
@@ -756,7 +770,7 @@ export const AdminBilling = ({ navigation, route }) => {
               {invoiceErrors.clientName ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{invoiceErrors.clientName}</Text> : null}
               <Text style={styles.inputLabel}>Service Type</Text>
               <View style={styles.statusRow}>
-                {['Tattoo Session', 'Consultation', 'Touch-up', 'Retail / POS', 'Other'].map(srv => (
+                {['Tattoo Session', 'Consultation', 'Touch-up', 'Other'].map(srv => (
                   <AnimatedTouchable
                     key={srv}
                     style={[styles.statusBtn, invoiceForm.serviceType === srv && styles.statusBtnActive]}
@@ -779,27 +793,8 @@ export const AdminBilling = ({ navigation, route }) => {
               />
               {invoiceErrors.amount ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{invoiceErrors.amount}</Text> : null}
 
-              <Text style={styles.inputLabel}>Reference Number (Optional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. TXN-001234"
-                placeholderTextColor={theme.textTertiary}
-                value={invoiceForm.reference}
-                onChangeText={t => setInvoiceForm({...invoiceForm, reference: t})}
-              />
-
-              <Text style={styles.inputLabel}>Notes (Optional)</Text>
-              <TextInput
-                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-                placeholder="Additional remarks..."
-                placeholderTextColor={theme.textTertiary}
-                value={invoiceForm.notes}
-                onChangeText={t => setInvoiceForm({...invoiceForm, notes: t})}
-                multiline
-              />
-
               <AnimatedTouchable style={styles.saveBtn} onPress={handleCreateInvoice}>
-                <Text style={styles.saveBtnText}>Create Invoice</Text>
+                <Text style={styles.saveBtnText}>Save Draft Invoice</Text>
               </AnimatedTouchable>
               <View style={{height: 20}} />
             </ScrollView>

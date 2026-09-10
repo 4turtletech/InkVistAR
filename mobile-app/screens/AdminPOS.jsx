@@ -160,11 +160,13 @@ export const AdminPOS = ({ navigation }) => {
       const invoiceRes = await createAdminInvoice({
         client: clientLabel,
         type: 'Retail POS Sale',
-        amount: cartSubtotal,
+        amount: cartTotal,
         discount_amount: discountAmount,
         discount_type: discountType !== 'none' ? discountType : null,
         status: 'Paid',
         customerId: customer ? customer.id : null,
+        payment_method: paymentMethod,
+        change_given: paymentMethod === 'Cash' ? Math.max(0, (parseFloat(amountTendered) || 0) - cartTotal) : 0,
         items: cart
       });
 

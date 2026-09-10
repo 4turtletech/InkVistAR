@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
-import { Plus, Download, FileText, CreditCard, CheckCircle, Printer, X, Trash2, Edit, Search, Filter, ChevronUp, ChevronDown, User } from 'lucide-react';
-import { filterName, filterMoney, clampNumber } from '../utils/validation';
+import { Plus, FileText, CreditCard, Printer, X, Trash2, Edit, Search, Filter, ChevronUp, ChevronDown, User } from 'lucide-react';
+import { filterName, filterMoney } from '../utils/validation';
 import PhilippinePeso from '../components/PhilippinePeso';
 
 import AdminSideNav from '../components/AdminSideNav';
@@ -15,7 +15,20 @@ import './AdminStyles.css';
 import { API_URL } from '../config';
 import { formatStatus } from '../utils/formatters';
 
-const isEditableInvoiceRecord = (invoice) => invoice?.record_source === 'invoice' || Boolean(invoice?.invoice_number);
+const isEditableInvoiceRecord = (invoice) =>
+    (invoice?.record_source === 'invoice' || Boolean(invoice?.invoice_number)) &&
+    (invoice?.status || '').toLowerCase() === 'pending' &&
+    !invoice?.payment_id && !invoice?.appointment_id;
+const canDeleteInvoiceRecord = (invoice) => (invoice?.status || '').toLowerCase() === 'pending' && !invoice?.payment_id && !invoice?.appointment_id;
+
+const getInvoicePaymentMethod = (invoice) => {
+    if (invoice?.payment_method) return invoice.payment_method;
+    try {
+        const event = typeof invoice?.raw_event === 'string' ? JSON.parse(invoice.raw_event) : invoice?.raw_event;
+        if (event?.method) return event.method;
+    } catch (_error) {}
+    return 'Not recorded';
+};
 
 const getInvoiceSourceId = (invoice) => {
     if (invoice?.source_id) return invoice.source_id;
@@ -47,6 +60,7 @@ function AdminBilling() {
     const [customEndDate, setCustomEndDate] = useState('');
     const [payouts, setPayouts] = useState([]);
     const [payoutBalances, setPayoutBalances] = useState([]);
+    const [studioBranch, setStudioBranch] = useState(null);
     const [artists, setArtists] = useState([]);
     const [payoutModal, setPayoutModal] = useState({ mounted: false, visible: false });
     const [newPayout, setNewPayout] = useState({ artistId: '', amount: '', method: 'Bank Transfer', reference: '' });
@@ -267,17 +281,16 @@ function AdminBilling() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [invRes, settingsRes, artistRes, usersRes, pRes, balanceRes] = await Promise.all([
+            const [invRes, artistRes, usersRes, pRes, balanceRes, branchRes] = await Promise.all([
                 Axios.get(`${API_URL}/api/admin/invoices`),
-                Axios.get(`${API_URL}/api/admin/settings`),
                 Axios.get(`${API_URL}/api/customer/artists`),
                 Axios.get(`${API_URL}/api/admin/users`),
                 Axios.get(`${API_URL}/api/admin/payouts`),
-                Axios.get(`${API_URL}/api/admin/payout-balances`).catch(() => ({ data: { success: false, data: [] } }))
+                Axios.get(`${API_URL}/api/admin/payout-balances`).catch(() => ({ data: { success: false, data: [] } })),
+                Axios.get(`${API_URL}/api/admin/branches`).catch(() => ({ data: { success: false, data: [] } }))
             ]);
 
             if (invRes.data.success) setInvoices(invRes.data.data);
-            if (settingsRes.data.success) { /* Settings loaded */ }
             if (artistRes.data.success) {
                 setArtists(artistRes.data.artists);
             }
@@ -287,6 +300,10 @@ function AdminBilling() {
             
             if (pRes.data.success) setPayouts(pRes.data.data);
             if (balanceRes.data.success) setPayoutBalances(balanceRes.data.data || []);
+            if (branchRes.data.success) {
+                const branches = branchRes.data.data || [];
+                setStudioBranch(branches.find(branch => String(branch.status).toLowerCase() === 'open') || branches[0] || null);
+            }
 
             setLoading(false);
         } catch (error) {
@@ -448,11 +465,7 @@ function AdminBilling() {
     const filteredInvoices = invoices.filter(inv => {
         const searchLower = searchTerm.toLowerCase();
         
-        let paymentMethod = 'Digital';
-        try {
-            const evt = typeof inv.raw_event === 'string' ? JSON.parse(inv.raw_event) : inv.raw_event;
-            if (evt?.method) paymentMethod = evt.method;
-        } catch(e) {}
+        const paymentMethod = getInvoicePaymentMethod(inv);
         
         const dateObj = new Date(inv.created_at);
         const dateStr1 = dateObj.toLocaleDateString(); 
@@ -504,12 +517,7 @@ function AdminBilling() {
             valA = parseFloat(a.amount) || 0;
             valB = parseFloat(b.amount) || 0;
         } else if (sortConfig.key === 'payment_method') {
-            const getMethod = (inv) => {
-                try {
-                    const evt = typeof inv.raw_event === 'string' ? JSON.parse(inv.raw_event) : inv.raw_event;
-                    return (evt?.method || 'Digital').toLowerCase();
-                } catch(e) { return 'digital'; }
-            };
+            const getMethod = (inv) => getInvoicePaymentMethod(inv).toLowerCase();
             valA = getMethod(a);
             valB = getMethod(b);
         } else if (sortConfig.key === 'status') {
@@ -531,12 +539,7 @@ function AdminBilling() {
         ...invoices.map(i => (i.invoice_number || `INV-${String(i.id).padStart(6, '0')}`).trim()),
         ...invoices.map(i => (i.client_name || '').trim()),
         ...invoices.map(i => (i.service_type || '').trim()),
-        ...invoices.map(i => {
-            try {
-                const evt = typeof i.raw_event === 'string' ? JSON.parse(i.raw_event) : i.raw_event;
-                return (evt?.method || '').trim();
-            } catch(e) { return ''; }
-        })
+        ...invoices.map(i => getInvoicePaymentMethod(i).trim())
     ])).filter(Boolean);
 
     const filteredPayouts = payouts.filter(p => {
@@ -750,14 +753,7 @@ function AdminBilling() {
                                                 <td data-label="Date">{new Date(inv.created_at).toLocaleDateString()}</td>
                                                 <td data-label="Amount">₱{Number(inv.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td data-label="Method">
-                                                    {(() => {
-                                                        try {
-                                                            const evt = typeof inv.raw_event === 'string' ? JSON.parse(inv.raw_event) : inv.raw_event;
-                                                            return <span style={{fontWeight: '600', color: '#475569'}}>{evt?.method || 'Digital'}</span>;
-                                                        } catch(e) {
-                                                            return <span style={{fontWeight: '600', color: '#475569'}}>Digital</span>;
-                                                        }
-                                                    })()}
+                                                    <span style={{fontWeight: '600', color: '#475569'}}>{getInvoicePaymentMethod(inv)}</span>
                                                 </td>
                                                 <td data-label="Status">
                                                     <span className={`badge status-${(inv.status || '').toLowerCase() === 'paid' ? 'active' : 'pending'}`}>
@@ -774,9 +770,11 @@ function AdminBilling() {
                                                                 <button className="action-btn" title="Edit Invoice" onClick={() => openModal('edit', inv)}>
                                                                     <Edit size={16}/>
                                                                 </button>
-                                                                <button className="action-btn delete-btn" title="Delete Invoice" onClick={() => handleDeleteInvoice(getInvoiceSourceId(inv))}>
-                                                                    <Trash2 size={16}/>
-                                                                </button>
+                                                                {canDeleteInvoiceRecord(inv) && (
+                                                                    <button className="action-btn delete-btn" title="Delete Draft Invoice" onClick={() => handleDeleteInvoice(getInvoiceSourceId(inv))}>
+                                                                        <Trash2 size={16}/>
+                                                                    </button>
+                                                                )}
                                                             </>
                                                         )}
                                                     </div>
@@ -1149,7 +1147,6 @@ function AdminBilling() {
                                                 onChange={e => handleInvoiceChange('status', e.target.value)}
                                             >
                                                 <option value="pending">Pending</option>
-                                                <option value="paid">Paid</option>
                                                 <option value="cancelled">Cancelled</option>
                                             </select>
                                         </div>
@@ -1200,21 +1197,16 @@ function AdminBilling() {
                             <div id="printable-invoice" className="invoice-paper admin-st-e2ff4a71">
                                 <div className="invoice-header admin-st-7d0a52ef">
                                     <div className="invoice-biz-info">
-                                        <h1 className="admin-st-fea585a8">InkVistAR Studio</h1>
-                                        <p className="admin-st-04bfc9c7">123 Tattoo Street, Art District</p>
-                                        <p className="admin-st-04bfc9c7">Metropolis, NY 10001</p>
-                                        <p className="admin-st-04bfc9c7">Phone: (555) 001-2024</p>
+                                        <h1 className="admin-st-fea585a8">{studioBranch?.name || 'InkVistAR Tattoo Studio'}</h1>
+                                        {studioBranch?.address && <p className="admin-st-04bfc9c7">{studioBranch.address}</p>}
+                                        {studioBranch?.phone && <p className="admin-st-04bfc9c7">Phone: {studioBranch.phone}</p>}
+                                        {!studioBranch?.address && <p className="admin-st-04bfc9c7">inkvictusstudio.com</p>}
                                     </div>
                                     <div className="invoice-meta admin-st-7851dbc0">
                                         <h2 className="admin-st-208c2b41">INVOICE</h2>
                                         <p className="admin-st-04bfc9c7">Ref: {previewModal.invoice.invoice_number || `INV-${String(previewModal.invoice.id).padStart(6, '0')}`}</p>
                                         <p className="admin-st-04bfc9c7">Date: {new Date(previewModal.invoice.created_at).toLocaleDateString()}</p>
-                                        <p className="admin-st-04bfc9c7">Method: <strong className="admin-st-ca12521c">{(() => {
-                                            try {
-                                                const evt = typeof previewModal.invoice.raw_event === 'string' ? JSON.parse(previewModal.invoice.raw_event) : previewModal.invoice.raw_event;
-                                                return evt?.method || 'Digital';
-                                            } catch(e) { return 'Digital'; }
-                                        })()}</strong></p>
+                                        <p className="admin-st-04bfc9c7">Method: <strong className="admin-st-ca12521c">{getInvoicePaymentMethod(previewModal.invoice)}</strong></p>
                                     </div>
                                 </div>
 
@@ -1222,8 +1214,8 @@ function AdminBilling() {
 
                                 <div className="invoice-bill-to admin-st-138f8f43">
                                     <h3 className="admin-st-8a586d88">Bill To</h3>
-                                    <p className="admin-st-02a7e1b4">{previewModal.invoice.client_name}</p>
-                                    <p className="admin-st-a0bdeeca">Client ID: CU-{previewModal.invoice.client_id || 'N/A'}</p>
+                                    <p className="admin-st-02a7e1b4">{previewModal.invoice.client_name || 'Walk-in Customer'}</p>
+                                    {previewModal.invoice.client_id && <p className="admin-st-a0bdeeca">Client ID: CU-{previewModal.invoice.client_id}</p>}
                                 </div>
 
                                 {(() => {
@@ -1254,6 +1246,18 @@ function AdminBilling() {
                                                     ))}
                                                 </tbody>
                                                 <tfoot>
+                                                    {Number(previewModal.invoice.discount_amount || 0) > 0 && (
+                                                        <>
+                                                            <tr>
+                                                                <td colSpan="3" className="admin-st-6bcbfc83" style={{ textAlign: 'right' }}>Subtotal:</td>
+                                                                <td className="admin-st-b88baa1e" style={{ textAlign: 'right' }}>₱{(Number(previewModal.invoice.amount) + Number(previewModal.invoice.discount_amount)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td colSpan="3" className="admin-st-6bcbfc83" style={{ textAlign: 'right' }}>Discount:</td>
+                                                                <td className="admin-st-b88baa1e" style={{ textAlign: 'right' }}>-₱{Number(previewModal.invoice.discount_amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                            </tr>
+                                                        </>
+                                                    )}
                                                     <tr>
                                                         <td colSpan="3" className="admin-st-6bcbfc83" style={{ textAlign: 'right' }}>Total Settlement Amount:</td>
                                                         <td className="admin-st-b88baa1e" style={{ textAlign: 'right' }}>₱{Number(previewModal.invoice.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
@@ -1292,7 +1296,7 @@ function AdminBilling() {
                                     <div className="admin-st-4e8808c5">
                                         <div>
                                             <p className="admin-st-b31ebddf">Invoice Status</p>
-                                            <p style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: previewModal.invoice.status === 'paid' ? '#10b981' : '#f59e0b' }}>
+                                            <p style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: (previewModal.invoice.status || '').toLowerCase() === 'paid' ? '#10b981' : '#f59e0b' }}>
                                                 {formatStatus(previewModal.invoice.status).toUpperCase()}
                                             </p>
                                         </div>

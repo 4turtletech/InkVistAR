@@ -163,11 +163,13 @@ function AdminPOS() {
             const invoiceRes = await Axios.post(`${API_URL}/api/admin/invoices`, {
                 client: clientLabel,
                 type: 'Retail POS Sale',
-                amount: cartSubtotal,
+                amount: cartTotal,
                 discount_amount: discountAmount,
                 discount_type: discountType !== 'none' ? discountType : null,
                 status: 'Paid',
                 customerId: selectedCustomerId || null,
+                payment_method: paymentMethod,
+                change_given: paymentMethod === 'Cash' ? Math.max(0, (parseFloat(amountTendered) || 0) - cartTotal) : 0,
                 items: cart
             });
 

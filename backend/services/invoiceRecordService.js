@@ -1,6 +1,5 @@
 const ALLOWED_PAYMENT_METHODS = new Set(['Cash', 'GCash', 'Bank Transfer', 'Card', 'Digital', 'Manual']);
 const STATUS_LABELS = new Map([
-  ['paid', 'Paid'],
   ['pending', 'Pending'],
   ['cancelled', 'Cancelled'],
   ['canceled', 'Cancelled'],
@@ -16,7 +15,7 @@ class InvoiceRecordInputError extends Error {
 
 class InvoiceRecordNotFoundError extends Error {
   constructor() {
-    super('Invoice not found. Payment transactions cannot be edited as invoices.');
+    super('Only unlinked draft invoices can be edited. Paid financial records are read-only.');
     this.name = 'InvoiceRecordNotFoundError';
     this.statusCode = 404;
   }
@@ -53,7 +52,7 @@ function buildInvoiceUpdate(input = {}) {
 
   if (input.status !== undefined) {
     const status = STATUS_LABELS.get(String(input.status).trim().toLowerCase());
-    if (!status) throw new InvoiceRecordInputError('Invoice status must be Paid, Pending, or Cancelled.');
+    if (!status) throw new InvoiceRecordInputError('Draft status must be Pending or Cancelled. Record a real payment to create a paid invoice.');
     assignments.push('status = ?');
     values.push(status);
   }
@@ -74,7 +73,7 @@ function buildInvoiceUpdate(input = {}) {
   return { assignments, values };
 }
 
-async function updateInvoiceRecord({ database, invoiceId, update, markLinkedAppointmentPaid = false }) {
+async function updateInvoiceRecord({ database, invoiceId, update }) {
   if (!database?.promise || !update?.assignments?.length) {
     throw new TypeError('A database pool and validated invoice update are required.');
   }
@@ -87,26 +86,15 @@ async function updateInvoiceRecord({ database, invoiceId, update, markLinkedAppo
     transactionStarted = true;
 
     const [result] = await connection.query(
-      `UPDATE invoices SET ${update.assignments.join(', ')} WHERE id = ?`,
+      `UPDATE invoices SET ${update.assignments.join(', ')}
+       WHERE id = ? AND LOWER(status) = 'pending' AND payment_id IS NULL AND appointment_id IS NULL`,
       [...update.values, invoiceId]
     );
 
     if (!result || result.affectedRows === 0) throw new InvoiceRecordNotFoundError();
 
-    let linkedAppointmentUpdated = false;
-    if (markLinkedAppointmentPaid) {
-      const [syncResult] = await connection.query(
-        `UPDATE appointments ap
-         INNER JOIN invoices i ON i.appointment_id = ap.id
-         SET ap.payment_status = 'paid'
-         WHERE i.id = ? AND i.appointment_id IS NOT NULL`,
-        [invoiceId]
-      );
-      linkedAppointmentUpdated = Number(syncResult?.affectedRows || 0) > 0;
-    }
-
     await connection.commit();
-    return { linkedAppointmentUpdated };
+    return { updated: true };
   } catch (error) {
     if (transactionStarted) await connection.rollback();
     throw error;

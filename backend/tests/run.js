@@ -18,5 +18,6 @@ require('./chatbotResilience.test');
 require('./groqProvider.test');
 require('./expoPushService.test');
 require('./invoiceRecordService.test');
+require('./invoiceService.test');
 require('./commissionPolicy.test');
 require('./payoutService.test');

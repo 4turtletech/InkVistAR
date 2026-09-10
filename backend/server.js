@@ -45,6 +45,7 @@ const { isRegisteredAppointmentCustomer, getAppointmentScheduleChange } = requir
 const { createSessionInventoryService, InventoryOperationError } = require('./services/sessionInventoryService');
 const { createFinancialLedgerService, summarizeAppointmentFinances } = require('./services/financialLedgerService');
 const { InvoiceRecordInputError, InvoiceRecordNotFoundError, buildInvoiceUpdate, updateInvoiceRecord } = require('./services/invoiceRecordService');
+const { backfillPaidPaymentInvoices, ensureInvoiceForPaidPayment, insertInvoiceRecord } = require('./services/invoiceService');
 const { evaluateCaptchaResponse } = require('./services/captchaPolicy');
 const { ChatbotInputError, createChatbotResponder, withTimeout } = require('./services/chatbotResilience');
 const {
@@ -1375,29 +1376,70 @@ db.getConnection((err, connection) => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         UNIQUE KEY uniq_payment (paymongo_payment_id),
-        INDEX idx_session (session_id),
+        UNIQUE KEY uniq_payment_session (session_id),
         FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE
       )
     `;
-    db.query(paymentsTableQuery, (err) => {
-      if (err) console.error('[WARN] Error checking payments table:', err.message);
-      else console.log('[OK] Payments table ready');
+    db.query(paymentsTableQuery, async (err) => {
+      if (err) return console.error('[WARN] Error checking payments table:', err.message);
+      try {
+        const database = db.promise();
+        const [indexes] = await database.query('SHOW INDEX FROM payments');
+        const indexNames = new Set(indexes.map((index) => index.Key_name));
+        if (!indexNames.has('uniq_payment_session')) {
+          await database.query('CREATE UNIQUE INDEX uniq_payment_session ON payments (session_id)');
+        }
+        console.log('[OK] Payments table ready');
+      } catch (paymentsMigrationError) {
+        console.error('[WARN] Payments idempotency migration failed:', paymentsMigrationError.message);
+      }
     });
 
     // Create Invoices Table
     const invoicesTableQuery = `
       CREATE TABLE IF NOT EXISTS invoices (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        invoice_number VARCHAR(20) DEFAULT NULL,
+        payment_id INT NULL,
+        customer_id INT NULL,
+        appointment_id INT NULL,
         client_name VARCHAR(255),
         service_type VARCHAR(255),
         amount DECIMAL(10, 2),
+        payment_method VARCHAR(100) DEFAULT NULL,
+        change_given DECIMAL(10, 2) DEFAULT 0.00,
         discount_amount DECIMAL(10, 2) DEFAULT 0.00,
         discount_type VARCHAR(255) DEFAULT NULL,
         status VARCHAR(50) DEFAULT 'Pending',
+        items JSON DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `;
-    db.query(invoicesTableQuery, (err) => { if (err) console.error('[WARN] Error checking invoices table:', err.message); });
+    db.query(invoicesTableQuery, async (err) => {
+      if (err) return console.error('[WARN] Error checking invoices table:', err.message);
+      try {
+        await ensureTableColumns(db, 'invoices', {
+          payment_id: 'INT NULL AFTER invoice_number',
+        });
+
+        const database = db.promise();
+        const [indexes] = await database.query('SHOW INDEX FROM invoices');
+        const indexNames = new Set(indexes.map((index) => index.Key_name));
+        if (!indexNames.has('uniq_invoice_number')) {
+          await database.query('CREATE UNIQUE INDEX uniq_invoice_number ON invoices (invoice_number)');
+        }
+        if (!indexNames.has('uniq_invoice_payment')) {
+          await database.query('CREATE UNIQUE INDEX uniq_invoice_payment ON invoices (payment_id)');
+        }
+
+        const repair = await backfillPaidPaymentInvoices(db);
+        if (repair.created || repair.linked) {
+          console.log(`[MIGRATE] Invoice ledger repaired: ${repair.created} created, ${repair.linked} linked`);
+        }
+      } catch (invoiceMigrationError) {
+        console.error('[WARN] Invoice ledger migration failed:', invoiceMigrationError.message);
+      }
+    });
 
     // MIGRATION: Add customer_id to invoices table
     db.query("SHOW COLUMNS FROM invoices LIKE 'customer_id'", (err, results) => {
@@ -2029,6 +2071,18 @@ function sendReceiptEmail(customerEmail, invoiceData) {
   const emailHtml = buildEmailHtml(contentHtml);
   sendEmail(customerEmail, `Your InkVictus Receipt — ${invoiceData.id}`, emailHtml);
   console.log(`[OK] Receipt email queued for invoice ${invoiceData.id}`);
+}
+
+async function sendReceiptForPayment(paymentRowId, customerEmail, invoiceData) {
+  if (!paymentRowId || !customerEmail) return;
+  try {
+    const invoice = await ensureInvoiceForPaidPayment(db, paymentRowId);
+    if (invoice?.invoiceNumber && !invoice.existing) {
+      sendReceiptEmail(customerEmail, { ...invoiceData, id: invoice.invoiceNumber });
+    }
+  } catch (error) {
+    console.error('[WARN] Unable to issue payment receipt:', error.message);
+  }
 }
 
 /**
@@ -6981,41 +7035,16 @@ app.put('/api/artist/appointments/:id/draft', (req, res) => {
   });
 });
 
-// GET transaction history (invoices mapping) — merges payments + invoices tables
+// GET issued invoices. Payment rows are linked to invoices through invoices.payment_id;
+// returning both tables here would count the same sale twice.
 app.get('/api/admin/invoices', (req, res) => {
-  // Query 1: Payment-based invoices (from PayMongo / appointment payments)
-  const paymentsQuery = `
-    SELECT 
-      p.id,
-      p.id as source_id,
-      'payment' as record_source,
-      NULL as invoice_number,
-      u.name as client_name, 
-      u.id as client_id,
-      u.id as customer_id,
-      p.appointment_id,
-      COALESCE(a.service_type, 'Service') as service_type, 
-      p.created_at, 
-      (p.amount / 100) as amount, 
-      p.status,
-      p.raw_event,
-      NULL as payment_method,
-      NULL as items,
-      NULL as discount_amount,
-      NULL as discount_type
-    FROM payments p
-    LEFT JOIN appointments a ON p.appointment_id = a.id
-    LEFT JOIN users u ON a.customer_id = u.id
-    ORDER BY p.created_at DESC
-  `;
-
-  // Query 2: Direct invoices (from POS sales, manual creation, etc.)
-  const invoicesQuery = `
-    SELECT 
-      (id + 100000) as id,
+  const query = `
+    SELECT
+      id,
       id as source_id,
       'invoice' as record_source,
       invoice_number,
+      payment_id,
       client_name,
       customer_id as client_id,
       customer_id,
@@ -7030,28 +7059,23 @@ app.get('/api/admin/invoices', (req, res) => {
       discount_amount,
       discount_type
     FROM invoices
+    WHERE amount > 0
+      AND client_name IS NOT NULL AND TRIM(client_name) <> ''
+      AND service_type IS NOT NULL AND TRIM(service_type) <> ''
+      AND (
+        LOWER(status) <> 'paid'
+        OR appointment_id IS NULL
+        OR payment_id IS NOT NULL
+      )
     ORDER BY created_at DESC
   `;
 
-  db.query(paymentsQuery, (err, paymentResults) => {
+  db.query(query, (err, results) => {
     if (err) {
-      console.error("Error fetching payment invoices:", err);
+      console.error('Error fetching invoices:', err);
       return res.status(500).json({ success: false, message: 'Database error fetching invoices' });
     }
-
-    db.query(invoicesQuery, (err2, invoiceResults) => {
-      if (err2) {
-        console.error("Error fetching direct invoices:", err2);
-        // Still return payment results even if invoices table fails
-        return res.json({ success: true, data: paymentResults || [] });
-      }
-
-      // Merge both arrays and sort by date descending
-      const merged = [...(paymentResults || []), ...(invoiceResults || [])];
-      merged.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-      res.json({ success: true, data: merged });
-    });
+    res.json({ success: true, data: results || [] });
   });
 });
 
@@ -7099,7 +7123,7 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
     });
 
     db.query(`INSERT INTO payments (appointment_id, paymongo_payment_id, amount, status, raw_event) VALUES (?, ?, ?, 'paid', ?)`,
-      [id, paymentId, amountCentavos, rawEvent], (err) => {
+      [id, paymentId, amountCentavos, rawEvent], (err, paymentInsert) => {
         if (err) return res.status(500).json({ success: false, message: 'Database error' });
 
         const paymentStatus = actualPayment + 0.005 >= remaining ? 'paid' : 'downpayment_paid';
@@ -7112,16 +7136,22 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
           END
         WHERE id = ?
       `;
-        db.query(updateStatusQuery, [paymentStatus, id], (upErr) => {
-          // Generate auto-incrementing invoice number
-          db.query('SELECT MAX(CAST(SUBSTRING(invoice_number, 5) AS UNSIGNED)) as maxNum FROM invoices WHERE invoice_number IS NOT NULL', (invErr, invRes) => {
-            const nextNum = (invErr || !invRes[0]?.maxNum) ? 1 : invRes[0].maxNum + 1;
-            const invoiceNumber = `INV-${String(nextNum).padStart(6, '0')}`;
-
-            // Create invoice record
-            const invoiceQuery = `INSERT INTO invoices (invoice_number, customer_id, appointment_id, client_name, service_type, amount, payment_method, change_given, discount_amount, discount_type, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, 'Paid', ?)`;
-            db.query(invoiceQuery, [invoiceNumber, apptData.customer_id, id, apptData.client_name, apptData.design_title || 'Session Payment', actualPayment, method || 'Cash', changeGiven, getLocalDatetime()], (invInsertErr, invInsertRes) => {
-              if (invInsertErr) console.error('[WARN] Invoice creation failed:', invInsertErr.message);
+        db.query(updateStatusQuery, [paymentStatus, id], async (upErr) => {
+          if (upErr) return res.status(500).json({ success: false, message: 'Payment was recorded, but the appointment could not be updated.' });
+          try {
+            const invoice = await insertInvoiceRecord(db, {
+              paymentId: paymentInsert.insertId,
+              customerId: apptData.customer_id,
+              appointmentId: id,
+              clientName: apptData.client_name,
+              serviceType: apptData.design_title || 'Session Payment',
+              amount: actualPayment,
+              paymentMethod: method || 'Cash',
+              changeGiven,
+              status: 'Paid',
+              createdAt: getLocalDatetime(),
+            });
+            const invoiceNumber = invoice.invoiceNumber;
 
               // Send notification and email
               const customerMsg = `Your payment of ₱${actualPayment.toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been recorded. Invoice ${invoiceNumber} is now available. View your receipt from your notifications.`;
@@ -7156,7 +7186,7 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
                 message: 'Payment recorded successfully',
                 invoice: {
                   invoiceNumber,
-                  invoiceId: invInsertRes?.insertId,
+                  invoiceId: invoice.id,
                   clientName: apptData.client_name,
                   designTitle: apptData.design_title || 'Session Payment',
                   amountPaid: actualPayment,
@@ -7169,8 +7199,10 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
                   date: new Date().toISOString()
                 }
               });
-            });
-          });
+          } catch (invoiceError) {
+            console.error('[WARN] Invoice creation failed:', invoiceError.message);
+            res.status(500).json({ success: false, message: 'Payment was recorded, but its invoice could not be generated.' });
+          }
         });
       });
   });
@@ -7238,7 +7270,7 @@ app.post('/api/admin/billing/record-payment', (req, res) => {
 
     // Insert payment
     db.query(`INSERT INTO payments (appointment_id, paymongo_payment_id, amount, status, raw_event) VALUES (?, ?, ?, 'paid', ?)`,
-      [appointmentId, paymentId, amountCentavos, rawEvent], (payErr) => {
+      [appointmentId, paymentId, amountCentavos, rawEvent], (payErr, paymentInsert) => {
         if (payErr) return res.status(500).json({ success: false, message: 'Failed to record payment.' });
 
         // Update appointment payment_status
@@ -7252,18 +7284,22 @@ app.post('/api/admin/billing/record-payment', (req, res) => {
             END
           WHERE id = ?
         `;
-        db.query(updateStatusQuery, [paymentStatus, appointmentId], (upErr) => {
-          // Generate sequential invoice number
-          db.query('SELECT MAX(CAST(SUBSTRING(invoice_number, 5) AS UNSIGNED)) as maxNum FROM invoices WHERE invoice_number IS NOT NULL', (invErr, invRes) => {
-            const nextNum = (invErr || !invRes[0]?.maxNum) ? 1 : invRes[0].maxNum + 1;
-            const invoiceNumber = `INV-${String(nextNum).padStart(6, '0')}`;
-
+        db.query(updateStatusQuery, [paymentStatus, appointmentId], async (upErr) => {
+          if (upErr) return res.status(500).json({ success: false, message: 'Payment was recorded, but the appointment could not be updated.' });
+          try {
             const serviceLabel = apptData.design_title || apptData.service_type || 'Session Payment';
-
-            // Create invoice record
-            const invoiceQuery = `INSERT INTO invoices (invoice_number, customer_id, appointment_id, client_name, service_type, amount, payment_method, change_given, discount_amount, discount_type, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, 'Paid', ?)`;
-            db.query(invoiceQuery, [invoiceNumber, customerId, appointmentId, apptData.client_name, serviceLabel, actualPayment, method, getLocalDatetime()], (invInsertErr, invInsertRes) => {
-              if (invInsertErr) console.error('Invoice creation failed:', invInsertErr.message);
+            const invoice = await insertInvoiceRecord(db, {
+              paymentId: paymentInsert.insertId,
+              customerId,
+              appointmentId,
+              clientName: apptData.client_name,
+              serviceType: serviceLabel,
+              amount: actualPayment,
+              paymentMethod: method,
+              status: 'Paid',
+              createdAt: getLocalDatetime(),
+            });
+            const invoiceNumber = invoice.invoiceNumber;
 
               // Send notification to customer
               const customerMsg = `Your payment of ₱${actualPayment.toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been recorded. Invoice ${invoiceNumber} is now available. View your receipt from your notifications.`;
@@ -7287,7 +7323,7 @@ app.post('/api/admin/billing/record-payment', (req, res) => {
                 message: 'Payment recorded and invoice generated successfully.',
                 invoice: {
                   invoiceNumber,
-                  invoiceId: invInsertRes?.insertId,
+                  invoiceId: invoice.id,
                   clientName: apptData.client_name,
                   serviceType: serviceLabel,
                   amountPaid: actualPayment,
@@ -7298,8 +7334,10 @@ app.post('/api/admin/billing/record-payment', (req, res) => {
                   date: new Date().toISOString()
                 }
               });
-            });
-          });
+          } catch (invoiceError) {
+            console.error('Invoice creation failed:', invoiceError.message);
+            res.status(500).json({ success: false, message: 'Payment was recorded, but its invoice could not be generated.' });
+          }
         });
       });
   });
@@ -7314,6 +7352,8 @@ app.post('/api/admin/invoices/:id/resend', (req, res) => {
     FROM invoices i
     LEFT JOIN users u ON i.customer_id = u.id
     WHERE i.id = ?
+      AND LOWER(i.status) = 'paid'
+      AND (i.appointment_id IS NULL OR i.payment_id IS NOT NULL)
   `, [id], (err, results) => {
     if (err || results.length === 0) {
       return res.status(err ? 500 : 404).json({ success: false, message: err ? 'Database error' : 'Invoice not found' });
@@ -7584,26 +7624,8 @@ app.put('/api/appointments/:id/status', async (req, res) => {
           createNotification(appointment.customer_id, 'Session Complete!', `Your session for "${designTitle}" today is finished. We will coordinate with you soon for your next session to continue your piece!`, 'appointment_partial_complete', id);
         }
 
-        // SYNC: Automatically create a manual invoice for Admin Billing
-        db.query('SELECT name FROM users WHERE id = ?', [appointment.customer_id], (uErr, uRes) => {
-          const clientName = (!uErr && uRes.length) ? uRes[0].name : `Client #${appointment.customer_id}`;
-          const currentPrice = price !== undefined ? Number(price) : Number(appointment.price) || 0;
-
-          // Generate sequential invoice number (same pattern as manual payment flow)
-          db.query('SELECT MAX(CAST(SUBSTRING(invoice_number, 5) AS UNSIGNED)) as maxNum FROM invoices WHERE invoice_number IS NOT NULL', (invNumErr, invNumRes) => {
-            const nextNum = (invNumErr || !invNumRes[0]?.maxNum) ? 1 : invNumRes[0].maxNum + 1;
-            const invoiceNumber = `INV-${String(nextNum).padStart(6, '0')}`;
-
-            const invoiceQuery = 'INSERT INTO invoices (invoice_number, customer_id, appointment_id, client_name, service_type, amount, status, created_at) VALUES (?, ?, ?, ?, ?, ?, "Paid", ?)';
-            db.query(invoiceQuery, [invoiceNumber, appointment.customer_id, id, clientName, appointment.service_type || 'Tattoo Session', currentPrice, getLocalDatetime()], (invErr) => {
-              if (invErr) console.error('[ERROR] Failed to auto-generate invoice:', invErr.message);
-              else console.log(`[OK] Auto-generated invoice ${invoiceNumber} for Client: ${clientName}`);
-            });
-          });
-
-          // Artist earnings are calculated from completed, fully-paid sessions.
-          // A payout row is created only after an admin actually disburses money.
-        });
+        // Completing a session does not imply that money was received. Invoices are
+        // issued only by an actual payment or POS checkout.
 
         // ── SESSION ABORTED / INCOMPLETE ──
       } else if (status === 'incomplete') {
@@ -8298,11 +8320,6 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
                     createNotification(appt.artist_id, 'Appointment Scheduled', `You have an appointment scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
                   }
 
-                  if (typeof sendReceiptEmail === 'function' && appt.cx_email) {
-                    const paymentId = (Array.isArray(paymentList) && paymentList.length > 0) ? paymentList[0].id : null;
-                    sendReceiptEmail(appt.cx_email, { id: paymentId, amount: amountCentavos / 100, method: 'PayMongo' });
-                  }
-
                   db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (adminErr, admins) => {
                     if (!adminErr && admins.length > 0) {
                       const adminMsg = `Payment of ₱${(amountCentavos / 100).toLocaleString()} received from ${appt.customer_name} for appointment #${appointmentId} (${paymentType === 'deposit' ? 'Downpayment' : 'Full Payment'}).`;
@@ -8322,7 +8339,19 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
             });
 
             db.query("UPDATE payments SET status = 'paid' WHERE session_id = ?", [sessionId], (updErr) => {
-              if (updErr) console.error(`[ERROR] Failed to update payments record to paid for ${sessionId}:`, updErr.message);
+              if (updErr) {
+                console.error(`[ERROR] Failed to update payments record to paid for ${sessionId}:`, updErr.message);
+                return;
+              }
+              db.query('SELECT id FROM payments WHERE session_id = ? ORDER BY id DESC LIMIT 1', [sessionId], (paymentErr, paymentRows) => {
+                if (paymentErr || !paymentRows?.[0]) return;
+                sendReceiptForPayment(paymentRows[0].id, appt.cx_email, {
+                  amount: amountCentavos / 100,
+                  method: 'PayMongo',
+                  clientName: appt.customer_name,
+                  remaining: Math.max(0, apptPrice - updatedTotalPaid),
+                });
+              });
             });
 
             return res.json({ success: true, payment_status: newPaymentStatus, booking_code: appt.booking_code || null, price: apptPrice, totalPaid: updatedTotalPaid });
@@ -8364,14 +8393,33 @@ app.post('/api/payments/webhook', createPaymongoWebhookVerifier({
     console.warn('[WARN] Webhook missing appointmentId in metadata');
   }
 
-  // Upsert payment record (idempotent on paymongo_payment_id unique key)
+  // Upsert by PayMongo payment ID or checkout session. This lets the webhook
+  // promote the existing pending checkout row instead of creating a duplicate.
   db.query(
     `INSERT INTO payments (appointment_id, session_id, paymongo_payment_id, amount, currency, status, raw_event)
      VALUES (?, ?, ?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE status = VALUES(status), amount = VALUES(amount), currency = VALUES(currency), raw_event = VALUES(raw_event), updated_at = ?`,
+     ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id), status = VALUES(status), amount = VALUES(amount), currency = VALUES(currency), raw_event = VALUES(raw_event), updated_at = ?`,
     [appointmentId || null, sessionId, paymongoPaymentId, amount, currency, status, JSON.stringify(event), getLocalDatetime()],
-    (err) => {
-      if (err) console.error('[ERROR] Error saving payment record:', err.message);
+    (err, paymentResult) => {
+      if (err) return console.error('[ERROR] Error saving payment record:', err.message);
+      if (status === 'paid' && paymentResult?.insertId && appointmentId) {
+        db.query(
+          `SELECT u.email, u.name AS client_name, ap.design_title, ap.service_type
+           FROM appointments ap LEFT JOIN users u ON u.id = ap.customer_id
+           WHERE ap.id = ? LIMIT 1`,
+          [appointmentId],
+          (appointmentError, appointmentRows) => {
+            if (appointmentError || !appointmentRows?.[0]) return;
+            const invoiceContext = appointmentRows[0];
+            sendReceiptForPayment(paymentResult.insertId, invoiceContext.email, {
+              amount: Number(amount || 0) / 100,
+              method: 'PayMongo',
+              clientName: invoiceContext.client_name,
+              designTitle: invoiceContext.design_title || invoiceContext.service_type,
+            });
+          }
+        );
+      }
     }
   );
 
@@ -8414,9 +8462,6 @@ app.post('/api/payments/webhook', createPaymongoWebhookVerifier({
               createNotification(appt.customer_id, 'Appointment Scheduled', `Your appointment has been scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
               createNotification(appt.artist_id, 'Appointment Scheduled', `You have an appointment scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
             }
-
-            // SEND EMAILED RECEIPT
-            sendReceiptEmail(appt.cx_email, { id: paymongoPaymentId, amount: amount / 100, method: 'PayMongo' });
 
             // Notify Admins and Managers
             db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (adminErr, admins) => {
@@ -10109,8 +10154,8 @@ app.get('/api/admin/analytics', (req, res) => {
   const revenueBreakdownQuery = `
     SELECT 
       COALESCE((SELECT SUM(((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0)) FROM appointments ap WHERE ap.status != 'cancelled' AND ap.is_deleted = 0 ${revenueDateFilter}), 0) as appointment_revenue,
-      COALESCE((SELECT SUM(amount) FROM invoices WHERE LOWER(status) = 'paid' AND (LOWER(service_type) LIKE '%retail%' OR LOWER(service_type) LIKE '%pos%') ${invoiceDateFilter}), 0) as pos_revenue,
-      COALESCE((SELECT SUM(amount) FROM invoices WHERE LOWER(status) = 'paid' AND LOWER(service_type) NOT LIKE '%retail%' AND LOWER(service_type) NOT LIKE '%pos%' ${invoiceDateFilter}), 0) as service_invoice_revenue
+      COALESCE((SELECT SUM(amount) FROM invoices WHERE LOWER(status) = 'paid' AND amount > 0 AND (LOWER(service_type) LIKE '%retail%' OR LOWER(service_type) LIKE '%pos%') ${invoiceDateFilter}), 0) as pos_revenue,
+      COALESCE((SELECT SUM(amount) FROM invoices WHERE LOWER(status) = 'paid' AND amount > 0 AND appointment_id IS NULL AND LOWER(service_type) NOT LIKE '%retail%' AND LOWER(service_type) NOT LIKE '%pos%' ${invoiceDateFilter}), 0) as service_invoice_revenue
   `;
 
   // 2.5 Expenses: Inventory procurements + Payouts — filtered by timeframe
@@ -10156,9 +10201,14 @@ app.get('/api/admin/analytics', (req, res) => {
     (SELECT p.created_at as date, CONCAT('Payment #', p.id) as description, 'Appointment Payment' as source, (p.amount / 100) as amount
      FROM payments p WHERE p.status = 'paid' ORDER BY p.created_at DESC LIMIT 30)
     UNION ALL
-    (SELECT i.created_at as date, CONCAT(i.invoice_number, ' - ', i.client_name) as description, 
+    (SELECT i.created_at as date, CONCAT(i.invoice_number, ' - ', i.client_name) as description,
      CASE WHEN LOWER(i.service_type) LIKE '%retail%' OR LOWER(i.service_type) LIKE '%pos%' THEN 'POS Sale' ELSE 'Service Invoice' END as source,
-     i.amount FROM invoices i WHERE LOWER(i.status) = 'paid' ORDER BY i.created_at DESC LIMIT 30)
+     i.amount FROM invoices i
+     WHERE LOWER(i.status) = 'paid' AND i.amount > 0
+       AND i.appointment_id IS NULL
+       AND i.client_name IS NOT NULL AND TRIM(i.client_name) <> ''
+       AND i.service_type IS NOT NULL AND TRIM(i.service_type) <> ''
+     ORDER BY i.created_at DESC LIMIT 30)
     ORDER BY date DESC LIMIT 50
   `;
 
@@ -10614,25 +10664,54 @@ app.put('/api/admin/expenses/:id', (req, res) => {
   });
 });
 
-// NOTE: GET /api/admin/invoices is handled earlier in this file (merged payments + invoices query)
+// NOTE: GET /api/admin/invoices is handled earlier and returns canonical invoice rows only.
 
 // Admin: Create Invoice
-app.post('/api/admin/invoices', (req, res) => {
-  const { client, type, amount, discount_amount, discount_type, status, items } = req.body;
-  const targetDiscount = discount_amount || 0;
-  const itemsJson = items ? JSON.stringify(items) : null;
+app.post('/api/admin/invoices', async (req, res) => {
+  const client = String(req.body.client ?? req.body.clientName ?? '').trim();
+  const type = String(req.body.type ?? req.body.serviceType ?? '').trim();
+  const amount = Number(req.body.amount);
+  const isPosSale = /retail|pos/i.test(type);
+  const paymentMethod = String(req.body.payment_method || req.body.paymentMethod || 'Cash');
 
-  // Generate sequential invoice number
-  db.query('SELECT MAX(CAST(SUBSTRING(invoice_number, 5) AS UNSIGNED)) as maxNum FROM invoices WHERE invoice_number IS NOT NULL', (invNumErr, invNumRes) => {
-    const nextNum = (invNumErr || !invNumRes[0]?.maxNum) ? 1 : invNumRes[0].maxNum + 1;
-    const invoiceNumber = `INV-${String(nextNum).padStart(6, '0')}`;
+  if (!client || !type) {
+    return res.status(400).json({ success: false, message: 'Client name and service type are required.' });
+  }
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 99999999.99) {
+    return res.status(400).json({ success: false, message: 'Invoice amount must be greater than zero.' });
+  }
+  if (req.body.items !== undefined && !Array.isArray(req.body.items)) {
+    return res.status(400).json({ success: false, message: 'Invoice items must be a list.' });
+  }
+  if (isPosSale && !['Cash', 'Card', 'GCash'].includes(paymentMethod)) {
+    return res.status(400).json({ success: false, message: 'Unsupported POS payment method.' });
+  }
 
-    const query = 'INSERT INTO invoices (invoice_number, client_name, service_type, amount, discount_amount, discount_type, status, items, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
-    db.query(query, [invoiceNumber, client, type, amount, targetDiscount, discount_type || null, status, itemsJson, getLocalDatetime()], (err, result) => {
-      if (err) return res.status(500).json({ success: false, message: err.message });
-      res.json({ success: true, message: 'Invoice created', id: result.insertId, invoiceNumber });
+  try {
+    const invoice = await insertInvoiceRecord(db, {
+      customerId: Number.parseInt(req.body.customerId, 10) || null,
+      clientName: client,
+      serviceType: type,
+      amount,
+      paymentMethod: isPosSale ? paymentMethod : null,
+      changeGiven: isPosSale ? Number(req.body.change_given ?? req.body.changeGiven) || 0 : 0,
+      discountAmount: Number(req.body.discount_amount) || 0,
+      discountType: req.body.discount_type || null,
+      status: isPosSale ? 'Paid' : 'Pending',
+      items: req.body.items || null,
+      createdAt: getLocalDatetime(),
     });
-  });
+    res.json({
+      success: true,
+      message: isPosSale ? 'POS invoice created' : 'Draft invoice created',
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      status: isPosSale ? 'Paid' : 'Pending',
+    });
+  } catch (error) {
+    console.error('[INVOICE] Create failed:', error.message);
+    res.status(500).json({ success: false, message: 'Unable to create the invoice.' });
+  }
 });
 
 // Admin: Update Invoice
@@ -10653,14 +10732,11 @@ app.put('/api/admin/invoices/:id', async (req, res) => {
   }
 
   console.log(`[INFO] Updating invoice ${invoiceId}`);
-  const shouldMarkAppointmentPaid = String(req.body.status || '').trim().toLowerCase() === 'paid';
-
   try {
     await updateInvoiceRecord({
       database: db,
       invoiceId,
       update,
-      markLinkedAppointmentPaid: shouldMarkAppointmentPaid,
     });
     logAction(getAdminId(req), 'UPDATE_INVOICE', `Updated invoice ID ${invoiceId}`, req.ip);
     res.json({ success: true, message: 'Invoice updated' });
@@ -10680,13 +10756,13 @@ app.delete('/api/admin/invoices/:id', (req, res) => {
     return res.status(400).json({ success: false, message: 'A valid invoice ID is required.' });
   }
   console.log(`[DEBUG] Deleting invoice ${invoiceId}`);
-  db.query('DELETE FROM invoices WHERE id = ?', [invoiceId], (err, result) => {
+  db.query("DELETE FROM invoices WHERE id = ? AND LOWER(status) = 'pending' AND payment_id IS NULL AND appointment_id IS NULL", [invoiceId], (err, result) => {
     if (err) {
       console.error(`[DEBUG] Delete error:`, err);
       return res.status(500).json({ success: false, message: err.message });
     }
     if (!result || result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Invoice not found.' });
+      return res.status(409).json({ success: false, message: 'Only unlinked draft invoices can be deleted. Paid records must remain in the financial audit trail.' });
     }
     logAction(getAdminId(req), 'DELETE_INVOICE', `Deleted invoice ID ${invoiceId}`, req.ip);
     res.json({ success: true, message: 'Invoice deleted' });
@@ -10798,7 +10874,12 @@ app.get('/api/manager/dashboard', (req, res) => {
 // GET invoice by invoice_number (for customer view)
 app.get('/api/invoices/by-number/:invoiceNumber', (req, res) => {
   const { invoiceNumber } = req.params;
-  db.query('SELECT * FROM invoices WHERE invoice_number = ?', [invoiceNumber], (err, results) => {
+  db.query(`SELECT * FROM invoices
+            WHERE invoice_number = ?
+              AND amount > 0
+              AND client_name IS NOT NULL AND TRIM(client_name) <> ''
+              AND service_type IS NOT NULL AND TRIM(service_type) <> ''
+              AND (LOWER(status) <> 'paid' OR appointment_id IS NULL OR payment_id IS NOT NULL)`, [invoiceNumber], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
     if (!results.length) return res.status(404).json({ success: false, message: 'Invoice not found' });
     res.json({ success: true, data: results[0] });

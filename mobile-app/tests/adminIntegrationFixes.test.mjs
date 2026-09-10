@@ -25,6 +25,14 @@ test('invoice validates both required fields and rejects partial/nonfinite amoun
   for (const amount of ['', ' ', '0', '-1', 'Infinity', '2abc']) assert.ok(invoiceFormErrors({ clientName: 'Integration Test', amount }).amount);
   assert.deepEqual(invoiceFormErrors({ clientName: 'Integration Test', amount: '12.50' }), {});
 });
+test('mobile billing creates an auditable draft without native success alerts', () => {
+  const billing = readFileSync(new URL('../screens/AdminBilling.jsx', import.meta.url), 'utf8');
+  assert.match(billing, /client: clientName\.trim\(\)/);
+  assert.match(billing, /type: serviceType/);
+  assert.match(billing, /status: 'Pending'/);
+  assert.match(billing, />Create Draft Invoice<|>Save Draft Invoice</);
+  assert.doesNotMatch(billing, /Alert\.alert\('Success', 'Invoice created successfully\.'/);
+});
 test('session time selection normalizes SQL seconds without changing hours/minutes', () => {
   assert.equal(sessionTimeSelection('20:00:00'), '20:00');
   assert.equal(sessionTimeSelection('09:30'), '09:30');
