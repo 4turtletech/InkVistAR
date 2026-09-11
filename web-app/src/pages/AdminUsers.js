@@ -112,6 +112,9 @@ function AdminUsers() {
     const [statusModal, setStatusModal] = useState({ mounted: false, visible: false, user: null });
     const [statusFormData, setStatusFormData] = useState({ status: 'active', reason: '', adminNote: '', duration: '7 days' });
 
+    // ─── Block Date Modal ───
+    const [blockDateModal, setBlockDateModal] = useState({ isOpen: false, date: '' });
+
     // ─── Destructive Delete Confirmation with Countdown ───
     const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, title: '', message: '', onConfirm: null, countdown: 3 });
     const deleteCountdownRef = useRef(null);
@@ -663,20 +666,27 @@ function AdminUsers() {
         });
     };
 
-    const handleBlockDate = async () => {
-        const date = prompt("Enter date to block (YYYY-MM-DD):");
-        if (date) {
-            try {
-                await Axios.post(`${API_URL}/api/admin/appointments`, {
-                    customerId: selectedArtist.id, artistId: selectedArtist.id,
-                    date, startTime: '09:00', endTime: '17:00',
-                    designTitle: 'BLOCKED', status: 'cancelled', notes: 'Day off / Unavailable'
-                });
-                showAlert("Success", "Date blocked successfully", "success");
-            } catch (error) {
-                console.error("Error blocking date:", error);
-                showAlert("Error", "Failed to block date", "danger");
-            }
+    const handleBlockDate = () => {
+        setBlockDateModal({ isOpen: true, date: '' });
+    };
+
+    const submitBlockDate = async () => {
+        const { date } = blockDateModal;
+        if (!date) {
+            showAlert("Error", "Please select a date", "danger");
+            return;
+        }
+        setBlockDateModal({ isOpen: false, date: '' });
+        try {
+            await Axios.post(`${API_URL}/api/admin/appointments`, {
+                customerId: selectedArtist.id, artistId: selectedArtist.id,
+                date, startTime: '09:00', endTime: '17:00',
+                designTitle: 'BLOCKED', status: 'cancelled', notes: 'Day off / Unavailable'
+            });
+            showAlert("Success", "Date blocked successfully", "success");
+        } catch (error) {
+            console.error("Error blocking date:", error);
+            showAlert("Error", "Failed to block date", "danger");
         }
     };
 
@@ -1782,6 +1792,35 @@ function AdminUsers() {
                                 >
                                     Create User
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Block Date Modal */}
+                {blockDateModal.isOpen && (
+                    <div className="modal-overlay open" onClick={() => setBlockDateModal({ isOpen: false, date: '' })}>
+                        <div className="modal-content small" onClick={e => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h2>Block Date</h2>
+                                <button className="close-btn" onClick={() => setBlockDateModal({ isOpen: false, date: '' })}><X size={24} /></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="form-group">
+                                    <label className="premium-label">Select Date to Block *</label>
+                                    <input 
+                                        type="date" 
+                                        className="form-input" 
+                                        value={blockDateModal.date} 
+                                        onChange={(e) => setBlockDateModal(prev => ({ ...prev, date: e.target.value }))}
+                                        min={new Date().toISOString().split('T')[0]}
+                                    />
+                                    <small className="form-help">This will mark the entire day as unavailable for appointments.</small>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button className="btn btn-secondary" onClick={() => setBlockDateModal({ isOpen: false, date: '' })}>Cancel</button>
+                                <button className="btn btn-primary" onClick={submitBlockDate} disabled={!blockDateModal.date}>Block Date</button>
                             </div>
                         </div>
                     </div>
