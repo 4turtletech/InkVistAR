@@ -97,6 +97,12 @@ body.sidenav-collapsed .portal-layout .portal-container {
     margin-top: 0.25rem;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .logout-btn {
     background: #1e293b;
     color: white;
