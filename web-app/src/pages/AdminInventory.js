@@ -420,67 +420,7 @@ function AdminInventory() {
             showAlert('Nothing to Print', 'There are no inventory items in the current filtered view.', 'info');
             return;
         }
-
-        const printWindow = window.open('', 'inventory-print', 'noopener,noreferrer,width=980,height=720');
-        if (!printWindow) {
-            showAlert('Popup Blocked', 'Please allow popups for this page, then try printing again.', 'warning');
-            return;
-        }
-
-        const printData = filteredInventory.map(item => 
-            `<tr>
-                <td>${item.name || 'N/A'}</td>
-                <td>${item.category || 'N/A'}</td>
-                <td>${item.currentStock || '0'}</td>
-                <td>${item.unit || 'N/A'}</td>
-                <td>₱${parseFloat(item.cost || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td>${getStockStatus(item.currentStock, item.minStock, item.maxStock)}</td>
-            </tr>`
-        ).join('');
-
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Print Inventory Status</title>
-                    <style>
-                        body { font-family: sans-serif; padding: 20px; color: #333; }
-                        h1 { color: #1e293b; text-align: center; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 14px; }
-                        th { background-color: #f1f5f9; color: #475569; }
-                    </style>
-                </head>
-                <body>
-                    <h1>Inventory Status Report</h1>
-                    <p style="text-align:center;">Generated on ${new Date().toLocaleString()}</p>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Item Name</th>
-                                <th>Category</th>
-                                <th>Current Stock</th>
-                                <th>Unit</th>
-                                <th>Cost</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${printData}
-                        </tbody>
-                    </table>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-            try {
-                printWindow.print();
-                printWindow.close();
-            } catch (error) {
-                console.error('Print failed:', error);
-            }
-        }, 250);
+        window.print();
     };
 
     const handleExportCSV = () => {
@@ -1068,6 +1008,36 @@ function AdminInventory() {
                     totalItems={filteredInventory.length}
                     unit="items"
                 />
+
+                {/* Print-only full table (hidden on screen, shown when printing) */}
+                <div className="print-only-table">
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th>Category</th>
+                                <th>Current Stock</th>
+                                <th>Min Stock</th>
+                                <th>Unit</th>
+                                <th>Cost</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredInventory.map((item) => (
+                                <tr key={`print-${item.id}`}>
+                                    <td><strong>{item.name}</strong></td>
+                                    <td>{item.category}</td>
+                                    <td className="text-center">{item.currentStock}</td>
+                                    <td className="text-center">{item.minStock}</td>
+                                    <td>{item.unit}</td>
+                                    <td>₱{item.retailPrice ? item.retailPrice.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : item.cost.toLocaleString()}</td>
+                                    <td>{getStockStatus(item.currentStock, item.minStock, item.maxStock)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
             </div> {/* Closes .admin-page */}
 

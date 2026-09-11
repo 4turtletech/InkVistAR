@@ -1320,60 +1320,7 @@ function AdminAppointments() {
     };
 
     const handlePrint = () => {
-        const printWindow = window.open('', '_blank');
-        const printData = filteredAppointments.map(a =>
-            `<tr>
-                <td>${a.clientName || 'N/A'}</td>
-                <td>${a.artistName || 'N/A'}</td>
-                <td>${a.serviceType || 'N/A'}</td>
-                <td>${a.date || 'N/A'}</td>
-                <td>${a.time || 'N/A'}</td>
-                <td>${(a.status || '').toUpperCase()}</td>
-                <td>₱${parseFloat(a.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            </tr>`
-        ).join('');
-
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Print Appointments</title>
-                    <style>
-                        body { font-family: sans-serif; padding: 20px; color: #333; }
-                        h1 { color: #1e293b; text-align: center; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 14px; }
-                        th { background-color: #f1f5f9; color: #475569; }
-                    </style>
-                </head>
-                <body>
-                    <h1>Appointments Schedule</h1>
-                    <p style="text-align:center;">Generated on ${new Date().toLocaleString()}</p>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Client Name</th>
-                                <th>Artist</th>
-                                <th>Service Type</th>
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Status</th>
-                                <th>Price</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${printData}
-                        </tbody>
-                    </table>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-        // Slight delay to ensure rendering before printing
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 250);
+        window.print();
     };
 
     const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
@@ -1963,6 +1910,36 @@ function AdminAppointments() {
                                 totalItems={filteredAppointments.length}
                                 unit="appointments"
                             />
+
+                            {/* Print-only full table (hidden on screen, shown when printing) */}
+                            <div className="print-only-table">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Client Name</th>
+                                            <th>Artist</th>
+                                            <th>Service Type</th>
+                                            <th>Date</th>
+                                            <th>Time</th>
+                                            <th>Status</th>
+                                            <th>Price</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredAppointments.map(a => (
+                                            <tr key={`print-${a.id}`}>
+                                                <td>{a.clientName || 'N/A'}</td>
+                                                <td>{a.artistName || 'N/A'}</td>
+                                                <td>{a.serviceType || 'N/A'}</td>
+                                                <td>{a.date || 'N/A'}</td>
+                                                <td>{a.time || 'N/A'}</td>
+                                                <td>{(a.status || '').toUpperCase()}</td>
+                                                <td>₱{parseFloat(a.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </>
                 )}

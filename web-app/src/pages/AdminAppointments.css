@@ -391,63 +391,67 @@
 }
 
 @media print {
+    /* Show print-only elements */
     .print-only-header {
         display: block !important;
     }
 
-    .admin-side-nav, 
-    .manager-side-nav, 
-
-    .table-card, .data-card {
+    .print-only-table {
         display: block !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        border: none !important;
     }
 
+    /* Hide non-printable UI elements */
+    .admin-side-nav,
+    .manager-side-nav,
+    .portal-header,
+    .header-subtitle,
+    .stats-grid,
+    .search-filter-bar,
+    .modern-search-container,
+    .filter-controls,
+    .view-toggle-container,
+    .calendar-container,
+    .calendar-split-view,
+    .table-card,
+    .data-card,
+    .modal-overlay,
+    .confirm-dialog-overlay {
+        display: none !important;
+    }
+
+    /* Hide pagination */
+    .pagination-wrapper,
+    .pagination-container,
+    .pagination {
+        display: none !important;
+    }
+
+    /* Layout: remove sidebar margin, clean background */
     .admin-page-with-sidenav .admin-page {
         margin-left: 0 !important;
-        padding: 0 !important;
+        padding: 10px !important;
         background: white !important;
     }
 
-
-
-    .stats-row {
-        margin-bottom: 2rem !important;
-    }
-
-    .table-card {
-        border: none !important;
-        box-shadow: none !important;
-    }
-
-    .data-table {
+    /* Print table styling */
+    .print-only-table .data-table {
         width: 100% !important;
         border-collapse: collapse !important;
     }
 
-    .data-table th, 
-    .data-table td {
+    .print-only-table .data-table th,
+    .print-only-table .data-table td {
         border: 1px solid #ddd !important;
         padding: 8px !important;
         color: black !important;
+        font-size: 12px !important;
     }
 
-    .badge {
-        border: 1px solid #000 !important;
-        background: white !important;
-        color: black !important;
-    }
-
-    /* For Calendar View */
-    .calendar-grid {
-        gap: 0 !important;
-    }
-
-    .calendar-grid > div {
-        border: 1px solid #ccc !important;
+    .print-only-table .data-table th {
+        background-color: #f1f5f9 !important;
+        color: #475569 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 
     body {
