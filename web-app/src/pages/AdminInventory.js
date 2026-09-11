@@ -760,8 +760,9 @@ function AdminInventory() {
             </div>
             <header className="portal-header">
                 <div className="header-title">
-                        <h1>Inventory Management</h1>
-                    </div>
+                    <h1>Inventory Management</h1>
+                    <p className="header-subtitle">Track, manage, and audit studio supplies</p>
+                </div>
                 <div className="header-actions">
                     <button className="btn btn-secondary icon-btn" onClick={handlePrint} title="Print Report">
                         <Printer size={18}/>
@@ -784,7 +785,6 @@ function AdminInventory() {
                     </button>
                 </div>
             </header>
-                <p className="header-subtitle">Track, manage, and audit studio supplies</p>
 
             <div className="inventory-stats-grid">
                 <div className="stat-card-v2 glass-card">

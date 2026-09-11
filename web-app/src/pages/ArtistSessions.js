@@ -458,11 +458,11 @@ function ArtistSessions() {
     const handleQuickAddKit = async (kitItems) => {
         if (!activeSession || !kitItems || kitItems.length === 0) return;
         setAddingMaterial(true);
-        try {
-            let successCount = 0;
-            let failedItems = [];
+        let successCount = 0;
+        let failedItems = [];
 
-            for (const item of kitItems) {
+        for (const item of kitItems) {
+            try {
                 const res = await Axios.post(`${API_URL}/api/appointments/${activeSession.id}/materials`, {
                     inventory_id: item.inventory_id,
                     quantity: item.default_quantity
@@ -470,26 +470,26 @@ function ArtistSessions() {
                 if (res.data.success) {
                     successCount++;
                 } else {
-                    failedItems.push(item.item_name);
+                    failedItems.push(item.item_name || 'Unknown item');
                 }
+            } catch (e) {
+                // Collect the failed item name instead of aborting the whole kit
+                failedItems.push(item.item_name || 'Unknown item');
             }
-
-            if (successCount > 0) {
-                fetchSessionMaterials(activeSession.id);
-                if (failedItems.length === 0) {
-                    showAlert("Success", `Added ${successCount} items from kit!`, "success");
-                } else {
-                    showAlert("Partial Success", `Added ${successCount} items. Failed: ${failedItems.join(', ')}`, "warning");
-                }
-            } else {
-                showAlert("Error", "Failed to add kit items. Check inventory levels.", "danger");
-            }
-        } catch (e) {
-            const errorMsg = e.response?.data?.message || "Failed to connect to the server while adding kit.";
-            showAlert("Connection Error", errorMsg, "danger");
-        } finally {
-            setAddingMaterial(false);
         }
+
+        if (successCount > 0) {
+            fetchSessionMaterials(activeSession.id);
+            if (failedItems.length === 0) {
+                showAlert("Success", `Added ${successCount} items from kit!`, "success");
+            } else {
+                showAlert("Partial Success", `Added ${successCount} item(s). Failed due to insufficient stock: ${failedItems.join(', ')}`, "warning");
+            }
+        } else {
+            showAlert("Stock Validation Error", `Could not add any items from this kit. The following items have insufficient stock: ${failedItems.join(', ')}`, "danger");
+        }
+
+        setAddingMaterial(false);
     };
 
     const openInventoryModal = () => {
