@@ -1560,7 +1560,7 @@ function AdminUsers() {
                 {/* PORTFOLIO EDITOR SUB-MODAL */}
                 {/* ═══════════════════════════════════════════════════ */}
                 {editWorkModal.mounted && selectedWork && (
-                    <div className={`modal-overlay ${editWorkModal.visible ? 'open' : ''} admin-st-63d3f2c7`} onClick={closeEditWork}>
+                    <div className={`modal-overlay ${editWorkModal.visible ? 'open' : ''} admin-st-63d3f2c7`} onClick={closeEditWork} style={{ zIndex: 2100 }}>
                         <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <div>
