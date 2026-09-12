@@ -124,7 +124,12 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
   };
 
   // Persist state to sessionStorage whenever it changes
@@ -421,7 +426,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
           </div>
         </div>
 
-        <div className="chat-messages">
+        <div className="chat-messages" ref={chatContainerRef}>
           {activeMessages.map((msg) => {
             // system messages in live chat
             if (msg.sender === 'system') {
