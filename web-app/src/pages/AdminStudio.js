@@ -15,6 +15,7 @@ import AdminAftercare from './AdminAftercare';
 import AdminReports from './AdminReports';
 import AdminSettingsTab from '../components/AdminSettingsTab';
 import './AdminUsers.css'; // Reusing styles
+import './AdminPortalPolish.css';
 
 function AdminStudio() {
     const location = useLocation();
@@ -313,11 +314,15 @@ function AdminStudio() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-page page-container-enter">
+            <div className="admin-page page-container-enter admin-polished-page admin-studio-page">
                 <header className="portal-header">
-                    <h1>Studio Settings</h1>
+                    <div className="header-title">
+                        <h1>Studio Settings</h1>
+                    </div>
                     {activeTab === 'branches' && (
-                        <button className="btn btn-primary" onClick={openAddModal}><Plus size={18} className="admin-st-c02c7d9c"/> Add Branch</button>
+                        <div className="header-actions">
+                            <button className="btn btn-primary" onClick={openAddModal}><Plus size={18} className="admin-st-c02c7d9c"/> Add Branch</button>
+                        </div>
                     )}
                 </header>
 
