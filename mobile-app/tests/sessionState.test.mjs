@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { mergeSessionDetails, parseSessionAudit, restoreSessionTimer, pauseSessionTimer, timerElapsedMs } from '../src/utils/sessionState.js';
 
 const event = (event, seconds) => ({ event, timestamp: new Date(seconds * 1000).toISOString() });
@@ -63,4 +64,25 @@ test('legacy sessions without history start at zero without inventing past time'
   const timer = restoreSessionTimer({ status: 'in_progress' }, null, 50000);
   assert.equal(timerElapsedMs(timer, 50000), 0);
   assert.equal(timerElapsedMs(timer, 55000), 5000);
+});
+
+test('missing session photos use an in-app popup and inline media validation', () => {
+  const source = readFileSync(new URL('../screens/ArtistActiveSession.jsx', import.meta.url), 'utf8');
+  assert.match(source, /showPhotoRequired\('beforePhoto', 'Before Photo Required'/);
+  assert.match(source, /showPhotoRequired\('afterPhoto', 'After Photo Required'/);
+  assert.match(source, /visible=\{validationModal\.visible\}/);
+  assert.match(source, /accessibilityRole="alert" style=\{styles\.mediaErrorText\}/);
+  assert.match(source, /styles\.photoBoxError/);
+  assert.doesNotMatch(source, /showAlert\('Before Photo Required'/);
+  assert.doesNotMatch(source, /showAlert\('Validation Error', 'Please upload an ["']After/);
+});
+
+test('session completion choice and success feedback use in-app modals', () => {
+  const source = readFileSync(new URL('../screens/ArtistActiveSession.jsx', import.meta.url), 'utf8');
+  assert.match(source, /visible=\{completionModalVisible\}/);
+  assert.match(source, />Needs Another Session<\/Text>/);
+  assert.match(source, />Fully Complete<\/Text>/);
+  assert.match(source, /showSessionPopup\('Session Successful'/);
+  assert.doesNotMatch(source, /Alert\.alert\(\s*'Session Completion Status'/);
+  assert.doesNotMatch(source, /showAlert\('Session Completed'/);
 });

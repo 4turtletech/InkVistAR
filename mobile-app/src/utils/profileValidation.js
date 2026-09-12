@@ -57,13 +57,27 @@ const nameError = (value) => {
 
 export const artistProfileErrors = (form = {}) => {
   const errors = {};
-  const fullNameError = nameError(form.name);
+  const usesStructuredName = ['first_name', 'middle_name', 'last_name', 'suffix']
+    .some(key => Object.prototype.hasOwnProperty.call(form, key));
   const phoneError = artistPhoneError(form.phone);
   const experienceText = String(form.experience_years ?? '').trim();
   const experience = Number(experienceText);
   const specialization = normalizeProfileText(form.specialization);
 
-  if (fullNameError) errors.name = fullNameError;
+  if (usesStructuredName) {
+    const firstNameError = namePartError(form.first_name, 'First name', { required: true });
+    const middleNameError = namePartError(form.middle_name, 'Middle name');
+    const lastNameError = namePartError(form.last_name, 'Last name', { required: true });
+    const suffixError = namePartError(form.suffix, 'Suffix', { maxLength: 10 });
+    if (firstNameError) errors.first_name = firstNameError;
+    if (middleNameError) errors.middle_name = middleNameError;
+    if (lastNameError) errors.last_name = lastNameError;
+    if (suffixError) errors.suffix = suffixError;
+    if (composeCustomerName(form).length > 100) errors.first_name = 'Complete legal name cannot exceed 100 characters.';
+  } else {
+    const fullNameError = nameError(form.name);
+    if (fullNameError) errors.name = fullNameError;
+  }
   if (phoneError) errors.phone = phoneError;
   if (!experienceText) errors.experience_years = 'Experience is required.';
   else if (!Number.isInteger(experience) || experience < 0 || experience > 50) {

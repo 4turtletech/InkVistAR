@@ -8,7 +8,7 @@ import {
   Modal, TextInput, RefreshControl, Image, Animated, KeyboardAvoidingView, Platform, Switch, Alert, Keyboard,
 } from 'react-native';
 import {
-  LogOut, Edit3, X, ChevronDown, ChevronUp, Lock, User, Phone, Briefcase,
+  LogOut, Edit3, X, ChevronDown, ChevronUp, ChevronRight, Lock, User, Phone, Briefcase,
   Clock, ShieldAlert, Palette, Activity, Check, Eye, EyeOff, Camera,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -20,7 +20,13 @@ import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { getInitials, formatCurrency } from '../src/utils/formatters';
 import { getArtistDashboard, updateArtistProfile, changeArtistPassword } from '../src/utils/api';
 import { nationalPHPhone, artistPhoneError, artistPhonePayload, artistPasswordRules, artistPasswordErrors } from '../src/utils/artistProfileValidation';
-import { artistProfileErrors, normalizeProfileName, normalizeProfileText } from '../src/utils/profileValidation';
+import {
+  artistProfileErrors,
+  composeCustomerName,
+  normalizeProfileName,
+  normalizeProfileText,
+  suggestCustomerNameParts,
+} from '../src/utils/profileValidation';
 
 export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
   const { theme, isDark, toggleTheme, hapticsEnabled, toggleHaptics } = useTheme();
@@ -28,13 +34,13 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [profile, setProfile] = useState({
-    name: userName || '', email: userEmail || '', phone: '',
+    name: userName || '', ...suggestCustomerNameParts({ name: userName || '' }), email: userEmail || '', phone: '',
     experience_years: 0, specialization: 'General', commission_rate: 0.60,
     profile_image: '',
   });
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [editForm, setEditForm] = useState({});
-  const [showPwd, setShowPwd] = useState(false);
   const [pwdForm, setPwdForm] = useState({ current: '', new: '', confirm: '' });
   const [pwdErrors, setPwdErrors] = useState({});
   const [profileErrors, setProfileErrors] = useState({});
@@ -56,8 +62,9 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
     try {
       const res = await getArtistDashboard(userId);
       if (res.success && res.artist) {
+        const nameParts = suggestCustomerNameParts(res.artist);
         setProfile({
-          name: res.artist.name, email: res.artist.email, phone: res.artist.phone || '',
+          name: res.artist.name, ...nameParts, email: res.artist.email, phone: res.artist.phone || '',
           experience_years: res.artist.experience_years, specialization: res.artist.specialization,
           commission_rate: res.artist.commission_rate,
           profile_image: res.artist.profile_image || '',
@@ -70,58 +77,54 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
   const onRefresh = () => { setRefreshing(true); fetchProfile(); };
 
   const handleEdit = () => {
-    setEditForm({ ...profile, phone: nationalPHPhone(profile.phone), profile_image: pendingImage || profile.profile_image || '' });
+    setEditForm({
+      ...profile,
+      ...suggestCustomerNameParts(profile),
+      phone: nationalPHPhone(profile.phone),
+      profile_image: pendingImage || profile.profile_image || '',
+    });
     setProfileErrors({});
-    setPwdTouched({});
     setSaveError('');
-    setShowPwd(false);
+    setEditModalVisible(true);
+  };
+
+  const handlePasswordOpen = () => {
     setPwdForm({ current: '', new: '', confirm: '' });
     setPwdErrors({});
-    setEditModalVisible(true);
+    setPwdTouched({});
+    setShowPassword({ current: false, new: false, confirm: false });
+    setSaveError('');
+    setPasswordModalVisible(true);
+  };
+
+  const handlePasswordClose = () => {
+    if (loading) return;
+    setPasswordModalVisible(false);
+    setPwdForm({ current: '', new: '', confirm: '' });
+    setPwdErrors({});
+    setPwdTouched({});
+    setSaveError('');
   };
 
   const handleSave = async () => {
     if (loading) return;
     Keyboard.dismiss();
     setSaveError('');
-    if (showPwd) {
-      const fieldErrors = artistPasswordErrors(pwdForm);
-      setPwdTouched({ current: true, new: true, confirm: true });
-      setPwdErrors(fieldErrors);
-      if (Object.keys(fieldErrors).length > 0) return;
-    } else {
-      const fieldErrors = artistProfileErrors(editForm);
-      setProfileErrors(fieldErrors);
-      if (Object.keys(fieldErrors).length > 0) return;
-    }
+    const fieldErrors = artistProfileErrors(editForm);
+    setProfileErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) return;
 
     setLoading(true);
     try {
-      if (showPwd) {
-        const pwdRes = await changeArtistPassword(userId, pwdForm.current, pwdForm.new);
-        if (!pwdRes.success) {
-          if ((pwdRes.message || '').toLowerCase().includes('current password')) {
-            setPwdErrors(prev => ({ ...prev, current: pwdRes.message }));
-          }
-          setSaveError(pwdRes.message || 'Failed to change password.'); return;
-        }
-        setPwdForm({ current: '', new: '', confirm: '' });
-        setPwdErrors({});
-        setShowPwd(false);
-        setEditModalVisible(false);
-        setLoading(false);
-        setAlertModal({
-          visible: true,
-          title: 'Password Changed',
-          message: 'Your password was updated successfully. Please sign in with your new password.',
-          onConfirm: onLogout,
-        });
-        return;
-      }
       // Include pending image in the save payload
       const payload = {
         ...editForm,
-        name: normalizeProfileName(editForm.name),
+        first_name: normalizeProfileName(editForm.first_name),
+        middle_name: normalizeProfileName(editForm.middle_name) || null,
+        last_name: normalizeProfileName(editForm.last_name),
+        suffix: normalizeProfileName(editForm.suffix) || null,
+        name: composeCustomerName(editForm),
+        name_needs_review: false,
         phone: artistPhonePayload(editForm.phone),
         experience_years: Number(editForm.experience_years),
         specialization: normalizeProfileText(editForm.specialization),
@@ -142,6 +145,42 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
       setSaveError('An unexpected error occurred. Please try again.');
     }
     finally { setLoading(false); }
+  };
+
+  const handlePasswordSave = async () => {
+    if (loading) return;
+    Keyboard.dismiss();
+    setSaveError('');
+    const fieldErrors = artistPasswordErrors(pwdForm);
+    setPwdTouched({ current: true, new: true, confirm: true });
+    setPwdErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) return;
+
+    setLoading(true);
+    try {
+      const pwdRes = await changeArtistPassword(userId, pwdForm.current, pwdForm.new);
+      if (!pwdRes.success) {
+        if ((pwdRes.message || '').toLowerCase().includes('current password')) {
+          setPwdErrors(prev => ({ ...prev, current: pwdRes.message }));
+        }
+        setSaveError(pwdRes.message || 'Failed to change password.');
+        return;
+      }
+      setPwdForm({ current: '', new: '', confirm: '' });
+      setPwdErrors({});
+      setPasswordModalVisible(false);
+      setAlertModal({
+        visible: true,
+        title: 'Password Changed',
+        message: 'Your password was updated successfully. Please sign in with your new password.',
+        onConfirm: onLogout,
+      });
+    } catch (e) {
+      console.error('handlePasswordSave error:', e);
+      setSaveError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAvatarPress = () => {
@@ -187,7 +226,7 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
     }
   };
 
-  if (loading && !editModalVisible && !refreshing) return <SafeAreaView style={styles.container}><PremiumLoader message="Loading profile..." /></SafeAreaView>;
+  if (loading && !editModalVisible && !passwordModalVisible && !refreshing) return <SafeAreaView style={styles.container}><PremiumLoader message="Loading profile..." /></SafeAreaView>;
 
   const SPECIALIZATIONS = ['General', 'Realism', 'Traditional', 'Japanese', 'Tribal', 'Fine Line', 'Watercolor', 'Minimalist', 'Blackwork', 'Neo-Traditional', 'Geometric', 'Dotwork'];
 
@@ -255,6 +294,13 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>App Settings</Text>
           <View style={styles.detailsContainer}>
+            <TouchableOpacity style={styles.row} onPress={handlePasswordOpen} activeOpacity={0.8}>
+              <View style={styles.rowLeft}>
+                <View style={styles.iconWrap}><Lock size={16} color={theme.gold} /></View>
+                <Text style={styles.rowLabel}>Change Password</Text>
+              </View>
+              <ChevronRight size={18} color={theme.textTertiary} />
+            </TouchableOpacity>
             <View style={styles.row}>
               <View style={styles.rowLeft}>
                 <View style={styles.iconWrap}><Palette size={16} color={theme.gold} /></View>
@@ -285,7 +331,10 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {[
-                { label: 'Full Name *', key: 'name', kb: 'default' },
+                { label: 'First Name *', key: 'first_name', kb: 'default', max: 50 },
+                { label: 'Middle Name (Optional)', key: 'middle_name', kb: 'default', max: 50 },
+                { label: 'Last Name *', key: 'last_name', kb: 'default', max: 50 },
+                { label: 'Suffix (Optional)', key: 'suffix', kb: 'default', max: 10 },
                 { label: 'Phone Number (+63) (Optional)', key: 'phone', kb: 'number-pad' },
                 { label: 'Experience (Years) *', key: 'experience_years', kb: 'numeric' },
               ].map(field => (
@@ -299,10 +348,10 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
                         const digits = nationalPHPhone(t);
                         setEditForm({ ...editForm, [field.key]: digits });
                         setProfileErrors(prev => ({ ...prev, phone: artistPhoneError(digits) }));
-                      } else if (field.key === 'name') {
-                        const next = { ...editForm, name: t.replace(/[<>\r\n]/g, '').slice(0, 100) };
+                      } else if (['first_name', 'middle_name', 'last_name', 'suffix'].includes(field.key)) {
+                        const next = { ...editForm, [field.key]: t.replace(/[^\p{L}\p{M} .'-]/gu, '').slice(0, field.max) };
                         setEditForm(next);
-                        setProfileErrors(prev => ({ ...prev, name: artistProfileErrors(next).name || '' }));
+                        setProfileErrors(prev => ({ ...prev, [field.key]: artistProfileErrors(next)[field.key] || '' }));
                       } else if (field.key === 'experience_years') {
                         const next = { ...editForm, experience_years: t.replace(/\D/g, '').slice(0, 2) };
                         setEditForm(next);
@@ -315,11 +364,20 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
                     placeholderTextColor={theme.textTertiary}
                     placeholder={field.key === 'phone' ? '9XXXXXXXXX' : ''}
                     onBlur={() => setProfileErrors(prev => ({ ...prev, [field.key]: artistProfileErrors(editForm)[field.key] || '' }))}
-                    maxLength={field.key === 'phone' ? 20 : field.key === 'name' ? 100 : 2}
+                    maxLength={field.key === 'phone' ? 20 : field.max || 2}
                   />
                   {!!profileErrors[field.key] && <Text style={styles.fieldErrorText}>{profileErrors[field.key]}</Text>}
+                  {field.key === 'suffix' ? (
+                    <Text style={styles.nameHelperText}>Your complete legal name is used throughout your artist profile and studio records.</Text>
+                  ) : null}
                 </View>
               ))}
+
+              {editForm.name_needs_review ? (
+                <Text style={styles.nameReviewText}>
+                  We suggested these fields from your existing full name. Please confirm they are correct before saving.
+                </Text>
+              ) : null}
 
               {/* Specialization Multi-Select */}
               <Text style={styles.inputLabel}>Specialization *</Text>
@@ -357,62 +415,89 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
               )}
               {!!profileErrors.specialization && <Text style={styles.fieldErrorText}>{profileErrors.specialization}</Text>}
 
-              <TouchableOpacity style={styles.pwdToggle} onPress={() => { setShowPwd(!showPwd); setPwdErrors({}); setPwdTouched({}); setSaveError(''); }} activeOpacity={0.8}>
-                <View style={{ marginRight: 6 }}><Lock size={16} color={theme.gold} /></View>
-                <Text style={styles.pwdToggleText}>{showPwd ? 'Hide Password Settings' : 'Change Password'}</Text>
-                <View style={{ marginLeft: 6 }}>{showPwd ? <ChevronUp size={16} color={theme.gold} /> : <ChevronDown size={16} color={theme.gold} />}</View>
-              </TouchableOpacity>
-
-              {showPwd && (
-                <View style={styles.pwdSection}>
-                  {[
-                    { label: 'Current Password', key: 'current' },
-                    { label: 'New Password', key: 'new' },
-                    { label: 'Confirm Password', key: 'confirm' },
-                  ].map(f => (
-                    <View key={f.key}>
-                      <Text style={styles.inputLabel}>{f.label}</Text>
-                      <View style={[styles.passwordFieldWrap, pwdErrors[f.key] && styles.inputError]}>
-                        <TextInput
-                          style={[styles.input, { flex: 1, borderWidth: 0 }]}
-                          secureTextEntry={!showPassword[f.key]}
-                          value={pwdForm[f.key]}
-                          onChangeText={t => {
-                            const next = { ...pwdForm, [f.key]: t };
-                            setPwdForm(next);
-                            const validation = artistPasswordErrors(next);
-                            setPwdErrors(prev => ({ ...prev,
-                              [f.key]: pwdTouched[f.key] || t ? validation[f.key] : '',
-                              ...(f.key === 'new' && (pwdTouched.confirm || next.confirm) ? { confirm: validation.confirm } : {}),
-                            }));
-                          }}
-                          onBlur={() => {
-                            setPwdTouched(prev => ({ ...prev, [f.key]: true }));
-                            setPwdErrors(prev => ({ ...prev, [f.key]: artistPasswordErrors(pwdForm)[f.key] }));
-                          }}
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          placeholderTextColor={theme.textTertiary}
-                        />
-                        <TouchableOpacity onPress={() => setShowPassword(p => ({ ...p, [f.key]: !p[f.key] }))} style={{ position: 'absolute', right: 12 }}>
-                          {showPassword[f.key] ? <EyeOff size={18} color={theme.textTertiary} /> : <Eye size={18} color={theme.textTertiary} />}
-                        </TouchableOpacity>
-                      </View>
-                      {pwdErrors[f.key] ? <Text style={styles.fieldErrorText}>{pwdErrors[f.key]}</Text> : null}
-                      {f.key === 'new' && artistPasswordRules(pwdForm.new).map(rule => (
-                        <Text key={rule.label} style={[styles.fieldErrorText, { color: rule.met ? theme.success : theme.textSecondary }]}>
-                          {rule.met ? '✓' : '○'} {rule.label}
-                        </Text>
-                      ))}
-                    </View>
-                  ))}
-                </View>
-              )}
-
               {!!saveError && <Text accessibilityRole="alert" style={styles.fieldErrorText}>{saveError}</Text>}
               <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading} activeOpacity={0.8}>
                 <Text style={styles.saveBtnText}>Save Changes</Text>
                 <View style={{ marginLeft: 8 }}><Check size={18} color={theme.backgroundDeep} /></View>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Change Password Modal */}
+      <Modal
+        visible={passwordModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={handlePasswordClose}
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Change Password</Text>
+              <TouchableOpacity onPress={handlePasswordClose} disabled={loading}>
+                <X size={22} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.passwordModalContent}
+            >
+              <View style={styles.passwordIntro}>
+                <View style={styles.iconWrap}><Lock size={16} color={theme.gold} /></View>
+                <Text style={styles.passwordIntroText}>Enter your current password, then create a secure new password.</Text>
+              </View>
+              {[
+                { label: 'Current Password', key: 'current' },
+                { label: 'New Password', key: 'new' },
+                { label: 'Confirm Password', key: 'confirm' },
+              ].map(f => (
+                <View key={f.key}>
+                  <Text style={styles.inputLabel}>{f.label}</Text>
+                  <View style={[styles.passwordFieldWrap, pwdErrors[f.key] && styles.inputError]}>
+                    <TextInput
+                      style={[styles.input, styles.passwordInput]}
+                      secureTextEntry={!showPassword[f.key]}
+                      value={pwdForm[f.key]}
+                      onChangeText={t => {
+                        const next = { ...pwdForm, [f.key]: t };
+                        setPwdForm(next);
+                        const validation = artistPasswordErrors(next);
+                        setPwdErrors(prev => ({ ...prev,
+                          [f.key]: pwdTouched[f.key] || t ? validation[f.key] : '',
+                          ...(f.key === 'new' && (pwdTouched.confirm || next.confirm) ? { confirm: validation.confirm } : {}),
+                        }));
+                      }}
+                      onBlur={() => {
+                        setPwdTouched(prev => ({ ...prev, [f.key]: true }));
+                        setPwdErrors(prev => ({ ...prev, [f.key]: artistPasswordErrors(pwdForm)[f.key] }));
+                      }}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      placeholderTextColor={theme.textTertiary}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(p => ({ ...p, [f.key]: !p[f.key] }))}
+                      style={styles.passwordVisibilityButton}
+                    >
+                      {showPassword[f.key] ? <EyeOff size={18} color={theme.textTertiary} /> : <Eye size={18} color={theme.textTertiary} />}
+                    </TouchableOpacity>
+                  </View>
+                  {pwdErrors[f.key] ? <Text style={styles.fieldErrorText}>{pwdErrors[f.key]}</Text> : null}
+                  {f.key === 'new' && artistPasswordRules(pwdForm.new).map(rule => (
+                    <Text key={rule.label} style={[styles.fieldErrorText, { color: rule.met ? theme.success : theme.textSecondary }]}>
+                      {rule.met ? '✓' : '○'} {rule.label}
+                    </Text>
+                  ))}
+                </View>
+              ))}
+
+              {!!saveError && <Text accessibilityRole="alert" style={styles.fieldErrorText}>{saveError}</Text>}
+              <TouchableOpacity style={styles.saveBtn} onPress={handlePasswordSave} disabled={loading} activeOpacity={0.8}>
+                <Text style={styles.saveBtnText}>{loading ? 'Updating...' : 'Update Password'}</Text>
+                {!loading && <View style={{ marginLeft: 8 }}><Check size={18} color={theme.backgroundDeep} /></View>}
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -540,15 +625,22 @@ const getStyles = (theme) => StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   specCheckboxActive: { backgroundColor: theme.gold, borderColor: theme.gold },
-  pwdToggle: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    marginTop: 20, paddingVertical: 12, borderTopWidth: 1, borderTopColor: theme.border,
+  passwordModalContent: { paddingBottom: 12 },
+  passwordIntro: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: theme.surfaceLight, borderRadius: 12, padding: 12,
   },
-  pwdToggleText: { ...typography.bodySmall, color: theme.gold, fontWeight: '700' },
-  pwdSection: { backgroundColor: theme.surfaceLight, padding: 12, borderRadius: 12, marginTop: 6 },
+  passwordIntroText: { ...typography.bodySmall, color: theme.textSecondary, flex: 1, lineHeight: 19 },
   passwordFieldWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: theme.border, borderRadius: 12, backgroundColor: theme.surfaceLight },
+  passwordInput: { flex: 1, borderWidth: 0, paddingRight: 44 },
+  passwordVisibilityButton: { position: 'absolute', right: 12, padding: 4 },
   inputError: { borderWidth: 1.5, borderColor: theme.error, borderRadius: 12 },
   fieldErrorText: { ...typography.bodyXSmall, color: theme.error, marginTop: 4 },
+  nameHelperText: { ...typography.bodyXSmall, color: theme.textSecondary, marginTop: 6 },
+  nameReviewText: {
+    ...typography.bodyXSmall, color: theme.warning, lineHeight: 18,
+    marginTop: 12, padding: 10, borderRadius: 10, backgroundColor: `${theme.warning}12`,
+  },
   saveBtn: {
     marginTop: 24, backgroundColor: theme.gold, paddingVertical: 14,
     borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center',

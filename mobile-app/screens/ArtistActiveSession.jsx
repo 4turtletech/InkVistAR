@@ -40,6 +40,9 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const [addingMaterial, setAddingMaterial] = useState(false);
   const [trackerVisible, setTrackerVisible] = useState(false);
   const [abortModalVisible, setAbortModalVisible] = useState(false);
+  const [completionModalVisible, setCompletionModalVisible] = useState(false);
+  const [validationModal, setValidationModal] = useState({ visible: false, title: '', message: '', type: 'validation', onDismiss: null });
+  const [mediaErrors, setMediaErrors] = useState({ beforePhoto: '', afterPhoto: '' });
   const [abortReason, setAbortReason] = useState('');
   const [draftImage, setDraftImage] = useState(null);
   const [refImage, setRefImage] = useState(null);
@@ -168,6 +171,27 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     Alert.alert(title, message, [{ text: 'OK', onPress: onDismiss }]);
   };
 
+  const showPhotoRequired = (field, title, message) => {
+    setMediaErrors(current => ({ ...current, [field]: message }));
+    setValidationModal({
+      visible: true,
+      title,
+      message,
+      type: 'validation',
+      onDismiss: null,
+    });
+  };
+
+  const showSessionPopup = (title, message, onDismiss) => {
+    setValidationModal({ visible: true, title, message, type: 'success', onDismiss });
+  };
+
+  const closeValidationModal = () => {
+    const onDismiss = validationModal.onDismiss;
+    setValidationModal({ visible: false, title: '', message: '', type: 'validation', onDismiss: null });
+    onDismiss?.();
+  };
+
   const getSessionRequestError = (result, fallback) => {
     if (result?.status === 401) {
       return 'Your sign-in session has expired. Please sign out and sign in again.';
@@ -223,7 +247,10 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { showAlert('Permission Denied', 'Photo access is required.'); return; }
     let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', allowsEditing: true, quality: 0.5, base64: true });
-    if (!result.canceled) editSessionField(type, `data:image/jpeg;base64,${result.assets[0].base64}`);
+    if (!result.canceled) {
+      editSessionField(type, `data:image/jpeg;base64,${result.assets[0].base64}`);
+      setMediaErrors(current => ({ ...current, [type]: '' }));
+    }
   };
 
   const processStatusUpdate = async (newStatus, isFullyComplete = true, nextAuditLog = auditLog) => {
@@ -256,7 +283,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
       if (r.success) {
         setAuditLog(nextAuditLog);
         setStatus(newStatus);
-        if (newStatus === 'completed') showAlert('Session Completed', `Session marked as complete. Total material cost: P${sessionCost.toLocaleString()}.`, () => onComplete?.());
+        if (newStatus === 'completed') showSessionPopup('Session Successful', `Session marked as complete. Total material cost: P${sessionCost.toLocaleString()}.`, () => onComplete?.());
         else if (newStatus === 'incomplete') showAlert('Session Aborted', 'Session has been marked as incomplete.', () => onComplete?.());
         else if (newStatus === 'in_progress') setTimeout(fetchSessionMaterials, 1000);
       } else showAlert('Error', getSessionRequestError(r, 'Failed to update the session status.'));
@@ -271,7 +298,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
 
     if (newStatus === 'in_progress') {
       if (!sessionData.beforePhoto) {
-        showAlert('Before Photo Required', 'Please upload a "Before" photo documenting the client\'s current state before starting.');
+        showPhotoRequired('beforePhoto', 'Before Photo Required', 'Please upload a Before Photo documenting the client\'s current state before starting.');
         return;
       }
       
@@ -286,11 +313,11 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
 
     if (newStatus === 'completed') {
       if (!sessionData.beforePhoto) {
-        showAlert('Validation Error', 'Please upload a "Before" photo documenting the client\'s state before the procedure.');
+        showPhotoRequired('beforePhoto', 'Before Photo Required', 'Please upload a Before Photo documenting the client\'s state before completing the session.');
         return;
       }
       if (!sessionData.afterPhoto) {
-        showAlert('Validation Error', 'Please upload an "After" photo documenting the completed work.');
+        showPhotoRequired('afterPhoto', 'After Photo Required', 'Please upload an After Photo documenting the completed work before completing the session.');
         return;
       }
       if (!sessionData.notes || sessionData.notes.trim().length < 10) {
@@ -302,22 +329,25 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
         return;
       }
 
-      const materialsList = sessionMaterials.map(m => `${m.quantity}x ${m.item_name}`).join(', ');
-      Alert.alert(
-        'Session Completion Status',
-        `Does this piece need another session, or is the tattoo fully complete?\n\nStuff Used: ${materialsList || 'None'}\n(Total material cost: P${sessionCost.toLocaleString()})`,
-        [
-          { text: 'Needs Another', style: 'cancel', onPress: () => {
-            const completionLog = [...auditLog, { timestamp: new Date().toISOString(), event: 'Session Partially Completed', note: 'Needs another session' }];
-            processStatusUpdate('completed', false, completionLog);
-          }},
-          { text: 'Fully Complete', onPress: () => processStatusUpdate('completed', true, auditLog) }
-        ]
-      );
+      setCompletionModalVisible(true);
       return;
     }
 
     await processStatusUpdate(newStatus, true, nextAuditLog);
+  };
+
+  const completeWithAnotherSession = () => {
+    setCompletionModalVisible(false);
+    const completionLog = [
+      ...auditLog,
+      { timestamp: new Date().toISOString(), event: 'Session Partially Completed', note: 'Needs another session' },
+    ];
+    processStatusUpdate('completed', false, completionLog);
+  };
+
+  const completeFully = () => {
+    setCompletionModalVisible(false);
+    processStatusUpdate('completed', true, auditLog);
   };
 
   const handleAbortSession = () => {
@@ -621,13 +651,30 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
           {/* Photos */}
           <Text style={styles.sectionTitle}>Session Media</Text>
           <View style={styles.photoGrid}>
-            {['beforePhoto', 'afterPhoto'].map(type => (
-              <TouchableOpacity key={type} style={styles.photoBox} onPress={() => pickImage(type)} activeOpacity={0.8}>
-                {sessionData[type] ? <Image source={{ uri: sessionData[type] }} style={styles.uploadedPhoto} /> : (
-                  <View style={styles.photoPlaceholder}><Camera size={28} color={colors.textTertiary} /><Text style={styles.photoLabel}>{type === 'beforePhoto' ? 'Before Photo' : 'After Photo'}</Text></View>
-                )}
-              </TouchableOpacity>
-            ))}
+            {['beforePhoto', 'afterPhoto'].map(type => {
+              const fieldError = mediaErrors[type];
+              const isBeforePhoto = type === 'beforePhoto';
+              return (
+                <View key={type} style={styles.photoField}>
+                  <TouchableOpacity
+                    style={[styles.photoBox, fieldError && styles.photoBoxError]}
+                    onPress={() => pickImage(type)}
+                    activeOpacity={0.8}
+                    accessibilityLabel={isBeforePhoto ? 'Upload required Before Photo' : 'Upload After Photo'}
+                  >
+                    {sessionData[type] ? <Image source={{ uri: sessionData[type] }} style={styles.uploadedPhoto} /> : (
+                      <View style={styles.photoPlaceholder}>
+                        <Camera size={28} color={fieldError ? colors.error : colors.textTertiary} />
+                        <Text style={[styles.photoLabel, fieldError && styles.photoLabelError]}>
+                          {isBeforePhoto ? 'Before Photo *' : 'After Photo *'}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                  {!!fieldError && <Text accessibilityRole="alert" style={styles.mediaErrorText}>{fieldError}</Text>}
+                </View>
+              );
+            })}
           </View>
 
           {/* Materials Button */}
@@ -719,6 +766,78 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
         </View>
       </Modal>
 
+      {/* Session Completion Choice */}
+      <Modal
+        visible={completionModalVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setCompletionModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.validationModalCard}>
+            <View style={[styles.validationIcon, { backgroundColor: `${colors.gold}18` }]}>
+              <CheckCircle size={26} color={colors.gold} />
+            </View>
+            <Text style={styles.validationModalTitle}>Complete Session</Text>
+            <Text style={styles.validationModalMessage}>
+              Does this piece need another session, or is the tattoo fully complete?
+            </Text>
+            <View style={styles.completionSummary}>
+              <Text style={styles.completionSummaryLabel}>Materials Used</Text>
+              <Text style={styles.completionSummaryValue}>
+                {sessionMaterials.map(material => `${material.quantity}x ${material.item_name}`).join(', ') || 'None'}
+              </Text>
+              <Text style={styles.completionSummaryCost}>Total material cost: P{sessionCost.toLocaleString()}</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.modalBtn, styles.completionSecondaryButton]}
+              onPress={completeWithAnotherSession}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.modalBtnText, { color: colors.textPrimary }]}>Needs Another Session</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalBtn, styles.validationModalButton]}
+              onPress={completeFully}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalBtnText}>Fully Complete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Session Validation Popup */}
+      <Modal
+        visible={validationModal.visible}
+        animationType="fade"
+        transparent
+        onRequestClose={closeValidationModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.validationModalCard}>
+            <View style={[
+              styles.validationIcon,
+              validationModal.type === 'success' && { backgroundColor: `${colors.success}18` },
+            ]}>
+              {validationModal.type === 'success'
+                ? <CheckCircle size={26} color={colors.success} />
+                : <Camera size={26} color={colors.error} />}
+            </View>
+            <Text style={styles.validationModalTitle}>{validationModal.title}</Text>
+            <Text style={styles.validationModalMessage}>{validationModal.message}</Text>
+            <TouchableOpacity
+              style={[styles.modalBtn, styles.validationModalButton]}
+              onPress={closeValidationModal}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalBtnText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Abort Session Modal */}
       <Modal visible={abortModalVisible} animationType="fade" transparent onRequestClose={() => setAbortModalVisible(false)}>
@@ -799,11 +918,15 @@ const getStyles = (colors) => StyleSheet.create({
   actionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, paddingHorizontal: 28, borderRadius: 12, width: '100%' },
   actionBtnText: { color: '#ffffff', fontSize: 17, fontWeight: '700' },
   sectionTitle: { ...typography.h4, color: colors.textPrimary, marginBottom: 14 },
-  photoGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 28 },
-  photoBox: { width: '48%', aspectRatio: 1, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  photoGrid: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 },
+  photoField: { width: '48%' },
+  photoBox: { width: '100%', aspectRatio: 1, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  photoBoxError: { borderColor: colors.error, backgroundColor: `${colors.error}0D` },
   uploadedPhoto: { width: '100%', height: '100%', resizeMode: 'cover' },
   photoPlaceholder: { alignItems: 'center' },
   photoLabel: { marginTop: 6, ...typography.bodyXSmall, color: colors.textTertiary, fontWeight: '600' },
+  photoLabelError: { color: colors.error },
+  mediaErrorText: { ...typography.bodyXSmall, color: colors.error, lineHeight: 16, marginTop: 6 },
   costBadge: { backgroundColor: colors.iconGoldBg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: colors.borderGold },
   costBadgeText: { color: colors.gold, fontWeight: '700', ...typography.bodySmall },
   materialsWrap: { marginBottom: 28 },
@@ -852,6 +975,28 @@ const getStyles = (colors) => StyleSheet.create({
   modalCard: { backgroundColor: colors.surface, borderRadius: 20, padding: 24, width: '85%', borderWidth: 1, borderColor: colors.border },
   modalBtn: { backgroundColor: colors.gold, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
   modalBtnText: { ...typography.button, color: colors.backgroundDeep, fontSize: 16 },
+  validationModalCard: {
+    backgroundColor: colors.surface, borderRadius: 20, padding: 24, width: '85%',
+    borderWidth: 1, borderColor: colors.border, alignItems: 'center',
+  },
+  validationIcon: {
+    width: 52, height: 52, borderRadius: 26, backgroundColor: `${colors.error}18`,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 14,
+  },
+  validationModalTitle: { ...typography.h3, color: colors.textPrimary, textAlign: 'center', marginBottom: 8 },
+  validationModalMessage: { ...typography.body, color: colors.textSecondary, textAlign: 'center', lineHeight: 21 },
+  validationModalButton: { width: '100%', marginTop: 22 },
+  completionSummary: {
+    width: '100%', backgroundColor: colors.surfaceLight, borderRadius: 12,
+    borderWidth: 1, borderColor: colors.border, padding: 14, marginTop: 18,
+  },
+  completionSummaryLabel: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '700', marginBottom: 5 },
+  completionSummaryValue: { ...typography.bodySmall, color: colors.textPrimary, lineHeight: 19 },
+  completionSummaryCost: { ...typography.bodySmall, color: colors.gold, fontWeight: '700', marginTop: 10 },
+  completionSecondaryButton: {
+    width: '100%', marginTop: 18, backgroundColor: colors.surfaceLight,
+    borderWidth: 1, borderColor: colors.border,
+  },
 
   medicalBanner: { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.3)', borderRadius: 12, padding: 16, marginBottom: 24 },
   medicalBannerTitle: { ...typography.bodySmall, fontWeight: '700', color: colors.error },

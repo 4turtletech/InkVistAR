@@ -24,6 +24,36 @@ test('artist profile rejects incomplete identity and invalid professional detail
   assert.ok(errors.specialization);
 });
 
+test('artist structured names compose safely and require first and last names', () => {
+  const structured = { first_name: 'Juan', middle_name: 'Santos', last_name: 'Dela Cruz', suffix: 'Jr.' };
+  assert.equal(composeCustomerName(structured), 'Juan Santos Dela Cruz Jr.');
+  assert.deepEqual(artistProfileErrors({ ...structured, phone: '9171234567', experience_years: '5', specialization: 'Realism' }), {});
+  assert.ok(artistProfileErrors({ ...structured, first_name: '', phone: '', experience_years: '5', specialization: 'Realism' }).first_name);
+  assert.ok(artistProfileErrors({ ...structured, last_name: '', phone: '', experience_years: '5', specialization: 'Realism' }).last_name);
+
+  const source = readFileSync(new URL('../screens/ArtistProfile.jsx', import.meta.url), 'utf8');
+  assert.match(source, /label: 'First Name \*'/);
+  assert.match(source, /label: 'Middle Name \(Optional\)'/);
+  assert.match(source, /label: 'Last Name \*'/);
+  assert.match(source, /label: 'Suffix \(Optional\)'/);
+  assert.match(source, /name: composeCustomerName\(editForm\)/);
+});
+
+test('artist password change is a separate profile action and modal', () => {
+  const source = readFileSync(new URL('../screens/ArtistProfile.jsx', import.meta.url), 'utf8');
+  const editModalStart = source.indexOf('{/* Edit Profile Modal */}');
+  const passwordModalStart = source.indexOf('{/* Change Password Modal */}');
+  const profileSaveStart = source.indexOf('const handleSave = async');
+  const passwordSaveStart = source.indexOf('const handlePasswordSave = async');
+
+  assert.ok(editModalStart >= 0 && passwordModalStart > editModalStart);
+  assert.match(source, /style=\{styles\.row\} onPress=\{handlePasswordOpen\}/);
+  assert.match(source, /visible=\{passwordModalVisible\}/);
+  assert.doesNotMatch(source.slice(editModalStart, passwordModalStart), /pwdForm|Current Password|New Password/);
+  assert.doesNotMatch(source.slice(profileSaveStart, passwordSaveStart), /changeArtistPassword/);
+  assert.match(source.slice(passwordSaveStart), /changeArtistPassword\(userId, pwdForm\.current, pwdForm\.new\)/);
+});
+
 test('customer profile validates every editable field and normalizes safe text', () => {
   assert.deepEqual(customerProfileErrors({ name: 'Maria Santos', phone: '9171234567', location: 'Pasay City' }), {});
   assert.ok(customerProfileErrors({ name: 'M', phone: '123', location: 'x'.repeat(201) }).name);
