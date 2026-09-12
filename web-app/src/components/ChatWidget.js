@@ -124,11 +124,16 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
   };
 
   const scrollToBottom = () => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTo({
-        top: chatContainerRef.current.scrollHeight,
-        behavior: "smooth"
-      });
+    const container = chatContainerRef.current;
+    if (container) {
+      if (typeof container.scrollTo === 'function') {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: "smooth"
+        });
+      } else {
+        container.scrollTop = container.scrollHeight;
+      }
     }
   };
 
