@@ -311,6 +311,272 @@
     font-weight: 600;
 }
 
+/* Add/Edit Item modal -----------------------------------------------------
+   The editor must not depend on form rules from the lazily loaded Users page. */
+.modal-content.large.inventory-item-modal {
+    width: calc(100vw - 40px);
+    max-width: 1100px;
+    max-height: min(90vh, 850px);
+}
+
+.inventory-item-modal .inventory-item-form {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.inventory-item-modal .modal-body {
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.inventory-item-modal .admin-st-6e0f6c6a,
+.inventory-item-modal .admin-st-c68bdd5b,
+.inventory-item-modal .admin-st-ece89b73,
+.inventory-item-modal .admin-st-6e0f6c6a > *,
+.inventory-item-modal .admin-st-c68bdd5b > *,
+.inventory-item-modal .admin-st-ece89b73 > * {
+    min-width: 0;
+}
+
+.inventory-item-modal .form-group {
+    min-width: 0;
+    margin: 0;
+}
+
+.inventory-item-modal .form-group > label,
+.inventory-item-modal .glass-panel > label {
+    display: block;
+    margin-bottom: 0.45rem;
+    color: #374151;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.inventory-item-modal .premium-label {
+    margin-bottom: 0.6rem;
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+}
+
+.inventory-item-modal .form-input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid #dbe3ee;
+    border-radius: 9px;
+    outline: none;
+    background: #fff;
+    color: #1e293b;
+    font: inherit;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.inventory-item-modal .form-input::placeholder {
+    color: #94a3b8;
+}
+
+.inventory-item-modal .form-input:focus {
+    border-color: #be9055;
+    box-shadow: 0 0 0 3px rgba(190, 144, 85, 0.12);
+}
+
+.inventory-item-modal .form-input.error {
+    border-color: #dc2626;
+    background: #fff7f7;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+}
+
+.inventory-item-modal .form-input.admin-st-7047dd0b {
+    margin-top: 5px;
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.inventory-item-modal .form-input.admin-st-45e16daa {
+    border-color: #be9055;
+    border-style: dashed;
+}
+
+.inventory-item-modal label.admin-st-af89d6d6,
+.inventory-item-modal label.admin-st-4d4ffce1 {
+    font-size: 0.75rem;
+}
+
+.inventory-item-modal label.admin-st-4d4ffce1 {
+    font-weight: 700;
+}
+
+.inventory-item-modal label.admin-st-496ebd9a {
+    color: #991b1b;
+    font-size: 0.7rem;
+}
+
+.inventory-item-modal input[type="file"].form-input {
+    padding: 0.35rem;
+    color: #64748b;
+}
+
+.inventory-item-modal input[type="file"].form-input::file-selector-button {
+    margin-right: 0.75rem;
+    padding: 0.55rem 0.75rem;
+    border: 0;
+    border-radius: 7px;
+    background: #eef2f7;
+    color: #334155;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.inventory-item-modal .glass-panel {
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.inventory-item-modal .panel-title {
+    display: block;
+    margin-bottom: 0.75rem;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+}
+
+.inventory-item-modal .modal-footer {
+    position: relative;
+    z-index: 1;
+}
+
+/* Restock/Deduct modal ---------------------------------------------------
+   Keep transaction controls styled on a direct Inventory page load. */
+.modal-content.inventory-transaction-modal {
+    width: calc(100vw - 40px);
+    max-width: 520px;
+}
+
+.inventory-transaction-modal .inventory-transaction-form {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.inventory-transaction-modal .modal-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.inventory-transaction-modal .form-group {
+    min-width: 0;
+    margin-bottom: 1.2rem;
+}
+
+.inventory-transaction-modal .form-group:last-of-type {
+    margin-bottom: 0;
+}
+
+.inventory-transaction-modal .form-group > label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #475569;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.inventory-transaction-modal .form-input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid #dbe3ee;
+    border-radius: 9px;
+    outline: none;
+    background: #fff;
+    color: #1e293b;
+    font: inherit;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.inventory-transaction-modal .form-input:focus {
+    border-color: #be9055;
+    box-shadow: 0 0 0 3px rgba(190, 144, 85, 0.12);
+}
+
+.inventory-transaction-modal.restock .form-input:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
+.inventory-transaction-modal.deduct .form-input:focus {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.inventory-transaction-modal .form-input.error {
+    border-color: #dc2626;
+    background: #fff7f7;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+}
+
+.inventory-transaction-modal .form-input.admin-st-934f10ff {
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.inventory-transaction-modal .modal-footer {
+    position: relative;
+    z-index: 1;
+}
+
+@media (max-width: 768px) {
+    .modal-content.large.inventory-item-modal {
+        width: 100%;
+        max-width: 100%;
+        max-height: 90vh;
+    }
+
+    .inventory-item-modal .admin-st-c68bdd5b,
+    .inventory-item-modal .admin-st-ece89b73 {
+        grid-template-columns: 1fr !important;
+    }
+
+    .inventory-item-modal .modal-footer .btn,
+    .inventory-item-modal .inventory-edit-delete-btn {
+        flex: 1 1 100%;
+    }
+
+    .modal-content.inventory-transaction-modal {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .inventory-transaction-modal .modal-footer .btn {
+        flex: 1 1 calc(50% - 6px);
+    }
+}
+
 .data-table thead th {
     background: rgba(248, 250, 252, 0.5);
     color: #64748b;
@@ -523,4 +789,57 @@
     opacity: 0.55;
     cursor: not-allowed;
     transform: none;
+}
+
+/* Inventory table actions must not inherit the hidden gallery delete control. */
+.data-table .inventory-table-action {
+    position: static;
+    top: auto;
+    right: auto;
+    display: inline-flex;
+    width: 40px;
+    min-width: 40px;
+    height: 36px;
+    min-height: 36px;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    opacity: 1;
+    transform: none;
+    color: #fff;
+    z-index: auto;
+}
+
+.inventory-archived-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+}
+
+.data-table .inventory-archive-action,
+.data-table .inventory-permanent-delete-action {
+    border-color: #ef4444;
+    background: #ef4444;
+}
+
+.data-table .inventory-restore-action {
+    border-color: #10b981;
+    background: #10b981;
+}
+
+.data-table .inventory-archive-action:hover,
+.data-table .inventory-permanent-delete-action:hover {
+    background: #dc2626;
+    box-shadow: 0 4px 10px rgba(220, 38, 38, 0.22);
+    transform: translateY(-1px);
+}
+
+.data-table .inventory-restore-action:hover {
+    background: #059669;
+    box-shadow: 0 4px 10px rgba(5, 150, 105, 0.22);
+    transform: translateY(-1px);
 }

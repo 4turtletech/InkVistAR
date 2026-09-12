@@ -506,18 +506,19 @@ function AdminInventory() {
     const handleDelete = (id, { closeEditorOnSuccess = false } = {}) => {
         setConfirmDialog({
             isOpen: true,
-            title: 'Delete Item',
-            message: 'Are you sure you want to delete this item? It will be moved to the deleted items view.',
+            title: 'Archive Item',
+            message: 'Are you sure you want to archive this item? It will be moved to the archived items view.',
+            confirmText: 'Archive Item',
             onConfirm: async () => {
                 setConfirmDialog({ isOpen: false });
                 try {
                     await Axios.delete(`${API_URL}/api/admin/inventory/${id}`);
                     if (closeEditorOnSuccess) closeModal(setAddEditModal);
                     fetchInventory();
-                    showAlert('Item Archived', 'The inventory item was moved to the deleted items view.', 'success');
+                    showAlert('Item Archived', 'The inventory item was moved to the archived items view.', 'success');
                 } catch (error) {
-                    console.error("Error deleting item:", error);
-                    showAlert('Delete Failed', error.response?.data?.message || 'The inventory item could not be archived.', 'danger');
+                    console.error("Error archiving item:", error);
+                    showAlert('Archive Failed', error.response?.data?.message || 'The inventory item could not be archived.', 'danger');
                 }
             }
         });
@@ -975,15 +976,15 @@ function AdminInventory() {
                                                     <button className="action-btn edit-btn admin-st-c4858c02" onClick={() => handleEdit(item)} title="Edit" style={{ backgroundColor: '#3b82f6', color: 'white', borderColor: '#3b82f6' }}>
                                                         <Edit2 size={16}/>
                                                     </button>
-                                                    <button className="action-btn delete-btn" onClick={() => handleDelete(item.id)} title="Archive Item" aria-label={`Archive ${item.name}`}>
+                                                    <button className="action-btn inventory-table-action inventory-archive-action" onClick={() => handleDelete(item.id)} title="Archive Item" aria-label={`Archive ${item.name}`}>
                                                         <Trash2 size={16}/>
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <>
-                                                    <button className="action-btn view-btn admin-st-f1f5ea52" onClick={() => handleRestore(item.id)} title="Restore"><RotateCcw size={16}/></button>
-                                                    <button className="action-btn delete-btn" onClick={() => handlePermanentDelete(item.id)} title="Permanent Delete"><Trash2 size={16}/></button>
-                                                </>
+                                                <div className="inventory-archived-actions">
+                                                    <button className="action-btn inventory-table-action inventory-restore-action" onClick={() => handleRestore(item.id)} title="Restore Item" aria-label={`Restore ${item.name}`}><RotateCcw size={16}/></button>
+                                                    <button className="action-btn inventory-table-action inventory-permanent-delete-action" onClick={() => handlePermanentDelete(item.id)} title="Permanently Delete Item" aria-label={`Permanently delete ${item.name}`}><Trash2 size={16}/></button>
+                                                </div>
                                             )}
                                         </td>
                                     </tr>
@@ -1045,12 +1046,12 @@ function AdminInventory() {
             {/* Add/Edit Modal */}
             {addEditModal.mounted && (
                 <div className={`modal-overlay ${addEditModal.visible ? 'open' : ''}`} onClick={() => closeModal(setAddEditModal)}>
-                    <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content large inventory-item-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>{selectedItem ? 'Edit Inventory Item' : 'Register New Item'}</h2>
                             <button className="close-btn" onClick={() => closeModal(setAddEditModal)}><X size={24}/></button>
                         </div>
-                        <form onSubmit={handleSave}>
+                        <form className="inventory-item-form" onSubmit={handleSave}>
                             <div className="modal-body">
                                 <div className="admin-st-6e0f6c6a">
                                     {/* Left Column: Basic Info */}
@@ -1274,7 +1275,7 @@ function AdminInventory() {
                                         onClick={() => handleDelete(selectedItem.id, { closeEditorOnSuccess: true })}
                                         disabled={isSaving}
                                     >
-                                        <Trash2 size={16} /> Archive Duplicate
+                                        <Trash2 size={16} /> Archive Item
                                     </button>
                                 )}
                                 <button type="button" className="btn btn-secondary" onClick={() => closeModal(setAddEditModal)} disabled={isSaving}>Cancel</button>
@@ -1290,12 +1291,12 @@ function AdminInventory() {
             {/* Transaction Modal */}
             {transactionModal.mounted && (
                 <div className={`modal-overlay ${transactionModal.visible ? 'open' : ''}`} onClick={() => closeModal(setTransactionModal)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                    <div className={`modal-content inventory-transaction-modal ${transactionData.type === 'in' ? 'restock' : 'deduct'}`} onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>{transactionData.type === 'in' ? 'Restock Item' : 'Deduct Stock'}</h2>
                             <button className="close-btn" onClick={() => closeModal(setTransactionModal)}><X size={24}/></button>
                         </div>
-                        <form onSubmit={handleTransaction}>
+                        <form className="inventory-transaction-form" onSubmit={handleTransaction}>
                             <div className="modal-body">
                                 <div className="admin-st-7f97b32e">
                                     <div className="admin-st-14f13811">
