@@ -20,6 +20,7 @@ import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { getInitials, formatCurrency } from '../src/utils/formatters';
 import { getArtistDashboard, updateArtistProfile, changeArtistPassword } from '../src/utils/api';
 import { nationalPHPhone, artistPhoneError, artistPhonePayload, artistPasswordRules, artistPasswordErrors } from '../src/utils/artistProfileValidation';
+import { artistProfileErrors, normalizeProfileName, normalizeProfileText } from '../src/utils/profileValidation';
 
 export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
   const { theme, isDark, toggleTheme, hapticsEnabled, toggleHaptics } = useTheme();
@@ -89,9 +90,9 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
       setPwdErrors(fieldErrors);
       if (Object.keys(fieldErrors).length > 0) return;
     } else {
-      const phone = artistPhoneError(editForm.phone);
-      setProfileErrors({ phone });
-      if (phone) return;
+      const fieldErrors = artistProfileErrors(editForm);
+      setProfileErrors(fieldErrors);
+      if (Object.keys(fieldErrors).length > 0) return;
     }
 
     setLoading(true);
@@ -112,13 +113,19 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
         setAlertModal({
           visible: true,
           title: 'Password Changed',
-          message: 'Your password was updated and a 6-digit verification code was sent to your email. Enter it when you sign in again.',
+          message: 'Your password was updated successfully. Please sign in with your new password.',
           onConfirm: onLogout,
         });
         return;
       }
       // Include pending image in the save payload
-      const payload = { ...editForm, phone: artistPhonePayload(editForm.phone) };
+      const payload = {
+        ...editForm,
+        name: normalizeProfileName(editForm.name),
+        phone: artistPhonePayload(editForm.phone),
+        experience_years: Number(editForm.experience_years),
+        specialization: normalizeProfileText(editForm.specialization),
+      };
       if (pendingImage) payload.profileImage = pendingImage;
       const res = await updateArtistProfile(userId, payload);
       if (res.success) {
@@ -278,9 +285,9 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
             </View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {[
-                { label: 'Full Name', key: 'name', kb: 'default' },
-                { label: 'Phone Number (+63)', key: 'phone', kb: 'number-pad' },
-                { label: 'Experience (Years)', key: 'experience_years', kb: 'numeric' },
+                { label: 'Full Name *', key: 'name', kb: 'default' },
+                { label: 'Phone Number (+63) (Optional)', key: 'phone', kb: 'number-pad' },
+                { label: 'Experience (Years) *', key: 'experience_years', kb: 'numeric' },
               ].map(field => (
                 <View key={field.key}>
                   <Text style={styles.inputLabel}>{field.label}</Text>
@@ -292,6 +299,14 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
                         const digits = nationalPHPhone(t);
                         setEditForm({ ...editForm, [field.key]: digits });
                         setProfileErrors(prev => ({ ...prev, phone: artistPhoneError(digits) }));
+                      } else if (field.key === 'name') {
+                        const next = { ...editForm, name: t.replace(/[<>\r\n]/g, '').slice(0, 100) };
+                        setEditForm(next);
+                        setProfileErrors(prev => ({ ...prev, name: artistProfileErrors(next).name || '' }));
+                      } else if (field.key === 'experience_years') {
+                        const next = { ...editForm, experience_years: t.replace(/\D/g, '').slice(0, 2) };
+                        setEditForm(next);
+                        setProfileErrors(prev => ({ ...prev, experience_years: artistProfileErrors(next).experience_years || '' }));
                       } else {
                         setEditForm({ ...editForm, [field.key]: t });
                       }
@@ -299,16 +314,16 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
                     keyboardType={field.kb}
                     placeholderTextColor={theme.textTertiary}
                     placeholder={field.key === 'phone' ? '9XXXXXXXXX' : ''}
-                    onBlur={() => { if (field.key === 'phone') setProfileErrors(prev => ({ ...prev, phone: artistPhoneError(editForm.phone) })); }}
-                    maxLength={field.key === 'phone' ? 20 : undefined}
+                    onBlur={() => setProfileErrors(prev => ({ ...prev, [field.key]: artistProfileErrors(editForm)[field.key] || '' }))}
+                    maxLength={field.key === 'phone' ? 20 : field.key === 'name' ? 100 : 2}
                   />
                   {!!profileErrors[field.key] && <Text style={styles.fieldErrorText}>{profileErrors[field.key]}</Text>}
                 </View>
               ))}
 
               {/* Specialization Multi-Select */}
-              <Text style={styles.inputLabel}>Specialization</Text>
-              <TouchableOpacity style={styles.specDropdownBtn} onPress={() => setSpecDropdownOpen(!specDropdownOpen)} activeOpacity={0.8}>
+              <Text style={styles.inputLabel}>Specialization *</Text>
+              <TouchableOpacity style={[styles.specDropdownBtn, profileErrors.specialization && styles.inputError]} onPress={() => setSpecDropdownOpen(!specDropdownOpen)} activeOpacity={0.8}>
                 <Text style={styles.specDropdownValue} numberOfLines={1}>{editForm.specialization || 'Select specializations...'}</Text>
                 {specDropdownOpen ? <ChevronUp size={16} color={theme.gold} /> : <ChevronDown size={16} color={theme.gold} />}
               </TouchableOpacity>
@@ -326,7 +341,9 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
                           } else {
                             updated = [...currentSpecs, spec];
                           }
-                          setEditForm({ ...editForm, specialization: updated.join(', ') });
+                          const next = { ...editForm, specialization: updated.join(', ') };
+                          setEditForm(next);
+                          setProfileErrors(prev => ({ ...prev, specialization: artistProfileErrors(next).specialization || '' }));
                         }}>
                           <Text style={[styles.specDropdownItemText, isSelected && { color: theme.gold, fontWeight: '700' }]}>{spec}</Text>
                           <View style={[styles.specCheckbox, isSelected && styles.specCheckboxActive]}>
@@ -338,6 +355,7 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
                   </ScrollView>
                 </View>
               )}
+              {!!profileErrors.specialization && <Text style={styles.fieldErrorText}>{profileErrors.specialization}</Text>}
 
               <TouchableOpacity style={styles.pwdToggle} onPress={() => { setShowPwd(!showPwd); setPwdErrors({}); setPwdTouched({}); setSaveError(''); }} activeOpacity={0.8}>
                 <View style={{ marginRight: 6 }}><Lock size={16} color={theme.gold} /></View>

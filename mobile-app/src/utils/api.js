@@ -274,7 +274,7 @@ export const resetUserPassword = async (email, token, newPassword) => {
 };
 
 // Register user
-export const registerUser = async (name, email, password, _userType, phone, orphanAppointmentId, healthConditions = [], healthAllergens = [], captchaToken) => {
+export const registerUser = async (name, email, password, _userType, phone, orphanAppointmentId, healthConditions = [], healthAllergens = [], captchaToken, nameParts = {}) => {
   if (!name || !email || !password) {
     return { success: false, message: 'All fields are required' };
   }
@@ -287,10 +287,19 @@ export const registerUser = async (name, email, password, _userType, phone, orph
   if (!captchaToken) {
     return { success: false, message: 'CAPTCHA verification is required. Please try again.' };
   }
+  const structuredName = nameParts.firstName && nameParts.lastName
+    ? {
+        firstName: sanitizeInput(nameParts.firstName),
+        middleName: nameParts.middleName ? sanitizeInput(nameParts.middleName) : null,
+        lastName: sanitizeInput(nameParts.lastName),
+        suffix: nameParts.suffix ? sanitizeInput(nameParts.suffix) : null,
+      }
+    : {};
   const result = await fetchAPI('/register', {
     method: 'POST',
     body: JSON.stringify({
       name: sanitizeInput(name),
+      ...structuredName,
       email: sanitizeInput(email),
       password,
       phone: phone ? sanitizeInput(phone) : undefined,

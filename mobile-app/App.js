@@ -4,7 +4,7 @@
  * Expo Go compatible -- zero native modules.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Platform, View, Alert } from 'react-native';
+import { AppState, Platform, View, Alert } from 'react-native';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -273,6 +273,7 @@ const ManagerTabs = ({ user, onLogout }) => {
 // ============================================================
 
 function AppContent() {
+  const { theme } = useTheme();
   const [user, setUser] = useState(null);
   const [showOTP, setShowOTP] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
@@ -281,13 +282,33 @@ function AppContent() {
   const [loginUserType, setLoginUserType] = useState('customer');
   const lastNotificationResponseIdRef = useRef(null);
 
-  // Hide Android system nav bar
-  useEffect(() => {
-    if (Platform.OS === 'android') {
-      NavigationBar.setVisibilityAsync('hidden');
-      NavigationBar.setBehaviorAsync('overlay-swipe');
+  const syncAndroidSystemBars = useCallback(async () => {
+    if (Platform.OS !== 'android') return;
+
+    try {
+      await NavigationBar.setVisibilityAsync('hidden');
+    } catch (error) {
+      console.warn('Unable to hide the Android navigation bar:', error.message);
+    }
+
+    try {
+      await NavigationBar.setBehaviorAsync('overlay-swipe');
+    } catch (error) {
+      console.warn('Unable to apply Android navigation bar behavior:', error.message);
     }
   }, []);
+
+  // Apply immersive mode on the first frame, auth-route changes, and Android restores.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return undefined;
+
+    syncAndroidSystemBars();
+    const subscription = AppState.addEventListener('change', nextState => {
+      if (nextState === 'active') syncAndroidSystemBars();
+    });
+
+    return () => subscription.remove();
+  }, [syncAndroidSystemBars, user?.id, showOTP, showResetPassword]);
 
   // Restore persisted session on mount
   useEffect(() => {
@@ -354,9 +375,7 @@ function AppContent() {
   }, [user?.id, user?.type]);
 
   const hideNavigationBar = () => {
-    if (Platform.OS === 'android') {
-      NavigationBar.setVisibilityAsync('hidden');
-    }
+    syncAndroidSystemBars();
   };
 
   const handleLogin = useCallback(async (email, password, userType) => {
@@ -381,8 +400,8 @@ function AppContent() {
     setUser(null);
   }, [user?.id]);
 
-  const handleRegister = useCallback(async (name, email, password, phone, userType, orphanAppointmentId, navigation, healthConditions = [], healthAllergens = [], captchaToken) => {
-    const result = await registerUser(name, email, password, userType, phone, orphanAppointmentId, healthConditions, healthAllergens, captchaToken);
+  const handleRegister = useCallback(async (name, email, password, phone, userType, orphanAppointmentId, navigation, healthConditions = [], healthAllergens = [], captchaToken, nameParts = {}) => {
+    const result = await registerUser(name, email, password, userType, phone, orphanAppointmentId, healthConditions, healthAllergens, captchaToken, nameParts);
     if (result.success && result.message) {
       if (navigation) {
         navigation.navigate('login', { prefillEmail: email, message: result.message });
@@ -429,7 +448,10 @@ function AppContent() {
   // ============================================================
 
   return (
-    <View style={{ flex: 1 }} onTouchStart={Platform.OS === 'android' ? hideNavigationBar : undefined}>
+    <View
+      style={{ flex: 1, backgroundColor: theme.backgroundDeep }}
+      onTouchStart={Platform.OS === 'android' ? hideNavigationBar : undefined}
+    >
       <NavigationContainer ref={navigationRef}>
         <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right', animationDuration: 300 }}>
           {user ? (
@@ -546,8 +568,8 @@ function AppContent() {
                 {(props) => (
                   <RegisterPage
                     {...props}
-                    onRegister={(name, email, password, phone, userType, orphanAppointmentId, healthConditions, healthAllergens, captchaToken) =>
-                      handleRegister(name, email, password, phone, userType, orphanAppointmentId, props.navigation, healthConditions, healthAllergens, captchaToken)
+                    onRegister={(name, email, password, phone, userType, orphanAppointmentId, healthConditions, healthAllergens, captchaToken, nameParts) =>
+                      handleRegister(name, email, password, phone, userType, orphanAppointmentId, props.navigation, healthConditions, healthAllergens, captchaToken, nameParts)
                     }
                     onSwitchToLogin={() => props.navigation.navigate('login')}
                   />

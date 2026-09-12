@@ -1,7 +1,47 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { nationalPHPhone, artistPhoneError, artistPhonePayload, artistPasswordRules, artistPasswordErrors } from '../src/utils/artistProfileValidation.js';
 import { calendarCells, shiftCalendarMonth, changeBookingServices, toggleBookingPlacement, bookingPlacementErrors } from '../src/utils/bookingValidation.js';
+import { artistProfileErrors, composeCustomerName, customerProfileErrors, normalizeProfileName, normalizeProfileText, suggestCustomerNameParts } from '../src/utils/profileValidation.js';
+import { formatTime } from '../src/utils/formatters.js';
+
+test('customer Studio Ticket displays booking time using a 12-hour clock', () => {
+  const bookingSource = readFileSync(new URL('../screens/CustomerBooking.jsx', import.meta.url), 'utf8');
+  assert.equal(formatTime('13:00'), '1:00 PM');
+  assert.equal(formatTime('09:30:00'), '9:30 AM');
+  assert.match(bookingSource, /formData\.time \? `at \$\{formatTime\(formData\.time\)\}`/);
+});
+
+test('artist profile rejects incomplete identity and invalid professional details', () => {
+  assert.deepEqual(artistProfileErrors({
+    name: 'Juan Dela Cruz', phone: '9171234567', experience_years: '5', specialization: 'Realism'
+  }), {});
+  const errors = artistProfileErrors({ name: ' ', phone: '8171234567', experience_years: '2.5', specialization: '' });
+  assert.ok(errors.name);
+  assert.ok(errors.phone);
+  assert.ok(errors.experience_years);
+  assert.ok(errors.specialization);
+});
+
+test('customer profile validates every editable field and normalizes safe text', () => {
+  assert.deepEqual(customerProfileErrors({ name: 'Maria Santos', phone: '9171234567', location: 'Pasay City' }), {});
+  assert.ok(customerProfileErrors({ name: 'M', phone: '123', location: 'x'.repeat(201) }).name);
+  assert.ok(customerProfileErrors({ name: 'M', phone: '123', location: 'x'.repeat(201) }).phone);
+  assert.ok(customerProfileErrors({ name: 'M', phone: '123', location: 'x'.repeat(201) }).location);
+  assert.equal(normalizeProfileName('  Maria   Santos\n'), 'Maria Santos');
+  assert.equal(normalizeProfileText('  Pasay <City>  '), 'Pasay City');
+});
+
+test('customer structured names preserve the legacy display name and support existing accounts', () => {
+  const structured = { first_name: 'María', middle_name: 'Lourdes', last_name: 'de la Cruz', suffix: 'Jr.' };
+  assert.equal(composeCustomerName(structured), 'María Lourdes de la Cruz Jr.');
+  assert.deepEqual(customerProfileErrors({ ...structured, phone: '9171234567', location: '' }), {});
+  assert.ok(customerProfileErrors({ ...structured, last_name: '', phone: '9171234567' }).last_name);
+  assert.deepEqual(suggestCustomerNameParts({ name: 'Angela Bautista', name_needs_review: true }), {
+    first_name: 'Angela', middle_name: '', last_name: 'Bautista', suffix: '', name_needs_review: true,
+  });
+});
 
 test('PH phone loading/paste/save preserves all digits across supported formats', () => {
   for (const value of ['+639952086028', '639952086028', '09952086028', '9952086028', '+63 995 208 6028']) {

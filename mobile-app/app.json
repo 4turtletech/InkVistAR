@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0f0d0e"
     },
     "ios": {
       "supportsTablet": true,
@@ -25,10 +25,16 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0f0d0e"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.nglo.mobileapp"
+    },
+    "androidNavigationBar": {
+      "visible": "immersive",
+      "barStyle": "light-content",
+      "backgroundColor": "#0f0d0e",
+      "enforceContrast": false
     },
     "web": {
       "favicon": "./assets/favicon.png"

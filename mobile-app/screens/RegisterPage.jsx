@@ -105,6 +105,7 @@ const strengthSteps = [
 export function RegisterPage({ onRegister, onSwitchToLogin }) {
   const [form, setForm] = useState({
     firstName: '',
+    middleName: '',
     lastName: '',
     suffix: '',
     email: '',
@@ -234,7 +235,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
   const handleChange = (name, raw) => {
     let value = raw;
 
-    if (name === 'firstName' || name === 'lastName') {
+    if (name === 'firstName' || name === 'middleName' || name === 'lastName') {
       value = filterName(raw).replace(/^\s+/, '').slice(0, 50);
     } else if (name === 'suffix') {
       value = raw.replace(/[^a-zA-Z.\s]/g, '').replace(/^\s+/, '').slice(0, 5);
@@ -290,7 +291,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
       const orphanStr = await AsyncStorage.getItem('orphanAppointmentId');
       const orphanId = orphanStr ? parseInt(orphanStr, 10) : null;
       const fullPhone = `${form.phoneCode} ${form.phone.trim()}`;
-      const fullName = [form.firstName.trim(), form.lastName.trim(), form.suffix.trim()]
+      const fullName = [form.firstName.trim(), form.middleName.trim(), form.lastName.trim(), form.suffix.trim()]
         .filter(Boolean)
         .join(' ');
 
@@ -304,6 +305,12 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
         selectedConditions,
         selectedAllergens,
         captchaToken,
+        {
+          firstName: form.firstName.trim(),
+          middleName: form.middleName.trim() || null,
+          lastName: form.lastName.trim(),
+          suffix: form.suffix.trim() || null,
+        },
       );
 
       if (!result?.success) {
@@ -524,6 +531,12 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
                 })}
                 {errors.lastName ? <Text style={styles.errorText}>{errors.lastName}</Text> : null}
               </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              {renderInput('middleName', 'Middle Name (Optional)', User, {
+                extra: { autoCapitalize: 'words' },
+              })}
             </View>
 
             <View style={styles.inputGroup}>

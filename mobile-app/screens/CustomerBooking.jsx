@@ -727,7 +727,7 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
           <Text style={styles.tValue}>{formData.placement.join(', ') || 'N/A'}</Text>
           
           <Text style={styles.tLabel}>Session Schedule</Text>
-          <Text style={styles.tValue}>{formData.date} {formData.time ? `at ${formData.time}` : '(1:00 PM - 8:00 PM)'}</Text>
+          <Text style={styles.tValue}>{formData.date} {formData.time ? `at ${formatTime(formData.time)}` : '(1:00 PM - 8:00 PM)'}</Text>
         </View>
         <View style={styles.ticketDivider}>
           <View style={styles.ticketHoleLeft} />

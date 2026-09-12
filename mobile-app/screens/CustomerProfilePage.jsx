@@ -14,6 +14,13 @@ import { getInitials } from '../src/utils/formatters';
 import { getCustomerDashboard, updateCustomerProfile, getCustomerProfile, changeCustomerPassword } from '../src/utils/api';
 import { sendOtp, verifyOtp } from '../src/api/authAPI';
 import { getPhilippineLocalMobileNumber, normalizePhilippineMobileNumber } from '../src/utils/validators';
+import {
+  composeCustomerName,
+  customerProfileErrors,
+  normalizeProfileName,
+  normalizeProfileText,
+  suggestCustomerNameParts,
+} from '../src/utils/profileValidation';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -47,7 +54,13 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [profile, setProfile] = useState({ name: userName || '', email: userEmail || '', phone: '', location: '' });
+  const [profile, setProfile] = useState(() => ({
+    name: userName || '',
+    ...suggestCustomerNameParts({ name: userName || '' }),
+    email: userEmail || '',
+    phone: '',
+    location: '',
+  }));
   const [stats, setStats] = useState({ tattoos: 0, designs: 0, artists: 0 });
 
   // Structured health data (new system)
@@ -107,8 +120,9 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
     try {
       const res = await getCustomerDashboard(userId);
       if (res.success && res.customer) {
+        const nameParts = suggestCustomerNameParts(res.customer);
         setProfile({
-          name: res.customer.name, email: res.customer.email,
+          name: res.customer.name, ...nameParts, email: res.customer.email,
           phone: res.customer.phone || '', location: res.customer.location || '',
           profile_image: res.customer.profile_image || '',
         });
@@ -123,6 +137,11 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
       const profileRes = await getCustomerProfile(userId);
       if (profileRes.success && profileRes.profile) {
         const p = profileRes.profile;
+        setProfile(prev => ({
+          ...prev,
+          name: p.name || prev.name,
+          ...suggestCustomerNameParts(p),
+        }));
         setSelectedConditions(Array.isArray(p.health_conditions) ? p.health_conditions : []);
         setSelectedAllergens(Array.isArray(p.allergens) ? p.allergens : []);
       }
@@ -132,7 +151,11 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
 
   const handleEdit = () => {
     setEditProfileErrors({});
-    setEditForm({ ...profile, phone: getPhilippineLocalMobileNumber(profile.phone) });
+    setEditForm({
+      ...profile,
+      ...suggestCustomerNameParts(profile),
+      phone: getPhilippineLocalMobileNumber(profile.phone),
+    });
     setEditProfileVisible(true);
   };
   const handleMedicalEdit = () => { setMedicalForm({ ...medicalNotes }); setMedicalVisible(true); };
@@ -155,31 +178,42 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const handleProfileSave = async () => {
     if (profileSaveInFlightRef.current) return;
 
-    const normalizedPhone = normalizePhilippineMobileNumber(editForm.phone);
-    if (!normalizedPhone) {
-      setEditProfileErrors({ phone: 'Enter 10 digits starting with 9, for example 9171234567.' });
+    const fieldErrors = customerProfileErrors(editForm);
+    if (Object.keys(fieldErrors).length > 0) {
+      setEditProfileErrors(fieldErrors);
       triggerShake();
       return;
     }
 
+    const normalizedPhone = normalizePhilippineMobileNumber(editForm.phone);
     setEditProfileErrors({});
     profileSaveInFlightRef.current = true;
     Keyboard.dismiss();
-    setEditProfileVisible(false);
     try {
-      const payload = { ...editForm, phone: normalizedPhone };
+      const payload = {
+        ...editForm,
+        first_name: normalizeProfileName(editForm.first_name),
+        middle_name: normalizeProfileName(editForm.middle_name) || null,
+        last_name: normalizeProfileName(editForm.last_name),
+        suffix: normalizeProfileName(editForm.suffix) || null,
+        name: composeCustomerName(editForm),
+        name_needs_review: false,
+        phone: normalizedPhone,
+        location: normalizeProfileText(editForm.location),
+      };
       if (pendingImage) payload.profileImage = pendingImage;
       const res = await updateCustomerProfile(userId, payload);
       if (res.success) {
-        const updatedProfile = { ...editForm, phone: normalizedPhone, profile_image: pendingImage || editForm.profile_image };
+        const updatedProfile = { ...payload, profile_image: pendingImage || editForm.profile_image };
         setProfile(updatedProfile);
         setPendingImage(null);
+        setEditProfileVisible(false);
         customAlert('Profile Updated', 'Your profile changes were saved successfully.', [], 'success');
       } else {
-        customAlert('Update Failed', res.message || 'Failed to update your profile.');
+        setEditProfileErrors({ form: res.message || 'Failed to update your profile.' });
       }
     } catch (e) {
-      customAlert('Update Failed', 'An error occurred while updating your profile.');
+      setEditProfileErrors({ form: 'An error occurred while updating your profile.' });
     } finally {
       profileSaveInFlightRef.current = false;
     }
@@ -374,7 +408,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
           closePasswordModal();
           customAlert(
             'Password Changed',
-            'Your password was updated and a 6-digit verification code was sent to your email. Enter it when you sign in again.',
+            'Your password was updated successfully. Please sign in with your new password.',
             [{ text: 'Continue to Login', onPress: onLogout }],
             'success'
           );
@@ -576,34 +610,54 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               {[
-                { label: 'Full Name', key: 'name', kb: 'default' },
-                { label: 'Phone Number (+63)', key: 'phone', kb: 'number-pad' },
-                { label: 'Location', key: 'location', kb: 'default' },
+                { label: 'First Name *', key: 'first_name', kb: 'default', max: 50 },
+                { label: 'Middle Name (Optional)', key: 'middle_name', kb: 'default', max: 50 },
+                { label: 'Last Name *', key: 'last_name', kb: 'default', max: 50 },
+                { label: 'Suffix (Optional)', key: 'suffix', kb: 'default', max: 10 },
+                { label: 'Phone Number (+63) *', key: 'phone', kb: 'number-pad' },
+                { label: 'Location (Optional)', key: 'location', kb: 'default' },
               ].map(f => (
                 <View key={f.key}>
                   <Text style={styles.inputLabel}>{f.label}</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, editProfileErrors[f.key] && styles.inputError]}
                     value={String(editForm[f.key] || '')}
                     onChangeText={t => {
                       if (f.key === 'phone') {
                         const digits = getPhilippineLocalMobileNumber(t);
-                        setEditForm({ ...editForm, [f.key]: digits });
-                        setEditProfileErrors(prev => ({ ...prev, phone: '' }));
+                        const next = { ...editForm, [f.key]: digits };
+                        setEditForm(next);
+                        setEditProfileErrors(prev => ({ ...prev, phone: customerProfileErrors(next).phone || '', form: '' }));
                       } else {
-                        setEditForm({ ...editForm, [f.key]: t });
+                        const isNamePart = ['first_name', 'middle_name', 'last_name', 'suffix'].includes(f.key);
+                        const value = (isNamePart
+                          ? t.replace(/[^\p{L}\p{M} .'-]/gu, '')
+                          : t.replace(/[<>\r\n]/g, '')).slice(0, f.max || 200);
+                        const next = { ...editForm, [f.key]: value };
+                        setEditForm(next);
+                        setEditProfileErrors(prev => ({ ...prev, [f.key]: customerProfileErrors(next)[f.key] || '', form: '' }));
                       }
                     }}
                     keyboardType={f.kb}
                     placeholderTextColor={theme.textTertiary}
                     placeholder={f.key === 'phone' ? '9XXXXXXXXX' : ''}
-                    maxLength={f.key === 'phone' ? 10 : undefined}
+                    maxLength={f.key === 'phone' ? 10 : f.max || 200}
+                    onBlur={() => setEditProfileErrors(prev => ({ ...prev, [f.key]: customerProfileErrors(editForm)[f.key] || '' }))}
                   />
-                  {f.key === 'phone' && editProfileErrors.phone ? (
-                    <Text style={styles.fieldErrorText}>{editProfileErrors.phone}</Text>
+                  {editProfileErrors[f.key] ? <Text style={styles.fieldErrorText}>{editProfileErrors[f.key]}</Text> : null}
+                  {f.key === 'suffix' ? (
+                    <Text style={{ ...typography.bodyXSmall, color: theme.textSecondary, marginTop: -10, marginBottom: 12 }}>
+                      Your complete legal name is used on bookings and electronic signatures.
+                    </Text>
                   ) : null}
                 </View>
               ))}
+              {editForm.name_needs_review ? (
+                <Text style={{ ...typography.bodyXSmall, color: theme.warning, marginBottom: 12 }}>
+                  We suggested these fields from your existing full name. Please confirm they are correct before saving.
+                </Text>
+              ) : null}
+              {editProfileErrors.form ? <Text style={styles.fieldErrorText}>{editProfileErrors.form}</Text> : null}
               <AnimatedTouchable style={styles.saveBtn} onPress={handleProfileSave}>
                 <Text style={styles.saveBtnText}>Save Changes</Text>
                 <Check size={18} color={theme.backgroundDeep} style={{ marginLeft: 8 }} />
@@ -615,9 +669,8 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
 
       {/* Change Password Modal */}
       <Modal visible={isPasswordVisible} animationType="fade" transparent onRequestClose={closePasswordModal}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
-            <View style={styles.modalCard}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+            <View style={[styles.modalCard, styles.passwordModalCard]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{otpStep ? 'Verify OTP' : 'Change Password'}</Text>
                 <TouchableOpacity onPress={closePasswordModal} accessibilityRole="button" accessibilityLabel="Close change password">
@@ -626,10 +679,12 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
               </View>
 
               <ScrollView
+                style={styles.passwordScroll}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-                contentContainerStyle={{ paddingBottom: 4 }}
+                nestedScrollEnabled
+                contentContainerStyle={styles.passwordScrollContent}
               >
                 <Animated.View style={{ transform: [{ translateX: shakeAnimation }] }}>
                   {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
@@ -726,20 +781,24 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
                 </View>
               )}
                 </Animated.View>
-
-                <View style={styles.passwordActions}>
-                  <TouchableOpacity style={styles.cancelBtn} onPress={closePasswordModal} activeOpacity={0.8}>
-                    <Text style={styles.cancelBtnText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <AnimatedTouchable style={[styles.saveBtn, styles.passwordSaveBtn, passwordLoading && { opacity: 0.65 }]} onPress={handlePasswordSave} activeOpacity={0.8}>
-                    <Text style={styles.saveBtnText}>{passwordLoading ? 'Please wait...' : (otpStep ? 'Verify & Save' : 'Send Verification OTP')}</Text>
-                    <Lock size={18} color={theme.backgroundDeep} style={{ marginLeft: 8 }} />
-                  </AnimatedTouchable>
-                </View>
               </ScrollView>
+
+              <View style={styles.passwordActions}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={closePasswordModal} activeOpacity={0.8}>
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <AnimatedTouchable
+                  style={[styles.saveBtn, styles.passwordSaveBtn, passwordLoading && { opacity: 0.65 }]}
+                  onPress={handlePasswordSave}
+                  activeOpacity={0.8}
+                  disabled={passwordLoading}
+                >
+                  <Text style={styles.saveBtnText}>{passwordLoading ? 'Please wait...' : (otpStep ? 'Verify & Save' : 'Send Verification OTP')}</Text>
+                  <Lock size={18} color={theme.backgroundDeep} style={{ marginLeft: 8 }} />
+                </AnimatedTouchable>
+              </View>
             </View>
-          </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Health & Safety Edit Modal — chip multi-select */}
@@ -980,6 +1039,9 @@ const getStyles = (theme) => StyleSheet.create({
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15,13,14,0.85)', justifyContent: 'center', padding: 20 },
   modalCard: { backgroundColor: theme.surface, borderRadius: borderRadius.xl, padding: 24, maxHeight: '85%', borderWidth: 1, borderColor: theme.border },
+  passwordModalCard: { height: '85%', paddingBottom: 16 },
+  passwordScroll: { flex: 1, minHeight: 0 },
+  passwordScrollContent: { paddingBottom: 20 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   modalTitle: { ...typography.h2, color: theme.textPrimary },
   inputLabel: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '600', marginBottom: 8, marginTop: 16 },
@@ -1005,7 +1067,7 @@ const getStyles = (theme) => StyleSheet.create({
     shadowColor: theme.gold, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4
   },
   saveBtnText: { ...typography.button, color: theme.backgroundDeep, fontSize: 16 },
-  passwordActions: { flexDirection: 'row', gap: 12, marginTop: 32 },
+  passwordActions: { flexDirection: 'row', gap: 12, paddingTop: 16, borderTopWidth: 1, borderTopColor: theme.border },
   passwordSaveBtn: { flex: 1, marginTop: 0 },
   cancelBtn: {
     flex: 0.45, paddingVertical: 16, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center',

@@ -22,6 +22,7 @@ import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { getCustomerAppointments, createCheckoutSession, createConsentRecord, getAppointmentConsent, getPaymentStatus, getCustomerTransactions, API_URL } from '../src/utils/api';
 import { cancelAppointment } from '../src/api/customerAPI';
+import { customerSignatureError } from '../src/utils/consentValidation';
 
 const ITEMS_PER_PAGE = 5;
 const PAYMENT_WAIVER_TEXT = [
@@ -241,7 +242,11 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
     if (!consentForm.procedureConsent) nextErrors.procedureConsent = 'Procedure consent is required.';
     if (!consentForm.paymentConsent) nextErrors.paymentConsent = 'Payment and no-refund policy consent is required.';
     if (!consentForm.healthDataConsent) nextErrors.healthDataConsent = 'Health-data storage consent is required.';
-    if (consentForm.signatureEvidence.trim().length < 3) nextErrors.signatureEvidence = 'Type your full legal name.';
+    const signatureError = customerSignatureError(
+      consentForm.signatureEvidence,
+      selectedAppointment.customer_name,
+    );
+    if (signatureError) nextErrors.signatureEvidence = signatureError;
     setConsentErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
@@ -743,7 +748,10 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
                 </View>
               ))}
 
-              <Text style={[modalS.label, { marginTop: 12 }]}>Electronic Signature</Text>
+              <Text style={[modalS.label, { marginTop: 12 }]}>Electronic Signature *</Text>
+              <Text style={{ ...typography.bodyXSmall, color: theme.textSecondary, marginBottom: 8 }}>
+                Type your profile name exactly: {selectedAppointment?.customer_name || 'refresh your appointment to load your name'}
+              </Text>
               <TextInput
                 value={consentForm.signatureEvidence}
                 onChangeText={(value) => {
@@ -753,6 +761,15 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
                 placeholder="Type your full legal name"
                 placeholderTextColor={theme.textTertiary}
                 style={{ color: theme.textPrimary, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: consentErrors.signatureEvidence ? theme.error : theme.border, borderRadius: borderRadius.md, padding: 12, marginBottom: consentErrors.signatureEvidence ? 4 : 18 }}
+                autoCapitalize="words"
+                maxLength={100}
+                onBlur={() => {
+                  const signatureError = customerSignatureError(
+                    consentForm.signatureEvidence,
+                    selectedAppointment?.customer_name,
+                  );
+                  setConsentErrors(current => ({ ...current, signatureEvidence: signatureError }));
+                }}
               />
               {consentErrors.signatureEvidence ? <Text accessibilityRole="alert" style={[modalS.inlineError, { marginBottom: 18 }]}>{consentErrors.signatureEvidence}</Text> : null}
 
