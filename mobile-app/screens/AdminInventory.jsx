@@ -349,7 +349,16 @@ export const AdminInventory = ({ navigation, route }) => {
       selectedMaterials[String(material.inventory_id)] = String(material.default_quantity || 1);
     });
     setKitForm({ service_type: serviceType, old_service_type: serviceType, materials: selectedMaterials });
-    setKitEditorVisible(true);
+    // Android can leave the screen blocked when two native Modals are visible.
+    // Close the kit directory first, then open its editor after that transition.
+    setKitsModal(false);
+    setTimeout(() => setKitEditorVisible(true), 220);
+  };
+
+  const closeKitEditor = () => {
+    if (kitSaving) return;
+    setKitEditorVisible(false);
+    setTimeout(() => setKitsModal(true), 220);
   };
 
   const toggleKitMaterial = (inventoryId) => {
@@ -431,7 +440,7 @@ export const AdminInventory = ({ navigation, route }) => {
     if (result.success) {
       Alert.alert('Success', kitForm.old_service_type ? 'Inventory kit updated.' : 'Inventory kit created.');
       setKitEditorVisible(false);
-      fetchKits();
+      setTimeout(fetchKits, 220);
     } else {
       Alert.alert('Error', result.message || 'Failed to save inventory kit.');
     }
@@ -963,12 +972,12 @@ export const AdminInventory = ({ navigation, route }) => {
         </SafeAreaView>
       </Modal>
 
-      <Modal visible={kitEditorVisible} animationType="fade" transparent onRequestClose={() => !kitSaving && setKitEditorVisible(false)}>
+      <Modal visible={kitEditorVisible} animationType="fade" transparent onRequestClose={closeKitEditor}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={[styles.modalCard, { maxHeight: '88%' }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{kitForm.old_service_type ? 'Edit Inventory Kit' : 'Create Inventory Kit'}</Text>
-              <AnimatedTouchable onPress={() => setKitEditorVisible(false)} style={styles.closeBtn} disabled={kitSaving}>
+              <AnimatedTouchable onPress={closeKitEditor} style={styles.closeBtn} disabled={kitSaving}>
                 <X size={20} color={theme.textSecondary} />
               </AnimatedTouchable>
             </View>
@@ -1028,7 +1037,7 @@ export const AdminInventory = ({ navigation, route }) => {
               })}
             </ScrollView>
             <View style={styles.modalActions}>
-              <AnimatedTouchable style={styles.cancelBtn} onPress={() => setKitEditorVisible(false)} disabled={kitSaving}>
+              <AnimatedTouchable style={styles.cancelBtn} onPress={closeKitEditor} disabled={kitSaving}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </AnimatedTouchable>
               <AnimatedTouchable style={[styles.saveBtn, kitSaving && { opacity: 0.6 }]} onPress={saveServiceKit} disabled={kitSaving}>

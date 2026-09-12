@@ -253,6 +253,20 @@ test('mobile Add Inventory Item uses inline errors, a save lock, and an auto-dis
   assert.match(source, /styles\.successPopupCard/);
   assert.match(source, /<CheckCircle2 size=\{48\}/);
 });
+test('mobile Create Kit sequences native modals instead of stacking frozen overlays', () => {
+  const source = readFileSync(new URL('../screens/AdminInventory.jsx', import.meta.url), 'utf8');
+  const openStart = source.indexOf('const openKitEditor =');
+  const openEnd = source.indexOf('const toggleKitMaterial', openStart);
+  const modalFlow = source.slice(openStart, openEnd);
+
+  assert.match(modalFlow, /setKitsModal\(false\)/);
+  assert.match(modalFlow, /setTimeout\(\(\) => setKitEditorVisible\(true\), 220\)/);
+  assert.match(modalFlow, /const closeKitEditor =/);
+  assert.match(modalFlow, /setKitEditorVisible\(false\)/);
+  assert.match(modalFlow, /setTimeout\(\(\) => setKitsModal\(true\), 220\)/);
+  assert.match(source, /onRequestClose=\{closeKitEditor\}/);
+  assert.match(source, /onPress=\{closeKitEditor\}/);
+});
 test('mobile source uses safe area views and removes Inventory Print without removing CSV', () => {
   for (const page of ['AdminAppointmentManagement', 'AdminUserManagement', 'CustomerBooking']) {
     const source = readFileSync(new URL(`../screens/${page}.jsx`, import.meta.url), 'utf8');
