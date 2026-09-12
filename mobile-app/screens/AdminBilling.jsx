@@ -3,7 +3,7 @@
  * Handles invoice tracking and artist payouts.
  */
 
-import { invoiceFormErrors } from '../src/utils/adminFormValidation';
+import { invoiceFormErrors, payoutFormErrors, sanitizeCurrencyInput } from '../src/utils/adminFormValidation';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
@@ -47,6 +47,8 @@ export const AdminBilling = ({ navigation, route }) => {
   const [invoices, setInvoices] = useState([]);
   const [payouts, setPayouts] = useState([]);
   const [payoutBalances, setPayoutBalances] = useState([]);
+  const [payoutBalanceLoading, setPayoutBalanceLoading] = useState(true);
+  const [payoutBalanceError, setPayoutBalanceError] = useState('');
   const [artists, setArtists] = useState([]);
   const [search, setSearch] = useState('');
 
@@ -114,21 +116,37 @@ export const AdminBilling = ({ navigation, route }) => {
     return true;
   };
 
+  const loadPayoutBalances = async () => {
+    setPayoutBalanceLoading(true);
+    setPayoutBalanceError('');
+    try {
+      const result = await fetchAPI('/admin/payout-balances');
+      if (!result.success) throw new Error(result.message || 'Unable to load payout balances.');
+      setPayoutBalances(result.data || []);
+      return true;
+    } catch (error) {
+      setPayoutBalances([]);
+      setPayoutBalanceError(error.message || 'Unable to load payout balances.');
+      return false;
+    } finally {
+      setPayoutBalanceLoading(false);
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const [invData, payData, artData, balanceData] = await Promise.all([
+      const [invData, payData, artData] = await Promise.all([
         fetchAPI('/admin/invoices'),
         fetchAPI('/admin/payouts'),
         fetchAPI('/admin/users?role=artist'),
-        fetchAPI('/admin/payout-balances').catch(() => ({ success: false, data: [] })),
+        loadPayoutBalances(),
       ]);
 
       setInvoices(invData.success ? (invData.data || invData.invoices || []) : []);
       setPayouts(payData.success ? (payData.data || payData.payouts || []) : []);
       const allArtUsers = artData.success ? (artData.users || artData.data || []) : [];
       setArtists(allArtUsers.filter(u => u.user_type === 'artist' || u.role === 'artist'));
-      setPayoutBalances(balanceData.success ? (balanceData.data || []) : []);
     } catch (e) {
       console.warn('AdminBilling fetch error:', e);
     } finally {
@@ -184,19 +202,18 @@ export const AdminBilling = ({ navigation, route }) => {
 
   const handleRecordPayout = async () => {
     if (payoutSubmittingRef.current) return;
-    const errors = {};
-    if (!payoutForm.artistId) errors.artistId = 'Select an artist.';
-    const parsedAmount = parseFloat(payoutForm.amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) errors.amount = 'Enter an amount greater than zero.';
     const available = Number(selectedPayoutBalance?.availableBalance || 0);
-    if (!errors.amount && parsedAmount > available) {
-      errors.amount = `Amount cannot exceed P${formatCurrency(available)}.`;
+    if (payoutBalanceLoading || payoutBalanceError) {
+      setPayoutFeedback({ type: 'error', message: payoutBalanceLoading ? 'Payout balance is still loading.' : payoutBalanceError });
+      return;
     }
+    const errors = payoutFormErrors(payoutForm, available);
     if (Object.keys(errors).length) {
       setPayoutErrors(errors);
       setPayoutFeedback({ type: 'error', message: 'Please fix the highlighted fields.' });
       return;
     }
+    const parsedAmount = Number(payoutForm.amount);
     try {
       payoutSubmittingRef.current = true;
       setPayoutSubmitting(true);
@@ -480,7 +497,16 @@ export const AdminBilling = ({ navigation, route }) => {
             <View style={styles.balanceSection}>
               <Text style={styles.balanceSectionTitle}>Artists to Pay</Text>
               <Text style={styles.balanceSectionSubtitle}>Completed and fully paid commissions, minus recorded payouts.</Text>
-              {payoutBalances.filter(balance => Number(balance.availableBalance) > 0).map(balance => (
+              {payoutBalanceLoading ? (
+                <Text style={styles.noBalancesText}>Loading payout balances...</Text>
+              ) : payoutBalanceError ? (
+                <View style={styles.balanceErrorBox}>
+                  <Text style={styles.balanceErrorText}>{payoutBalanceError}</Text>
+                  <AnimatedTouchable style={styles.retryButton} onPress={loadPayoutBalances}>
+                    <Text style={styles.retryButtonText}>Retry</Text>
+                  </AnimatedTouchable>
+                </View>
+              ) : payoutBalances.filter(balance => Number(balance.availableBalance) > 0).map(balance => (
                 <View key={String(balance.artistId)} style={styles.balanceCard}>
                   <View style={styles.balanceCardText}>
                     <Text style={styles.balanceArtistName}>{balance.artistName}</Text>
@@ -492,7 +518,7 @@ export const AdminBilling = ({ navigation, route }) => {
                   </AnimatedTouchable>
                 </View>
               ))}
-              {payoutBalances.filter(balance => Number(balance.availableBalance) > 0).length === 0 && (
+              {!payoutBalanceLoading && !payoutBalanceError && payoutBalances.filter(balance => Number(balance.availableBalance) > 0).length === 0 && (
                 <Text style={styles.noBalancesText}>No artist payouts are currently due.</Text>
               )}
               <Text style={styles.historyHeading}>Payout History</Text>
@@ -695,7 +721,18 @@ export const AdminBilling = ({ navigation, route }) => {
               </View>
               {payoutErrors.artistId ? <Text style={styles.inlineError}>{payoutErrors.artistId}</Text> : null}
 
-              {payoutForm.artistId ? (
+              {payoutForm.artistId && payoutBalanceLoading ? (
+                <View style={styles.availableBalanceBox}>
+                  <Text style={styles.availableBalanceLabel}>Loading payout balance...</Text>
+                </View>
+              ) : payoutForm.artistId && payoutBalanceError ? (
+                <View style={styles.balanceErrorBox}>
+                  <Text style={styles.balanceErrorText}>{payoutBalanceError}</Text>
+                  <AnimatedTouchable style={styles.retryButton} onPress={loadPayoutBalances}>
+                    <Text style={styles.retryButtonText}>Retry</Text>
+                  </AnimatedTouchable>
+                </View>
+              ) : payoutForm.artistId ? (
                 <View style={styles.availableBalanceBox}>
                   <Text style={styles.availableBalanceLabel}>Available to pay</Text>
                   <Text style={styles.availableBalanceValue}>P{formatCurrency(selectedPayoutBalance?.availableBalance || 0)}</Text>
@@ -706,7 +743,13 @@ export const AdminBilling = ({ navigation, route }) => {
               <TextInput
                 style={[styles.input, payoutErrors.amount && styles.inputError]}
                 value={payoutForm.amount}
-                onChangeText={t => { setPayoutForm({...payoutForm, amount: t}); setPayoutErrors(previous => ({ ...previous, amount: '' })); setPayoutFeedback(null); }}
+                onChangeText={t => {
+                  const amount = sanitizeCurrencyInput(t);
+                  const next = { ...payoutForm, amount };
+                  setPayoutForm(next);
+                  setPayoutErrors(previous => ({ ...previous, amount: payoutFormErrors(next, selectedPayoutBalance?.availableBalance).amount || '' }));
+                  setPayoutFeedback(null);
+                }}
                 keyboardType="numeric"
                 placeholder="e.g. 5000"
                 placeholderTextColor={theme.textTertiary}
@@ -716,14 +759,33 @@ export const AdminBilling = ({ navigation, route }) => {
               <Text style={styles.inputLabel}>Payment Method</Text>
               <View style={styles.statusRow}>
                 {['Cash', 'GCash', 'Bank Transfer'].map(m => (
-                  <AnimatedTouchable key={m} style={[styles.statusBtn, payoutForm.method === m && styles.statusBtnActive]} onPress={() => setPayoutForm({...payoutForm, method: m})}>
+                  <AnimatedTouchable key={m} style={[styles.statusBtn, payoutForm.method === m && styles.statusBtnActive]} onPress={() => {
+                    const next = { ...payoutForm, method: m };
+                    setPayoutForm(next);
+                    setPayoutErrors(previous => ({ ...previous, method: '', reference: payoutFormErrors(next, selectedPayoutBalance?.availableBalance).reference || '' }));
+                    setPayoutFeedback(null);
+                  }}>
                     <Text style={[styles.statusBtnText, payoutForm.method === m && styles.statusBtnTextActive]}>{m}</Text>
                   </AnimatedTouchable>
                 ))}
               </View>
+              {payoutErrors.method ? <Text style={styles.inlineError}>{payoutErrors.method}</Text> : null}
 
-              <Text style={styles.inputLabel}>Reference Number (Optional)</Text>
-              <TextInput style={styles.input} value={payoutForm.reference} onChangeText={t => setPayoutForm({...payoutForm, reference: t})} placeholder="Transaction ID..." placeholderTextColor={theme.textTertiary} />
+              <Text style={styles.inputLabel}>Reference Number {payoutForm.method === 'Cash' ? '(Optional)' : '*'}</Text>
+              <TextInput
+                style={[styles.input, payoutErrors.reference && styles.inputError]}
+                value={payoutForm.reference}
+                onChangeText={t => {
+                  const next = { ...payoutForm, reference: t.replace(/[<>\r\n]/g, '').slice(0, 100) };
+                  setPayoutForm(next);
+                  setPayoutErrors(previous => ({ ...previous, reference: payoutFormErrors(next, selectedPayoutBalance?.availableBalance).reference || '' }));
+                  setPayoutFeedback(null);
+                }}
+                placeholder="Transaction ID..."
+                placeholderTextColor={theme.textTertiary}
+                maxLength={100}
+              />
+              {payoutErrors.reference ? <Text style={styles.inlineError}>{payoutErrors.reference}</Text> : null}
 
               <Text style={styles.payoutExternalNote}>Record this only after the cash, GCash, or bank transfer has been completed outside the system.</Text>
 
@@ -734,9 +796,9 @@ export const AdminBilling = ({ navigation, route }) => {
               ) : null}
 
               <AnimatedTouchable
-                style={[styles.saveBtn, (payoutSubmitting || !payoutForm.artistId || !payoutForm.amount || Number(selectedPayoutBalance?.availableBalance || 0) <= 0) && styles.disabledButton]}
+                style={[styles.saveBtn, (payoutSubmitting || payoutBalanceLoading || !!payoutBalanceError || !payoutForm.artistId || !payoutForm.amount || Number(selectedPayoutBalance?.availableBalance || 0) <= 0) && styles.disabledButton]}
                 onPress={handleRecordPayout}
-                disabled={payoutSubmitting || !payoutForm.artistId || !payoutForm.amount || Number(selectedPayoutBalance?.availableBalance || 0) <= 0}
+                disabled={payoutSubmitting || payoutBalanceLoading || !!payoutBalanceError || !payoutForm.artistId || !payoutForm.amount || Number(selectedPayoutBalance?.availableBalance || 0) <= 0}
               >
                 <Text style={styles.saveBtnText}>{payoutSubmitting ? 'Recording...' : 'Record Payout'}</Text>
               </AnimatedTouchable>
@@ -907,6 +969,10 @@ const getStyles = (theme, insets) => StyleSheet.create({
   balancePayButton: { backgroundColor: theme.gold, minWidth: 68, paddingVertical: 10, paddingHorizontal: 16, borderRadius: borderRadius.md, alignItems: 'center' },
   balancePayButtonText: { ...typography.bodySmall, color: theme.backgroundDeep, fontWeight: '800' },
   noBalancesText: { ...typography.bodySmall, color: theme.textSecondary, textAlign: 'center', backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.lg, padding: 18 },
+  balanceErrorBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, backgroundColor: theme.errorBg || 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: theme.error, borderRadius: borderRadius.lg, padding: 14, marginBottom: 12 },
+  balanceErrorText: { ...typography.bodySmall, color: theme.error, flex: 1 },
+  retryButton: { borderWidth: 1, borderColor: theme.error, borderRadius: borderRadius.md, paddingHorizontal: 14, paddingVertical: 8 },
+  retryButtonText: { ...typography.bodySmall, color: theme.error, fontWeight: '700' },
   historyHeading: { ...typography.h3, color: theme.textPrimary, marginTop: 22, marginBottom: 12 },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.border },
   detailLabel: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '600', textTransform: 'uppercase' },

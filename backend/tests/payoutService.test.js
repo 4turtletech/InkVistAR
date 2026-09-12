@@ -55,6 +55,32 @@ test('mobile legacy field names normalize without losing method or reference', (
   }), { artistId: 73, amount: 125.5, method: 'GCash', reference: 'GC-123' });
 });
 
+test('electronic payouts require a traceable reference while cash does not', () => {
+  assert.throws(
+    () => normalizePayoutInput({ artistId: 73, amount: 100, method: 'GCash', reference: '   ' }),
+    /Reference number is required for GCash/
+  );
+  assert.throws(
+    () => normalizePayoutInput({ artistId: 73, amount: 100, method: 'Bank Transfer' }),
+    /Reference number is required for Bank Transfer/
+  );
+  assert.deepEqual(
+    normalizePayoutInput({ artistId: 73, amount: 100, method: 'Cash' }),
+    { artistId: 73, amount: 100, method: 'Cash', reference: 'N/A' }
+  );
+});
+
+test('payout amount cannot exceed the database currency range', () => {
+  assert.throws(
+    () => normalizePayoutInput({ artistId: 73, amount: 100000000, method: 'Cash' }),
+    /too large/
+  );
+  assert.throws(
+    () => normalizePayoutInput({ artistId: 73, amount: '100.001', method: 'Cash' }),
+    /at most two decimal places/
+  );
+});
+
 test('payout input rejects invalid artists, amounts, and methods', () => {
   assert.throws(() => normalizePayoutInput({ artistId: '', amount: 100, method: 'Cash' }));
   assert.throws(() => normalizePayoutInput({ artistId: 73, amount: 0, method: 'Cash' }));

@@ -1,6 +1,8 @@
 const { artistCommission } = require('./commissionPolicy');
 
 const PAID_PAYOUT_STATUSES = new Set(['paid', 'completed']);
+const MAX_PAYOUT_AMOUNT = 99999999.99;
+const PAYOUT_METHODS_REQUIRING_REFERENCE = new Set(['Bank Transfer', 'GCash']);
 
 const roundMoney = (value) => Math.round((Number(value) || 0) * 100) / 100;
 
@@ -97,6 +99,7 @@ async function getArtistPayoutBalance(database, artistId) {
 
 function normalizePayoutInput(body = {}) {
   const artistId = Number(body.artistId);
+  const amountText = String(body.amount ?? '').trim();
   const amount = roundMoney(body.amount);
   const rawMethod = String(body.method || body.paymentMethod || 'Bank Transfer').trim();
   const method = rawMethod.toLowerCase() === 'g-cash'
@@ -106,8 +109,13 @@ function normalizePayoutInput(body = {}) {
 
   if (!Number.isInteger(artistId) || artistId <= 0) throw new Error('Select a valid artist.');
   if (!Number.isFinite(Number(body.amount)) || amount <= 0) throw new Error('Payout amount must be greater than zero.');
+  if (!/^\d+(?:\.\d{1,2})?$/.test(amountText)) throw new Error('Payout amount must use at most two decimal places.');
+  if (amount > MAX_PAYOUT_AMOUNT) throw new Error('Payout amount is too large.');
   if (!['Bank Transfer', 'Cash', 'GCash'].includes(method)) {
     throw new Error('Select a valid payout method.');
+  }
+  if (PAYOUT_METHODS_REQUIRING_REFERENCE.has(method) && !reference) {
+    throw new Error(`Reference number is required for ${method}.`);
   }
   return { artistId, amount, method, reference: reference || 'N/A' };
 }
@@ -117,6 +125,7 @@ module.exports = {
   getArtistPayoutBalance,
   isAppointmentFullyPaid,
   isPaidPayout,
+  MAX_PAYOUT_AMOUNT,
   normalizePayoutInput,
   roundMoney,
   summarizeArtistPayout,

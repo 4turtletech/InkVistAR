@@ -13,8 +13,11 @@ test('mobile payout form sends the backend method and reference fields', () => {
 test('mobile payout flow shows balances and validates overpayment inline', () => {
   assert.match(billing, /fetchAPI\('\/admin\/payout-balances'\)/);
   assert.match(billing, />Artists to Pay<\/Text>/);
-  assert.match(billing, /parsedAmount > available/);
+  assert.match(billing, /payoutFormErrors\(payoutForm, available\)/);
   assert.match(billing, /setPayoutFeedback\(\{ type: 'error'/);
+  assert.match(billing, /payoutBalanceError/);
+  assert.match(billing, />Retry<\/Text>/);
+  assert.doesNotMatch(billing, /payout-balances'\)\.catch\(\(\) => \(\{ success: false, data: \[\] \}\)\)/);
   assert.doesNotMatch(billing, /Alert\.alert\('Success', 'Payout recorded successfully\.'/);
 });
 

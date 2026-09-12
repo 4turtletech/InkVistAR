@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { adminUserErrors, invoiceFormErrors, sessionTimeSelection } from '../src/utils/adminFormValidation.js';
+import { adminUserErrors, invoiceFormErrors, payoutFormErrors, sanitizeCurrencyInput, sessionTimeSelection } from '../src/utils/adminFormValidation.js';
 import { inventoryAlerts, normalizeInventoryItem } from '../src/utils/inventoryState.js';
 
 test('empty user form reports all required fields together', () => {
@@ -24,6 +24,15 @@ test('invoice validates both required fields and rejects partial/nonfinite amoun
   assert.deepEqual(Object.keys(invoiceFormErrors({})), ['clientName', 'amount']);
   for (const amount of ['', ' ', '0', '-1', 'Infinity', '2abc']) assert.ok(invoiceFormErrors({ clientName: 'Integration Test', amount }).amount);
   assert.deepEqual(invoiceFormErrors({ clientName: 'Integration Test', amount: '12.50' }), {});
+});
+test('payout validation enforces balance, currency precision, method, and transfer references', () => {
+  const validPayout = { artistId: '73', amount: '125.50', method: 'Cash', reference: '' };
+  assert.deepEqual(payoutFormErrors(validPayout, 200), {});
+  assert.ok(payoutFormErrors({ ...validPayout, amount: '200.001' }, 500).amount);
+  assert.ok(payoutFormErrors({ ...validPayout, amount: '250' }, 200).amount);
+  assert.ok(payoutFormErrors({ ...validPayout, method: 'GCash' }, 200).reference);
+  assert.ok(payoutFormErrors({ ...validPayout, method: 'Crypto' }, 200).method);
+  assert.equal(sanitizeCurrencyInput('P12,345.678'), '12345.67');
 });
 test('mobile billing creates an auditable draft without native success alerts', () => {
   const billing = readFileSync(new URL('../screens/AdminBilling.jsx', import.meta.url), 'utf8');

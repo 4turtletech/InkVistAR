@@ -283,6 +283,40 @@
     text-align: center;
 }
 
+.payout-balance-error {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 0.84rem;
+}
+
+.payout-balance-error--compact {
+    margin-top: 10px;
+}
+
+.payout-balance-retry {
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    border: 1px solid #ef4444;
+    border-radius: 8px;
+    background: #fff;
+    color: #b91c1c;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.payout-balance-retry:hover {
+    background: #fee2e2;
+}
+
 .payout-available-balance {
     display: flex;
     justify-content: space-between;
@@ -293,6 +327,12 @@
     background: #ecfdf5;
     color: #047857;
     font-size: 0.85rem;
+}
+
+.payout-available-balance--loading {
+    justify-content: center;
+    background: #f8fafc;
+    color: #64748b;
 }
 
 .payout-inline-feedback {
