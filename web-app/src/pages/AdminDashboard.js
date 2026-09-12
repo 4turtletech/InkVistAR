@@ -98,21 +98,32 @@ function AdminDashboard() {
         try {
             setLoading(true);
             const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const dashboardRequest = (label, request, fallbackData) => request.catch((error) => {
+                console.error(`Error fetching dashboard ${label}:`, error);
+                return { data: fallbackData };
+            });
             const [usersResponse, appointmentsResponse, logsResponse, inventoryResponse, notificationsResponse, payoutAlertsResponse] = await Promise.all([
-                Axios.get(`${API_URL}/api/debug/users`),
-                Axios.get(`${API_URL}/api/admin/appointments`),
-                Axios.get(`${API_URL}/api/admin/audit-logs?limit=20`), // Fetch enough logs for dashboard activity feed
-                Axios.get(`${API_URL}/api/admin/inventory?status=active`),
-                user.id ? Axios.get(`${API_URL}/api/notifications/${user.id}`) : Promise.resolve({ data: { unreadCount: 0 } }),
-                Axios.get(`${API_URL}/api/admin/payout-alerts`).catch(() => ({ data: { success: true, alerts: [] } }))
+                dashboardRequest('users', Axios.get(`${API_URL}/api/admin/users`), { success: false, data: [] }),
+                dashboardRequest('appointments', Axios.get(`${API_URL}/api/admin/appointments`), { success: false, data: [] }),
+                dashboardRequest('audit logs', Axios.get(`${API_URL}/api/admin/audit-logs?limit=20`), { success: false, data: [] }),
+                dashboardRequest('inventory', Axios.get(`${API_URL}/api/admin/inventory?status=active`), { success: false, data: [] }),
+                user.id
+                    ? dashboardRequest('notifications', Axios.get(`${API_URL}/api/notifications/${user.id}`), { success: false, notifications: [], unreadCount: 0 })
+                    : Promise.resolve({ data: { success: true, notifications: [], unreadCount: 0 } }),
+                dashboardRequest('payout alerts', Axios.get(`${API_URL}/api/admin/payout-alerts`), { success: false, alerts: [] })
             ]);
 
-            if (usersResponse.data.success) {
-                // Filter out deleted users for dashboard stats
-                const users = usersResponse.data.users.filter(u => !u.is_deleted);
-                setUsers(users);
+            // Each dashboard section is populated independently. A failed users,
+            // logs, inventory, notification, or payout request must not blank the
+            // appointment chart and overview.
+            const users = usersResponse.data.success && Array.isArray(usersResponse.data.data)
+                ? usersResponse.data.data.filter(u => !u.is_deleted)
+                : [];
+            setUsers(users);
 
-                const appointments = appointmentsResponse.data.success ? appointmentsResponse.data.data : [];
+            const appointments = appointmentsResponse.data.success && Array.isArray(appointmentsResponse.data.data)
+                ? appointmentsResponse.data.data
+                : [];
 
                 // Calculate stats
                 const totalUsers = users.length;
@@ -257,7 +268,6 @@ function AdminDashboard() {
                 }
 
                 setAlerts(generatedAlerts);
-            }
 
             if (logsResponse?.data?.success) {
                 setAuditLogs(logsResponse.data.data);
