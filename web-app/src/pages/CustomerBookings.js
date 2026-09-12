@@ -2148,26 +2148,26 @@ function CustomerBookings(){
                                         <h3 className="customer-st-69ffca42" >2. Design Details</h3>
                                         <div className="grid-2col" style={{ flex: 1, minHeight: 0 }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%' }}>
-                                                <div className="form-group" style={{ marginBottom: 0 }}>
-                                                    <label className="customer-st-67198c20" >Idea Name <span style={{ color: '#ef4444', fontWeight: '400' }}>*</span></label>
+                                                <div className="form-group" style={{ marginBottom: 0, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
+                                                    <label className="customer-st-67198c20" style={{ textAlign: 'left', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#1e293b' }}>Idea Name <span style={{ color: '#ef4444', fontWeight: '400' }}>*</span></label>
                                                     <input 
                                                         type="text" className="form-input" placeholder="e.g. Traditional Dagger with Flowers" 
                                                         name="designTitle" maxLength={150}
                                                         value={bookingData.designTitle} onChange={handleBookingFormChange}
-                                                        style={{ border: errors.designTitle ? '1px solid #ef4444' : undefined }}
+                                                        style={{ width: '100%', boxSizing: 'border-box', border: errors.designTitle ? '1px solid #ef4444' : undefined }}
                                                     />
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
                                                         {errors.designTitle ? <span style={{ fontSize: '0.75rem', color: '#ef4444' }}>{errors.designTitle}</span> : <span />}
                                                         <small style={{ color: (bookingData.designTitle?.length || 0) >= 140 ? '#ef4444' : '#94a3b8', fontSize: '0.75rem' }}>{bookingData.designTitle?.length || 0}/150</small>
                                                     </div>
                                                 </div>
-                                                <div className="form-group customer-st-5d155c93" style={{ marginBottom: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                                    <label className="customer-st-67198c20" >Tell us your story (Optional)</label>
+                                                <div className="form-group customer-st-5d155c93" style={{ marginBottom: 0, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', width: '100%' }}>
+                                                    <label className="customer-st-67198c20" style={{ textAlign: 'left', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#1e293b' }}>Tell us your story (Optional)</label>
                                                     <textarea 
                                                         className="form-input" placeholder="Explain the concept here"
                                                         name="notes" maxLength={500}
                                                         value={bookingData.notes} onChange={handleBookingFormChange}
-                                                        style={{ resize: 'none', border: errors.notes ? '1px solid #ef4444' : undefined, flex: 1 }}
+                                                        style={{ resize: 'none', border: errors.notes ? '1px solid #ef4444' : undefined, flex: 1, width: '100%', boxSizing: 'border-box' }}
                                                     />
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
                                                         {errors.notes ? <span style={{ fontSize: '0.75rem', color: '#ef4444' }}>{errors.notes}</span> : <span />}
