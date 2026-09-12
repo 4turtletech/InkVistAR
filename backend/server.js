@@ -41,6 +41,7 @@ const { createConsentRouter } = require('./routes/consents');
 const { normalizeHealthScreeningInput } = require('./services/healthScreeningPolicy');
 const { normalizePhilippineMobileNumber } = require('./services/phoneNumber');
 const { normalizeArtistProfileInput, normalizeCustomerProfileInput, normalizeStructuredNameInput } = require('./services/profileValidation');
+const { normalizeAdminWalkInIdentity, storedWalkInEmail, storedWalkInName } = require('./services/walkInIdentity');
 const { buildAdminAppointmentConflictCheck } = require('./services/appointmentConflictPolicy');
 const { isRegisteredAppointmentCustomer, getAppointmentScheduleChange } = require('./services/appointmentNotificationPolicy');
 const { createSessionInventoryService, InventoryOperationError } = require('./services/sessionInventoryService');
@@ -50,6 +51,7 @@ const { backfillPaidPaymentInvoices, ensureInvoiceForPaidPayment, insertInvoiceR
 const { executePosCheckout, PosCheckoutError } = require('./services/posCheckoutService');
 const { evaluateCaptchaResponse } = require('./services/captchaPolicy');
 const { ChatbotInputError, createChatbotResponder, withTimeout } = require('./services/chatbotResilience');
+const { createSupportSessionId, buildActiveSupportHistoryQuery } = require('./services/supportSessionPolicy');
 const {
   isExpoPushToken,
   sendExpoPushBatch,
@@ -1221,6 +1223,26 @@ db.getConnection((err, connection) => {
             console.log('[OK] Added guest_phone column to appointments');
           }
         });
+
+        // Structured identity for admin-created walk-in appointments.
+        // Legacy rows remain readable through their notes/guest_email fallback.
+        [
+          ['guest_name', 'VARCHAR(100) NULL'],
+          ['guest_first_name', 'VARCHAR(50) NULL'],
+          ['guest_middle_name', 'VARCHAR(50) NULL'],
+          ['guest_last_name', 'VARCHAR(50) NULL'],
+          ['guest_suffix', 'VARCHAR(10) NULL'],
+        ].forEach(([column, definition]) => {
+          db.query(`SHOW COLUMNS FROM appointments LIKE '${column}'`, (columnErr, results) => {
+            if (!columnErr && results.length === 0) {
+              console.log(`[MIGRATE] Migrating appointments: Adding ${column} column...`);
+              db.query(`ALTER TABLE appointments ADD COLUMN ${column} ${definition}`, (alterErr) => {
+                if (alterErr) console.error(`[WARN] Could not add ${column}:`, alterErr.message);
+                else console.log(`[OK] Added ${column} column to appointments`);
+              });
+            }
+          });
+        });
         // MIGRATION: Add 'is_referral' column for referral commission tracking
         db.query("SHOW COLUMNS FROM appointments LIKE 'is_referral'", (err, results) => {
           if (!err && results.length === 0) {
@@ -1788,12 +1810,23 @@ db.getConnection((err, connection) => {
       CREATE TABLE IF NOT EXISTS support_messages (
         id INT AUTO_INCREMENT PRIMARY KEY,
         room_id VARCHAR(255) NOT NULL,
+        session_id VARCHAR(64) NULL,
         sender VARCHAR(255) NOT NULL,
         message TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `;
-    db.query(supportMessagesTableQuery, (err) => { if (err) console.error('[WARN] Error checking support_messages table:', err.message); else console.log('[OK] Support Messages table ready'); });
+    db.query(supportMessagesTableQuery, (err) => {
+      if (err) {
+        console.error('[WARN] Error checking support_messages table:', err.message);
+        return;
+      }
+      ensureTableColumns(db, 'support_messages', {
+        session_id: 'VARCHAR(64) NULL AFTER room_id',
+      })
+        .then(() => console.log('[OK] Support Messages table ready'))
+        .catch((migrationError) => console.error('[WARN] Error updating support_messages table:', migrationError.message));
+    });
 
     // Push notification tokens table
     const pushTokensTableQuery = `
@@ -3549,6 +3582,10 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
     SELECT
       u.id,
       u.name,
+      u.first_name,
+      u.middle_name,
+      u.last_name,
+      u.suffix,
       u.email,
       u.phone,
       u.user_type,
@@ -3652,6 +3689,11 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
             artist: {
               id: artist.id,
               name: artist.name,
+              first_name: artist.first_name,
+              middle_name: artist.middle_name,
+              last_name: artist.last_name,
+              suffix: artist.suffix,
+              name_needs_review: !(artist.first_name && artist.last_name),
               email: artist.email,
               phone: artist.phone,
               studio_name: artist.studio_name,
@@ -3838,6 +3880,11 @@ app.put('/api/artist/profile/:id', (req, res) => {
   }
   const {
     name: safeName,
+    first_name: safeFirstName,
+    middle_name: safeMiddleName,
+    last_name: safeLastName,
+    suffix: safeSuffix,
+    structuredNameProvided,
     phone: safePhone,
     studio_name: safeStudioName,
     specialization,
@@ -3850,6 +3897,14 @@ app.put('/api/artist/profile/:id', (req, res) => {
   // Update users table (name, phone, profile_image)
   let userQuery = 'UPDATE users SET name = ?, phone = ?';
   const userParams = [safeName, safePhone];
+  if (structuredNameProvided) {
+    userQuery += ', first_name = ?, middle_name = ?, last_name = ?, suffix = ?';
+    userParams.push(safeFirstName, safeMiddleName, safeLastName, safeSuffix);
+  } else {
+    // Legacy clients may still edit a combined full name. Clear stale parts so
+    // structured-name clients can ask the artist to confirm the split again.
+    userQuery += ', first_name = NULL, middle_name = NULL, last_name = NULL, suffix = NULL';
+  }
   if (profileImage !== undefined) {
     userQuery += ', profile_image = ?';
     userParams.push(profileImage);
@@ -5278,12 +5333,11 @@ app.get('/api/admin/appointments', (req, res) => {
       Object.assign(row, summarizeAppointmentFinances(row));
       try { row.client_health_conditions = JSON.parse(row.client_health_conditions || '[]'); } catch { row.client_health_conditions = []; }
       try { row.client_allergens = JSON.parse(row.client_allergens || '[]'); } catch { row.client_allergens = []; }
-      // B1 fix: For guest placeholder bookings, extract the real guest name from the structured notes
+      // Prefer structured walk-in identity, while retaining legacy notes/guest_email fallbacks.
       if (row.is_guest_placeholder) {
-        const nameMatch = (row.notes || '').match(/Name:\s*(.+)/i);
-        if (nameMatch && nameMatch[1].trim()) {
-          row.client_name = nameMatch[1].trim();
-        }
+        row.client_name = storedWalkInName(row);
+        row.client_email = storedWalkInEmail(row);
+        row.client_phone = row.guest_phone || null;
       }
     });
     res.json({ success: true, data: results });
@@ -5325,13 +5379,13 @@ app.get('/api/admin/appointments/:id', (req, res) => {
     }
     const row = results[0];
     Object.assign(row, summarizeAppointmentFinances(row));
-    // For guest placeholder bookings, extract the real guest name from structured notes
+    // Prefer structured walk-in identity, while retaining legacy notes/guest_email fallbacks.
     if (row.is_guest_placeholder) {
-      const nameMatch = (row.notes || '').match(/Name:\s*(.+)/i);
-      if (nameMatch && nameMatch[1].trim()) {
-        row.client_name = nameMatch[1].trim();
-        row.customer_name = nameMatch[1].trim();
-      }
+      row.client_name = storedWalkInName(row);
+      row.customer_name = row.client_name;
+      row.client_email = storedWalkInEmail(row);
+      row.client_phone = row.guest_phone || null;
+      row.client_avatar = null;
     }
     res.json({ success: true, appointment: row });
   });
@@ -5339,16 +5393,41 @@ app.get('/api/admin/appointments/:id', (req, res) => {
 
 // POST create a new appointment (Admin)
 app.post('/api/admin/appointments', async (req, res) => {
-  let { customerId, clientEmail, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod, guestEmail, guestPhone, tattooPrice, piercingPrice, waiverAcceptedAt, photoMarketingConsent, piercingJewelry, totalSessions, sessionNumber, projectId, consentData, healthScreeningData } = req.body;
+  let { customerId, clientEmail, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod, guestEmail, guestPhone, guestFirstName, guestMiddleName, guestLastName, guestSuffix, tattooPrice, piercingPrice, waiverAcceptedAt, photoMarketingConsent, piercingJewelry, totalSessions, sessionNumber, projectId, consentData, healthScreeningData } = req.body;
 
   try { commissionSplit = normalizeCommissionSplit(commissionSplit); }
   catch (error) { return res.status(400).json({ success: false, message: error.message }); }
 
   const isAdminWalkInBooking = customerId === 'admin' && !isFromWizard;
-  if (isAdminWalkInBooking && !String(guestPhone || '').trim()) {
-    return res.status(400).json({ success: false, message: 'A contact number is required for walk-in appointments.' });
-  }
-  if (String(guestPhone || '').trim()) {
+  let guestName = customerName ? String(customerName).replace(/[<>\r\n]/g, '').trim().substring(0, 100) : null;
+  let guestFirstNameValue = null;
+  let guestMiddleNameValue = null;
+  let guestLastNameValue = null;
+  let guestSuffixValue = null;
+
+  if (isAdminWalkInBooking) {
+    // Accept the previous web payload during rolling deploys, but persist it in the new structure.
+    if (!guestFirstName && !guestLastName && guestName) {
+      const legacyParts = guestName.split(/\s+/).filter(Boolean);
+      guestFirstName = legacyParts.shift() || '';
+      guestLastName = legacyParts.join(' ');
+    }
+    try {
+      const identity = normalizeAdminWalkInIdentity({
+        guestFirstName, guestMiddleName, guestLastName, guestSuffix, guestEmail, guestPhone,
+      });
+      guestName = identity.guest_name;
+      guestFirstNameValue = identity.guest_first_name;
+      guestMiddleNameValue = identity.guest_middle_name;
+      guestLastNameValue = identity.guest_last_name;
+      guestSuffixValue = identity.guest_suffix;
+      guestEmail = identity.guest_email;
+      guestPhone = identity.guest_phone;
+      customerName = identity.guest_name;
+    } catch (identityError) {
+      return res.status(identityError.statusCode || 400).json({ success: false, message: identityError.message });
+    }
+  } else if (String(guestPhone || '').trim()) {
     const normalizedGuestPhone = normalizePhilippineMobileNumber(guestPhone);
     if (!normalizedGuestPhone) {
       return res.status(400).json({
@@ -5525,10 +5604,10 @@ app.post('/api/admin/appointments', async (req, res) => {
         const _performInsert = (resolvedProjectId) => {
           const query = `
             INSERT INTO appointments 
-              (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, waiver_accepted_at, piercing_jewelry, is_guest_placeholder, project_id, session_number, total_sessions)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, guest_name, guest_first_name, guest_middle_name, guest_last_name, guest_suffix, waiver_accepted_at, piercing_jewelry, is_guest_placeholder, project_id, session_number, total_sessions)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `;
-          conn.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedWaiverAt, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0, resolvedProjectId, sanitizedSessionNumber, sanitizedTotalSessions], (err, result) => {
+          conn.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, guestName, guestFirstNameValue, guestMiddleNameValue, guestLastNameValue, guestSuffixValue, sanitizedWaiverAt, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0, resolvedProjectId, sanitizedSessionNumber, sanitizedTotalSessions], (err, result) => {
             if (err) {
               // Graceful fallback if new columns don't exist yet (first deploy)
               if (err.code === 'ER_BAD_FIELD_ERROR') {
@@ -5910,14 +5989,14 @@ app.post('/api/admin/appointments', async (req, res) => {
 
           const query = `
             INSERT INTO appointments 
-              (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, waiver_accepted_at, piercing_jewelry, is_guest_placeholder)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?)
+              (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, guest_name, guest_first_name, guest_middle_name, guest_last_name, guest_suffix, waiver_accepted_at, piercing_jewelry, is_guest_placeholder)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `;
-          connection.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, waiverAcceptedAt || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (err, result) => {
+          connection.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, guestName, guestFirstNameValue, guestMiddleNameValue, guestLastNameValue, guestSuffixValue, waiverAcceptedAt || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (err, result) => {
             if (err) {
-              // Graceful fallback if waiver_accepted_at column doesn't exist yet
-              if (err.code === 'ER_BAD_FIELD_ERROR' && err.message.includes('waiver_accepted_at')) {
-                console.warn('[WARN] waiver_accepted_at column not found, retrying INSERT without it...');
+              // Graceful fallback while a rolling deploy is still adding newer columns.
+              if (err.code === 'ER_BAD_FIELD_ERROR') {
+                console.warn('[WARN] Appointment columns are still migrating; retrying legacy INSERT...');
                 const fallbackQuery = `
               INSERT INTO appointments 
                 (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, piercing_jewelry, is_guest_placeholder)
@@ -6188,8 +6267,20 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   const consultationMethod = body.consultationMethod;
   const consultationNotes = body.consultationNotes;
   const quotedPrice = body.quotedPrice !== undefined ? (body.quotedPrice === '' || body.quotedPrice === null ? null : parseFloat(body.quotedPrice)) : undefined;
+  const hasWalkInNameUpdate = ['guestFirstName', 'guestMiddleName', 'guestLastName', 'guestSuffix', 'guest_first_name', 'guest_middle_name', 'guest_last_name', 'guest_suffix']
+    .some(key => Object.prototype.hasOwnProperty.call(body, key));
+  let walkInIdentity;
+  if (hasWalkInNameUpdate) {
+    try {
+      walkInIdentity = normalizeAdminWalkInIdentity(body);
+    } catch (identityError) {
+      return res.status(identityError.statusCode || 400).json({ success: false, message: identityError.message });
+    }
+  }
   let guestPhone;
-  if (body.guestPhone !== undefined) {
+  if (walkInIdentity) {
+    guestPhone = walkInIdentity.guest_phone;
+  } else if (body.guestPhone !== undefined) {
     guestPhone = body.guestPhone === null || body.guestPhone === ''
       ? null
       : normalizePhilippineMobileNumber(body.guestPhone);
@@ -6253,6 +6344,17 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   if (consultationMethod !== undefined) { updates.push('consultation_method = ?'); params.push(consultationMethod); }
   if (consultationNotes !== undefined) { updates.push('consultation_notes = ?'); params.push(consultationNotes); }
   if (quotedPrice !== undefined) { updates.push('quoted_price = ?'); params.push(quotedPrice); }
+  if (walkInIdentity) {
+    updates.push('guest_name = ?', 'guest_first_name = ?', 'guest_middle_name = ?', 'guest_last_name = ?', 'guest_suffix = ?', 'guest_email = ?');
+    params.push(
+      walkInIdentity.guest_name,
+      walkInIdentity.guest_first_name,
+      walkInIdentity.guest_middle_name,
+      walkInIdentity.guest_last_name,
+      walkInIdentity.guest_suffix,
+      walkInIdentity.guest_email,
+    );
+  }
   if (guestPhone !== undefined) { updates.push('guest_phone = ?'); params.push(guestPhone); }
   if (waiverAcceptedAt !== undefined) { updates.push('waiver_accepted_at = ?'); params.push(waiverAcceptedAt); }
 
@@ -6581,8 +6683,12 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
           ? storedGuestContact
           : null;
         const guestPhone = isRegisteredUser ? null : (oldAppt.guest_phone || null);
+        const structuredGuestName = [oldAppt.guest_first_name, oldAppt.guest_middle_name, oldAppt.guest_last_name, oldAppt.guest_suffix]
+          .map(part => String(part || '').trim()).filter(Boolean).join(' ');
         const guestNameMatch = oldAppt.notes && oldAppt.notes.match(/(?:Name|Client):\s*(.+?)(?:\n|$)/i);
-        const guestName = guestNameMatch?.[1]?.trim()
+        const guestName = structuredGuestName
+          || String(oldAppt.guest_name || '').trim()
+          || guestNameMatch?.[1]?.trim()
           || (storedGuestContact && !String(storedGuestContact).includes('@') ? String(storedGuestContact).trim() : '')
           || 'Valued Guest';
         const guestBookingCode = oldAppt.booking_code || `#${id}`;
@@ -9168,7 +9274,9 @@ app.get('/api/appointments/:id/waiver-document', async (req, res) => {
     const [appointmentRows] = await db.promise().query(
       `SELECT ap.id, ap.booking_code, ap.appointment_date, ap.service_type, ap.design_title,
               ap.waiver_accepted_at, ap.customer_id, ap.artist_id, ap.secondary_artist_id,
-              ap.guest_email, COALESCE(u_cust.name, ap.guest_email, 'Guest Client') AS customer_name,
+              ap.guest_email, ap.guest_phone, ap.guest_name, ap.guest_first_name,
+              ap.guest_middle_name, ap.guest_last_name, ap.guest_suffix, ap.notes,
+              ap.is_guest_placeholder, COALESCE(u_cust.name, ap.guest_email, 'Guest Client') AS customer_name,
               COALESCE(u_cust.name, ap.guest_email, 'Guest Client') AS client_name,
               u_art.name AS artist_name
        FROM appointments ap
@@ -9180,6 +9288,12 @@ app.get('/api/appointments/:id/waiver-document', async (req, res) => {
     );
     if (!appointmentRows[0]) {
       return res.status(404).json({ success: false, message: 'Appointment not found.' });
+    }
+
+    if (appointmentRows[0].is_guest_placeholder) {
+      appointmentRows[0].customer_name = storedWalkInName(appointmentRows[0]);
+      appointmentRows[0].client_name = appointmentRows[0].customer_name;
+      appointmentRows[0].guest_email = storedWalkInEmail(appointmentRows[0]);
     }
 
     let consent = null;
@@ -9246,7 +9360,7 @@ app.get('/api/health-screenings/appointment/:appointmentId', (req, res) => {
 // Get notifications with pagination and filtering
 app.get('/api/notifications/:userId', (req, res) => {
   const { userId } = req.params;
-  const { page = 1, limit = 20, type, is_read } = req.query;
+  const { page = 1, limit = 20, type, is_read, search } = req.query;
 
   const pageNum = parseInt(page, 10);
   const limitNum = parseInt(limit, 10);
@@ -9263,6 +9377,11 @@ app.get('/api/notifications/:userId', (req, res) => {
     query += ' AND is_read = ?';
     queryParams.push(is_read === '1' ? 1 : 0);
   }
+  const searchTerm = typeof search === 'string' ? search.trim().slice(0, 100) : '';
+  if (searchTerm) {
+    query += ' AND (title LIKE ? OR message LIKE ?)';
+    queryParams.push(`%${searchTerm}%`, `%${searchTerm}%`);
+  }
 
   query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
   queryParams.push(limitNum, offset);
@@ -9278,6 +9397,10 @@ app.get('/api/notifications/:userId', (req, res) => {
   if (is_read !== undefined) {
     countQuery += ' AND is_read = ?';
     countParams.push(is_read === '1' ? 1 : 0);
+  }
+  if (searchTerm) {
+    countQuery += ' AND (title LIKE ? OR message LIKE ?)';
+    countParams.push(`%${searchTerm}%`, `%${searchTerm}%`);
   }
 
   db.query(countQuery, countParams, (countErr, countResults) => {
@@ -11543,6 +11666,7 @@ io.on('connection', (socket) => {
     if (!activeSupportSessions[room]) {
       activeSupportSessions[room] = {
         id: room,
+        sessionId: createSupportSessionId(),
         name: name || 'Guest Visitor',
         lastMessage: 'Started a live chat.',
         timestamp: new Date(),
@@ -11597,9 +11721,13 @@ io.on('connection', (socket) => {
       activeSupportSessions[room].timestamp = new Date();
 
       // Persist to database
-      db.query('INSERT INTO support_messages (room_id, sender, message) VALUES (?, ?, ?)', [room, sender, text], (err) => {
+      db.query(
+        'INSERT INTO support_messages (room_id, session_id, sender, message) VALUES (?, ?, ?, ?)',
+        [room, activeSupportSessions[room].sessionId, sender, text],
+        (err) => {
         if (err) console.error('Error saving chat message:', err);
-      });
+        }
+      );
 
       // Broadcast the fresh stats to all admins
       io.to('admin_room').emit('support_sessions_update', Object.values(activeSupportSessions));
@@ -12337,10 +12465,14 @@ app.post('/api/services', (req, res) => {
 // ========== CHAT HISTORY ENDPOINT ==========
 app.get('/api/chat/:room', (req, res) => {
   const { room } = req.params;
-  const q = 'SELECT sender, message as text, created_at as timestamp FROM support_messages WHERE room_id = ? ORDER BY created_at ASC';
-  db.query(q, [room], (err, results) => {
+  const historyQuery = buildActiveSupportHistoryQuery(room, activeSupportSessions[room]);
+  if (!historyQuery) {
+    return res.json({ success: true, messages: [], session_id: null });
+  }
+
+  db.query(historyQuery.sql, historyQuery.params, (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    res.json({ success: true, messages: results });
+    res.json({ success: true, messages: results, session_id: historyQuery.sessionId });
   });
 });
 

@@ -14,8 +14,23 @@ test('artist profile validation normalizes safe values without changing fields',
     name: '  Juan   Dela Cruz ', phone: '+639171234567', experience_years: '5',
     specialization: ' Realism ', studio_name: ' Inkvictus ', bio: ' About me ', profileImage: 'data:image/png;base64,x'
   }), {
-    name: 'Juan Dela Cruz', phone: '+639171234567', experience_years: 5,
+    structuredNameProvided: false, name: 'Juan Dela Cruz',
+    first_name: undefined, middle_name: undefined, last_name: undefined, suffix: undefined,
+    phone: '+639171234567', experience_years: 5,
     specialization: 'Realism', studio_name: 'Inkvictus', bio: 'About me', profileImage: 'data:image/png;base64,x'
+  });
+});
+
+test('artist profile accepts structured names while preserving the combined display name', () => {
+  assert.deepEqual(normalizeArtistProfileInput({
+    first_name: ' Juan ', middle_name: ' Santos ', last_name: ' Dela Cruz ', suffix: ' Jr. ',
+    phone: '+639171234567', experience_years: 5, specialization: 'Realism',
+  }), {
+    structuredNameProvided: true,
+    name: 'Juan Santos Dela Cruz Jr.',
+    first_name: 'Juan', middle_name: 'Santos', last_name: 'Dela Cruz', suffix: 'Jr.',
+    phone: '+639171234567', experience_years: 5,
+    specialization: 'Realism', studio_name: undefined, bio: undefined, profileImage: undefined,
   });
 });
 

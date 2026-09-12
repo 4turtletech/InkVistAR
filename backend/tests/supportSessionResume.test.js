@@ -52,14 +52,27 @@ test('acknowledgement is optional and repeated inactive resumes never start a ch
 });
 test('shared mobile code starts only from explicit Live action, not reconnect or restoration', () => {
   const mobile = fs.readFileSync(path.join(__dirname, '../../mobile-app/screens/CustomerChatbotPage.jsx'), 'utf8');
+  const startFlow = mobile.slice(mobile.indexOf('const startLiveSupport ='), mobile.indexOf('const endLiveSupport ='));
   assert.equal((mobile.match(/emit\('start_support_session'/g) || []).length, 1);
-  assert.match(mobile.slice(mobile.indexOf('const startLiveSupport ='), mobile.indexOf('const endLiveSupport =')), /emit\('start_support_session'/);
+  assert.match(startFlow, /setHumanMessages\(\[createLiveSupportWelcome\(\)\]\)/);
+  assert.match(startFlow, /emit\('start_support_session'/);
   assert.equal((mobile.match(/emit\('resume_support_session'/g) || []).length, 3);
 });
 test('web distinguishes explicit start from reconnect and checks foreground restoration', () => {
   const web = fs.readFileSync(path.join(__dirname, '../../web-app/src/components/ChatWidget.js'), 'utf8');
   assert.equal((web.match(/emit\('start_support_session'/g) || []).length, 1);
   assert.match(web, /if \(explicitLiveStartRef.current\)\s*\{\s*explicitLiveStartRef.current = false;\s*socket.emit\('start_support_session'/);
+  assert.match(web, /const freshMessages = \[createLiveSupportWelcome\(\)\]/);
+  assert.match(web, /sessionStorage.setItem\('chat_humanMessages', JSON.stringify\(freshMessages\)\)/);
   assert.match(web, /document.addEventListener\('visibilitychange', visibilityHandler\)/);
   assert.match(web, /document.removeEventListener\('visibilitychange', visibilityHandler\)/);
+});
+test('admin clients treat a reused customer room with a new session id as a new chat', () => {
+  const mobileAdmin = fs.readFileSync(path.join(__dirname, '../../mobile-app/screens/AdminChat.jsx'), 'utf8');
+  const webAdmin = fs.readFileSync(path.join(__dirname, '../../web-app/src/pages/AdminChat.js'), 'utf8');
+
+  assert.match(mobileAdmin, /currentSession\.sessionId !== sel\.sessionId/);
+  assert.match(mobileAdmin, /setMessages\(\[\]\)/);
+  assert.match(webAdmin, /currentSession\.sessionId !== sel\.sessionId/);
+  assert.match(webAdmin, /key=\{`\$\{selectedAppointment\.id\}:\$\{selectedAppointment\.sessionId\}`\}/);
 });

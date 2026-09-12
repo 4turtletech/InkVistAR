@@ -103,8 +103,10 @@ function normalizeArtistProfileInput(body = {}) {
   const bio = body.bio === undefined ? undefined : String(body.bio || '').trim();
   if (bio !== undefined && bio.length > 1000) throw validationError('Bio cannot exceed 1000 characters.');
 
+  const structuredName = normalizeStructuredNameInput(body, { required: true });
+
   return {
-    name: normalizeName(body.name),
+    ...structuredName,
     phone: normalizeArtistPhone(body.phone),
     specialization: normalizeOptionalText(body.specialization, 255, 'Specialization'),
     experience_years: experience,

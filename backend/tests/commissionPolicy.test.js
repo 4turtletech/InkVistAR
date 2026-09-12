@@ -52,6 +52,25 @@ test('profile update cannot overwrite commission, even when the client submits i
   }
 });
 
+test('structured artist profile updates save name parts and the combined display name', () => {
+  const calls = [];
+  let response;
+  const handler = route('put', '/api/artist/profile/:id', {
+    query(sql, params, callback) { calls.push({ sql, params }); callback(null, { affectedRows: 1 }); },
+  });
+
+  handler({ params: { id: 73 }, body: {
+    first_name: 'Juan', middle_name: 'Santos', last_name: 'Dela Cruz', suffix: 'Jr.',
+    phone: '+639952086028', specialization: 'Realism', experience_years: 5,
+  } }, { json(value) { response = value; } });
+
+  assert.equal(response.success, true);
+  assert.match(calls[0].sql, /first_name = \?, middle_name = \?, last_name = \?, suffix = \?/);
+  assert.deepEqual(Array.from(calls[0].params.slice(0, 6)), [
+    'Juan Santos Dela Cruz Jr.', '+639952086028', 'Juan', 'Santos', 'Dela Cruz', 'Jr.',
+  ]);
+});
+
 function ledger(rate, overrides = {}, id = '73') {
   const calls = [];
   let response;

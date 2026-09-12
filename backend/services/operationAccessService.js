@@ -1,4 +1,5 @@
 const { asPositiveInteger } = require('./consentPolicyService');
+const { storedWalkInEmail, storedWalkInName } = require('./walkInIdentity');
 
 const STAFF_ROLES = new Set(['admin', 'manager']);
 
@@ -10,14 +11,21 @@ function createOperationAccessService(pool) {
     if (!id) return null;
     const [rows] = await connection.query(
       `SELECT a.id, a.customer_id, a.artist_id, a.secondary_artist_id, a.service_type,
-              a.design_title, a.appointment_date, a.status, a.guest_email,
+              a.design_title, a.appointment_date, a.status, a.notes, a.is_guest_placeholder,
+              a.guest_email, a.guest_phone, a.guest_name, a.guest_first_name,
+              a.guest_middle_name, a.guest_last_name, a.guest_suffix,
               COALESCE(u.name, a.guest_email, 'Guest Customer') AS customer_name
        FROM appointments a
        LEFT JOIN users u ON u.id = a.customer_id
        WHERE a.id = ? AND COALESCE(a.is_deleted, 0) = 0 LIMIT 1`,
       [id]
     );
-    return rows[0] || null;
+    const appointment = rows[0] || null;
+    if (appointment?.is_guest_placeholder) {
+      appointment.customer_name = storedWalkInName(appointment);
+      appointment.guest_email = storedWalkInEmail(appointment);
+    }
+    return appointment;
   }
 
   function canAccessAppointment(auth, appointment) {
