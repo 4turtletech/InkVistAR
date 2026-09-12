@@ -250,9 +250,19 @@ function CustomerBookings(){
     // Filter Logic
     const filteredAppointments = appointments.filter(apt => {
         const displayCode = getDisplayCode(apt.booking_code, apt.id);
-        const matchesSearch = displayCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              (apt.booking_code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              (apt.design_title || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const searchTarget = searchTerm.toLowerCase();
+        const aptDateStr = apt.appointment_date ? new Date(apt.appointment_date).toLocaleDateString().toLowerCase() : '';
+        const priceStr = apt.price > 0 ? Number(apt.price).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+        const paymentStr = (apt.payment_status || '').toLowerCase();
+        
+        const matchesSearch = displayCode.toLowerCase().includes(searchTarget) ||
+                              (apt.booking_code || '').toLowerCase().includes(searchTarget) ||
+                              (apt.design_title || '').toLowerCase().includes(searchTarget) ||
+                              (apt.service_type || 'tattoo').toLowerCase().includes(searchTarget) ||
+                              (apt.status || '').toLowerCase().includes(searchTarget) ||
+                              aptDateStr.includes(searchTarget) ||
+                              priceStr.includes(searchTarget) ||
+                              paymentStr.includes(searchTarget);
                               
         let matchesStatus = false;
         const status = (apt.status || '').toLowerCase();
