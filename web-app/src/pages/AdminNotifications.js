@@ -31,6 +31,7 @@ import Pagination from '../components/Pagination';
 import './AdminDashboard.css';
 import './PortalStyles.css';
 import './AdminStyles.css';
+import './AdminPortalPolish.css';
 import { API_URL } from '../config';
 
 function AdminNotifications() {
@@ -309,10 +310,11 @@ function AdminNotifications() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-page page-container-enter">
+            <div className="admin-page page-container-enter admin-polished-page notifications-page">
                 <header className="portal-header">
                     <div className="header-title">
                         <h1>Notification Center</h1>
+                        <p className="header-subtitle">System alerts and direct updates</p>
                     </div>
                     <div className="header-actions">
                         <button
@@ -345,8 +347,6 @@ function AdminNotifications() {
                         </button>
                     </div>
                 </header>
-
-                <p className="header-subtitle">System alerts and direct updates</p>
 
                 <div className="portal-stats-row" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
                     <div className="glass-card" style={{ flex: '1 1 200px', padding: '12px', textAlign: 'center' }}>

@@ -97,6 +97,18 @@
     margin-right: 0;
 }
 
+/* Notification Center previously mixed a padded content wrapper with an
+   unpadded header and stats row. The page shell now owns the single gutter. */
+.notifications-page > .portal-content {
+    width: 100%;
+    padding: 0;
+}
+
+.notifications-page > .portal-stats-row {
+    width: 100%;
+    flex-wrap: wrap;
+}
+
 /* Studio used to borrow its outer spacing from whichever admin stylesheet was
    loaded first. The page now owns the gutter, so remove the duplicated inset. */
 .admin-studio-page > .admin-st-d14eab7d,
@@ -156,6 +168,13 @@
         width: 100%;
         margin-left: 0 !important;
         margin-right: 0 !important;
+    }
+
+    .notifications-page > .portal-content,
+    .notifications-page > .portal-stats-row {
+        width: 100%;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
 
     .admin-studio-page > .stats-row {
