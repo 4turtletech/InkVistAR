@@ -6,6 +6,21 @@ import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
 import './PortalStyles.css';
 
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+}[character]));
+
+const parseInvoiceItems = (invoice) => {
+    try {
+        const items = typeof invoice?.items === 'string' ? JSON.parse(invoice.items) : invoice?.items;
+        return Array.isArray(items) ? items : [];
+    } catch (_error) {
+        return [];
+    }
+};
+
+const formatMoney = value => Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 /**
  * CustomerInvoice — Standalone invoice/receipt view page.
  * Accessible at /customer/invoice/:invoiceNumber
@@ -43,9 +58,16 @@ function CustomerInvoice() {
     const handlePrint = () => {
         if (!invoice) return;
         const printWindow = window.open('', '_blank', 'width=600,height=800');
+        if (!printWindow) return;
         const changeGiven = parseFloat(invoice.change_given || 0);
+        const discountAmount = Number(invoice.discount_amount || 0);
+        const items = parseInvoiceItems(invoice);
+        const studio = invoice.studio || {};
+        const itemRows = items.length
+            ? items.map(item => `<div class="receipt-row"><span>${Number(item.quantity)}× ${escapeHtml(item.name || 'Item')}</span><span>₱${formatMoney(Number(item.retail_price || item.cost) * Number(item.quantity))}</span></div>`).join('')
+            : `<div class="receipt-row"><span>${escapeHtml(invoice.service_type || 'Session Payment')}</span><span>₱${formatMoney(invoice.amount)}</span></div>`;
         printWindow.document.write(`
-            <html><head><title>Invoice ${invoice.invoice_number}</title>
+            <html><head><meta charset="utf-8"><title>Invoice ${escapeHtml(invoice.invoice_number)}</title>
             <style>
                 body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #1e293b; max-width: 520px; margin: 0 auto; }
                 .receipt-header { text-align: center; margin-bottom: 24px; border-bottom: 2px dashed #e2e8f0; padding-bottom: 16px; }
@@ -61,29 +83,36 @@ function CustomerInvoice() {
                 @media print { body { padding: 20px; } }
             </style></head><body>
             <div class="receipt-header">
-                <h2>InkVictus Tattoo Studio</h2>
+                <h2>${escapeHtml(studio.name || 'InkVictus Tattoo Studio')}</h2>
+                <p>${escapeHtml(studio.address || 'inkvictusstudio.com')}</p>
+                ${studio.phone ? `<p>${escapeHtml(studio.phone)}</p>` : ''}
                 <p>Official Payment Receipt</p>
             </div>
             <div class="receipt-section">
-                <div class="receipt-row"><span class="label">Invoice Number</span><span class="value">${invoice.invoice_number}</span></div>
+                <div class="receipt-row"><span class="label">Invoice Number</span><span class="value">${escapeHtml(invoice.invoice_number)}</span></div>
                 <div class="receipt-row"><span class="label">Date</span><span class="value">${new Date(invoice.created_at).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}</span></div>
-                <div class="receipt-row"><span class="label">Client</span><span class="value">${invoice.client_name}</span></div>
-                <div class="receipt-row"><span class="label">Service</span><span class="value">${invoice.service_type || 'Session Payment'}</span></div>
+                <div class="receipt-row"><span class="label">Client</span><span class="value">${escapeHtml(invoice.client_name || 'Walk-in Customer')}</span></div>
             </div>
             <div class="receipt-section">
-                <div class="receipt-row total"><span>Amount Paid</span><span class="success">₱${Number(invoice.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                ${itemRows}
+                ${discountAmount > 0 ? `<div class="receipt-row"><span>Subtotal</span><span>₱${formatMoney(Number(invoice.amount) + discountAmount)}</span></div><div class="receipt-row"><span>Discount</span><span>-₱${formatMoney(discountAmount)}</span></div>` : ''}
+                <div class="receipt-row total"><span>Amount Paid</span><span class="success">₱${formatMoney(invoice.amount)}</span></div>
             </div>
             <div class="receipt-section">
-                <div class="receipt-row"><span class="label">Payment Method</span><span class="value">${invoice.payment_method || 'N/A'}</span></div>
+                <div class="receipt-row"><span class="label">Payment Method</span><span class="value">${escapeHtml(invoice.payment_method || 'Not recorded')}</span></div>
                 ${changeGiven > 0 ? `<div class="receipt-row"><span class="label">Change Given</span><span class="value success">₱${changeGiven.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>` : ''}
             </div>
-            <div class="footer"><p>Thank you for choosing InkVictus Tattoo Studio</p><p>BGC, Taguig City</p></div>
+            <div class="footer"><p>Thank you for choosing ${escapeHtml(studio.name || 'InkVictus Tattoo Studio')}</p></div>
             </body></html>
         `);
         printWindow.document.close();
         printWindow.focus();
         setTimeout(() => printWindow.print(), 300);
     };
+
+    const invoiceItems = parseInvoiceItems(invoice);
+    const invoiceDiscount = Number(invoice?.discount_amount || 0);
+    const studio = invoice?.studio || {};
 
     return (
         <div className="portal-layout">
@@ -118,7 +147,9 @@ function CustomerInvoice() {
                         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
                             {/* Studio Header */}
                             <div style={{ padding: '20px', borderBottom: '1px dashed #e2e8f0', textAlign: 'center' }}>
-                                <h3 style={{ margin: '0 0 4px', fontSize: '1.2rem', fontWeight: 800, color: '#1e293b' }}>InkVictus Tattoo Studio</h3>
+                                <h3 style={{ margin: '0 0 4px', fontSize: '1.2rem', fontWeight: 800, color: '#1e293b' }}>{studio.name || 'InkVictus Tattoo Studio'}</h3>
+                                <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>{studio.address || 'inkvictusstudio.com'}</p>
+                                {studio.phone && <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>{studio.phone}</p>}
                                 <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>Official Payment Receipt</p>
                             </div>
 
@@ -140,9 +171,25 @@ function CustomerInvoice() {
                                     <span>Description</span>
                                     <span>Amount</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid #f1f5f9' }}>
-                                    <span style={{ fontWeight: 500, color: '#1e293b', fontSize: '0.9rem' }}>{invoice.service_type || 'Session Payment'}</span>
-                                    <span style={{ fontWeight: 700, color: '#10b981', fontSize: '1rem' }}>₱{Number(invoice.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                {invoiceItems.length ? invoiceItems.map((item, index) => (
+                                    <div key={`${item.id || index}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', padding: '12px 20px', borderBottom: '1px solid #f1f5f9' }}>
+                                        <span style={{ fontWeight: 500, color: '#1e293b', fontSize: '0.9rem' }}>{Number(item.quantity)}× {item.name || 'Item'}</span>
+                                        <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>₱{formatMoney(Number(item.retail_price || item.cost) * Number(item.quantity))}</span>
+                                    </div>
+                                )) : (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid #f1f5f9' }}>
+                                        <span style={{ fontWeight: 500, color: '#1e293b', fontSize: '0.9rem' }}>{invoice.service_type || 'Session Payment'}</span>
+                                        <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.9rem' }}>₱{formatMoney(invoice.amount)}</span>
+                                    </div>
+                                )}
+                                {invoiceDiscount > 0 && (
+                                    <div style={{ padding: '10px 20px', borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#64748b' }}><span>Subtotal</span><span>₱{formatMoney(Number(invoice.amount) + invoiceDiscount)}</span></div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}><span>Discount</span><span>-₱{formatMoney(invoiceDiscount)}</span></div>
+                                    </div>
+                                )}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 20px', fontSize: '1rem', fontWeight: 800 }}>
+                                    <span>Amount Paid</span><span style={{ color: '#10b981' }}>₱{formatMoney(invoice.amount)}</span>
                                 </div>
                             </div>
 
@@ -153,7 +200,7 @@ function CustomerInvoice() {
                                         {invoice.payment_method === 'Cash' ? <Banknote size={14} /> : invoice.payment_method === 'GCash' ? <Wallet size={14} /> : <CreditCard size={14} />}
                                         Payment Method
                                     </span>
-                                    <span style={{ fontWeight: 700 }}>{invoice.payment_method || 'N/A'}</span>
+                                    <span style={{ fontWeight: 700 }}>{invoice.payment_method || 'Not recorded'}</span>
                                 </div>
                                 {parseFloat(invoice.change_given || 0) > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#16a34a', marginTop: '4px' }}>
@@ -167,8 +214,8 @@ function CustomerInvoice() {
                             <div style={{ padding: '14px 20px', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
                                 <span style={{
                                     display: 'inline-block', padding: '6px 16px', borderRadius: '20px',
-                                    background: invoice.status === 'Paid' ? '#dcfce7' : '#fef3c7',
-                                    color: invoice.status === 'Paid' ? '#166534' : '#92400e',
+                                    background: String(invoice.status).toLowerCase() === 'paid' ? '#dcfce7' : '#fef3c7',
+                                    color: String(invoice.status).toLowerCase() === 'paid' ? '#166534' : '#92400e',
                                     fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase'
                                 }}>
                                     {invoice.status || 'Paid'}

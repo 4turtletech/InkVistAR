@@ -11,6 +11,15 @@ import './AdminStyles.css';
 import { API_URL } from '../config';
 import './AdminPOS.css';
 
+const createRequestKey = () => {
+    if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+    return `${Date.now()}_${Math.random().toString(36).slice(2)}_${Math.random().toString(36).slice(2)}`;
+};
+
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+}[character]));
+
 function AdminPOS() {
     const [inventory, setInventory] = useState([]);
     const [customers, setCustomers] = useState([]);
@@ -31,6 +40,9 @@ function AdminPOS() {
     const [paymentMethod, setPaymentMethod] = useState('Cash');
     const [amountTendered, setAmountTendered] = useState('');
     const searchInputRef = useRef(null);
+    const checkoutSubmittingRef = useRef(false);
+    const checkoutRequestKeyRef = useRef(createRequestKey());
+    const [checkoutFeedback, setCheckoutFeedback] = useState(null);
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
 
     const showAlert = (title, message, type = 'info') => {
@@ -137,66 +149,53 @@ function AdminPOS() {
     const cartTotal = cartSubtotal - discountAmount;
 
     const handleCheckout = async () => {
-        if (cart.length === 0) return;
+        if (cart.length === 0 || checkoutSubmittingRef.current) return;
         const customer = customers.find(c => c.id === parseInt(selectedCustomerId));
-        const clientLabel = customer ? customer.name : 'Walk-in Customer';
 
-        // Cash validation
         if (paymentMethod === 'Cash' && (parseFloat(amountTendered) || 0) < cartTotal) {
-            showAlert("Insufficient Payment", "The amount tendered is less than the total due.", "warning");
+            setCheckoutFeedback({ type: 'error', message: 'The amount tendered is less than the total due.' });
             return;
         }
-        
+
+        checkoutSubmittingRef.current = true;
         setIsCheckingOut(true);
+        setCheckoutFeedback(null);
         try {
-            const promises = cart.map(item => 
-                Axios.post(`${API_URL}/api/admin/inventory/${item.id}/transaction`, {
-                    type: 'out',
-                    quantity: item.quantity,
-                    reason: 'POS Sale'
-                })
-            );
-            
-            await Promise.all(promises);
-
-            // Capture the real invoice number from the backend response
-            const invoiceRes = await Axios.post(`${API_URL}/api/admin/invoices`, {
-                client: clientLabel,
-                type: 'Retail POS Sale',
-                amount: cartTotal,
-                discount_amount: discountAmount,
-                discount_type: discountType !== 'none' ? discountType : null,
-                status: 'Paid',
+            const checkoutRes = await Axios.post(`${API_URL}/api/admin/pos/checkout`, {
+                requestKey: checkoutRequestKeyRef.current,
                 customerId: selectedCustomerId || null,
-                payment_method: paymentMethod,
-                change_given: paymentMethod === 'Cash' ? Math.max(0, (parseFloat(amountTendered) || 0) - cartTotal) : 0,
-                items: cart
+                paymentMethod,
+                amountTendered: paymentMethod === 'Cash' ? Number(amountTendered) : cartTotal,
+                discountType,
+                customDiscount,
+                items: cart.map(item => ({ id: item.id, quantity: item.quantity }))
+            });
+            const sale = checkoutRes.data.sale;
+
+            setLastOrder({
+                items: sale.items || [],
+                subtotal: Number(sale.subtotal),
+                discount_amount: Number(sale.discount_amount),
+                total: Number(sale.amount),
+                date: new Date(sale.created_at || Date.now()).toLocaleString(),
+                orderId: sale.invoice_number,
+                customerName: sale.client_name || customer?.name || 'Walk-in Customer',
+                customerId: selectedCustomerId,
+                paymentMethod: sale.payment_method,
+                amountTendered: Number(sale.amount_tendered),
+                changeGiven: Number(sale.change_given)
             });
 
-            const tenderedNum = parseFloat(amountTendered) || 0;
-            
-            setLastOrder({
-                items: [...cart],
-                subtotal: cartSubtotal,
-                discount_amount: discountAmount,
-                total: cartTotal,
-                date: new Date().toLocaleString(),
-                orderId: invoiceRes.data.invoiceNumber || `INV-${String(invoiceRes.data.id).padStart(6, '0')}`,
-                customerName: clientLabel,
-                customerId: selectedCustomerId,
-                paymentMethod: paymentMethod,
-                amountTendered: paymentMethod === 'Cash' ? tenderedNum : cartTotal,
-                changeGiven: paymentMethod === 'Cash' ? Math.max(0, tenderedNum - cartTotal) : 0
-            });
-            
             setCart([]);
             setShowAssessment(false);
             setShowReceipt(true);
-            fetchInventory(); // Refresh stock
+            checkoutRequestKeyRef.current = createRequestKey();
+            fetchInventory();
         } catch (error) {
             console.error("Checkout failed:", error);
-            showAlert("Transaction Failed", "Checkout failed. Please try again.", "danger");
+            setCheckoutFeedback({ type: 'error', message: error.response?.data?.message || 'Checkout failed. No stock was deducted.' });
         } finally {
+            checkoutSubmittingRef.current = false;
             setIsCheckingOut(false);
         }
     };
@@ -211,6 +210,8 @@ function AdminPOS() {
         setPaymentMethod('Cash');
         setAmountTendered('');
         setLastOrder(null);
+        setCheckoutFeedback(null);
+        checkoutRequestKeyRef.current = createRequestKey();
     };
 
     const handleSendReceipt = async () => {
@@ -226,9 +227,6 @@ function AdminPOS() {
     
             await Axios.post(`${API_URL}/api/admin/send-pos-invoice`, {
                 orderId: lastOrder.orderId,
-                items: lastOrder.items,
-                total: lastOrder.total,
-                date: lastOrder.date,
                 customerId: selectedCustomerId
             });
             
@@ -281,7 +279,7 @@ function AdminPOS() {
 
     const buildDownloadReceipt = () => {
         if (!lastOrder) return '';
-        return `<html><head><meta charset="utf-8"><title>Invoice #${lastOrder.orderId}</title>
+        return `<html><head><meta charset="utf-8"><title>Invoice #${escapeHtml(lastOrder.orderId)}</title>
         <style>body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #1e293b; max-width: 520px; margin: 0 auto; }
         .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #e2e8f0; padding-bottom: 16px; }
         .header h2 { margin: 0 0 4px; } .header p { margin: 0; color: #94a3b8; font-size: 0.85rem; }
@@ -289,10 +287,10 @@ function AdminPOS() {
         .section { margin-bottom: 12px; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
         .total { font-size: 1.2rem; font-weight: 800; border-top: 2px solid #e2e8f0; margin-top: 8px; padding-top: 12px; }
         .success { color: #10b981; } .footer { text-align: center; margin-top: 24px; color: #94a3b8; }</style></head><body>
-        <div class="header"><h2>InkVistAR Studio</h2><p>Sales Invoice #${lastOrder.orderId}</p></div>
-        <div class="section"><div class="row"><span>Customer</span><strong>${lastOrder.customerName}</strong></div><div class="row"><span>Date</span><strong>${lastOrder.date}</strong></div></div>
-        <div class="section">${lastOrder.items.map(i => `<div class="row"><span>${i.quantity}x ${i.name}</span><span>₱${((i.retail_price || i.cost) * i.quantity).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`).join('')}</div>
-        <div class="section"><div class="row total"><span>Total</span><span class="success">₱${lastOrder.total.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div><div class="row"><span>Payment</span><strong>${lastOrder.paymentMethod}</strong></div></div>
+        <div class="header"><h2>InkVistAR Studio</h2><p>Sales Invoice #${escapeHtml(lastOrder.orderId)}</p></div>
+        <div class="section"><div class="row"><span>Customer</span><strong>${escapeHtml(lastOrder.customerName)}</strong></div><div class="row"><span>Date</span><strong>${escapeHtml(lastOrder.date)}</strong></div></div>
+        <div class="section">${lastOrder.items.map(i => `<div class="row"><span>${Number(i.quantity)}x ${escapeHtml(i.name)}</span><span>₱${(Number(i.retail_price || i.cost) * Number(i.quantity)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`).join('')}</div>
+        <div class="section"><div class="row"><span>Subtotal</span><span>₱${lastOrder.subtotal.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>${lastOrder.discount_amount > 0 ? `<div class="row"><span>Discount</span><span>-₱${lastOrder.discount_amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>` : ''}<div class="row total"><span>Total</span><span class="success">₱${lastOrder.total.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div><div class="row"><span>Payment</span><strong>${escapeHtml(lastOrder.paymentMethod)}</strong></div>${lastOrder.paymentMethod === 'Cash' ? `<div class="row"><span>Tendered</span><span>₱${lastOrder.amountTendered.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div><div class="row"><span>Change</span><span class="success">₱${lastOrder.changeGiven.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>` : ''}</div>
         <div class="footer"><p>Thank you for shopping at InkVistAR Studio</p></div></body></html>`;
     };
 
@@ -523,6 +521,7 @@ function AdminPOS() {
                                             value={discountType} 
                                             onChange={(e) => {
                                                 setDiscountType(e.target.value);
+                                                setCheckoutFeedback(null);
                                                 if(e.target.value !== 'custom') setCustomDiscount(0);
                                             }}
                                         >
@@ -535,10 +534,10 @@ function AdminPOS() {
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                 <input 
                                                     type="number" 
-                                                    min="0" max="100" 
+                                                    min="0" max="99.99" step="0.01"
                                                     style={{ width: '70px', padding: '10px 8px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', textAlign: 'right' }} 
                                                     value={customDiscount}
-                                                    onChange={e => setCustomDiscount(clampNumber(e.target.value, 0, 100))}
+                                                    onChange={e => { setCustomDiscount(clampNumber(e.target.value, 0, 99.99)); setCheckoutFeedback(null); }}
                                                 />
                                                 <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>%</span>
                                             </div>
@@ -590,7 +589,7 @@ function AdminPOS() {
                                         ].map(method => (
                                             <div
                                                 key={method.key}
-                                                onClick={() => { setPaymentMethod(method.key); if (method.key !== 'Cash') setAmountTendered(''); }}
+                                                onClick={() => { setPaymentMethod(method.key); setCheckoutFeedback(null); if (method.key !== 'Cash') setAmountTendered(''); }}
                                                 style={{
                                                     padding: '14px 12px', borderRadius: '12px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s',
                                                     border: paymentMethod === method.key ? `2px solid ${method.color}` : '2px solid #e2e8f0',
@@ -619,7 +618,7 @@ function AdminPOS() {
                                                 step="0.01"
                                                 placeholder="0.00"
                                                 value={amountTendered}
-                                                onChange={e => setAmountTendered(filterMoney(e.target.value))}
+                                                onChange={e => { setAmountTendered(filterMoney(e.target.value)); setCheckoutFeedback(null); }}
                                                 style={{ width: '100%', padding: '14px 14px 14px 32px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '1.2rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
                                                 autoFocus
                                             />
@@ -639,6 +638,11 @@ function AdminPOS() {
                                                 </span>
                                             </div>
                                         )}
+                                    </div>
+                                )}
+                                {checkoutFeedback && (
+                                    <div role="status" style={{ marginTop: '12px', padding: '10px 12px', borderRadius: '10px', border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontSize: '0.85rem', fontWeight: 600 }}>
+                                        {checkoutFeedback.message}
                                     </div>
                                 )}
                             </div>
@@ -766,44 +770,8 @@ function AdminPOS() {
                                         className="btn btn-secondary"
                                         onClick={() => {
                                             const pw = window.open('', '_blank', 'width=600,height=800');
-                                            pw.document.write(`<html><head><title>Invoice #${lastOrder.orderId}</title>
-                                            <style>
-                                                body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #1e293b; max-width: 520px; margin: 0 auto; }
-                                                .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #e2e8f0; padding-bottom: 16px; }
-                                                .header h2 { margin: 0 0 4px; font-size: 1.4rem; }
-                                                .header p { margin: 0; color: #94a3b8; font-size: 0.85rem; }
-                                                .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem; }
-                                                .section { margin-bottom: 12px; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
-                                                .label { color: #64748b; font-size: 0.75rem; text-transform: uppercase; }
-                                                .value { font-weight: 600; }
-                                                .total { font-size: 1.2rem; font-weight: 800; border-top: 2px solid #e2e8f0; margin-top: 8px; padding-top: 12px; }
-                                                .success { color: #10b981; }
-                                                .footer { text-align: center; margin-top: 24px; color: #94a3b8; font-size: 0.8rem; }
-                                                @media print { body { padding: 20px; } }
-                                            </style></head><body>
-                                            <div class="header"><h2>InkVistAR Studio</h2><p>Official Sales Invoice</p></div>
-                                            <div class="section">
-                                                <div class="row"><span class="label">Invoice #</span><span class="value">${lastOrder.orderId}</span></div>
-                                                <div class="row"><span class="label">Date</span><span class="value">${lastOrder.date}</span></div>
-                                                <div class="row"><span class="label">Client</span><span class="value">${lastOrder.customerName}</span></div>
-                                            </div>
-                                            <div class="section">
-                                                ${lastOrder.items.map(i => `<div class="row"><span>${i.quantity}x ${i.name}</span><span class="value">₱${((i.retail_price || i.cost) * i.quantity).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`).join('')}
-                                            </div>
-                                            <div class="section">
-                                                <div class="row"><span>Subtotal</span><span>₱${lastOrder.subtotal.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-                                                ${lastOrder.discount_amount > 0 ? `<div class="row" style="color:#ef4444"><span>Discount</span><span>-₱${lastOrder.discount_amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>` : ''}
-                                                <div class="row total"><span>Total</span><span class="success">₱${lastOrder.total.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-                                            </div>
-                                            <div class="section">
-                                                <div class="row"><span class="label">Payment</span><span class="value">${lastOrder.paymentMethod}</span></div>
-                                                ${lastOrder.paymentMethod === 'Cash' ? `
-                                                    <div class="row"><span class="label">Tendered</span><span class="value">₱${lastOrder.amountTendered.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-                                                    <div class="row"><span class="label">Change</span><span class="value success">₱${lastOrder.changeGiven.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-                                                ` : ''}
-                                            </div>
-                                            <div class="footer"><p>Thank you for shopping at InkVistAR Studio</p></div>
-                                            </body></html>`);
+                                            if (!pw) return;
+                                            pw.document.write(buildDownloadReceipt());
                                             pw.document.close();
                                             pw.focus();
                                             setTimeout(() => pw.print(), 300);

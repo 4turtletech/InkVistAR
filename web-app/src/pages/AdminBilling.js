@@ -36,10 +36,17 @@ const getInvoiceSourceId = (invoice) => {
     return invoice?.id;
 };
 
+const createRequestKey = () => {
+    if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+    return `${Date.now()}_${Math.random().toString(36).slice(2)}_${Math.random().toString(36).slice(2)}`;
+};
+
 function AdminBilling() {
     const [activeTab, setActiveTab] = useState('invoices');
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [billingLoadWarning, setBillingLoadWarning] = useState('');
+    const [billingFeedback, setBillingFeedback] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchRef = useRef(null);
@@ -93,6 +100,9 @@ function AdminBilling() {
 
     const [invoiceModal, setInvoiceModal] = useState({ mounted: false, visible: false, mode: 'create', id: null });
     const [newInvoice, setNewInvoice] = useState({ customerId: null, customerName: '', appointmentId: '', amount: '', type: '', method: 'Cash', status: 'Pending' });
+    const [invoiceSubmitting, setInvoiceSubmitting] = useState(false);
+    const invoiceSubmittingRef = useRef(false);
+    const invoiceRequestKeyRef = useRef(createRequestKey());
     const [previewModal, setPreviewModal] = useState({ mounted: false, visible: false, invoice: null });
     
     // Validation states
@@ -217,6 +227,7 @@ function AdminBilling() {
 
     // Modal animation handlers
     const openModal = (mode = 'create', invoice = null) => {
+        setBillingFeedback(null);
         if (mode === 'edit' && invoice) {
             if (!isEditableInvoiceRecord(invoice)) {
                 showAlert('Read-only Payment', 'Payment transactions are immutable. Edit the generated invoice record instead.', 'warning');
@@ -235,6 +246,7 @@ function AdminBilling() {
             setInvoiceErrors({});
             setInvoiceModal({ mounted: true, visible: false, mode: 'edit', id: getInvoiceSourceId(invoice) });
         } else {
+            invoiceRequestKeyRef.current = createRequestKey();
             setNewInvoice({ customerId: null, customerName: '', appointmentId: '', amount: '', type: '', method: 'Cash', status: 'Pending' });
             setClientSearch('');
             setCustomerAppointments([]);
@@ -279,52 +291,59 @@ function AdminBilling() {
     }, []);
 
     const fetchData = async () => {
-        try {
-            setLoading(true);
-            const [invRes, artistRes, usersRes, pRes, balanceRes, branchRes] = await Promise.all([
-                Axios.get(`${API_URL}/api/admin/invoices`),
-                Axios.get(`${API_URL}/api/customer/artists`),
-                Axios.get(`${API_URL}/api/admin/users`),
-                Axios.get(`${API_URL}/api/admin/payouts`),
-                Axios.get(`${API_URL}/api/admin/payout-balances`).catch(() => ({ data: { success: false, data: [] } })),
-                Axios.get(`${API_URL}/api/admin/branches`).catch(() => ({ data: { success: false, data: [] } }))
-            ]);
+        setLoading(true);
+        setBillingLoadWarning('');
+        const failedSections = [];
+        const loadSection = async (label, request, applyResponse) => {
+            try {
+                const response = await request;
+                if (!response.data?.success) throw new Error(response.data?.message || `${label} request failed`);
+                applyResponse(response.data);
+            } catch (error) {
+                console.error(`Error fetching ${label}:`, error);
+                failedSections.push(label);
+            }
+        };
 
-            if (invRes.data.success) setInvoices(invRes.data.data);
-            if (artistRes.data.success) {
-                setArtists(artistRes.data.artists);
-            }
-            if (usersRes.data.success) {
-                setCustomers(usersRes.data.data.filter(u => u.user_type === 'customer' && !u.is_deleted));
-            }
-            
-            if (pRes.data.success) setPayouts(pRes.data.data);
-            if (balanceRes.data.success) setPayoutBalances(balanceRes.data.data || []);
-            if (branchRes.data.success) {
-                const branches = branchRes.data.data || [];
+        const invoiceRequest = loadSection('invoices', Axios.get(`${API_URL}/api/admin/invoices`), data => {
+            setInvoices(data.data || []);
+        }).finally(() => setLoading(false));
+
+        await Promise.all([
+            invoiceRequest,
+            loadSection('artists', Axios.get(`${API_URL}/api/customer/artists`), data => setArtists(data.artists || [])),
+            loadSection('customers', Axios.get(`${API_URL}/api/admin/users`), data => {
+                setCustomers((data.data || []).filter(u => u.user_type === 'customer' && !u.is_deleted));
+            }),
+            loadSection('payout history', Axios.get(`${API_URL}/api/admin/payouts`), data => setPayouts(data.data || [])),
+            loadSection('payout balances', Axios.get(`${API_URL}/api/admin/payout-balances`), data => setPayoutBalances(data.data || [])),
+            loadSection('studio details', Axios.get(`${API_URL}/api/admin/branches`), data => {
+                const branches = data.data || [];
                 setStudioBranch(branches.find(branch => String(branch.status).toLowerCase() === 'open') || branches[0] || null);
-            }
+            })
+        ]);
 
-            setLoading(false);
-        } catch (error) {
-            console.error("Error fetching billing data:", error);
-            setLoading(false);
+        if (failedSections.length) {
+            setBillingLoadWarning(`Some billing information could not be refreshed: ${failedSections.join(', ')}. Existing information is still shown where available.`);
         }
     };
 
     const handleInvoiceSubmit = async (e) => {
         e.preventDefault();
+        if (invoiceSubmittingRef.current) return;
 
         if (invoiceModal.mode === 'edit') {
-            // Edit mode — update existing invoice (keep original flow)
             const clientValid = newInvoice.customerName && newInvoice.customerName.trim();
             const typeValid = validateInvoiceField('type', newInvoice.type);
             const amountValid = validateInvoiceField('amount', newInvoice.amount);
             if (!clientValid || !typeValid || !amountValid) {
-                showAlert("Error", "Please fix validation errors before saving.", "warning");
+                setBillingFeedback({ type: 'error', message: 'Please fix the highlighted invoice fields.' });
                 return;
             }
             try {
+                invoiceSubmittingRef.current = true;
+                setInvoiceSubmitting(true);
+                setBillingFeedback(null);
                 const response = await Axios.put(`${API_URL}/api/admin/invoices/${invoiceModal.id}`, {
                     client: newInvoice.customerName,
                     type: newInvoice.type,
@@ -335,38 +354,47 @@ function AdminBilling() {
                 if (!response.data?.success) throw new Error(response.data?.message || 'Invoice update failed.');
                 closeModal();
                 await fetchData();
-                showAlert('Invoice Updated', 'The billing record was updated successfully.', 'success');
+                setBillingFeedback({ type: 'success', message: 'The draft invoice was updated successfully.' });
             } catch (error) {
-                showAlert("Error", "Failed to update invoice: " + (error.response?.data?.message || error.message), "danger");
+                setBillingFeedback({ type: 'error', message: error.response?.data?.message || error.message || 'The draft invoice could not be updated.' });
+            } finally {
+                invoiceSubmittingRef.current = false;
+                setInvoiceSubmitting(false);
             }
             return;
         }
 
-        // Create mode — use new billing/record-payment endpoint
         const customerValid = validateInvoiceField('customerId', newInvoice.customerId);
         const appointmentValid = validateInvoiceField('appointmentId', newInvoice.appointmentId);
         const amountValid = validateInvoiceField('amount', newInvoice.amount);
         
         if (!customerValid || !appointmentValid || !amountValid) {
-            showAlert("Error", "Please fix validation errors before saving.", "warning");
+            setBillingFeedback({ type: 'error', message: 'Please fix the highlighted payment fields.' });
             return;
         }
 
         try {
+            invoiceSubmittingRef.current = true;
+            setInvoiceSubmitting(true);
+            setBillingFeedback(null);
             const res = await Axios.post(`${API_URL}/api/admin/billing/record-payment`, {
+                requestKey: invoiceRequestKeyRef.current,
                 customerId: newInvoice.customerId,
                 appointmentId: newInvoice.appointmentId,
                 amount: newInvoice.amount,
                 method: newInvoice.method
             });
             if (res.data.success) {
-                showAlert("Invoice Generated", `${res.data.invoice.invoiceNumber} -- Payment of ₱${Number(res.data.invoice.amountPaid).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} recorded for ${res.data.invoice.clientName}. Notification and receipt email sent.`, "success");
                 closeModal();
-                fetchData();
+                await fetchData();
+                setBillingFeedback({ type: 'success', message: `${res.data.invoice.invoiceNumber}: payment of ₱${Number(res.data.invoice.amountPaid).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} recorded for ${res.data.invoice.clientName}.` });
             }
         } catch (error) {
             console.error("Error recording payment:", error);
-            showAlert("Error", error.response?.data?.message || "Failed to record payment.", "danger");
+            setBillingFeedback({ type: 'error', message: error.response?.data?.message || 'Failed to record payment. No duplicate payment was created.' });
+        } finally {
+            invoiceSubmittingRef.current = false;
+            setInvoiceSubmitting(false);
         }
     };
 
@@ -534,6 +562,14 @@ function AdminBilling() {
     const totalPages = Math.ceil(sortedInvoices.length / itemsPerPage);
     const paginatedInvoices = sortedInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, statusFilter, sourceFilter, timePeriodFilter, customStartDate, customEndDate]);
+
+    useEffect(() => {
+        setCurrentPage(page => Math.min(page, Math.max(1, totalPages)));
+    }, [totalPages]);
+
     // Compute autocomplete suggestions dynamically from the dataset
     const searchSuggestions = Array.from(new Set([
         ...invoices.map(i => (i.invoice_number || `INV-${String(i.id).padStart(6, '0')}`).trim()),
@@ -589,7 +625,7 @@ function AdminBilling() {
                         </div>
                         {activeTab === 'invoices' ? (
                             <button className="btn btn-primary admin-st-4796037d" onClick={openModal} >
-                                <Plus size={18} className="admin-st-c02c7d9c" /> Create Invoice
+                                <Plus size={18} className="admin-st-c02c7d9c" /> Record Payment
                             </button>
                         ) : (
                             <button className="btn btn-primary" onClick={() => openPayoutModal()}>
@@ -599,6 +635,8 @@ function AdminBilling() {
                     </div>
                 </header>
                 <p className="header-subtitle">Manage studio revenue, invoices, and payment tracking</p>
+                {billingLoadWarning && <div className="payout-inline-feedback payout-inline-feedback--error" role="status">{billingLoadWarning}</div>}
+                {billingFeedback && !invoiceModal.mounted && <div className={`payout-inline-feedback payout-inline-feedback--${billingFeedback.type}`} role="status">{billingFeedback.message}</div>}
 
                 {activeTab === 'invoices' ? (
                         <div className="page-container-enter" key="invoices">
@@ -781,6 +819,7 @@ function AdminBilling() {
                                                 </td>
                                             </tr>
                                         ))}
+                                        {!loading && paginatedInvoices.length === 0 && <tr><td colSpan="8" className="no-data admin-st-3927920f">No invoices match the selected filters.</td></tr>}
                                     </tbody>
                                 </table>
                             </div>
@@ -968,8 +1007,8 @@ function AdminBilling() {
                                         <FileText size={20} className="text-bronze" />
                                     </div>
                                     <div>
-                                        <h2 className="admin-m-0">{invoiceModal.mode === 'edit' ? 'Update Billing Record' : 'Generate Financial Invoice'}</h2>
-                                        <p className="admin-st-925e4e02">Account Settlement & Revenue Log</p>
+                                        <h2 className="admin-m-0">{invoiceModal.mode === 'edit' ? 'Update Draft Invoice' : 'Record Payment & Issue Invoice'}</h2>
+                                        <p className="admin-st-925e4e02">{invoiceModal.mode === 'edit' ? 'Update document details' : 'Record an appointment payment and create its receipt'}</p>
                                     </div>
                                 </div>
                                 <button className="close-btn" onClick={closeModal}><X size={24}/></button>
@@ -1159,11 +1198,16 @@ function AdminBilling() {
                                                 : '* This action will record a payment against the selected appointment, generate an invoice, send a notification and receipt email to the client, and update payment status across the system.'}
                                         </p>
                                     </div>
+                                    {billingFeedback && invoiceModal.mounted && (
+                                        <div className={`payout-inline-feedback payout-inline-feedback--${billingFeedback.type}`} role="status">
+                                            {billingFeedback.message}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="modal-footer">
-                                    <button type="button" className="btn btn-secondary" onClick={closeModal}>Discard</button>
-                                    <button type="submit" className="btn btn-primary admin-st-f9a92399" disabled={invoiceModal.mode !== 'edit' && (!newInvoice.customerId || !newInvoice.appointmentId || !newInvoice.amount || parseFloat(newInvoice.amount) <= 0)}>
-                                        {invoiceModal.mode === 'edit' ? 'Update Invoice' : 'Commit & Generate'}
+                                    <button type="button" className="btn btn-secondary" onClick={closeModal} disabled={invoiceSubmitting}>Cancel</button>
+                                    <button type="submit" className="btn btn-primary admin-st-f9a92399" disabled={invoiceSubmitting || (invoiceModal.mode !== 'edit' && (!newInvoice.customerId || !newInvoice.appointmentId || !newInvoice.amount || parseFloat(newInvoice.amount) <= 0))}>
+                                        {invoiceSubmitting ? 'Saving…' : invoiceModal.mode === 'edit' ? 'Update Draft' : 'Record Payment & Issue Invoice'}
                                     </button>
                                 </div>
                             </form>

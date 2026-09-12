@@ -23,59 +23,75 @@ const paymentMethodFromRow = (payment = {}) => {
 
 const invoiceNumberForId = (id) => `INV-${String(id).padStart(6, '0')}`;
 
-async function insertInvoiceRecord(database, record) {
-  if (!database?.promise) throw new TypeError('A database pool is required.');
-
+async function insertInvoiceRecordWithConnection(connection, record) {
   const amount = Math.round(Number(record.amount) * 100) / 100;
   if (!Number.isFinite(amount) || amount <= 0) throw new Error('Invoice amount must be greater than zero.');
+
+  if (record.paymentId) {
+    const [existing] = await connection.query(
+      'SELECT id, invoice_number FROM invoices WHERE payment_id = ? LIMIT 1',
+      [record.paymentId]
+    );
+    if (existing[0]) {
+      return { id: existing[0].id, invoiceNumber: existing[0].invoice_number, existing: true };
+    }
+  }
+
+  if (record.requestKey) {
+    const [existing] = await connection.query(
+      'SELECT id, invoice_number FROM invoices WHERE request_key = ? LIMIT 1',
+      [record.requestKey]
+    );
+    if (existing[0]) {
+      return { id: existing[0].id, invoiceNumber: existing[0].invoice_number, existing: true };
+    }
+  }
+
+  const [result] = await connection.query(
+    `INSERT INTO invoices
+     (invoice_number, payment_id, request_key, customer_id, appointment_id, client_name, service_type,
+      amount, payment_method, change_given, discount_amount, discount_type, status, items, created_at)
+     VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))`,
+    [
+      record.paymentId || null,
+      record.requestKey || null,
+      record.customerId || null,
+      record.appointmentId || null,
+      String(record.clientName || 'Walk-in Customer').trim().substring(0, 255),
+      String(record.serviceType || 'Service').trim().substring(0, 255),
+      amount,
+      record.paymentMethod ? String(record.paymentMethod).substring(0, 100) : null,
+      Math.max(0, Number(record.changeGiven) || 0),
+      Math.max(0, Number(record.discountAmount) || 0),
+      record.discountType || null,
+      record.status || 'Paid',
+      record.items ? JSON.stringify(record.items) : null,
+      record.createdAt || null,
+    ]
+  );
+
+  const invoiceNumber = invoiceNumberForId(result.insertId);
+  await connection.query('UPDATE invoices SET invoice_number = ? WHERE id = ?', [invoiceNumber, result.insertId]);
+  return { id: result.insertId, invoiceNumber, existing: false };
+}
+
+async function insertInvoiceRecord(database, record) {
+  if (!database?.promise) throw new TypeError('A database pool is required.');
 
   const connection = await database.promise().getConnection();
   try {
     await connection.beginTransaction();
-
-    if (record.paymentId) {
-      const [existing] = await connection.query(
-        'SELECT id, invoice_number FROM invoices WHERE payment_id = ? LIMIT 1',
-        [record.paymentId]
-      );
-      if (existing[0]) {
-        await connection.commit();
-        return { id: existing[0].id, invoiceNumber: existing[0].invoice_number, existing: true };
-      }
-    }
-
-    const [result] = await connection.query(
-      `INSERT INTO invoices
-       (invoice_number, payment_id, customer_id, appointment_id, client_name, service_type,
-        amount, payment_method, change_given, discount_amount, discount_type, status, items, created_at)
-       VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))`,
-      [
-        record.paymentId || null,
-        record.customerId || null,
-        record.appointmentId || null,
-        String(record.clientName || 'Walk-in Customer').trim().substring(0, 255),
-        String(record.serviceType || 'Service').trim().substring(0, 255),
-        amount,
-        record.paymentMethod ? String(record.paymentMethod).substring(0, 100) : null,
-        Math.max(0, Number(record.changeGiven) || 0),
-        Math.max(0, Number(record.discountAmount) || 0),
-        record.discountType || null,
-        record.status || 'Paid',
-        record.items ? JSON.stringify(record.items) : null,
-        record.createdAt || null,
-      ]
-    );
-
-    const invoiceNumber = invoiceNumberForId(result.insertId);
-    await connection.query('UPDATE invoices SET invoice_number = ? WHERE id = ?', [invoiceNumber, result.insertId]);
+    const invoice = await insertInvoiceRecordWithConnection(connection, record);
     await connection.commit();
-    return { id: result.insertId, invoiceNumber, existing: false };
+    return invoice;
   } catch (error) {
     await connection.rollback();
-    if (record.paymentId && error?.code === 'ER_DUP_ENTRY') {
+    if ((record.paymentId || record.requestKey) && error?.code === 'ER_DUP_ENTRY') {
       const [existing] = await database.promise().query(
-        'SELECT id, invoice_number FROM invoices WHERE payment_id = ? LIMIT 1',
-        [record.paymentId]
+        `SELECT id, invoice_number FROM invoices
+         WHERE (? IS NOT NULL AND payment_id = ?) OR (? IS NOT NULL AND request_key = ?)
+         LIMIT 1`,
+        [record.paymentId || null, record.paymentId || null, record.requestKey || null, record.requestKey || null]
       );
       if (existing[0]) return { id: existing[0].id, invoiceNumber: existing[0].invoice_number, existing: true };
     }
@@ -171,6 +187,7 @@ module.exports = {
   backfillPaidPaymentInvoices,
   ensureInvoiceForPaidPayment,
   insertInvoiceRecord,
+  insertInvoiceRecordWithConnection,
   invoiceNumberForId,
   paymentMethodFromRow,
 };
