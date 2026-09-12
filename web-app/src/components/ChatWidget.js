@@ -7,6 +7,13 @@ import './ChatWidget.css';
 
 const CHAT_UNAVAILABLE_MESSAGE = 'AI assistance is temporarily limited. Please retry in a moment or switch to Live Support.';
 
+const createLiveSupportWelcome = () => ({
+  id: `system-start-${Date.now()}`,
+  sender: 'system',
+  text: 'Connected to live chat.',
+  timestamp: new Date(),
+});
+
 export default function ChatWidget({ room = null, currentUser = 'Guest', userName = 'Guest User', customerName = '', isAdminMode = false, initialMessages = null, initiallyOpen = false }) {
   // Initialize state from sessionStorage or defaults
   const [isOpen, setIsOpen] = useState(isAdminMode || initiallyOpen);
@@ -405,6 +412,11 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
                   onClick={() => {
                     if (!isHumanMode && !isShopOpen) return;
                     if (!isHumanMode) {
+                      const freshMessages = [createLiveSupportWelcome()];
+                      setHumanMessages(freshMessages);
+                      setRecentMessages([]);
+                      setProfanityStrikes(0);
+                      sessionStorage.setItem('chat_humanMessages', JSON.stringify(freshMessages));
                       explicitLiveStartRef.current = true;
                       setIsHumanMode(true);
                     }

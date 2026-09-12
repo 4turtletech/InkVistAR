@@ -15,7 +15,7 @@ import './AdminStyles.css';
 import { API_URL } from '../config';
 import { getDisplayCode, formatTime12Hour, formatStatus } from '../utils/formatters';
 import { getAppointmentStatusDialog } from '../utils/appointmentStatusDialog';
-import { filterName, filterDigits, clampNumber, normalizePhilippineMobileNumber } from '../utils/validation';
+import { composeCustomerName, customerProfileErrors, filterName, filterDigits, clampNumber, normalizePhilippineMobileNumber, suggestCustomerNameParts } from '../utils/validation';
 import CustomSelect from '../components/CustomSelect';
 import { generateReportHeader, downloadCsv, escapeCsv } from '../utils/csvExport';
 import SessionTimeline from '../components/SessionTimeline';
@@ -53,6 +53,13 @@ const buildWalkInNotes = (notes, guestName, healthNotes) => {
     ].join('\n');
 
     return regularNotes ? `${details}\n\n${regularNotes}` : details;
+};
+
+const localPhilippineMobileNumber = (value = '') => {
+    const digits = String(value).replace(/\D/g, '');
+    if (digits.startsWith('63')) return digits.slice(2, 12);
+    if (digits.startsWith('0')) return digits.slice(1, 11);
+    return digits.slice(0, 10);
 };
 
 const formatDuration = (totalSeconds) => {
@@ -135,7 +142,11 @@ function AdminAppointments() {
         rescheduleReason: '',
         consultationNotes: '',
         quotedPrice: '',
-        guestEmail: '', // Used for Walk-In Client Name
+        guestFirstName: '',
+        guestMiddleName: '',
+        guestLastName: '',
+        guestSuffix: '',
+        guestEmail: '',
         guestPhone: '',
         walkInHealthNotes: '',
         walkInWaiverConfirmed: false
@@ -234,8 +245,25 @@ function AdminAppointments() {
             case 'clientId':
                 if (!value) errorMsg = "Client is required";
                 break;
+            case 'guestFirstName':
+            case 'guestMiddleName':
+            case 'guestLastName':
+            case 'guestSuffix': {
+                const nameErrors = customerProfileErrors({
+                    first_name: field === 'guestFirstName' ? value : currentState.guestFirstName,
+                    middle_name: field === 'guestMiddleName' ? value : currentState.guestMiddleName,
+                    last_name: field === 'guestLastName' ? value : currentState.guestLastName,
+                    suffix: field === 'guestSuffix' ? value : currentState.guestSuffix,
+                    phone: currentState.guestPhone,
+                });
+                const keyMap = { guestFirstName: 'first_name', guestMiddleName: 'middle_name', guestLastName: 'last_name', guestSuffix: 'suffix' };
+                errorMsg = nameErrors[keyMap[field]] || '';
+                break;
+            }
             case 'guestEmail':
-                if (!String(value || '').trim()) errorMsg = "Walk-in name is required";
+                if (String(value || '').trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim())) {
+                    errorMsg = 'Enter a valid email address or leave it blank';
+                }
                 break;
             case 'guestPhone':
                 if (!String(value || '').trim()) {
@@ -287,7 +315,8 @@ function AdminAppointments() {
         if (!initialFormDataRef.current) return false;
         const tracked = ['clientId', 'artistId', 'secondaryArtistId', 'commissionSplit',
             'serviceType', 'designTitle', 'date', 'time', 'status', 'paymentStatus',
-            'notes', 'price', 'tattooPrice', 'piercingPrice', 'rejectionReason', 'isReferral', 'consultationNotes', 'quotedPrice'];
+            'notes', 'price', 'tattooPrice', 'piercingPrice', 'rejectionReason', 'isReferral', 'consultationNotes', 'quotedPrice',
+            'guestFirstName', 'guestMiddleName', 'guestLastName', 'guestSuffix', 'guestEmail', 'guestPhone'];
         return tracked.some(key => {
             const a = formData[key] ?? '';
             const b = initialFormDataRef.current[key] ?? '';
@@ -403,7 +432,15 @@ function AdminAppointments() {
                     const isGuest = !!apt.is_guest_placeholder;
                     const walkInDetails = parseWalkInDetails(apt.notes);
                     const guestFieldLooksLikeEmail = String(apt.guest_email || '').includes('@');
-                    const storedGuestName = walkInDetails.name
+                    const structuredGuestName = composeCustomerName({
+                        first_name: apt.guest_first_name,
+                        middle_name: apt.guest_middle_name,
+                        last_name: apt.guest_last_name,
+                        suffix: apt.guest_suffix,
+                    });
+                    const storedGuestName = structuredGuestName
+                        || String(apt.guest_name || '').trim()
+                        || walkInDetails.name
                         || (!guestFieldLooksLikeEmail ? String(apt.guest_email || '').trim() : '')
                         || apt.client_name
                         || '';
@@ -465,7 +502,11 @@ function AdminAppointments() {
                         clientAllergens: Array.isArray(apt.client_allergens) ? apt.client_allergens : [],
                         isGuestPlaceholder: !!apt.is_guest_placeholder,
                         guestName: storedGuestName,
-                        guestContactEmail: apt.guest_email || '',
+                        guestFirstName: apt.guest_first_name || '',
+                        guestMiddleName: apt.guest_middle_name || '',
+                        guestLastName: apt.guest_last_name || '',
+                        guestSuffix: apt.guest_suffix || '',
+                        guestContactEmail: guestFieldLooksLikeEmail ? apt.guest_email : '',
                         guestPhone: apt.guest_phone || '',
                         walkInHealthNotes: apt.walk_in_health_notes || walkInDetails.healthNotes || '',
                         walkInWaiverConfirmed: !!apt.waiver_accepted_at,
@@ -758,6 +799,13 @@ function AdminAppointments() {
         // Detect walk-in appointments
         const appointmentIsWalkIn = !!(appointment.isGuestPlaceholder ?? appointment.is_guest_placeholder);
         setIsWalkIn(appointmentIsWalkIn);
+        const legacyWalkInParts = suggestCustomerNameParts({
+            first_name: appointment.guestFirstName,
+            middle_name: appointment.guestMiddleName,
+            last_name: appointment.guestLastName,
+            suffix: appointment.guestSuffix,
+            name: appointment.guestName,
+        });
 
         // Check if the stored artistId is a real artist (not admin placeholder)
         const storedArtistId = appointment.artistId || appointment.artist_id;
@@ -792,8 +840,12 @@ function AdminAppointments() {
             projectId: appointment.project_id || null,
             discountAmount: appointment.discountAmount || 0,
             discountType: appointment.discountType || 'flat',
-            guestEmail: appointment.guestName || appointment.guest_email || '',
-            guestPhone: appointment.guestPhone || appointment.guest_phone || '',
+            guestFirstName: legacyWalkInParts.first_name,
+            guestMiddleName: legacyWalkInParts.middle_name,
+            guestLastName: legacyWalkInParts.last_name,
+            guestSuffix: legacyWalkInParts.suffix,
+            guestEmail: appointment.guestContactEmail || '',
+            guestPhone: localPhilippineMobileNumber(appointment.guestPhone || appointment.guest_phone),
             walkInHealthNotes: appointment.walkInHealthNotes || appointment.walk_in_health_notes || '',
             walkInWaiverConfirmed: !!(appointment.walkInWaiverConfirmed ?? appointment.walk_in_waiver_confirmed ?? appointment.waiverAcceptedAt)
         };
@@ -858,6 +910,10 @@ function AdminAppointments() {
             totalSessions: '',
             discountAmount: 0,
             discountType: 'flat',
+            guestFirstName: '',
+            guestMiddleName: '',
+            guestLastName: '',
+            guestSuffix: '',
             guestEmail: '',
             guestPhone: '',
             walkInHealthNotes: '',
@@ -953,11 +1009,20 @@ function AdminAppointments() {
         // Basic required fields: Client + Date (+ Time for consultations)
         const newErrors = {};
         if (isWalkIn) {
-            if (!formData.guestEmail || !formData.guestEmail.trim()) newErrors.guestEmail = "Walk-in name is required";
-            if (!formData.guestPhone || !formData.guestPhone.trim()) {
-                newErrors.guestPhone = "Walk-in phone is required";
-            } else if (!normalizePhilippineMobileNumber(formData.guestPhone)) {
-                newErrors.guestPhone = "Enter a valid PH mobile number (e.g. 09171234567)";
+            const walkInErrors = customerProfileErrors({
+                first_name: formData.guestFirstName,
+                middle_name: formData.guestMiddleName,
+                last_name: formData.guestLastName,
+                suffix: formData.guestSuffix,
+                phone: formData.guestPhone,
+            });
+            if (walkInErrors.first_name) newErrors.guestFirstName = walkInErrors.first_name;
+            if (walkInErrors.middle_name) newErrors.guestMiddleName = walkInErrors.middle_name;
+            if (walkInErrors.last_name) newErrors.guestLastName = walkInErrors.last_name;
+            if (walkInErrors.suffix) newErrors.guestSuffix = walkInErrors.suffix;
+            if (walkInErrors.phone) newErrors.guestPhone = walkInErrors.phone;
+            if (formData.guestEmail?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.guestEmail.trim())) {
+                newErrors.guestEmail = 'Enter a valid email address or leave it blank';
             }
             if (isTattooSession && !formData.walkInWaiverConfirmed) newErrors.walkInWaiverConfirmed = "Waiver confirmation is required";
         } else {
@@ -1047,13 +1112,21 @@ function AdminAppointments() {
         const doSave = async () => {
             setIsSavingAppointment(true);
             try {
+                const walkInName = composeCustomerName({
+                    first_name: formData.guestFirstName,
+                    middle_name: formData.guestMiddleName,
+                    last_name: formData.guestLastName,
+                    suffix: formData.guestSuffix,
+                });
                 const payload = {
                     customerId: isWalkIn && !selectedAppointment ? 'admin' : formData.clientId,
                     ...(isWalkIn ? {
-                        // Admin walk-ins provide a name and phone, not an email.
-                        // The name is persisted in the structured notes below.
-                        guestEmail: null,
-                        customerName: formData.guestEmail.trim(),
+                        guestFirstName: formData.guestFirstName.trim(),
+                        guestMiddleName: formData.guestMiddleName.trim() || null,
+                        guestLastName: formData.guestLastName.trim(),
+                        guestSuffix: formData.guestSuffix.trim() || null,
+                        guestEmail: formData.guestEmail.trim().toLowerCase() || null,
+                        customerName: walkInName,
                         guestPhone: normalizePhilippineMobileNumber(formData.guestPhone),
                         walkInHealthNotes: formData.walkInHealthNotes,
                         walkInWaiverConfirmed: formData.walkInWaiverConfirmed,
@@ -1070,7 +1143,7 @@ function AdminAppointments() {
                     startTime: formData.time,
                     status: formData.status,
                     notes: isWalkIn
-                        ? buildWalkInNotes(formData.notes, formData.guestEmail, formData.walkInHealthNotes)
+                        ? buildWalkInNotes(formData.notes, walkInName, formData.walkInHealthNotes)
                         : formData.notes,
                     price: finalPrice,
                     beforePhoto: formData.beforePhoto,
@@ -1106,7 +1179,7 @@ function AdminAppointments() {
                 const hasExistingProject = !!formData.projectId;
                 let resolvedProjectId = formData.projectId || null;
 
-                if (totalSessNum > 1 && !hasExistingProject) {
+                if (totalSessNum > 1 && !hasExistingProject && !isWalkIn) {
                     try {
                         const projRes = await Axios.post(`${API_URL}/api/projects`, {
                             customer_id: formData.clientId,
@@ -2410,33 +2483,59 @@ function AdminAppointments() {
 
                                                     {isWalkIn ? (
                                                         <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                                                            <div className="premium-input-group" style={{ marginBottom: '10px' }}>
-                                                                <label className={`admin-st-b8618eb2 ${errors.guestEmail ? 'text-red-500' : ''}`}>Guest Name *</label>
-                                                                <input 
-                                                                    type="text" 
-                                                                    value={formData.guestEmail} 
-                                                                    onChange={(e) => handleInputChange('guestEmail', e.target.value)} 
-                                                                    className={`premium-input-v2 ${errors.guestEmail ? 'border-red-500 bg-red-50 field-error-shake' : ''}`} 
-                                                                    placeholder="Enter walk-in name" 
-                                                                />
-                                                                {errors.guestEmail && <span className="text-red-500" style={{ fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.guestEmail}</span>}
+                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                                                {[
+                                                                    ['guestFirstName', 'First Name *', 'e.g. Maria', 50],
+                                                                    ['guestMiddleName', 'Middle Name (Optional)', 'e.g. Santos', 50],
+                                                                    ['guestLastName', 'Last Name *', 'e.g. Cruz', 50],
+                                                                    ['guestSuffix', 'Suffix (Optional)', 'e.g. Jr.', 10],
+                                                                ].map(([field, label, placeholder, maxLength]) => (
+                                                                    <div className="premium-input-group" style={{ marginBottom: '10px' }} key={field}>
+                                                                        <label className={`admin-st-b8618eb2 ${errors[field] ? 'text-red-500' : ''}`}>{label}</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={formData[field]}
+                                                                            maxLength={maxLength}
+                                                                            onChange={(e) => handleInputChange(field, filterName(e.target.value))}
+                                                                            className={`premium-input-v2 ${errors[field] ? 'border-red-500 bg-red-50 field-error-shake' : ''}`}
+                                                                            placeholder={placeholder}
+                                                                        />
+                                                                        {errors[field] && <span className="text-red-500" style={{ fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors[field]}</span>}
+                                                                    </div>
+                                                                ))}
                                                             </div>
                                                             <div className="premium-input-group" style={{ marginBottom: '10px' }}>
                                                                 <label className={`admin-st-b8618eb2 ${errors.guestPhone ? 'text-red-500' : ''}`}>Contact Number *</label>
-                                                                <input 
-                                                                    id="walk-in-contact-number"
-                                                                    type="tel"
-                                                                    inputMode="tel"
-                                                                    autoComplete="tel"
-                                                                    maxLength={18}
-                                                                    value={formData.guestPhone} 
-                                                                    onChange={(e) => handleInputChange('guestPhone', e.target.value)} 
-                                                                    className={`premium-input-v2 ${errors.guestPhone ? 'border-red-500 bg-red-50 field-error-shake' : ''}`} 
-                                                                    placeholder="e.g. 09171234567"
-                                                                    aria-invalid={Boolean(errors.guestPhone)}
-                                                                    aria-describedby={errors.guestPhone ? 'walk-in-contact-number-error' : undefined}
-                                                                />
+                                                                <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                                                                    <span style={{ display: 'flex', alignItems: 'center', padding: '0 12px', background: '#eef2f7', border: '1px solid #cbd5e1', borderRight: 0, borderRadius: '8px 0 0 8px', color: '#475569', fontWeight: 600 }}>+63</span>
+                                                                    <input
+                                                                        id="walk-in-contact-number"
+                                                                        type="tel"
+                                                                        inputMode="numeric"
+                                                                        autoComplete="tel"
+                                                                        maxLength={10}
+                                                                        value={formData.guestPhone}
+                                                                        onChange={(e) => handleInputChange('guestPhone', filterDigits(e.target.value).slice(0, 10))}
+                                                                        className={`premium-input-v2 ${errors.guestPhone ? 'border-red-500 bg-red-50 field-error-shake' : ''}`}
+                                                                        style={{ borderRadius: '0 8px 8px 0' }}
+                                                                        placeholder="9171234567"
+                                                                        aria-invalid={Boolean(errors.guestPhone)}
+                                                                        aria-describedby={errors.guestPhone ? 'walk-in-contact-number-error' : undefined}
+                                                                    />
+                                                                </div>
                                                                 {errors.guestPhone && <span id="walk-in-contact-number-error" className="text-red-500" style={{ fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.guestPhone}</span>}
+                                                            </div>
+                                                            <div className="premium-input-group" style={{ marginBottom: '10px' }}>
+                                                                <label className={`admin-st-b8618eb2 ${errors.guestEmail ? 'text-red-500' : ''}`}>Email Address (Optional)</label>
+                                                                <input
+                                                                    type="email"
+                                                                    value={formData.guestEmail}
+                                                                    maxLength={255}
+                                                                    onChange={(e) => handleInputChange('guestEmail', e.target.value)}
+                                                                    className={`premium-input-v2 ${errors.guestEmail ? 'border-red-500 bg-red-50 field-error-shake' : ''}`}
+                                                                    placeholder="guest@example.com"
+                                                                />
+                                                                {errors.guestEmail && <span className="text-red-500" style={{ fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.guestEmail}</span>}
                                                             </div>
                                                             <div className="premium-input-group" style={{ marginBottom: '10px' }}>
                                                                 <label className="admin-st-b8618eb2">Health Conditions / Allergies</label>

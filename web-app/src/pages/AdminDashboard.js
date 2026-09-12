@@ -236,11 +236,15 @@ function AdminDashboard() {
                     const lowStockItems = inventory.filter(item => item.current_stock <= item.min_stock);
 
                     lowStockItems.slice(0, 2).forEach(item => { // Limit to 2 for UI cleanliness
+                        const isOutOfStock = Number(item.current_stock) <= 0;
                         generatedAlerts.push({
                             id: alertId++,
                             type: 'inventory',
-                            message: `Low stock: ${item.name} (${item.current_stock} left)`,
-                            severity: 'high'
+                            message: isOutOfStock
+                                ? `Out of stock: ${item.name}`
+                                : `Low stock: ${item.name} (${item.current_stock} left)`,
+                            severity: 'high',
+                            path: `/admin/inventory?stock=${isOutOfStock ? 'out_of_stock' : 'low'}`
                         });
                     });
                 }
@@ -856,7 +860,19 @@ function AdminDashboard() {
                                     </div>
                                     <div className="alerts-stack">
                                         {alerts.length > 0 ? alerts.map(alert => (
-                                            <div key={alert.id} className={`priority-alert-item ${alert.severity}`}>
+                                            <div
+                                                key={alert.id}
+                                                className={`priority-alert-item ${alert.severity}${alert.path ? ' clickable' : ''}`}
+                                                role={alert.path ? 'link' : undefined}
+                                                tabIndex={alert.path ? 0 : undefined}
+                                                onClick={() => alert.path && navigate(alert.path)}
+                                                onKeyDown={(event) => {
+                                                    if (alert.path && (event.key === 'Enter' || event.key === ' ')) {
+                                                        event.preventDefault();
+                                                        navigate(alert.path);
+                                                    }
+                                                }}
+                                            >
                                                 <div className="alert-content-v2">
                                                     <span className="alert-type-v2">{alert.type}</span>
                                                     <p>{alert.message}</p>

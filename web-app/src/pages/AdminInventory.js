@@ -26,6 +26,13 @@ const INVENTORY_CATEGORIES = [
     { value: 'machinery', label: 'Machinery' }
 ];
 
+const INVENTORY_STOCK_FILTERS = ['all', 'out_of_stock', 'low', 'optimal', 'overstock'];
+
+const getStockFilterFromSearch = (search) => {
+    const requestedFilter = new URLSearchParams(search).get('stock');
+    return INVENTORY_STOCK_FILTERS.includes(requestedFilter) ? requestedFilter : 'all';
+};
+
 function AdminInventory() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -47,7 +54,7 @@ function AdminInventory() {
     }, []);
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [itemStatusFilter, setItemStatusFilter] = useState('active');
-    const [stockStatusFilter, setStockStatusFilter] = useState('all');
+    const [stockStatusFilter, setStockStatusFilter] = useState(() => getStockFilterFromSearch(location.search));
     const [sortBy, setSortBy] = useState('name');
     const [selectedItem, setSelectedItem] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -294,6 +301,12 @@ function AdminInventory() {
     useEffect(() => {
         fetchInventory();
     }, [itemStatusFilter]);
+
+    useEffect(() => {
+        const requestedFilter = getStockFilterFromSearch(location.search);
+        setStockStatusFilter(requestedFilter);
+        if (requestedFilter !== 'all') setItemStatusFilter('active');
+    }, [location.search]);
 
     useEffect(() => {
         filterAndSortInventory();

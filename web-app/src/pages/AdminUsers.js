@@ -18,7 +18,7 @@ import { getPhoneParts } from '../constants/countryCodes';
 import CountryCodeSelect from '../components/CountryCodeSelect';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
 import CustomSelect from '../components/CustomSelect';
-import { filterName, filterDigits, clampNumber } from '../utils/validation';
+import { composeCustomerName, customerProfileErrors, filterName, filterDigits, clampNumber } from '../utils/validation';
 
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
@@ -94,7 +94,7 @@ function AdminUsers() {
     // ─── Create User Modal ───
     const [createModal, setCreateModal] = useState({ mounted: false, visible: false });
     const [createFormData, setCreateFormData] = useState({
-        firstName: '', lastName: '', suffix: '', email: '', phone: '', countryCode: '+63',
+        firstName: '', middleName: '', lastName: '', suffix: '', email: '', phone: '', countryCode: '+63',
         password: '', confirmPassword: '', user_type: 'customer',
         profileImage: '', age: ''
     });
@@ -212,7 +212,7 @@ function AdminUsers() {
     };
     const closeCreateModal = () => {
         setCreateModal({ mounted: false, visible: false });
-        setCreateFormData({ firstName: '', lastName: '', suffix: '', email: '', phone: '', countryCode: '+63', password: '', confirmPassword: '', user_type: 'customer', profileImage: '', age: '' });
+        setCreateFormData({ firstName: '', middleName: '', lastName: '', suffix: '', email: '', phone: '', countryCode: '+63', password: '', confirmPassword: '', user_type: 'customer', profileImage: '', age: '' });
         setCreateErrors({});
         setShowCreatePassword(false);
         setShowCreateConfirmPassword(false);
@@ -815,7 +815,7 @@ function AdminUsers() {
     // ═══════════════════════════════════════════════════════════
 
     const handleAddNew = () => {
-        setCreateFormData({ firstName: '', lastName: '', suffix: '', email: '', phone: '', countryCode: '+63', password: '', confirmPassword: '', user_type: 'customer', profileImage: '', age: '' });
+        setCreateFormData({ firstName: '', middleName: '', lastName: '', suffix: '', email: '', phone: '', countryCode: '+63', password: '', confirmPassword: '', user_type: 'customer', profileImage: '', age: '' });
         setCreateErrors({});
         setShowCreatePassword(false);
         setShowCreateConfirmPassword(false);
@@ -841,13 +841,22 @@ function AdminUsers() {
 
     const validateCreateField = (name, value) => {
         let error = '';
-        if (name === 'firstName') {
-            if (!value.trim()) error = 'First name is required';
-            else if (!/^[a-zA-Z\s-]+$/.test(value)) error = 'Letters, spaces, and hyphens only';
-        }
-        if (name === 'lastName') {
-            if (!value.trim()) error = 'Last name is required';
-            else if (!/^[a-zA-Z\s-]+$/.test(value)) error = 'Letters, spaces, and hyphens only';
+        const nameFieldMap = {
+            firstName: 'first_name',
+            middleName: 'middle_name',
+            lastName: 'last_name',
+            suffix: 'suffix',
+        };
+        if (nameFieldMap[name]) {
+            const candidate = { ...createFormData, [name]: value };
+            const nameErrors = customerProfileErrors({
+                first_name: candidate.firstName,
+                middle_name: candidate.middleName,
+                last_name: candidate.lastName,
+                suffix: candidate.suffix,
+                phone: '9171234567',
+            });
+            error = nameErrors[nameFieldMap[name]] || '';
         }
         if (name === 'email') {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -886,8 +895,8 @@ function AdminUsers() {
 
     const handleCreateFieldChange = (name, value) => {
         let sanitized = value;
-        if (name === 'firstName' || name === 'lastName') sanitized = filterName(value).slice(0, 50);
-        else if (name === 'suffix') sanitized = filterName(value).slice(0, 5);
+        if (name === 'firstName' || name === 'middleName' || name === 'lastName') sanitized = filterName(value).slice(0, 50);
+        else if (name === 'suffix') sanitized = filterName(value).slice(0, 10);
         else if (name === 'email') sanitized = value.replace(/\s/g, '').slice(0, 254);
         else if (name === 'phone') sanitized = filterDigits(value).replace(/^0+/, '').slice(0, 10);
         else if (name === 'password' || name === 'confirmPassword') sanitized = value.slice(0, 128);
@@ -926,18 +935,24 @@ function AdminUsers() {
         setCreateSubmitAttempted(true);
         // Validate all fields
         const firstOk = validateCreateField('firstName', createFormData.firstName);
+        const middleOk = validateCreateField('middleName', createFormData.middleName);
         const lastOk = validateCreateField('lastName', createFormData.lastName);
+        const suffixOk = validateCreateField('suffix', createFormData.suffix);
         const emailOk = validateCreateField('email', createFormData.email);
         const phoneOk = validateCreateField('phone', createFormData.phone);
         const passOk = validateCreateField('password', createFormData.password);
         const confirmOk = validateCreateField('confirmPassword', createFormData.confirmPassword);
         const codeOk = validateCreateField('countryCode', createFormData.countryCode);
-        if (!firstOk || !lastOk || !emailOk || !phoneOk || !passOk || !confirmOk || !codeOk) return;
+        if (!firstOk || !middleOk || !lastOk || !suffixOk || !emailOk || !phoneOk || !passOk || !confirmOk || !codeOk) return;
 
+        const middleNamePart = createFormData.middleName.trim();
         const suffixPart = createFormData.suffix.trim();
-        const fullName = suffixPart
-            ? `${createFormData.firstName.trim()} ${createFormData.lastName.trim()} ${suffixPart}`
-            : `${createFormData.firstName.trim()} ${createFormData.lastName.trim()}`;
+        const fullName = composeCustomerName({
+            first_name: createFormData.firstName,
+            middle_name: middleNamePart,
+            last_name: createFormData.lastName,
+            suffix: suffixPart,
+        });
 
         const fullPhone = createFormData.countryCode + createFormData.phone.trim().replace(/^0+/, '');
 
@@ -945,6 +960,7 @@ function AdminUsers() {
             await Axios.post(`${API_URL}/api/admin/users`, {
                 name: fullName,
                 firstName: createFormData.firstName.trim(),
+                middleName: middleNamePart || null,
                 lastName: createFormData.lastName.trim(),
                 suffix: suffixPart || null,
                 email: createFormData.email,
@@ -1683,6 +1699,16 @@ function AdminUsers() {
                                         {createErrors.firstName && <small className="admin-inline-error">{createErrors.firstName}</small>}
                                     </div>
                                     <div className="form-group" style={{ flex: 1 }}>
+                                        <label className="premium-label">Middle Name (Optional)</label>
+                                        <input type="text" className={`form-input ${createErrors.middleName ? 'error' : ''}`}
+                                            placeholder="e.g. Santos" value={createFormData.middleName}
+                                            onChange={(e) => handleCreateFieldChange('middleName', e.target.value)}
+                                            onBlur={() => handleCreateBlur('middleName')} maxLength={50} />
+                                        {createErrors.middleName && <small className="admin-inline-error">{createErrors.middleName}</small>}
+                                    </div>
+                                </div>
+                                <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
+                                    <div className="form-group" style={{ flex: 1 }}>
                                         <label className="premium-label">Last Name *</label>
                                         <input type="text" className={`form-input ${createErrors.lastName ? 'error' : ''}`}
                                             placeholder="e.g. dela Cruz" value={createFormData.lastName}
@@ -1690,12 +1716,13 @@ function AdminUsers() {
                                             onBlur={() => handleCreateBlur('lastName')} maxLength={50} />
                                         {createErrors.lastName && <small className="admin-inline-error">{createErrors.lastName}</small>}
                                     </div>
-                                    <div className="form-group" style={{ width: '90px', flexShrink: 0 }}>
-                                        <label className="premium-label">Suffix</label>
-                                        <input type="text" className="form-input"
-                                            placeholder="Jr." value={createFormData.suffix}
+                                    <div className="form-group" style={{ flex: 1 }}>
+                                        <label className="premium-label">Suffix (Optional)</label>
+                                        <input type="text" className={`form-input ${createErrors.suffix ? 'error' : ''}`}
+                                            placeholder="e.g. Jr." value={createFormData.suffix}
                                             onChange={(e) => handleCreateFieldChange('suffix', e.target.value)}
-                                            maxLength={5} />
+                                            onBlur={() => handleCreateBlur('suffix')} maxLength={10} />
+                                        {createErrors.suffix && <small className="admin-inline-error">{createErrors.suffix}</small>}
                                     </div>
                                 </div>
                                 <div className="form-row">

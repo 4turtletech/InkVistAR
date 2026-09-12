@@ -39,8 +39,11 @@ function AdminChat() {
 
             // If the selected active session was closed, deselect it
             const sel = selectedRef.current;
-            if (sel?.isLiveChat && !sessions.find(s => s.id === sel.id)) {
-                setSelectedAppointment(null);
+            if (sel?.isLiveChat) {
+                const currentSession = sessions.find(session => session.id === sel.id);
+                if (!currentSession || currentSession.sessionId !== sel.sessionId) {
+                    setSelectedAppointment(null);
+                }
             }
         });
         socket.connect();
@@ -92,7 +95,7 @@ function AdminChat() {
                                         <div
                                             key={session.id}
                                             className={`appointment-item live-chat-item ${selectedAppointment?.id === session.id ? 'selected' : ''}`}
-                                            onClick={() => setSelectedAppointment({ id: session.id, client_name: session.name, service_type: 'Live Web Chat', isLiveChat: true })}
+                                            onClick={() => setSelectedAppointment({ id: session.id, sessionId: session.sessionId, client_name: session.name, service_type: 'Live Web Chat', isLiveChat: true })}
                                         >
                                             <div className="appointment-item-name">
                                                 <span>{session.name}</span>
@@ -119,7 +122,7 @@ function AdminChat() {
                         {selectedAppointment ? (
                             <div className="chat-widget-wrapper">
                                 <ChatWidget
-                                    key={selectedAppointment.id}
+                                    key={`${selectedAppointment.id}:${selectedAppointment.sessionId}`}
                                     room={selectedAppointment.id}
                                     currentUser={`Admin`}
                                     isAdminMode={true}
