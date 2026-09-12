@@ -5,7 +5,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView,
-  KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Animated, ScrollView
+  KeyboardAvoidingView, Platform, ActivityIndicator, Animated
 } from 'react-native';
 import { ArrowLeft, Flag, Sparkles, AlertTriangle, Bug, CheckCircle } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,6 +14,11 @@ import { useTheme } from '../src/context/ThemeContext';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { typography, borderRadius, shadows } from '../src/theme';
 import { fetchAPI } from '../src/utils/api';
+import {
+  REPORT_DETAILS_MAX_LENGTH,
+  REPORT_DETAILS_MIN_LENGTH,
+  reportDetailsError,
+} from '../src/utils/reportValidation';
 
 export const CustomerReports = ({ navigation }) => {
   const { theme } = useTheme();
@@ -24,6 +29,8 @@ export const CustomerReports = ({ navigation }) => {
   const [submitting, setSubmitting] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [submissionError, setSubmissionError] = useState('');
   
   const contentAnim = useRef(new Animated.Value(0)).current;
   const successScale = useRef(new Animated.Value(0)).current;
@@ -38,9 +45,16 @@ export const CustomerReports = ({ navigation }) => {
   }, []);
 
   const handleSubmit = async () => {
-    if (!message.trim()) { Alert.alert('Missing Details', 'Please provide some details for your report.'); return; }
+    const detailsError = reportDetailsError(message);
+    if (detailsError) {
+      setFieldErrors({ message: detailsError });
+      setSubmissionError('');
+      return;
+    }
+
     try {
       setSubmitting(true);
+      setSubmissionError('');
       const userStr = await AsyncStorage.getItem('user_session');
       if (userStr) {
         const user = JSON.parse(userStr);
@@ -53,20 +67,20 @@ export const CustomerReports = ({ navigation }) => {
             report_type: apiReportType,
             category: 'other',
             title: reportTitle,
-            description: message
+            description: message.trim()
           })
         });
         
         if (res.success || res.status === 201 || res.status === 200) {
           triggerSuccessAnimation();
         } else {
-          Alert.alert('Error', res.message || 'Failed to submit report.');
+          setSubmissionError(res.message || 'Failed to submit report. Please try again.');
         }
       } else {
-        Alert.alert('Error', 'User session not found.');
+        setSubmissionError('Your session could not be found. Please sign in again.');
       }
     } catch (e) {
-       Alert.alert('Error', 'Failed to connect to the server.');
+      setSubmissionError('Unable to connect to the server. Check your connection and try again.');
     }
     finally { setSubmitting(false); }
   };
@@ -96,7 +110,11 @@ export const CustomerReports = ({ navigation }) => {
           <View style={{ width: 36 }} />
         </View>
 
-        <Animated.ScrollView style={[styles.content, { opacity: contentAnim, transform: [{ translateY: contentAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }]} contentContainerStyle={{ padding: 20 }}>
+        <Animated.ScrollView
+          style={[styles.content, { opacity: contentAnim, transform: [{ translateY: contentAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }]}
+          contentContainerStyle={{ padding: 20 }}
+          keyboardShouldPersistTaps="handled"
+        >
           
           <Text style={styles.sectionTitle}>What would you like to report?</Text>
           
@@ -127,20 +145,57 @@ export const CustomerReports = ({ navigation }) => {
           </View>
 
           <View style={styles.inputWrap}>
-            <Text style={styles.inputLabel}>Details</Text>
+            <View style={styles.inputLabelRow}>
+              <Text style={styles.inputLabel}>
+                Details <Text style={styles.requiredMark}>*</Text>
+              </Text>
+              <Text style={[styles.characterCount, message.length >= REPORT_DETAILS_MAX_LENGTH && styles.characterCountLimit]}>
+                {message.length}/{REPORT_DETAILS_MAX_LENGTH.toLocaleString()}
+              </Text>
+            </View>
+            <Text style={styles.inputRequirement}>
+              Required · {REPORT_DETAILS_MIN_LENGTH}–{REPORT_DETAILS_MAX_LENGTH.toLocaleString()} characters
+            </Text>
             <TextInput
-              style={[styles.textInput, isFocused && { borderColor: theme.gold, backgroundColor: theme.surface }]}
+              style={[
+                styles.textInput,
+                isFocused && styles.textInputFocused,
+                fieldErrors.message && styles.textInputError,
+              ]}
               placeholder={reportType === 'bug' ? "Describe the issue you encountered..." : "How can we improve your experience?"}
               placeholderTextColor={theme.textTertiary}
               multiline
               numberOfLines={6}
               value={message}
-              onChangeText={setMessage}
+              maxLength={REPORT_DETAILS_MAX_LENGTH}
+              onChangeText={(value) => {
+                setMessage(value);
+                if (fieldErrors.message) setFieldErrors({});
+                if (submissionError) setSubmissionError('');
+              }}
               onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
+              onBlur={() => {
+                setIsFocused(false);
+                if (message.length > 0) {
+                  const error = reportDetailsError(message);
+                  setFieldErrors(error ? { message: error } : {});
+                }
+              }}
               textAlignVertical="top"
             />
+            {fieldErrors.message ? (
+              <Text style={styles.fieldError} accessibilityRole="alert">
+                {fieldErrors.message}
+              </Text>
+            ) : null}
           </View>
+
+          {submissionError ? (
+            <View style={styles.submissionError} accessibilityRole="alert">
+              <AlertTriangle size={18} color={theme.error} />
+              <Text style={styles.submissionErrorText}>{submissionError}</Text>
+            </View>
+          ) : null}
 
           <AnimatedTouchable
             style={[styles.submitBtn, submitting && { opacity: 0.7 }]}
@@ -198,13 +253,27 @@ const getStyles = (theme) => StyleSheet.create({
   typeBtnText: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '600' },
   typeBtnTextActive: { color: theme.gold },
 
-  inputWrap: { width: '100%', marginBottom: 32 },
-  inputLabel: { ...typography.bodySmall, color: theme.textSecondary, marginBottom: 8, fontWeight: '600' },
+  inputWrap: { width: '100%', marginBottom: 20 },
+  inputLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  inputLabel: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '600' },
+  requiredMark: { color: theme.error },
+  inputRequirement: { ...typography.caption, color: theme.textTertiary, marginBottom: 8 },
+  characterCount: { ...typography.caption, color: theme.textTertiary },
+  characterCountLimit: { color: theme.error },
   textInput: {
     backgroundColor: theme.surfaceLight, color: theme.textPrimary,
     borderRadius: borderRadius.lg, padding: 16, minHeight: 160, ...typography.body,
     borderWidth: 1, borderColor: theme.border,
   },
+  textInputFocused: { borderColor: theme.gold, backgroundColor: theme.surface },
+  textInputError: { borderColor: theme.error, backgroundColor: `${theme.error}0D` },
+  fieldError: { ...typography.caption, color: theme.error, marginTop: 7, fontWeight: '600' },
+  submissionError: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 9,
+    backgroundColor: `${theme.error}12`, borderColor: `${theme.error}55`, borderWidth: 1,
+    borderRadius: borderRadius.md, padding: 12, marginBottom: 16,
+  },
+  submissionErrorText: { ...typography.bodySmall, color: theme.error, flex: 1, fontWeight: '600' },
   submitBtn: {
     backgroundColor: theme.gold, paddingVertical: 18,
     borderRadius: borderRadius.lg, ...shadows.subtle
