@@ -212,6 +212,105 @@
     border-collapse: collapse;
 }
 
+/* Keep Inventory self-contained. These styles used to arrive incidentally from
+   AdminUsers/AdminDashboard, which made a direct page reload look unstyled. */
+.inventory-page .data-table {
+    font-size: 0.9rem;
+}
+
+.inventory-page .data-table thead {
+    background: rgba(248, 250, 252, 0.5);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.inventory-page .data-table tbody td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.inventory-page .data-table tbody tr {
+    transition: background-color 0.18s ease;
+}
+
+.inventory-page .data-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.inventory-page .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+
+.inventory-page .badge.category-ink {
+    background-color: #ede9fe;
+    color: #6d28d9;
+}
+
+.inventory-page .badge.category-needles {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.inventory-page .badge.category-jewelry {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.inventory-page .badge.category-supplies {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.inventory-page .badge.category-aftercare {
+    background-color: #dbeafe;
+    color: #0c4a6e;
+}
+
+.inventory-page .badge.category-machinery {
+    background-color: #e0f2fe;
+    color: #075985;
+}
+
+.inventory-page .stat-icon-wrapper.blue {
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.inventory-page .stat-icon-wrapper.orange {
+    background: #fff7ed;
+    color: #f97316;
+}
+
+.inventory-page .stat-icon-wrapper.green {
+    background: #f0fdf4;
+    color: #22c55e;
+}
+
+.inventory-page .stat-icon-wrapper.purple {
+    background: #f5f3ff;
+    color: #8b5cf6;
+}
+
+.inventory-page .stat-trend-v2 {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.4rem;
+    color: #10b981;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
 .data-table thead th {
     background: rgba(248, 250, 252, 0.5);
     color: #64748b;

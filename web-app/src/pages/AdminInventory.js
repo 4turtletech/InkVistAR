@@ -745,7 +745,7 @@ function AdminInventory() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-page page-container-enter admin-polished-page">
+            <div className="admin-page page-container-enter admin-polished-page inventory-page">
             {/* Print Only Header */}
             <div className="print-only-header">
                 <div className="admin-st-c6657cae">
