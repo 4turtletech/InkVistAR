@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Animated, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Animated, ScrollView, ActivityIndicator, SafeAreaView } from 'react-native';
 import { AlertTriangle, X, ChevronRight, FileText, Clock, CreditCard } from 'lucide-react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { typography, shadows } from '../../theme';
-import { API_URL } from '../../utils/api';
+import { fetchAPI } from '../../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { WebView } from 'react-native-webview';
 
 export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
   const { theme: colors } = useTheme();
@@ -17,6 +18,8 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
   const [selectedAlert, setSelectedAlert] = useState(null);
   const hasShownOnLoginRef = useRef(false);
   const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
+  const [invoiceCheckout, setInvoiceCheckout] = useState(null);
+  const [paymentError, setPaymentError] = useState('');
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -24,25 +27,17 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
     
     const fetchPendingPayments = async () => {
       try {
-        const response = await fetch(`${API_URL}/customer/${customerId}/appointments`);
-        const res = await response.json();
+        const res = await fetchAPI(`/customer/${customerId}/payment-alerts`);
         
-        if (res.success && Array.isArray(res.appointments)) {
-          const unpaidAlerts = res.appointments.filter(a => {
-            const price = Number(a.price || 0);
-            const totalPaid = Number(a.total_paid || 0);
-            return ['pending', 'confirmed', 'scheduled', 'completed'].includes((a.status || '').toLowerCase())
-              && price > 0
-              && totalPaid + 0.005 < price
-              && ['unpaid', 'downpayment_paid'].includes((a.payment_status || 'unpaid').toLowerCase());
-          });
+        if (res.success && Array.isArray(res.alerts)) {
+          const unpaidAlerts = res.alerts;
           
           if (unpaidAlerts.length > 0) {
             setAlerts(unpaidAlerts);
             setToastHidden(false);
             setSelectedAlert(prev => {
               if (!prev) return unpaidAlerts[0];
-              const stillExists = unpaidAlerts.find(a => a.id === prev.id);
+              const stillExists = unpaidAlerts.find(a => a.alert_id === prev.alert_id);
               return stillExists || unpaidAlerts[0];
             });
             
@@ -93,16 +88,29 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
     await AsyncStorage.setItem('customerPaymentAlertShown', 'true');
   };
 
-  const handleGoToAppointment = (alertItem) => {
+  const handleGoToPayment = async (alertItem) => {
     if (isInitiatingPayment) return;
     setIsInitiatingPayment(true);
+    setPaymentError('');
     setShowPopup(false);
-    
-    // Call the parent handler to navigate to checkout
-    if (onPayOnline) {
-      onPayOnline(alertItem);
+
+    if (alertItem.kind === 'invoice') {
+      try {
+        const result = await fetchAPI(`/invoices/${alertItem.id}/checkout`, { method: 'POST' });
+        if (result.success && result.checkoutUrl) {
+          setInvoiceCheckout({ url: result.checkoutUrl, invoiceId: alertItem.id });
+        } else {
+          setPaymentError(result.message || 'Unable to initialize invoice payment.');
+          setShowPopup(true);
+        }
+      } catch (_error) {
+        setPaymentError('Unable to connect to the payment service.');
+        setShowPopup(true);
+      }
+      setIsInitiatingPayment(false);
+      return;
     }
-    
+    if (onPayOnline) onPayOnline(alertItem);
     setTimeout(() => setIsInitiatingPayment(false), 2000);
   };
 
@@ -125,7 +133,7 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
                 <View>
                   <Text style={styles.headerTitle}>Unpaid Balance Notice</Text>
                   <Text style={styles.headerSubtitle}>
-                    You have {alerts.length} session{alerts.length > 1 ? 's' : ''} pending payment
+                    You have {alerts.length} unpaid balance{alerts.length > 1 ? 's' : ''}
                   </Text>
                 </View>
               </View>
@@ -140,18 +148,18 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorScroll}>
                   {alerts.map(a => (
                     <TouchableOpacity 
-                      key={a.id} 
+                      key={a.alert_id || `${a.kind}-${a.id}`}
                       onPress={() => setSelectedAlert(a)}
                       style={[
                         styles.selectorBtn,
-                        selectedAlert?.id === a.id && styles.selectorBtnActive
+                        selectedAlert?.alert_id === a.alert_id && styles.selectorBtnActive
                       ]}
                     >
                       <Text style={[
                         styles.selectorText,
-                        selectedAlert?.id === a.id && styles.selectorTextActive
+                        selectedAlert?.alert_id === a.alert_id && styles.selectorTextActive
                       ]}>
-                        Session #{a.id}
+                        {a.kind === 'invoice' ? a.invoice_number : `Session #${a.id}`}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -165,7 +173,7 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
                 <View style={styles.infoBox}>
                   <View style={styles.infoLabelWrap}>
                     <FileText size={10} color={colors.textTertiary} style={{ marginRight: 4 }} />
-                    <Text style={styles.infoLabel}>DESIGN</Text>
+                    <Text style={styles.infoLabel}>{selectedAlert?.kind === 'invoice' ? 'INVOICE FOR' : 'DESIGN'}</Text>
                   </View>
                   <Text style={styles.infoValue} numberOfLines={1}>{selectedAlert?.design_title || 'Untitled'}</Text>
                 </View>
@@ -179,6 +187,7 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
                   </Text>
                 </View>
               </View>
+              {paymentError ? <Text style={{ ...typography.bodySmall, color: colors.error, marginTop: 12 }}>{paymentError}</Text> : null}
 
               <View style={styles.financialBox}>
                 <View style={styles.financialCol}>
@@ -209,7 +218,7 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.payBtn, isInitiatingPayment && { opacity: 0.7 }]} 
-                onPress={() => handleGoToAppointment(selectedAlert)}
+                onPress={() => handleGoToPayment(selectedAlert)}
                 disabled={isInitiatingPayment}
               >
                 {isInitiatingPayment ? (
@@ -224,6 +233,32 @@ export function CustomerPaymentAlertOverlay({ customerId, onPayOnline }) {
             </View>
           </View>
         </View>
+      </Modal>
+
+      <Modal visible={!!invoiceCheckout} animationType="slide" onRequestClose={() => setInvoiceCheckout(null)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+            <TouchableOpacity onPress={() => setInvoiceCheckout(null)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <X size={22} color={colors.textPrimary} />
+              <Text style={{ marginLeft: 8, ...typography.body, fontWeight: '700', color: colors.textPrimary }}>Close Checkout</Text>
+            </TouchableOpacity>
+          </View>
+          {invoiceCheckout?.url ? (
+            <WebView
+              source={{ uri: invoiceCheckout.url }}
+              style={{ flex: 1 }}
+              startInLoadingState
+              renderLoading={() => <ActivityIndicator style={{ position: 'absolute', top: '50%', left: '50%' }} size="large" color={colors.gold} />}
+              onNavigationStateChange={(state) => {
+                if (state.url?.includes('/customer/invoice/') && state.url.includes('payment=success')) {
+                  const paidId = invoiceCheckout.invoiceId;
+                  setInvoiceCheckout(null);
+                  setAlerts(current => current.filter(item => !(item.kind === 'invoice' && item.id === paidId)));
+                }
+              }}
+            />
+          ) : null}
+        </SafeAreaView>
       </Modal>
 
       {/* COMPACT FLOATING PILL (bottom-right, above tab bar) */}

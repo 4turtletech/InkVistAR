@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import Axios from 'axios';
 import { CheckCircle, Printer, Download, AlertCircle, Banknote, Wallet, CreditCard, Loader } from 'lucide-react';
 import { API_URL } from '../config';
@@ -28,32 +28,54 @@ const formatMoney = value => Number(value || 0).toLocaleString('en-PH', { minimu
  */
 function CustomerInvoice() {
     const { invoiceNumber } = useParams();
+    const [searchParams] = useSearchParams();
     const [invoice, setInvoice] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [paying, setPaying] = useState(false);
+    const [paymentMessage, setPaymentMessage] = useState('');
     const receiptRef = useRef(null);
 
-    useEffect(() => {
-        if (!invoiceNumber) return;
-        fetchInvoice();
-    }, [invoiceNumber]);
-
-    const fetchInvoice = async () => {
+    const fetchInvoice = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
             const res = await Axios.get(`${API_URL}/api/invoices/by-number/${invoiceNumber}`);
             if (res.data.success) {
                 setInvoice(res.data.data);
-            } else {
-                setError('Invoice not found.');
+                return res.data.data;
             }
+            setError('Invoice not found.');
         } catch (err) {
             setError('Failed to load invoice. It may not exist or has been removed.');
         } finally {
             setLoading(false);
         }
-    };
+        return null;
+    }, [invoiceNumber]);
+
+    useEffect(() => {
+        if (!invoiceNumber) return;
+        fetchInvoice();
+    }, [invoiceNumber, fetchInvoice]);
+
+    useEffect(() => {
+        if (searchParams.get('payment') !== 'success' || !invoiceNumber) return undefined;
+        setPaymentMessage('Payment received. Confirming your invoice…');
+        let attempts = 0;
+        const timer = setInterval(async () => {
+            attempts += 1;
+            const refreshedInvoice = await fetchInvoice();
+            if (String(refreshedInvoice?.status || '').toLowerCase() === 'paid') {
+                setPaymentMessage('Payment confirmed. Your receipt is ready.');
+                clearInterval(timer);
+            } else if (attempts >= 6) {
+                setPaymentMessage('Payment is still being confirmed. Refresh this page in a moment.');
+                clearInterval(timer);
+            }
+        }, 2000);
+        return () => clearInterval(timer);
+    }, [invoiceNumber, searchParams, fetchInvoice]);
 
     const handlePrint = () => {
         if (!invoice) return;
@@ -86,7 +108,7 @@ function CustomerInvoice() {
                 <h2>${escapeHtml(studio.name || 'InkVictus Tattoo Studio')}</h2>
                 <p>${escapeHtml(studio.address || 'inkvictusstudio.com')}</p>
                 ${studio.phone ? `<p>${escapeHtml(studio.phone)}</p>` : ''}
-                <p>Official Payment Receipt</p>
+                <p>${String(invoice.status).toLowerCase() === 'paid' ? 'Official Payment Receipt' : 'Invoice / Payment Request'}</p>
             </div>
             <div class="receipt-section">
                 <div class="receipt-row"><span class="label">Invoice Number</span><span class="value">${escapeHtml(invoice.invoice_number)}</span></div>
@@ -96,12 +118,12 @@ function CustomerInvoice() {
             <div class="receipt-section">
                 ${itemRows}
                 ${discountAmount > 0 ? `<div class="receipt-row"><span>Subtotal</span><span>₱${formatMoney(Number(invoice.amount) + discountAmount)}</span></div><div class="receipt-row"><span>Discount</span><span>-₱${formatMoney(discountAmount)}</span></div>` : ''}
-                <div class="receipt-row total"><span>Amount Paid</span><span class="success">₱${formatMoney(invoice.amount)}</span></div>
+                <div class="receipt-row total"><span>${String(invoice.status).toLowerCase() === 'paid' ? 'Amount Paid' : 'Amount Due'}</span><span class="success">₱${formatMoney(invoice.amount)}</span></div>
             </div>
-            <div class="receipt-section">
+            ${String(invoice.status).toLowerCase() === 'paid' ? `<div class="receipt-section">
                 <div class="receipt-row"><span class="label">Payment Method</span><span class="value">${escapeHtml(invoice.payment_method || 'Not recorded')}</span></div>
                 ${changeGiven > 0 ? `<div class="receipt-row"><span class="label">Change Given</span><span class="value success">₱${changeGiven.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>` : ''}
-            </div>
+            </div>` : ''}
             <div class="footer"><p>Thank you for choosing ${escapeHtml(studio.name || 'InkVictus Tattoo Studio')}</p></div>
             </body></html>
         `);
@@ -110,9 +132,24 @@ function CustomerInvoice() {
         setTimeout(() => printWindow.print(), 300);
     };
 
+    const handlePayOnline = async () => {
+        if (!invoice || paying) return;
+        setPaying(true);
+        setPaymentMessage('');
+        try {
+            const response = await Axios.post(`${API_URL}/api/invoices/${invoice.id}/checkout`);
+            if (!response.data?.checkoutUrl) throw new Error(response.data?.message || 'Checkout link was not returned.');
+            window.location.assign(response.data.checkoutUrl);
+        } catch (paymentError) {
+            setPaymentMessage(paymentError.response?.data?.message || paymentError.message || 'Unable to begin payment.');
+            setPaying(false);
+        }
+    };
+
     const invoiceItems = parseInvoiceItems(invoice);
     const invoiceDiscount = Number(invoice?.discount_amount || 0);
     const studio = invoice?.studio || {};
+    const isPaid = String(invoice?.status || '').toLowerCase() === 'paid';
 
     return (
         <div className="portal-layout">
@@ -139,7 +176,7 @@ function CustomerInvoice() {
                             <div style={{ width: '56px', height: '56px', background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                                 <CheckCircle size={28} color="#10b981" />
                             </div>
-                            <h2 style={{ margin: '0 0 4px', fontSize: '1.3rem', fontWeight: 700, color: '#1e293b' }}>Payment Receipt</h2>
+                            <h2 style={{ margin: '0 0 4px', fontSize: '1.3rem', fontWeight: 700, color: '#1e293b' }}>{isPaid ? 'Payment Receipt' : 'Invoice'}</h2>
                             <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>{invoice.invoice_number}</p>
                         </div>
 
@@ -150,7 +187,7 @@ function CustomerInvoice() {
                                 <h3 style={{ margin: '0 0 4px', fontSize: '1.2rem', fontWeight: 800, color: '#1e293b' }}>{studio.name || 'InkVictus Tattoo Studio'}</h3>
                                 <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>{studio.address || 'inkvictusstudio.com'}</p>
                                 {studio.phone && <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>{studio.phone}</p>}
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>Official Payment Receipt</p>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>{isPaid ? 'Official Payment Receipt' : 'Payment Request'}</p>
                             </div>
 
                             {/* Meta */}
@@ -189,12 +226,12 @@ function CustomerInvoice() {
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 20px', fontSize: '1rem', fontWeight: 800 }}>
-                                    <span>Amount Paid</span><span style={{ color: '#10b981' }}>₱{formatMoney(invoice.amount)}</span>
+                                    <span>{isPaid ? 'Amount Paid' : 'Amount Due'}</span><span style={{ color: isPaid ? '#10b981' : '#d97706' }}>₱{formatMoney(invoice.amount)}</span>
                                 </div>
                             </div>
 
                             {/* Payment Info */}
-                            <div style={{ padding: '14px 20px', borderTop: '1px dashed #e2e8f0', background: '#f0fdf4' }}>
+                            {isPaid && <div style={{ padding: '14px 20px', borderTop: '1px dashed #e2e8f0', background: '#f0fdf4' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#475569', marginBottom: '4px' }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         {invoice.payment_method === 'Cash' ? <Banknote size={14} /> : invoice.payment_method === 'GCash' ? <Wallet size={14} /> : <CreditCard size={14} />}
@@ -208,7 +245,7 @@ function CustomerInvoice() {
                                         <span style={{ fontWeight: 700 }}>₱{parseFloat(invoice.change_given).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 )}
-                            </div>
+                            </div>}
 
                             {/* Status Badge */}
                             <div style={{ padding: '14px 20px', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
@@ -223,8 +260,19 @@ function CustomerInvoice() {
                             </div>
                         </div>
 
+                        {paymentMessage && <div style={{ marginTop: '14px', padding: '12px 14px', borderRadius: '10px', background: '#fffbeb', color: '#92400e', textAlign: 'center', fontWeight: 600 }}>{paymentMessage}</div>}
+
                         {/* Action Buttons */}
                         <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'center' }}>
+                            {!isPaid && (
+                                <button onClick={handlePayOnline} disabled={paying} style={{
+                                    padding: '12px 24px', background: '#be9055', border: 'none', borderRadius: '12px',
+                                    fontWeight: 700, cursor: paying ? 'not-allowed' : 'pointer', color: '#fff', fontSize: '0.9rem',
+                                    display: 'flex', alignItems: 'center', gap: '8px', opacity: paying ? 0.65 : 1
+                                }}>
+                                    {paying ? <Loader size={16} /> : <CreditCard size={16} />} {paying ? 'Opening Checkout…' : 'Pay Online'}
+                                </button>
+                            )}
                             <button onClick={handlePrint} style={{
                                 padding: '12px 24px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px',
                                 fontWeight: 600, cursor: 'pointer', color: '#475569', fontSize: '0.9rem',

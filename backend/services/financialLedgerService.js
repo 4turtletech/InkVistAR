@@ -201,6 +201,7 @@ const createFinancialLedgerService = (pool) => ({
         FROM invoices i
         WHERE i.customer_id = ?
           AND i.appointment_id IS NULL
+          AND LOWER(i.status) = 'paid'
       `, [customerId]),
     ]);
 

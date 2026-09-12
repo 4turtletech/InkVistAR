@@ -23,6 +23,12 @@ function createHarness() {
           return [[]];
         }
         if (sql.includes('FROM notifications')) return [[{ user_id: 4 }]];
+        if (sql.includes('FROM invoices')) {
+          const identifier = String(params[0]);
+          if (identifier === '77' || identifier === 'INV-000077') return [[{ customer_id: 4 }]];
+          if (identifier === '88' || identifier === 'INV-000088') return [[{ customer_id: 5 }]];
+          return [[]];
+        }
         return [[]];
       },
     }),
@@ -70,6 +76,9 @@ test('highest-risk route groups are classified for protection', () => {
     ['/api/notifications/4', 'self-path'],
     ['/api/push/register', 'self-body'],
     ['/api/admin/inventory', 'role'],
+    ['/api/customer/4/payment-alerts', 'identity-path'],
+    ['/api/invoices/77/checkout', 'invoice'],
+    ['/api/invoices/77/payment-status', 'invoice'],
   ];
   for (const [path, kind] of paths) {
     assert.equal(classifyRequest({ method: 'GET', path }).kind, kind, path);
@@ -218,4 +227,16 @@ test('the existing public booking wizard remains available without opening admin
     assert.equal(staffWizard.status, 403, `${token} must not use the customer booking wizard`);
     assert.match(staffWizard.payload.message, /Staff accounts cannot create customer booking requests/);
   }
+});
+
+test('payment alerts and invoice checkout are limited to the owning customer', async () => {
+  const middleware = createHarness();
+
+  assert.equal((await invoke(middleware, { path: '/api/customer/4/payment-alerts', token: 'customer' })).nextCalled, true);
+  assert.equal((await invoke(middleware, { path: '/api/customer/5/payment-alerts', token: 'customer' })).status, 403);
+
+  assert.equal((await invoke(middleware, { method: 'POST', path: '/api/invoices/77/checkout', token: 'customer' })).nextCalled, true);
+  assert.equal((await invoke(middleware, { method: 'POST', path: '/api/invoices/88/checkout', token: 'customer' })).status, 403);
+  assert.equal((await invoke(middleware, { path: '/api/invoices/77/payment-status', token: 'customer' })).nextCalled, true);
+  assert.equal((await invoke(middleware, { path: '/api/invoices/by-number/INV-000088', token: 'customer' })).status, 403);
 });

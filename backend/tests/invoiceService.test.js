@@ -64,4 +64,18 @@ test('PayMongo checkout sessions are unique so webhook retries update one paymen
 
   assert.match(source, /UNIQUE KEY uniq_payment_session \(session_id\)/);
   assert.match(source, /CREATE UNIQUE INDEX uniq_payment_session ON payments \(session_id\)/);
+  assert.match(source, /CREATE UNIQUE INDEX uniq_payment_invoice ON payments \(invoice_id\)/);
+  assert.match(source, /invoice_id = COALESCE\(VALUES\(invoice_id\), invoice_id\)/);
+});
+
+test('standalone invoice creation always produces a pending draft', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+  const start = source.indexOf("app.post('/api/admin/invoices'");
+  const end = source.indexOf("app.put('/api/admin/invoices/:id'", start);
+  const handler = source.slice(start, end);
+
+  assert.match(handler, /status: 'Pending'/);
+  assert.match(handler, /user_type = 'customer'/);
+  assert.doesNotMatch(handler, /isPosSale/);
+  assert.doesNotMatch(handler, /status: 'Paid'/);
 });

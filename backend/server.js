@@ -1408,7 +1408,8 @@ db.getConnection((err, connection) => {
     const paymentsTableQuery = `
       CREATE TABLE IF NOT EXISTS payments (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        appointment_id INT NOT NULL,
+        appointment_id INT NULL,
+        invoice_id INT NULL,
         session_id VARCHAR(100),
         paymongo_payment_id VARCHAR(100),
         amount INT,
@@ -1426,10 +1427,17 @@ db.getConnection((err, connection) => {
       if (err) return console.error('[WARN] Error checking payments table:', err.message);
       try {
         const database = db.promise();
+        await database.query('ALTER TABLE payments MODIFY COLUMN appointment_id INT NULL');
+        await ensureTableColumns(db, 'payments', {
+          invoice_id: 'INT NULL AFTER appointment_id',
+        });
         const [indexes] = await database.query('SHOW INDEX FROM payments');
         const indexNames = new Set(indexes.map((index) => index.Key_name));
         if (!indexNames.has('uniq_payment_session')) {
           await database.query('CREATE UNIQUE INDEX uniq_payment_session ON payments (session_id)');
+        }
+        if (!indexNames.has('uniq_payment_invoice')) {
+          await database.query('CREATE UNIQUE INDEX uniq_payment_invoice ON payments (invoice_id)');
         }
         console.log('[OK] Payments table ready');
       } catch (paymentsMigrationError) {
@@ -1450,6 +1458,10 @@ db.getConnection((err, connection) => {
         service_type VARCHAR(255),
         amount DECIMAL(10, 2),
         payment_method VARCHAR(100) DEFAULT NULL,
+        payment_reference VARCHAR(100) DEFAULT NULL,
+        payment_notes VARCHAR(500) DEFAULT NULL,
+        payment_proof LONGTEXT DEFAULT NULL,
+        paid_at DATETIME DEFAULT NULL,
         change_given DECIMAL(10, 2) DEFAULT 0.00,
         discount_amount DECIMAL(10, 2) DEFAULT 0.00,
         discount_type VARCHAR(255) DEFAULT NULL,
@@ -1464,6 +1476,10 @@ db.getConnection((err, connection) => {
         await ensureTableColumns(db, 'invoices', {
           payment_id: 'INT NULL AFTER invoice_number',
           request_key: 'VARCHAR(100) NULL AFTER payment_id',
+          payment_reference: 'VARCHAR(100) NULL AFTER payment_method',
+          payment_notes: 'VARCHAR(500) NULL AFTER payment_reference',
+          payment_proof: 'LONGTEXT NULL AFTER payment_notes',
+          paid_at: 'DATETIME NULL AFTER payment_proof',
         });
 
         const database = db.promise();
@@ -7213,6 +7229,10 @@ app.get('/api/admin/invoices', (req, res) => {
       status,
       NULL as raw_event,
       payment_method,
+      payment_reference,
+      payment_notes,
+      payment_proof,
+      paid_at,
       items,
       discount_amount,
       discount_type
@@ -8565,25 +8585,32 @@ app.post('/api/payments/webhook', createPaymongoWebhookVerifier({
   const metadata = resource?.attributes?.metadata || {};
 
   const appointmentId = metadata.appointmentId || metadata.appointment_id;
+  const invoiceId = metadata.invoiceId || metadata.invoice_id;
   const paymongoPaymentId = resource?.id || resource?.attributes?.id || null;
   const sessionId = resource?.attributes?.checkout_session_id || metadata.checkout_session_id || null;
   const amount = resource?.attributes?.amount || null;
   const currency = resource?.attributes?.currency || 'PHP';
   const status = eventType && eventType.includes('paid') ? 'paid' : (resource?.attributes?.status || 'pending');
 
-  console.log('[INFO] PayMongo webhook received:', eventType, 'appointment', appointmentId);
+  console.log('[INFO] PayMongo webhook received:', eventType, 'appointment', appointmentId, 'invoice', invoiceId);
 
-  if (!appointmentId) {
-    console.warn('[WARN] Webhook missing appointmentId in metadata');
+  if (!appointmentId && !invoiceId) {
+    console.warn('[WARN] Webhook missing appointmentId and invoiceId in metadata');
   }
 
   // Upsert by PayMongo payment ID or checkout session. This lets the webhook
   // promote the existing pending checkout row instead of creating a duplicate.
   db.query(
-    `INSERT INTO payments (appointment_id, session_id, paymongo_payment_id, amount, currency, status, raw_event)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id), status = VALUES(status), amount = VALUES(amount), currency = VALUES(currency), raw_event = VALUES(raw_event), updated_at = ?`,
-    [appointmentId || null, sessionId, paymongoPaymentId, amount, currency, status, JSON.stringify(event), getLocalDatetime()],
+    `INSERT INTO payments (appointment_id, invoice_id, session_id, paymongo_payment_id, amount, currency, status, raw_event)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id),
+       appointment_id = COALESCE(VALUES(appointment_id), appointment_id),
+       invoice_id = COALESCE(VALUES(invoice_id), invoice_id),
+       session_id = COALESCE(VALUES(session_id), session_id),
+       paymongo_payment_id = COALESCE(VALUES(paymongo_payment_id), paymongo_payment_id),
+       status = VALUES(status), amount = VALUES(amount), currency = VALUES(currency),
+       raw_event = VALUES(raw_event), updated_at = ?`,
+    [appointmentId || null, invoiceId || null, sessionId, paymongoPaymentId, amount, currency, status, JSON.stringify(event), getLocalDatetime()],
     (err, paymentResult) => {
       if (err) return console.error('[ERROR] Error saving payment record:', err.message);
       if (status === 'paid' && paymentResult?.insertId && appointmentId) {
@@ -8601,6 +8628,43 @@ app.post('/api/payments/webhook', createPaymongoWebhookVerifier({
               clientName: invoiceContext.client_name,
               designTitle: invoiceContext.design_title || invoiceContext.service_type,
             });
+          }
+        );
+      }
+      if (status === 'paid' && paymentResult?.insertId && invoiceId) {
+        db.query(
+          `UPDATE invoices
+           SET status = 'Paid', payment_id = ?, payment_method = 'PayMongo', paid_at = ?
+           WHERE id = ? AND LOWER(status) = 'pending' AND payment_id IS NULL AND appointment_id IS NULL`,
+          [paymentResult.insertId, getLocalDatetime(), invoiceId],
+          (invoiceUpdateError, invoiceUpdate) => {
+            if (invoiceUpdateError) return console.error('[INVOICE] Paid checkout update failed:', invoiceUpdateError.message);
+            if (!invoiceUpdate?.affectedRows) return;
+            db.query(
+              `SELECT i.*, u.email AS customer_email
+               FROM invoices i LEFT JOIN users u ON u.id = i.customer_id
+               WHERE i.id = ? LIMIT 1`,
+              [invoiceId],
+              (invoiceError, invoiceRows) => {
+                if (invoiceError || !invoiceRows?.[0]) return;
+                const invoice = invoiceRows[0];
+                createNotification(invoice.customer_id, 'Invoice Paid', `${invoice.invoice_number} was paid successfully. Your receipt is ready.`, 'invoice_paid', invoice.id);
+                if (invoice.customer_email) {
+                  sendReceiptEmail(invoice.customer_email, {
+                    id: invoice.invoice_number,
+                    amount: Number(invoice.amount),
+                    method: 'PayMongo',
+                    clientName: invoice.client_name,
+                    designTitle: invoice.service_type,
+                    changeGiven: 0,
+                    remaining: 0,
+                  });
+                }
+                db.query("SELECT id FROM users WHERE user_type = 'admin' AND is_deleted = 0", (adminError, admins) => {
+                  if (!adminError) admins.forEach((admin) => createNotification(admin.id, 'Invoice Payment Received', `${invoice.invoice_number} was paid by ${invoice.client_name}.`, 'payment_success', invoice.id));
+                });
+              }
+            );
           }
         );
       }
@@ -10904,8 +10968,7 @@ app.post('/api/admin/invoices', async (req, res) => {
   const client = String(req.body.client ?? req.body.clientName ?? '').trim();
   const type = String(req.body.type ?? req.body.serviceType ?? '').trim();
   const amount = Number(req.body.amount);
-  const isPosSale = /retail|pos/i.test(type);
-  const paymentMethod = String(req.body.payment_method || req.body.paymentMethod || 'Cash');
+  const linkedCustomerId = Number.parseInt(req.body.customerId, 10) || null;
 
   if (!client || !type) {
     return res.status(400).json({ success: false, message: 'Client name and service type are required.' });
@@ -10913,33 +10976,48 @@ app.post('/api/admin/invoices', async (req, res) => {
   if (!Number.isFinite(amount) || amount <= 0 || amount > 99999999.99) {
     return res.status(400).json({ success: false, message: 'Invoice amount must be greater than zero.' });
   }
-  if (req.body.items !== undefined && !Array.isArray(req.body.items)) {
-    return res.status(400).json({ success: false, message: 'Invoice items must be a list.' });
-  }
-  if (isPosSale && !['Cash', 'Card', 'GCash'].includes(paymentMethod)) {
-    return res.status(400).json({ success: false, message: 'Unsupported POS payment method.' });
-  }
-
   try {
+    let invoiceClientName = client;
+    if (linkedCustomerId) {
+      const [customerRows] = await db.promise().query(
+        `SELECT name FROM users
+         WHERE id = ? AND user_type = 'customer' AND COALESCE(is_deleted, 0) = 0
+           AND LOWER(COALESCE(account_status, 'active')) = 'active'
+         LIMIT 1`,
+        [linkedCustomerId]
+      );
+      if (!customerRows[0]) {
+        return res.status(400).json({ success: false, message: 'Select an active customer account or create a walk-in invoice.' });
+      }
+      invoiceClientName = String(customerRows[0].name || client).trim();
+    }
+
     const invoice = await insertInvoiceRecord(db, {
-      customerId: Number.parseInt(req.body.customerId, 10) || null,
-      clientName: client,
+      customerId: linkedCustomerId,
+      clientName: invoiceClientName,
       serviceType: type,
       amount,
-      paymentMethod: isPosSale ? paymentMethod : null,
-      changeGiven: isPosSale ? Number(req.body.change_given ?? req.body.changeGiven) || 0 : 0,
-      discountAmount: Number(req.body.discount_amount) || 0,
-      discountType: req.body.discount_type || null,
-      status: isPosSale ? 'Paid' : 'Pending',
-      items: req.body.items || null,
+      paymentMethod: null,
+      changeGiven: 0,
+      status: 'Pending',
+      items: null,
       createdAt: getLocalDatetime(),
     });
+    if (linkedCustomerId) {
+      createNotification(
+        linkedCustomerId,
+        'Invoice Ready for Payment',
+        `${invoice.invoiceNumber} for ${type} is ready. Amount due: ₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`,
+        'invoice_pending',
+        invoice.id
+      );
+    }
     res.json({
       success: true,
-      message: isPosSale ? 'POS invoice created' : 'Draft invoice created',
+      message: 'Draft invoice created',
       id: invoice.id,
       invoiceNumber: invoice.invoiceNumber,
-      status: isPosSale ? 'Paid' : 'Pending',
+      status: 'Pending',
     });
   } catch (error) {
     console.error('[INVOICE] Create failed:', error.message);
@@ -10980,6 +11058,91 @@ app.put('/api/admin/invoices/:id', async (req, res) => {
     console.error('[INVOICE] Update transaction failed:', error.message);
     res.status(500).json({ success: false, message: 'Unable to update the billing record.' });
   }
+});
+
+// Admin: settle a standalone draft invoice after receiving payment outside the
+// system. This never updates an appointment or creates a second sales record.
+app.post('/api/admin/invoices/:id/settle', async (req, res) => {
+  const invoiceId = Number.parseInt(req.params.id, 10);
+  const method = String(req.body.method || '').trim();
+  const reference = String(req.body.reference || '').trim().replace(/[<>\r\n]/g, '').substring(0, 100);
+  const notes = String(req.body.notes || '').trim().replace(/[<>\r\n]/g, ' ').substring(0, 500);
+  const proof = String(req.body.proof || '').trim();
+
+  if (!Number.isInteger(invoiceId) || invoiceId <= 0) {
+    return res.status(400).json({ success: false, message: 'A valid invoice ID is required.' });
+  }
+  if (!['Cash', 'GCash'].includes(method)) {
+    return res.status(400).json({ success: false, message: 'Select Cash or GCash as the payment method.' });
+  }
+  if (method === 'GCash' && !reference) {
+    return res.status(400).json({ success: false, message: 'GCash reference number is required.' });
+  }
+  if (proof && (!/^data:image\/(?:jpeg|png|webp);base64,/i.test(proof) || proof.length > 4_200_000)) {
+    return res.status(400).json({ success: false, message: 'Payment proof must be a JPEG, PNG, or WEBP image no larger than 3 MB.' });
+  }
+  if (method === 'GCash' && !proof) {
+    return res.status(400).json({ success: false, message: 'Attach payment proof for a GCash settlement.' });
+  }
+
+  const database = db.promise();
+  let connection;
+  let settledInvoice;
+  try {
+    connection = await database.getConnection();
+    await connection.beginTransaction();
+    const [rows] = await connection.query(
+      `SELECT i.*, u.email AS customer_email
+       FROM invoices i LEFT JOIN users u ON u.id = i.customer_id
+       WHERE i.id = ? FOR UPDATE`,
+      [invoiceId]
+    );
+    const invoice = rows[0];
+    if (!invoice) throw Object.assign(new Error('Invoice not found.'), { statusCode: 404 });
+    if (String(invoice.status || '').toLowerCase() !== 'pending' || invoice.payment_id || invoice.appointment_id) {
+      throw Object.assign(new Error('Only an unpaid standalone draft invoice can be settled manually.'), { statusCode: 409 });
+    }
+
+    await connection.query(
+      `UPDATE invoices
+       SET status = 'Paid', payment_method = ?, payment_reference = ?, payment_notes = ?,
+           payment_proof = ?, paid_at = ?
+       WHERE id = ?`,
+      [method, reference || null, notes || null, proof || null, getLocalDatetime(), invoiceId]
+    );
+    await connection.commit();
+    settledInvoice = { ...invoice, payment_method: method, payment_reference: reference, payment_notes: notes };
+  } catch (error) {
+    if (connection) await connection.rollback();
+    const statusCode = Number(error.statusCode) || 500;
+    if (statusCode >= 500) console.error('[INVOICE] Manual settlement failed:', error.message);
+    return res.status(statusCode).json({ success: false, message: statusCode < 500 ? error.message : 'The invoice could not be settled. No financial records were changed.' });
+  } finally {
+    if (connection) connection.release();
+  }
+
+  logAction(getAdminId(req), 'SETTLE_INVOICE', `Settled invoice ${settledInvoice.invoice_number} via ${method}`, req.ip);
+  if (settledInvoice.customer_id) {
+    createNotification(
+      settledInvoice.customer_id,
+      'Invoice Paid',
+      `${settledInvoice.invoice_number} was marked paid via ${method}. Your receipt is now available.`,
+      'invoice_paid',
+      settledInvoice.id
+    );
+  }
+  if (settledInvoice.customer_email) {
+    sendReceiptEmail(settledInvoice.customer_email, {
+      id: settledInvoice.invoice_number,
+      amount: Number(settledInvoice.amount),
+      method,
+      clientName: settledInvoice.client_name,
+      designTitle: settledInvoice.service_type,
+      changeGiven: 0,
+      remaining: 0,
+    });
+  }
+  return res.json({ success: true, message: `${settledInvoice.invoice_number} marked as paid.`, invoiceNumber: settledInvoice.invoice_number });
 });
 
 // Admin: Delete Invoice
@@ -11102,6 +11265,111 @@ app.get('/api/manager/dashboard', (req, res) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     res.json({ success: true, stats: results[0] });
   });
+});
+
+// Customer: create a full-payment checkout for a standalone draft invoice.
+app.post('/api/invoices/:id/checkout', async (req, res) => {
+  const invoiceId = Number(req.params.id);
+  if (!Number.isInteger(invoiceId) || invoiceId <= 0) {
+    return res.status(400).json({ success: false, message: 'A valid invoice ID is required.' });
+  }
+  if (!PAYMONGO_SECRET_KEY) {
+    return res.status(500).json({ success: false, message: 'Online payment is not configured on the server.' });
+  }
+
+  try {
+    const database = db.promise();
+    const [rows] = await database.query(
+      `SELECT id, invoice_number, customer_id, client_name, service_type, amount, status,
+              payment_id, appointment_id
+       FROM invoices WHERE id = ? LIMIT 1`,
+      [invoiceId]
+    );
+    const invoice = rows[0];
+    if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found.' });
+    if (!invoice.customer_id) return res.status(409).json({ success: false, message: 'Walk-in invoices must be settled by the studio.' });
+    if (String(invoice.status || '').toLowerCase() !== 'pending' || invoice.payment_id || invoice.appointment_id) {
+      return res.status(409).json({ success: false, message: 'This invoice is not available for online payment.' });
+    }
+
+    const amountCentavos = Math.round(Number(invoice.amount) * 100);
+    if (!Number.isInteger(amountCentavos) || amountCentavos < 100) {
+      return res.status(400).json({ success: false, message: 'Invoice amount must be at least one peso.' });
+    }
+
+    const description = `Payment for ${invoice.invoice_number}`;
+    const payload = {
+      data: {
+        attributes: {
+          line_items: [{
+            amount: amountCentavos,
+            currency: 'PHP',
+            name: invoice.service_type || 'Studio Invoice',
+            description,
+            quantity: 1,
+          }],
+          description,
+          payment_method_types: ['card', 'gcash', 'paymaya', 'grab_pay'],
+          statement_descriptor: 'InkVistAR',
+          metadata: {
+            invoiceId: String(invoice.id),
+            invoiceNumber: invoice.invoice_number,
+            customerId: String(invoice.customer_id),
+            paymentType: 'invoice',
+            mode: PAYMONGO_MODE,
+          },
+          success_url: `${FRONTEND_URL}/customer/invoice/${encodeURIComponent(invoice.invoice_number)}?payment=success`,
+          cancel_url: `${FRONTEND_URL}/customer/invoice/${encodeURIComponent(invoice.invoice_number)}?payment=cancelled`,
+        },
+      },
+    };
+
+    const response = await fetch(`${PAYMONGO_API_BASE}/checkout_sessions`, {
+      method: 'POST',
+      headers: { Authorization: paymongoAuthHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const providerData = await response.json();
+    if (!response.ok) {
+      console.error('[INVOICE] PayMongo rejected checkout:', response.status, providerData.errors?.[0]?.code || 'unknown');
+      return res.status(502).json({ success: false, message: 'Payment provider rejected the checkout request.' });
+    }
+
+    const sessionId = providerData?.data?.id;
+    const checkoutUrl = providerData?.data?.attributes?.checkout_url;
+    if (!sessionId || !checkoutUrl) {
+      return res.status(502).json({ success: false, message: 'Payment provider returned an incomplete checkout session.' });
+    }
+    await database.query(
+      `INSERT INTO payments (appointment_id, invoice_id, session_id, amount, currency, status, raw_event)
+       VALUES (NULL, ?, ?, ?, 'PHP', 'pending', ?)
+       ON DUPLICATE KEY UPDATE invoice_id = VALUES(invoice_id), session_id = VALUES(session_id),
+         paymongo_payment_id = NULL, amount = VALUES(amount), status = 'pending',
+         raw_event = VALUES(raw_event), updated_at = CURRENT_TIMESTAMP`,
+      [invoice.id, sessionId, amountCentavos, JSON.stringify(providerData?.data || {})]
+    );
+    return res.json({ success: true, checkoutUrl, sessionId, invoiceNumber: invoice.invoice_number });
+  } catch (error) {
+    console.error('[INVOICE] Checkout creation failed:', error.message);
+    return res.status(500).json({ success: false, message: 'Unable to initialize invoice payment.' });
+  }
+});
+
+app.get('/api/invoices/:id/payment-status', async (req, res) => {
+  const invoiceId = Number(req.params.id);
+  if (!Number.isInteger(invoiceId) || invoiceId <= 0) {
+    return res.status(400).json({ success: false, message: 'A valid invoice ID is required.' });
+  }
+  try {
+    const [rows] = await db.promise().query(
+      'SELECT status, payment_method, paid_at FROM invoices WHERE id = ? LIMIT 1',
+      [invoiceId]
+    );
+    if (!rows[0]) return res.status(404).json({ success: false, message: 'Invoice not found.' });
+    return res.json({ success: true, ...rows[0] });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Unable to check invoice payment status.' });
+  }
 });
 
 // GET invoice by invoice_number (for customer view)
@@ -12474,6 +12742,63 @@ app.get('/api/chat/:room', (req, res) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
     res.json({ success: true, messages: results, session_id: historyQuery.sessionId });
   });
+});
+
+// GET all actionable customer balances. Standalone draft invoices are kept
+// separate from appointment balances so paying one cannot alter a booking.
+app.get('/api/customer/:customerId/payment-alerts', async (req, res) => {
+  const customerId = Number(req.params.customerId);
+  if (!Number.isInteger(customerId) || customerId <= 0) {
+    return res.status(400).json({ success: false, message: 'A valid customer ID is required.' });
+  }
+
+  try {
+    const database = db.promise();
+    const [appointments] = await database.query(
+      `SELECT ap.id, ap.design_title, ap.service_type, ap.appointment_date, ap.booking_code,
+              ap.price, ap.payment_status,
+              ((SELECT COALESCE(SUM(amount), 0) FROM payments p
+                WHERE p.appointment_id = ap.id AND LOWER(p.status) = 'paid') / 100)
+                + COALESCE(ap.manual_paid_amount, 0) AS total_paid
+       FROM appointments ap
+       WHERE ap.customer_id = ? AND ap.is_deleted = 0
+         AND LOWER(ap.status) IN ('pending', 'confirmed', 'scheduled', 'completed')
+         AND ap.price > 0
+       HAVING total_paid + 0.005 < ap.price
+       ORDER BY ap.appointment_date ASC, ap.id ASC`,
+      [customerId]
+    );
+    const [invoices] = await database.query(
+      `SELECT id, invoice_number, client_name, service_type, amount, created_at
+       FROM invoices
+       WHERE customer_id = ? AND LOWER(status) = 'pending'
+         AND payment_id IS NULL AND appointment_id IS NULL AND amount > 0
+       ORDER BY created_at ASC, id ASC`,
+      [customerId]
+    );
+
+    const alerts = [
+      ...appointments.map((appointment) => ({
+        ...appointment,
+        alert_id: `appointment-${appointment.id}`,
+        kind: 'appointment',
+      })),
+      ...invoices.map((invoice) => ({
+        ...invoice,
+        alert_id: `invoice-${invoice.id}`,
+        kind: 'invoice',
+        design_title: invoice.service_type,
+        price: Number(invoice.amount),
+        total_paid: 0,
+        payment_status: 'unpaid',
+        appointment_date: invoice.created_at,
+      })),
+    ];
+    return res.json({ success: true, alerts });
+  } catch (error) {
+    console.error('[INVOICE] Customer payment alerts failed:', error.message);
+    return res.status(500).json({ success: false, message: 'Unable to load payment reminders.' });
+  }
 });
 
 // ========== PUBLIC CONTACT FORM ==========

@@ -217,7 +217,11 @@ export function CustomerNotifications({ onBack, userId }) {
   const onPress = async (item) => {
     if (!item.is_read) { await markNotificationAsRead(item.id); setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: true } : n)); }
 
-    if (item.type === 'payment_success') {
+    if (item.type === 'invoice_pending') {
+      try { navigation.navigate('customer-main', { screen: 'Home' }); } catch (e) { }
+    } else if (item.type === 'invoice_paid') {
+      try { navigation.navigate('customer-transactions'); } catch (e) { }
+    } else if (item.type === 'payment_success') {
       try { navigation.navigate('customer-transactions', { openAppointmentId: item.related_id }); } catch (e) { }
     } else if (item.type?.startsWith('aftercare_')) {
       try { navigation.navigate('CustomerAftercare'); } catch (e) { }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
-import { Plus, FileText, CreditCard, Printer, X, Trash2, Edit, Search, Filter, ChevronUp, ChevronDown, User } from 'lucide-react';
+import { Plus, FileText, CreditCard, Printer, X, Trash2, Edit, Search, Filter, ChevronUp, ChevronDown, User, CheckCircle, Upload } from 'lucide-react';
 import { filterName, filterMoney } from '../utils/validation';
 import PhilippinePeso from '../components/PhilippinePeso';
 
@@ -109,6 +109,15 @@ function AdminBilling() {
     const invoiceSubmittingRef = useRef(false);
     const invoiceRequestKeyRef = useRef(createRequestKey());
     const [previewModal, setPreviewModal] = useState({ mounted: false, visible: false, invoice: null });
+    const [draftModal, setDraftModal] = useState(false);
+    const [draftInvoice, setDraftInvoice] = useState({ customerId: null, clientName: '', type: 'Tattoo Session', amount: '' });
+    const [draftErrors, setDraftErrors] = useState({});
+    const [draftSubmitting, setDraftSubmitting] = useState(false);
+    const [draftClientOpen, setDraftClientOpen] = useState(false);
+    const [settlementInvoice, setSettlementInvoice] = useState(null);
+    const [settlementForm, setSettlementForm] = useState({ method: 'Cash', reference: '', notes: '', proof: '' });
+    const [settlementErrors, setSettlementErrors] = useState({});
+    const [settlementSubmitting, setSettlementSubmitting] = useState(false);
     
     // Validation states
     const [invoiceErrors, setInvoiceErrors] = useState({});
@@ -314,6 +323,83 @@ function AdminBilling() {
         }, 400);
     };
 
+    const openDraftModal = () => {
+        setDraftInvoice({ customerId: null, clientName: '', type: 'Tattoo Session', amount: '' });
+        setDraftErrors({});
+        setDraftClientOpen(false);
+        setBillingFeedback(null);
+        setDraftModal(true);
+    };
+
+    const submitDraftInvoice = async (event) => {
+        event.preventDefault();
+        const errors = {};
+        if (!draftInvoice.clientName.trim()) errors.clientName = 'Client name is required.';
+        if (!draftInvoice.type.trim()) errors.type = 'Service type is required.';
+        if (!draftInvoice.amount || !Number.isFinite(Number(draftInvoice.amount)) || Number(draftInvoice.amount) <= 0) errors.amount = 'Enter an amount greater than zero.';
+        setDraftErrors(errors);
+        if (Object.keys(errors).length || draftSubmitting) return;
+        setDraftSubmitting(true);
+        try {
+            const response = await Axios.post(`${API_URL}/api/admin/invoices`, {
+                customerId: draftInvoice.customerId,
+                client: draftInvoice.clientName.trim(),
+                type: draftInvoice.type.trim(),
+                amount: Number(draftInvoice.amount),
+                status: 'Pending'
+            });
+            if (!response.data?.success) throw new Error(response.data?.message || 'Draft invoice could not be created.');
+            setDraftModal(false);
+            await fetchData();
+            setBillingFeedback({ type: 'success', message: `${response.data.invoiceNumber} was created as a pending invoice.` });
+        } catch (error) {
+            setDraftErrors({ submission: error.response?.data?.message || error.message || 'Draft invoice could not be created.' });
+        } finally {
+            setDraftSubmitting(false);
+        }
+    };
+
+    const openSettlementModal = (invoice) => {
+        setSettlementInvoice(invoice);
+        setSettlementForm({ method: 'Cash', reference: '', notes: '', proof: '' });
+        setSettlementErrors({});
+    };
+
+    const handleSettlementProof = (file) => {
+        if (!file) return;
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 3 * 1024 * 1024) {
+            setSettlementErrors(prev => ({ ...prev, proof: 'Choose a JPEG, PNG, or WEBP image no larger than 3 MB.' }));
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            setSettlementForm(prev => ({ ...prev, proof: String(reader.result || '') }));
+            setSettlementErrors(prev => ({ ...prev, proof: '' }));
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const submitSettlement = async (event) => {
+        event.preventDefault();
+        const errors = {};
+        if (settlementForm.method === 'GCash' && !settlementForm.reference.trim()) errors.reference = 'GCash reference number is required.';
+        if (settlementForm.method === 'GCash' && !settlementForm.proof) errors.proof = 'Attach the GCash payment proof.';
+        setSettlementErrors(errors);
+        if (Object.keys(errors).length || settlementSubmitting || !settlementInvoice) return;
+        setSettlementSubmitting(true);
+        try {
+            const response = await Axios.post(`${API_URL}/api/admin/invoices/${getInvoiceSourceId(settlementInvoice)}/settle`, settlementForm);
+            if (!response.data?.success) throw new Error(response.data?.message || 'Settlement could not be saved.');
+            setSettlementInvoice(null);
+            await fetchData();
+            setBillingFeedback({ type: 'success', message: response.data.message });
+        } catch (error) {
+            setSettlementErrors({ submission: error.response?.data?.message || error.message || 'Settlement could not be saved.' });
+        } finally {
+            setSettlementSubmitting(false);
+        }
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -359,7 +445,11 @@ function AdminBilling() {
             invoiceRequest,
             loadSection('artists', Axios.get(`${API_URL}/api/customer/artists`), data => setArtists(data.artists || [])),
             loadSection('customers', Axios.get(`${API_URL}/api/admin/users`), data => {
-                setCustomers((data.data || []).filter(u => u.user_type === 'customer' && !u.is_deleted));
+                setCustomers((data.data || []).filter(u => (
+                    u.user_type === 'customer'
+                    && !u.is_deleted
+                    && String(u.account_status || 'active').toLowerCase() === 'active'
+                )));
             }),
             loadSection('payout history', Axios.get(`${API_URL}/api/admin/payouts`), data => setPayouts(data.data || [])),
             fetchPayoutBalances().then(success => {
@@ -674,9 +764,14 @@ function AdminBilling() {
                             </button>
                         </div>
                         {activeTab === 'invoices' ? (
-                            <button className="btn btn-primary admin-st-4796037d" onClick={openModal} >
-                                <Plus size={18} className="admin-st-c02c7d9c" /> Record Payment
-                            </button>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button className="btn btn-secondary" onClick={openDraftModal}>
+                                    <FileText size={18} /> Create Draft
+                                </button>
+                                <button className="btn btn-primary admin-st-4796037d" onClick={openModal}>
+                                    <Plus size={18} className="admin-st-c02c7d9c" /> Record Payment
+                                </button>
+                            </div>
                         ) : (
                             <button className="btn btn-primary" onClick={() => openPayoutModal()}>
                                 <Plus size={18} className="admin-st-c02c7d9c" /> Record Payout
@@ -855,6 +950,9 @@ function AdminBilling() {
                                                         </button>
                                                         {isEditableInvoiceRecord(inv) && (
                                                             <>
+                                                                <button className="action-btn" title="Mark Invoice as Paid" onClick={() => openSettlementModal(inv)}>
+                                                                    <CheckCircle size={16}/>
+                                                                </button>
                                                                 <button className="action-btn" title="Edit Invoice" onClick={() => openModal('edit', inv)}>
                                                                     <Edit size={16}/>
                                                                 </button>
@@ -1060,7 +1158,146 @@ function AdminBilling() {
 
             </div>
 
-                {/* Create Invoice Modal */}
+                {/* Standalone draft invoice modal */}
+                {draftModal && (
+                    <div className="modal-overlay open" onClick={() => !draftSubmitting && setDraftModal(false)}>
+                        <div className="modal-content" onClick={event => event.stopPropagation()}>
+                            <div className="modal-header">
+                                <div className="admin-flex-center admin-gap-15">
+                                    <div className="admin-st-c911153f"><FileText size={20} className="text-bronze" /></div>
+                                    <div>
+                                        <h2 className="admin-m-0">Create Draft Invoice</h2>
+                                        <p className="admin-st-925e4e02">Create a receivable for a registered or walk-in client</p>
+                                    </div>
+                                </div>
+                                <button className="close-btn" type="button" onClick={() => !draftSubmitting && setDraftModal(false)}><X size={24}/></button>
+                            </div>
+                            <form onSubmit={submitDraftInvoice}>
+                                <div className="modal-body admin-st-7cea880d">
+                                    <div className="form-group admin-mb-20" style={{ position: 'relative' }}>
+                                        <label className="admin-st-19644797">Client Name <span style={{ color: '#ef4444' }}>*</span></label>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: `1px solid ${draftErrors.clientName ? '#ef4444' : '#e2e8f0'}`, borderRadius: '10px', padding: '0 12px', background: '#fff' }}>
+                                            <Search size={16} color="#94a3b8" />
+                                            <input
+                                                className="form-input"
+                                                style={{ border: 'none', background: 'transparent', padding: '10px 0' }}
+                                                value={draftInvoice.clientName}
+                                                placeholder="Type a walk-in name or select an account..."
+                                                maxLength={255}
+                                                onFocus={() => setDraftClientOpen(true)}
+                                                onBlur={() => setTimeout(() => setDraftClientOpen(false), 180)}
+                                                onChange={event => {
+                                                    const value = filterName(event.target.value).slice(0, 255);
+                                                    setDraftInvoice(prev => ({ ...prev, customerId: null, clientName: value }));
+                                                    setDraftErrors(prev => ({ ...prev, clientName: '' }));
+                                                    setDraftClientOpen(true);
+                                                }}
+                                            />
+                                        </div>
+                                        {draftErrors.clientName && <span className="text-red-500 text-xs mt-1 block">{draftErrors.clientName}</span>}
+                                        {draftClientOpen && (
+                                            <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', zIndex: 60, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', boxShadow: '0 10px 28px rgba(15,23,42,.14)', maxHeight: '210px', overflowY: 'auto', marginTop: '4px' }}>
+                                                {customers.filter(customer => {
+                                                    const query = draftInvoice.clientName.trim().toLowerCase();
+                                                    return !query || customer.name?.toLowerCase().includes(query) || customer.email?.toLowerCase().includes(query);
+                                                }).slice(0, 8).map(customer => (
+                                                    <button
+                                                        key={customer.id}
+                                                        type="button"
+                                                        onMouseDown={event => event.preventDefault()}
+                                                        onClick={() => {
+                                                            setDraftInvoice(prev => ({ ...prev, customerId: customer.id, clientName: customer.name }));
+                                                            setDraftClientOpen(false);
+                                                        }}
+                                                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', border: 0, borderBottom: '1px solid #f1f5f9', background: '#fff', cursor: 'pointer', textAlign: 'left' }}
+                                                    >
+                                                        <User size={16} color="#be9055" />
+                                                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{customer.name}</span>
+                                                        <span style={{ marginLeft: 'auto', color: '#94a3b8', fontSize: '.75rem' }}>{customer.email}</span>
+                                                    </button>
+                                                ))}
+                                                <div style={{ padding: '9px 14px', color: '#64748b', fontSize: '.75rem', background: '#f8fafc' }}>
+                                                    No account? Keep the typed name to create a walk-in invoice.
+                                                </div>
+                                            </div>
+                                        )}
+                                        <span style={{ display: 'block', marginTop: '6px', fontSize: '.75rem', color: draftInvoice.customerId ? '#16a34a' : '#64748b' }}>
+                                            {draftInvoice.customerId ? 'Linked to customer account — online payment will be available.' : 'Walk-in invoice — admin records Cash or GCash payment manually.'}
+                                        </span>
+                                    </div>
+                                    <div className="form-group admin-mb-20">
+                                        <label className="admin-st-19644797">Service / Description <span style={{ color: '#ef4444' }}>*</span></label>
+                                        <input className="form-input" maxLength={255} value={draftInvoice.type} onChange={event => { setDraftInvoice(prev => ({ ...prev, type: event.target.value.slice(0, 255) })); setDraftErrors(prev => ({ ...prev, type: '' })); }} />
+                                        {draftErrors.type && <span className="text-red-500 text-xs mt-1 block">{draftErrors.type}</span>}
+                                    </div>
+                                    <div className="form-group admin-mb-20">
+                                        <label className="admin-st-19644797">Amount (PHP) <span style={{ color: '#ef4444' }}>*</span></label>
+                                        <input className="form-input" inputMode="decimal" value={draftInvoice.amount} onChange={event => { setDraftInvoice(prev => ({ ...prev, amount: filterMoney(event.target.value) })); setDraftErrors(prev => ({ ...prev, amount: '' })); }} />
+                                        {draftErrors.amount && <span className="text-red-500 text-xs mt-1 block">{draftErrors.amount}</span>}
+                                    </div>
+                                    {draftErrors.submission && <div className="payout-inline-feedback payout-inline-feedback--error" role="alert">{draftErrors.submission}</div>}
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-secondary" disabled={draftSubmitting} onClick={() => setDraftModal(false)}>Cancel</button>
+                                    <button type="submit" className="btn btn-primary" disabled={draftSubmitting}>{draftSubmitting ? 'Creating…' : 'Save Draft Invoice'}</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Manual settlement modal */}
+                {settlementInvoice && (
+                    <div className="modal-overlay open" onClick={() => !settlementSubmitting && setSettlementInvoice(null)}>
+                        <div className="modal-content" onClick={event => event.stopPropagation()}>
+                            <div className="modal-header">
+                                <div>
+                                    <h2 className="admin-m-0">Mark Invoice as Paid</h2>
+                                    <p className="admin-st-925e4e02">{settlementInvoice.invoice_number} · ₱{Number(settlementInvoice.amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+                                </div>
+                                <button className="close-btn" type="button" onClick={() => !settlementSubmitting && setSettlementInvoice(null)}><X size={24}/></button>
+                            </div>
+                            <form onSubmit={submitSettlement}>
+                                <div className="modal-body admin-st-7cea880d">
+                                    <div className="form-group admin-mb-20">
+                                        <label className="admin-st-19644797">Payment Method <span style={{ color: '#ef4444' }}>*</span></label>
+                                        <select className="form-input" value={settlementForm.method} onChange={event => { setSettlementForm(prev => ({ ...prev, method: event.target.value })); setSettlementErrors({}); }}>
+                                            <option value="Cash">Cash</option>
+                                            <option value="GCash">GCash</option>
+                                        </select>
+                                    </div>
+                                    {settlementForm.method === 'GCash' && (
+                                        <div className="form-group admin-mb-20">
+                                            <label className="admin-st-19644797">GCash Reference Number <span style={{ color: '#ef4444' }}>*</span></label>
+                                            <input className="form-input" maxLength={100} value={settlementForm.reference} onChange={event => { setSettlementForm(prev => ({ ...prev, reference: event.target.value.replace(/[<>\r\n]/g, '').slice(0, 100) })); setSettlementErrors(prev => ({ ...prev, reference: '' })); }} />
+                                            {settlementErrors.reference && <span className="text-red-500 text-xs mt-1 block">{settlementErrors.reference}</span>}
+                                        </div>
+                                    )}
+                                    <div className="form-group admin-mb-20">
+                                        <label className="admin-st-19644797">Payment Notes (Optional)</label>
+                                        <textarea className="form-input" rows="3" maxLength={500} value={settlementForm.notes} onChange={event => setSettlementForm(prev => ({ ...prev, notes: event.target.value.slice(0, 500) }))} />
+                                    </div>
+                                    <div className="form-group admin-mb-20">
+                                        <label className="admin-st-19644797">Payment Proof {settlementForm.method === 'GCash' ? <span style={{ color: '#ef4444' }}>*</span> : '(Optional)'}</label>
+                                        <label className="btn btn-secondary" style={{ display: 'inline-flex', cursor: 'pointer', gap: '8px' }}>
+                                            <Upload size={16} /> {settlementForm.proof ? 'Replace Proof' : 'Attach Proof'}
+                                            <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={event => handleSettlementProof(event.target.files?.[0])} />
+                                        </label>
+                                        {settlementForm.proof && <img src={settlementForm.proof} alt="Payment proof preview" style={{ display: 'block', marginTop: '12px', maxWidth: '100%', maxHeight: '220px', borderRadius: '10px', border: '1px solid #e2e8f0' }} />}
+                                        {settlementErrors.proof && <span className="text-red-500 text-xs mt-1 block">{settlementErrors.proof}</span>}
+                                    </div>
+                                    {settlementErrors.submission && <div className="payout-inline-feedback payout-inline-feedback--error" role="alert">{settlementErrors.submission}</div>}
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-secondary" disabled={settlementSubmitting} onClick={() => setSettlementInvoice(null)}>Cancel</button>
+                                    <button type="submit" className="btn btn-primary" disabled={settlementSubmitting}>{settlementSubmitting ? 'Saving…' : 'Confirm Paid'}</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Appointment payment / draft edit modal */}
                 {invoiceModal.mounted && (
                     <div className={`modal-overlay ${invoiceModal.visible ? 'open' : ''}`} onClick={closeModal}>
                         <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -1397,6 +1634,16 @@ function AdminBilling() {
                                         </table>
                                     );
                                 })()}
+
+                                {(previewModal.invoice.paid_at || previewModal.invoice.payment_reference || previewModal.invoice.payment_notes || previewModal.invoice.payment_proof) && (
+                                    <div style={{ marginTop: '18px', padding: '14px', border: '1px solid #e2e8f0', borderRadius: '10px', background: '#f8fafc' }}>
+                                        <h4 style={{ margin: '0 0 10px', color: '#1e293b' }}>Settlement Details</h4>
+                                        {previewModal.invoice.paid_at && <p style={{ margin: '4px 0', color: '#475569' }}><strong>Paid on:</strong> {new Date(previewModal.invoice.paid_at).toLocaleString('en-PH')}</p>}
+                                        {previewModal.invoice.payment_reference && <p style={{ margin: '4px 0', color: '#475569' }}><strong>Reference:</strong> {previewModal.invoice.payment_reference}</p>}
+                                        {previewModal.invoice.payment_notes && <p style={{ margin: '4px 0', color: '#475569' }}><strong>Notes:</strong> {previewModal.invoice.payment_notes}</p>}
+                                        {previewModal.invoice.payment_proof && <img src={previewModal.invoice.payment_proof} alt="Payment proof" style={{ display: 'block', marginTop: '10px', maxWidth: '100%', maxHeight: '260px', borderRadius: '8px' }} />}
+                                    </div>
+                                )}
 
                                 <div className="invoice-footer admin-st-ba43e19b">
                                     <p className="admin-st-4e29dcb8">Thank you for choosing InkVistAR Studio for your creative projects.</p>

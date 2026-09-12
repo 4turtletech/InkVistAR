@@ -103,7 +103,7 @@ function classifyRequest(req) {
   if (path === '/api/push/register') return { roles: ['admin', 'manager', 'artist', 'customer'], kind: 'self-body' };
   if (/^\/api\/users\/\d+\/push-token$/.test(path)) return { roles: ['admin', 'manager', 'artist', 'customer'], kind: 'self-path' };
 
-  if (/^\/api\/customer\/(?:profile\/|dashboard\/|aftercare\/)?\d+(?:\/appointments|\/transactions|\/favorites|\/my-tattoos)?$/.test(path)) {
+  if (/^\/api\/customer\/(?:profile\/|dashboard\/|aftercare\/)?\d+(?:\/appointments|\/transactions|\/favorites|\/my-tattoos|\/payment-alerts)?$/.test(path)) {
     return { roles: ['admin', 'manager', 'customer'], kind: 'identity-path' };
   }
   if (path === '/api/customer/favorites' && method === 'POST') return { roles: ['customer'], kind: 'self-body' };
@@ -155,7 +155,7 @@ function classifyRequest(req) {
   if (/^\/api\/reviews\/check\/\d+$/.test(path)) return { roles: ['customer'], kind: 'appointment' };
 
   if (path === '/api/services' && method !== 'GET') return { roles: ['admin'], kind: 'role' };
-  if (/^\/api\/invoices\/(?:by-number\/[^/]+|[^/]+)$/.test(path)) return { roles: ['admin', 'manager', 'customer'], kind: 'invoice' };
+  if (/^\/api\/invoices\/(?:by-number\/[^/]+|[^/]+(?:\/(?:checkout|payment-status))?)$/.test(path)) return { roles: ['admin', 'manager', 'customer'], kind: 'invoice' };
   if (/^\/api\/chat\/[^/]+$/.test(path)) return { roles: ['admin', 'manager', 'customer'], kind: 'chat-room' };
   if (path === '/api/chat/report-abuse') return { roles: ['customer'], kind: 'self-body' };
 
@@ -342,7 +342,8 @@ function createHighRiskProtection({ authenticate, pool }) {
       if (policy.kind === 'invoice') {
         if (STAFF_ROLES.has(req.auth.role)) return next();
         const byNumber = path.includes('/by-number/');
-        const identifier = decodeURIComponent(path.split('/').pop());
+        const invoiceMatch = path.match(/^\/api\/invoices\/([^/]+)/);
+        const identifier = decodeURIComponent(byNumber ? path.split('/').pop() : invoiceMatch?.[1] || '');
         const [rows] = await database.query(
           `SELECT customer_id FROM invoices WHERE ${byNumber ? 'invoice_number' : 'id'} = ? LIMIT 1`,
           [identifier]

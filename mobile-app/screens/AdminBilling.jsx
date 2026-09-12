@@ -6,13 +6,14 @@
 import { invoiceFormErrors, payoutFormErrors, sanitizeCurrencyInput } from '../src/utils/adminFormValidation';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, Text, StyleSheet, FlatList, TouchableOpacity, Image,
   TextInput, Alert, Modal, ScrollView, SafeAreaView,
   RefreshControl, KeyboardAvoidingView, Platform, Keyboard
 } from 'react-native';
 import {
-  Search, FileText, Banknote, Plus, X, ChevronLeft, Eye, Filter, CheckCircle, Clock, AlertCircle,
+  Search, FileText, Banknote, Plus, X, ChevronLeft, Eye, Filter, CheckCircle, Clock, AlertCircle, Camera,
 } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
 import { typography, borderRadius, shadows } from '../src/theme';
@@ -66,6 +67,10 @@ export const AdminBilling = ({ navigation, route }) => {
   const [isEditingInvoice, setIsEditingInvoice] = useState(false);
   const [payoutDetail, setPayoutDetail] = useState(null);
   const [billingFeedback, setBillingFeedback] = useState(null);
+  const [settleInvoice, setSettleInvoice] = useState(null);
+  const [settlementForm, setSettlementForm] = useState({ method: 'Cash', reference: '', notes: '', proof: '' });
+  const [settlementErrors, setSettlementErrors] = useState({});
+  const [settlementSubmitting, setSettlementSubmitting] = useState(false);
 
   // Create Invoice
   const [createInvoiceModal, setCreateInvoiceModal] = useState(false);
@@ -157,10 +162,11 @@ export const AdminBilling = ({ navigation, route }) => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [invData, payData, artData] = await Promise.all([
+      const [invData, payData, artData, userData] = await Promise.all([
         fetchAPI('/admin/invoices'),
         fetchAPI('/admin/payouts'),
         fetchAPI('/admin/users?role=artist'),
+        fetchAPI('/admin/users'),
         loadPayoutBalances(),
       ]);
 
@@ -168,7 +174,8 @@ export const AdminBilling = ({ navigation, route }) => {
       setPayouts(payData.success ? (payData.data || payData.payouts || []) : []);
       const allArtUsers = artData.success ? (artData.users || artData.data || []) : [];
       setArtists(allArtUsers.filter(u => u.user_type === 'artist' || u.role === 'artist'));
-      setCustomers(allArtUsers.filter(u => (
+      const allUsers = userData.success ? (userData.users || userData.data || []) : [];
+      setCustomers(allUsers.filter(u => (
         (u.user_type === 'customer' || u.role === 'customer')
         && ![true, 1, '1'].includes(u.is_deleted)
         && String(u.account_status || 'active').toLowerCase() === 'active'
@@ -324,6 +331,63 @@ export const AdminBilling = ({ navigation, route }) => {
       }
     } catch (e) {
       setBillingFeedback({ type: 'error', message: 'Network error. Please try again.' });
+    }
+  };
+
+  const openSettlement = (invoice) => {
+    setInvoiceDetail(null);
+    setSettleInvoice(invoice);
+    setSettlementForm({ method: 'Cash', reference: '', notes: '', proof: '' });
+    setSettlementErrors({});
+  };
+
+  const chooseSettlementProof = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setSettlementErrors(current => ({ ...current, proof: 'Photo-library access is required to attach payment proof.' }));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.65,
+      base64: true,
+    });
+    if (!result.canceled && result.assets?.[0]?.base64) {
+      const asset = result.assets[0];
+      const mime = asset.mimeType && ['image/jpeg', 'image/png', 'image/webp'].includes(asset.mimeType)
+        ? asset.mimeType
+        : 'image/jpeg';
+      setSettlementForm(current => ({ ...current, proof: `data:${mime};base64,${asset.base64}` }));
+      setSettlementErrors(current => ({ ...current, proof: '' }));
+    }
+  };
+
+  const handleSettleInvoice = async () => {
+    const errors = {};
+    if (!['Cash', 'GCash'].includes(settlementForm.method)) errors.method = 'Select Cash or GCash.';
+    if (settlementForm.method === 'GCash' && !settlementForm.reference.trim()) errors.reference = 'GCash reference number is required.';
+    if (settlementForm.method === 'GCash' && !settlementForm.proof) errors.proof = 'Attach the GCash payment proof.';
+    setSettlementErrors(errors);
+    if (Object.keys(errors).length || settlementSubmitting || !settleInvoice) return;
+
+    setSettlementSubmitting(true);
+    try {
+      const result = await fetchAPI(`/admin/invoices/${getInvoiceSourceId(settleInvoice)}/settle`, {
+        method: 'POST',
+        body: JSON.stringify(settlementForm),
+      });
+      if (!result.success) {
+        setSettlementErrors({ submission: result.message || 'The invoice could not be settled.' });
+        return;
+      }
+      setSettleInvoice(null);
+      setBillingFeedback({ type: 'success', message: result.message });
+      await loadData();
+    } catch (_error) {
+      setSettlementErrors({ submission: 'Network error. Please try again.' });
+    } finally {
+      setSettlementSubmitting(false);
     }
   };
 
@@ -598,6 +662,25 @@ export const AdminBilling = ({ navigation, route }) => {
                       <Text style={styles.detailLabel}>Payment Method</Text>
                       <Text style={styles.detailValue}>{getInvoicePaymentMethod(invoiceDetail)}</Text>
                     </View>
+                    {invoiceDetail.payment_reference ? (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Reference</Text>
+                        <Text style={styles.detailValue}>{invoiceDetail.payment_reference}</Text>
+                      </View>
+                    ) : null}
+                    {invoiceDetail.payment_notes ? (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Payment Notes</Text>
+                        <Text style={styles.detailValue}>{invoiceDetail.payment_notes}</Text>
+                      </View>
+                    ) : null}
+                    {invoiceDetail.paid_at ? (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Paid On</Text>
+                        <Text style={styles.detailValue}>{formatDate(invoiceDetail.paid_at)}</Text>
+                      </View>
+                    ) : null}
+                    {invoiceDetail.payment_proof ? <Image source={{ uri: invoiceDetail.payment_proof }} style={[styles.proofImage, { marginTop: 14, borderRadius: 12 }]} /> : null}
                     {invoiceDetail.appointment_id && (
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Booking</Text>
@@ -606,15 +689,20 @@ export const AdminBilling = ({ navigation, route }) => {
                     )}
                     
                     {isEditableInvoiceRecord(invoiceDetail) ? (
-                      <AnimatedTouchable style={[styles.saveBtn, { marginTop: 20 }]} onPress={() => {
-                        setInvoiceDetail(prev => ({
-                          ...prev,
-                          amount: prev.amount ? parseFloat(prev.amount).toFixed(2) : ''
-                        }));
-                        setIsEditingInvoice(true);
-                      }}>
-                        <Text style={styles.saveBtnText}>Edit Invoice</Text>
-                      </AnimatedTouchable>
+                      <>
+                        <AnimatedTouchable style={[styles.saveBtn, { marginTop: 20 }]} onPress={() => openSettlement(invoiceDetail)}>
+                          <Text style={styles.saveBtnText}>Mark as Paid</Text>
+                        </AnimatedTouchable>
+                        <AnimatedTouchable style={[styles.cancelBtn, { marginTop: 10 }]} onPress={() => {
+                          setInvoiceDetail(prev => ({
+                            ...prev,
+                            amount: prev.amount ? parseFloat(prev.amount).toFixed(2) : ''
+                          }));
+                          setIsEditingInvoice(true);
+                        }}>
+                          <Text style={styles.cancelText}>Edit Draft</Text>
+                        </AnimatedTouchable>
+                      </>
                     ) : (
                       <Text style={{ ...typography.bodyXSmall, color: theme.textTertiary, marginTop: 20, textAlign: 'center' }}>
                         Payment transactions are read-only. Edit the generated invoice record instead.
@@ -912,6 +1000,90 @@ export const AdminBilling = ({ navigation, route }) => {
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* Standalone Invoice Settlement */}
+      <Modal visible={!!settleInvoice} transparent animationType="slide" onRequestClose={() => !settlementSubmitting && setSettleInvoice(null)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Mark Invoice as Paid</Text>
+                <Text style={{ ...typography.bodyXSmall, color: theme.textSecondary, marginTop: 3 }}>
+                  {settleInvoice?.invoice_number} · P{formatCurrency(settleInvoice?.amount)}
+                </Text>
+              </View>
+              <AnimatedTouchable onPress={() => !settlementSubmitting && setSettleInvoice(null)}>
+                <X size={22} color={theme.textSecondary} />
+              </AnimatedTouchable>
+            </View>
+            <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
+              <Text style={styles.inputLabel}>Payment Method <Text style={{ color: theme.error }}>*</Text></Text>
+              <View style={styles.statusRow}>
+                {['Cash', 'GCash'].map(method => (
+                  <AnimatedTouchable
+                    key={method}
+                    style={[styles.statusBtn, settlementForm.method === method && styles.statusBtnActive]}
+                    onPress={() => {
+                      setSettlementForm(current => ({ ...current, method }));
+                      setSettlementErrors({});
+                    }}
+                  >
+                    <Text style={[styles.statusBtnText, settlementForm.method === method && styles.statusBtnTextActive]}>{method}</Text>
+                  </AnimatedTouchable>
+                ))}
+              </View>
+
+              {settlementForm.method === 'GCash' ? (
+                <>
+                  <Text style={styles.inputLabel}>GCash Reference Number <Text style={{ color: theme.error }}>*</Text></Text>
+                  <TextInput
+                    style={[styles.input, settlementErrors.reference && styles.inputError]}
+                    value={settlementForm.reference}
+                    onChangeText={value => {
+                      setSettlementForm(current => ({ ...current, reference: value.replace(/[<>\r\n]/g, '').slice(0, 100) }));
+                      setSettlementErrors(current => ({ ...current, reference: '' }));
+                    }}
+                    placeholder="Enter transaction reference"
+                    placeholderTextColor={theme.textTertiary}
+                    maxLength={100}
+                  />
+                  {settlementErrors.reference ? <Text style={styles.fieldError}>{settlementErrors.reference}</Text> : null}
+                </>
+              ) : null}
+
+              <Text style={styles.inputLabel}>Payment Notes (Optional)</Text>
+              <TextInput
+                style={[styles.input, { minHeight: 84, textAlignVertical: 'top' }]}
+                value={settlementForm.notes}
+                onChangeText={value => setSettlementForm(current => ({ ...current, notes: value.slice(0, 500) }))}
+                placeholder="e.g. Received by front desk"
+                placeholderTextColor={theme.textTertiary}
+                multiline
+                maxLength={500}
+              />
+
+              <Text style={styles.inputLabel}>Payment Proof {settlementForm.method === 'GCash' ? <Text style={{ color: theme.error }}>*</Text> : '(Optional)'}</Text>
+              <AnimatedTouchable style={styles.proofPicker} onPress={chooseSettlementProof}>
+                {settlementForm.proof ? (
+                  <Image source={{ uri: settlementForm.proof }} style={styles.proofImage} />
+                ) : (
+                  <>
+                    <Camera size={24} color={theme.gold} />
+                    <Text style={styles.proofPickerText}>Attach receipt or screenshot</Text>
+                  </>
+                )}
+              </AnimatedTouchable>
+              {settlementErrors.proof ? <Text style={[styles.fieldError, { marginTop: 6 }]}>{settlementErrors.proof}</Text> : null}
+              {settlementErrors.submission ? <View style={[styles.inlineFeedback, styles.inlineFeedbackError]}><Text style={[styles.inlineFeedbackText, { color: theme.error }]}>{settlementErrors.submission}</Text></View> : null}
+
+              <AnimatedTouchable style={[styles.saveBtn, settlementSubmitting && styles.disabledButton]} onPress={handleSettleInvoice} disabled={settlementSubmitting}>
+                <Text style={styles.saveBtnText}>{settlementSubmitting ? 'Saving Payment...' : 'Confirm Paid'}</Text>
+              </AnimatedTouchable>
+              <View style={{ height: 24 }} />
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* Custom Date Range Modal */}
       <Modal visible={customDateModal} transparent animationType="fade" onRequestClose={() => setCustomDateModal(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.modalOverlay, { justifyContent: 'center' }]}>
@@ -1058,6 +1230,11 @@ const getStyles = (theme, insets) => StyleSheet.create({
   statusBtnTextActive: { color: theme.gold },
   saveBtn: { backgroundColor: theme.gold, padding: 16, borderRadius: borderRadius.lg, alignItems: 'center', marginTop: 10 },
   saveBtnText: { ...typography.body, color: theme.backgroundDeep, fontWeight: '700' },
+  cancelBtn: { padding: 14, borderRadius: borderRadius.lg, alignItems: 'center', borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surfaceLight },
+  cancelText: { ...typography.body, color: theme.textSecondary, fontWeight: '700' },
+  proofPicker: { minHeight: 112, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.gold, borderRadius: borderRadius.lg, backgroundColor: theme.surfaceLight, alignItems: 'center', justifyContent: 'center', gap: 8, overflow: 'hidden', marginBottom: 14 },
+  proofPickerText: { ...typography.bodySmall, color: theme.gold, fontWeight: '700' },
+  proofImage: { width: '100%', height: 160, resizeMode: 'cover' },
   disabledButton: { opacity: 0.45 },
   emptyArtistText: { ...typography.bodySmall, color: theme.textTertiary, fontStyle: 'italic', padding: 8 },
 });

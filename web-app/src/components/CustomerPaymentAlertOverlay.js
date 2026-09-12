@@ -3,7 +3,8 @@ import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, X, ArrowRight, FileText, Clock, Loader2 } from 'lucide-react';
 import PhilippinePeso from './PhilippinePeso';
-import { getDisplayCode } from '../utils/formatters';
+import Axios from 'axios';
+import { API_URL } from '../config';
 
 /**
  * Global Customer Payment Alert Overlay
@@ -20,6 +21,7 @@ function CustomerPaymentAlertOverlay() {
     const hasShownOnLoginRef = useRef(false);
     const [notificationVisible, setNotificationVisible] = useState(false);
     const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
+    const [paymentError, setPaymentError] = useState('');
 
     // Listen for notification alerts to shift payment toast down
     useEffect(() => {
@@ -40,7 +42,7 @@ function CustomerPaymentAlertOverlay() {
                 setToastHidden(false);
                 setSelectedAlert(prev => {
                     if (!prev) return newAlerts[0];
-                    const stillExists = newAlerts.find(a => a.id === prev.id);
+                    const stillExists = newAlerts.find(a => a.alert_id === prev.alert_id);
                     return stillExists || newAlerts[0];
                 });
                 const alreadyShownThisSession = sessionStorage.getItem('customerPaymentAlertShown');
@@ -71,10 +73,23 @@ function CustomerPaymentAlertOverlay() {
         sessionStorage.setItem('customerPaymentAlertShown', 'true');
     };
 
-    const handleGoToAppointment = (alertItem) => {
+    const handleGoToPayment = async (alertItem) => {
         if (isInitiatingPayment) return;
         setIsInitiatingPayment(true);
+        setPaymentError('');
         setShowPopup(false);
+        if (alertItem.kind === 'invoice') {
+            try {
+                const response = await Axios.post(`${API_URL}/api/invoices/${alertItem.id}/checkout`);
+                if (!response.data?.checkoutUrl) throw new Error(response.data?.message || 'Checkout link was not returned.');
+                window.location.assign(response.data.checkoutUrl);
+            } catch (error) {
+                setPaymentError(error.response?.data?.message || error.message || 'Unable to begin invoice payment.');
+                setShowPopup(true);
+                setIsInitiatingPayment(false);
+            }
+            return;
+        }
         const totalPaid = Number(alertItem.total_paid || 0);
         const totalPrice = Number(alertItem.price || 0);
         const remainingBalance = Math.max(0, totalPrice - totalPaid);
@@ -122,7 +137,7 @@ function CustomerPaymentAlertOverlay() {
                                 <div>
                                     <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem', fontWeight: 700 }}>Unpaid Balance Notice</h3>
                                     <p style={{ margin: '2px 0 0', color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>
-                                        You have {alerts.length} session{alerts.length > 1 ? 's' : ''} pending payment
+                                        You have {alerts.length} unpaid balance{alerts.length > 1 ? 's' : ''}
                                     </p>
                                 </div>
                             </div>
@@ -139,14 +154,14 @@ function CustomerPaymentAlertOverlay() {
                         {alerts.length > 1 && (
                             <div style={{ padding: '12px 24px', background: '#fffbeb', borderBottom: '1px solid #fde68a', display: 'flex', gap: '8px', overflowX: 'auto' }}>
                                 {alerts.map(a => (
-                                    <button key={a.id} onClick={() => setSelectedAlert(a)} style={{
+                                    <button key={a.alert_id || `${a.kind}-${a.id}`} onClick={() => setSelectedAlert(a)} style={{
                                         padding: '6px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600,
-                                        border: selectedAlert?.id === a.id ? '2px solid #f59e0b' : '1px solid #fde68a',
-                                        background: selectedAlert?.id === a.id ? '#fff' : 'transparent',
-                                        color: selectedAlert?.id === a.id ? '#d97706' : '#b45309',
+                                        border: selectedAlert?.alert_id === a.alert_id ? '2px solid #f59e0b' : '1px solid #fde68a',
+                                        background: selectedAlert?.alert_id === a.alert_id ? '#fff' : 'transparent',
+                                        color: selectedAlert?.alert_id === a.alert_id ? '#d97706' : '#b45309',
                                         cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s'
                                     }}>
-                                        Session #{a.id}
+                                        {a.kind === 'invoice' ? a.invoice_number : `Session #${a.id}`}
                                     </button>
                                 ))}
                             </div>
@@ -157,7 +172,7 @@ function CustomerPaymentAlertOverlay() {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
                                 <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                                     <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>
-                                        <FileText size={10} style={{ marginRight: '4px' }} />Design
+                                        <FileText size={10} style={{ marginRight: '4px' }} />{selectedAlert.kind === 'invoice' ? 'Invoice For' : 'Design'}
                                     </span>
                                     <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{selectedAlert.design_title || 'Untitled'}</span>
                                 </div>
@@ -196,6 +211,11 @@ function CustomerPaymentAlertOverlay() {
                                     </div>
                                 </div>
                             </div>
+                            {paymentError && (
+                                <p role="alert" style={{ margin: '12px 0 0', color: '#dc2626', fontSize: '0.82rem', fontWeight: 600 }}>
+                                    {paymentError}
+                                </p>
+                            )}
                         </div>
 
                         {/* Footer Actions */}
@@ -210,7 +230,7 @@ function CustomerPaymentAlertOverlay() {
                             }}>
                                 Dismiss
                             </button>
-                            <button onClick={() => handleGoToAppointment(selectedAlert)} disabled={isInitiatingPayment} style={{
+                            <button onClick={() => handleGoToPayment(selectedAlert)} disabled={isInitiatingPayment} style={{
                                 padding: '10px 20px', background: '#f59e0b',
                                 border: 'none', borderRadius: '10px', fontWeight: 600, cursor: isInitiatingPayment ? 'not-allowed' : 'pointer',
                                 color: '#fff', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px',
@@ -239,7 +259,7 @@ function CustomerPaymentAlertOverlay() {
                     </div>
                     <div style={{ flex: 1 }}>
                         <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem' }}>
-                            {alerts.length} session{alerts.length > 1 ? 's' : ''} pending payment
+                            {alerts.length} unpaid balance{alerts.length > 1 ? 's' : ''}
                         </p>
                         <p style={{ margin: '2px 0 0', fontSize: '0.75rem', opacity: 0.9 }}>
                             Click to review and pay online

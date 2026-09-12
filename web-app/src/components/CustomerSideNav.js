@@ -85,19 +85,14 @@ function CustomerSideNav() {
         return () => clearInterval(interval);
     }, [customerId]);
 
-    // Poll for unpaid customer appointments
+    // Poll for unpaid appointment balances and standalone draft invoices.
     useEffect(() => {
         if (!customerId) return;
         const fetchPendingPayments = async () => {
             try {
-                const res = await Axios.get(`${API_URL}/api/customer/${customerId}/appointments`);
-                if (res.data.success && Array.isArray(res.data.appointments)) {
-                    const unpaidAlerts = res.data.appointments.filter(a => 
-                        ['pending', 'confirmed', 'scheduled', 'completed'].includes((a.status || '').toLowerCase()) 
-                        && a.price > 0 
-                        && ['unpaid', 'downpayment_paid'].includes(a.payment_status)
-                    );
-                    window.dispatchEvent(new CustomEvent('customer-payment-alert', { detail: { alerts: unpaidAlerts } }));
+                const res = await Axios.get(`${API_URL}/api/customer/${customerId}/payment-alerts`);
+                if (res.data.success && Array.isArray(res.data.alerts)) {
+                    window.dispatchEvent(new CustomEvent('customer-payment-alert', { detail: { alerts: res.data.alerts } }));
                 }
             } catch (e) { /* silent */ }
         };

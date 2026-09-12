@@ -90,6 +90,13 @@ test('customer ledger merges current payments, legacy manual totals, and standal
   assert.equal(calls.some(({ sql }) => sql.includes('amount_centavos')), false);
 });
 
+test('unpaid draft invoices are reminders, not completed transaction entries', () => {
+  const source = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'financialLedgerService.js'), 'utf8');
+  const invoiceQuery = source.slice(source.indexOf('FROM invoices i'), source.indexOf('`, [customerId])', source.indexOf('FROM invoices i')));
+
+  assert.match(invoiceQuery, /LOWER\(i\.status\) = 'paid'/);
+});
+
 test('appointment transaction history uses the same normalized ledger response', async () => {
   const pool = {
     query(sql, params, callback) {

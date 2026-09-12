@@ -19,3 +19,8 @@ test('payment notifications target and expand the newest receipt for their appoi
   assert.match(ledgerSource, /initiallyExpanded=\{item\.ledger_id === targetedLedgerId\}/);
   assert.match(ledgerSource, /scrollToIndex\(\{ index: targetIndex/);
 });
+
+test('paid standalone invoices open the customer transaction history', () => {
+  assert.match(notificationSource, /item\.type === 'invoice_paid'/);
+  assert.match(notificationSource, /navigation\.navigate\('customer-transactions'\)/);
+});
