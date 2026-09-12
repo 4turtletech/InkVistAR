@@ -4,7 +4,7 @@
  * Features: Stock CRUD, low-stock alerts, search, filter, add/edit modal, stock transactions
  */
 
-import { normalizeInventoryItem } from '../src/utils/inventoryState';
+import { inventoryItemErrors, normalizeInventoryItem } from '../src/utils/inventoryState';
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput,
@@ -14,7 +14,7 @@ import * as ImagePicker from 'expo-image-picker';
 import {
   Search, Plus, Pencil, Trash2, X, Package, AlertTriangle,
   TrendingDown, TrendingUp, Archive, ChevronLeft, ChevronRight,
-  Download, History, Layers, Filter, Camera, ArrowUpDown, RotateCcw, SortAsc, Check
+  Download, History, Layers, Filter, Camera, ArrowUpDown, RotateCcw, SortAsc, Check, CheckCircle2
 } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
@@ -31,8 +31,9 @@ import {
   deleteAdminInventory, restoreAdminInventory, fetchAPI,
 } from '../src/utils/api';
 import { sanitizeText, sanitizeNumeric } from '../src/utils/validators';
+import { sanitizeCurrencyInput } from '../src/utils/adminFormValidation';
 
-export const AdminInventory = ({ navigation }) => {
+export const AdminInventory = ({ navigation, route }) => {
   const { theme, hapticsEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const styles = getStyles(theme, insets);
@@ -49,6 +50,9 @@ export const AdminInventory = ({ navigation }) => {
     name: '', category: 'supplies', unit: 'pcs',
     current_stock: '', min_stock: '', cost_per_unit: '', image: ''
   });
+  const [formErrors, setFormErrors] = useState({});
+  const [itemSaving, setItemSaving] = useState(false);
+  const [itemSaveSuccess, setItemSaveSuccess] = useState(null);
 
   // Transaction modal
   const [txModalVisible, setTxModalVisible] = useState(false);
@@ -108,7 +112,24 @@ export const AdminInventory = ({ navigation }) => {
 
   useEffect(() => { loadData(showArchived); }, [showArchived]);
 
+  useEffect(() => {
+    const requestedFilter = route?.params?.stockFilter;
+    if (!['low', 'out', 'optimal', 'overstock'].includes(requestedFilter)) return;
+
+    setShowArchived(false);
+    setStockStatusFilter(requestedFilter);
+    navigation?.setParams?.({ stockFilter: undefined });
+  }, [navigation, route?.params?.stockFilter]);
+
+  useEffect(() => {
+    if (!itemSaveSuccess) return undefined;
+    const timer = setTimeout(() => setItemSaveSuccess(null), 2200);
+    return () => clearTimeout(timer);
+  }, [itemSaveSuccess]);
+
   const openForm = (item = null) => {
+    setFormErrors({});
+    setItemSaving(false);
     if (item) {
       setEditingItem(item);
       setForm({
@@ -140,15 +161,16 @@ export const AdminInventory = ({ navigation }) => {
   };
 
   const handleSave = async () => {
+    if (itemSaving) return;
+    const nextErrors = inventoryItemErrors(form, items, editingItem?.id);
+    setFormErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     const sName = sanitizeText(form.name);
-    if (!sName) {
-      Alert.alert('Validation Error', 'Item name is required');
-      return;
-    }
     const payload = {
       name: sName,
       category: form.category,
-      unit: form.unit,
+      unit: sanitizeText(form.unit),
       currentStock: parseInt(sanitizeNumeric(form.current_stock)) || 0,
       minStock: parseInt(sanitizeNumeric(form.min_stock)) || 0,
       cost: parseFloat(sanitizeNumeric(form.cost_per_unit, true)) || 0,
@@ -160,16 +182,27 @@ export const AdminInventory = ({ navigation }) => {
       payload.supplier = editingItem.supplier || '';
     }
 
-    const result = editingItem
-      ? await updateAdminInventory(editingItem.id, payload)
-      : await createAdminInventory(payload);
+    setItemSaving(true);
+    try {
+      const result = editingItem
+        ? await updateAdminInventory(editingItem.id, payload)
+        : await createAdminInventory(payload);
 
-    if (result.success) {
-      Alert.alert('Success', editingItem ? 'Item updated' : 'Item added');
-      setModalVisible(false);
-      loadData();
-    } else {
-      Alert.alert('Error', result.message || 'Failed to save');
+      if (result.success) {
+        const success = editingItem
+          ? { title: 'Item Updated', message: 'The inventory item was updated successfully.' }
+          : { title: 'Item Added', message: 'The new inventory item was added successfully.' };
+        setModalVisible(false);
+        setFormErrors({});
+        setItemSaveSuccess(success);
+        loadData();
+      } else {
+        setFormErrors(current => ({ ...current, submission: result.message || 'Failed to save inventory item.' }));
+      }
+    } catch (error) {
+      setFormErrors(current => ({ ...current, submission: 'Unable to save the inventory item. Please try again.' }));
+    } finally {
+      setItemSaving(false);
     }
   };
 
@@ -659,12 +692,12 @@ export const AdminInventory = ({ navigation }) => {
       )}
 
       {/* Add/Edit Modal */}
-      <Modal visible={modalVisible} animationType="fade" transparent>
+      <Modal visible={modalVisible} animationType="fade" transparent onRequestClose={() => { if (!itemSaving) setModalVisible(false); }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{editingItem ? 'Edit Item' : 'Add New Item'}</Text>
-              <AnimatedTouchable onPress={() => setModalVisible(false)} style={styles.closeBtn}>
+              <AnimatedTouchable onPress={() => setModalVisible(false)} style={styles.closeBtn} disabled={itemSaving}>
                 <X size={20} color={theme.textSecondary} />
               </AnimatedTouchable>
             </View>
@@ -682,41 +715,99 @@ export const AdminInventory = ({ navigation }) => {
                 </AnimatedTouchable>
               </View>
 
-              <Text style={styles.inputLabel}>Item Name</Text>
-              <TextInput style={styles.input} value={form.name} onChangeText={t => setForm({ ...form, name: t })} placeholder="e.g. Disposable Gloves" placeholderTextColor={theme.textTertiary} />
+              <Text style={styles.inputLabel}>Item Name <Text style={styles.requiredStar}>*</Text></Text>
+              <TextInput
+                style={[styles.input, formErrors.name && styles.inputError]}
+                value={form.name}
+                onChangeText={t => { setForm({ ...form, name: t }); setFormErrors(current => ({ ...current, name: '', submission: '' })); }}
+                maxLength={255}
+                placeholder="e.g. Disposable Gloves"
+                placeholderTextColor={theme.textTertiary}
+              />
+              {formErrors.name ? <Text accessibilityRole="alert" style={styles.fieldError}>{formErrors.name}</Text> : null}
 
-              <Text style={styles.inputLabel}>Category</Text>
+              <Text style={styles.inputLabel}>Category <Text style={styles.requiredStar}>*</Text></Text>
               <View style={styles.typeRow}>
                 {INVENTORY_CATEGORIES.filter(c => c !== 'all').map(cat => (
-                  <AnimatedTouchable key={cat} style={[styles.typeBtn, form.category === cat && styles.typeBtnActive]} onPress={() => setForm({ ...form, category: cat })}>
+                  <AnimatedTouchable key={cat} style={[styles.typeBtn, form.category === cat && styles.typeBtnActive, formErrors.category && styles.typeBtnError]} onPress={() => { setForm({ ...form, category: cat }); setFormErrors(current => ({ ...current, category: '', submission: '' })); }}>
                     <Text style={[styles.typeText, form.category === cat && styles.typeTextActive]}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
                   </AnimatedTouchable>
                 ))}
               </View>
+              {formErrors.category ? <Text accessibilityRole="alert" style={styles.fieldError}>{formErrors.category}</Text> : null}
 
-              <Text style={styles.inputLabel}>Unit</Text>
-              <TextInput style={styles.input} value={form.unit} onChangeText={t => setForm({ ...form, unit: t })} placeholder="e.g. pcs, bottles, sets" placeholderTextColor={theme.textTertiary} />
+              <Text style={styles.inputLabel}>Unit <Text style={styles.requiredStar}>*</Text></Text>
+              <TextInput
+                style={[styles.input, formErrors.unit && styles.inputError]}
+                value={form.unit}
+                onChangeText={t => { setForm({ ...form, unit: t }); setFormErrors(current => ({ ...current, unit: '', submission: '' })); }}
+                maxLength={20}
+                placeholder="e.g. pcs, bottles, sets"
+                placeholderTextColor={theme.textTertiary}
+              />
+              {formErrors.unit ? <Text accessibilityRole="alert" style={styles.fieldError}>{formErrors.unit}</Text> : null}
 
-              <Text style={styles.inputLabel}>Current Stock</Text>
-              <TextInput style={styles.input} value={form.current_stock} onChangeText={t => setForm({ ...form, current_stock: normalizeStockInput(t) })} keyboardType="numeric" />
+              <Text style={styles.inputLabel}>Current Stock <Text style={styles.requiredStar}>*</Text></Text>
+              <TextInput
+                style={[styles.input, formErrors.current_stock && styles.inputError]}
+                value={form.current_stock}
+                onChangeText={t => { setForm({ ...form, current_stock: normalizeStockInput(t) }); setFormErrors(current => ({ ...current, current_stock: '', submission: '' })); }}
+                keyboardType="number-pad"
+                maxLength={10}
+                placeholder="0"
+                placeholderTextColor={theme.textTertiary}
+              />
+              {formErrors.current_stock ? <Text accessibilityRole="alert" style={styles.fieldError}>{formErrors.current_stock}</Text> : null}
 
-              <Text style={styles.inputLabel}>Minimum Stock (Alert Threshold)</Text>
-              <TextInput style={styles.input} value={form.min_stock} onChangeText={t => setForm({ ...form, min_stock: normalizeStockInput(t) })} keyboardType="numeric" />
+              <Text style={styles.inputLabel}>Minimum Stock (Alert Threshold) <Text style={styles.requiredStar}>*</Text></Text>
+              <TextInput
+                style={[styles.input, formErrors.min_stock && styles.inputError]}
+                value={form.min_stock}
+                onChangeText={t => { setForm({ ...form, min_stock: normalizeStockInput(t) }); setFormErrors(current => ({ ...current, min_stock: '', submission: '' })); }}
+                keyboardType="number-pad"
+                maxLength={10}
+                placeholder="0"
+                placeholderTextColor={theme.textTertiary}
+              />
+              {formErrors.min_stock ? <Text accessibilityRole="alert" style={styles.fieldError}>{formErrors.min_stock}</Text> : null}
 
-              <Text style={styles.inputLabel}>Cost per Unit (PHP)</Text>
-              <TextInput style={styles.input} value={form.cost_per_unit} onChangeText={t => setForm({ ...form, cost_per_unit: t })} keyboardType="decimal-pad" />
+              <Text style={styles.inputLabel}>Cost per Unit (PHP) <Text style={styles.requiredStar}>*</Text></Text>
+              <TextInput
+                style={[styles.input, formErrors.cost_per_unit && styles.inputError]}
+                value={form.cost_per_unit}
+                onChangeText={t => { setForm({ ...form, cost_per_unit: sanitizeCurrencyInput(t) }); setFormErrors(current => ({ ...current, cost_per_unit: '', submission: '' })); }}
+                keyboardType="decimal-pad"
+                maxLength={11}
+                placeholder="0.00"
+                placeholderTextColor={theme.textTertiary}
+              />
+              {formErrors.cost_per_unit ? <Text accessibilityRole="alert" style={styles.fieldError}>{formErrors.cost_per_unit}</Text> : null}
+              {formErrors.submission ? <Text accessibilityRole="alert" style={styles.submissionError}>{formErrors.submission}</Text> : null}
 
               <View style={styles.modalActions}>
-                <AnimatedTouchable style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
+                <AnimatedTouchable style={styles.cancelBtn} onPress={() => setModalVisible(false)} disabled={itemSaving}>
                   <Text style={styles.cancelBtnText}>Cancel</Text>
                 </AnimatedTouchable>
-                <AnimatedTouchable style={styles.saveBtn} onPress={handleSave}>
-                  <Text style={styles.saveBtnText}>{editingItem ? 'Update' : 'Add Item'}</Text>
+                <AnimatedTouchable style={[styles.saveBtn, itemSaving && styles.disabledBtn]} onPress={handleSave} disabled={itemSaving}>
+                  <Text style={styles.saveBtnText}>{itemSaving ? 'Saving...' : (editingItem ? 'Update' : 'Add Item')}</Text>
                 </AnimatedTouchable>
               </View>
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Auto-dismiss inventory save confirmation */}
+      <Modal visible={!!itemSaveSuccess} animationType="fade" transparent statusBarTranslucent>
+        <View style={styles.successPopupOverlay} pointerEvents="none">
+          <View style={styles.successPopupCard} accessibilityRole="alert">
+            <View style={styles.successPopupIcon}>
+              <CheckCircle2 size={48} color={theme.success} />
+            </View>
+            <Text style={styles.successPopupTitle}>{itemSaveSuccess?.title}</Text>
+            <Text style={styles.successPopupMessage}>{itemSaveSuccess?.message}</Text>
+          </View>
+        </View>
       </Modal>
 
       {/* Stock Transaction Modal */}
@@ -1048,10 +1139,12 @@ const getStyles = (theme, insets) => StyleSheet.create({
     ...typography.body, borderWidth: 1, borderColor: theme.border,
   },
   inputError: { borderColor: theme.error },
+  requiredStar: { color: theme.error },
   fieldError: { ...typography.bodyXSmall, color: theme.error, marginTop: -8, marginBottom: 10 },
   submissionError: { ...typography.bodySmall, color: theme.error, textAlign: 'center', marginTop: 4 },
   typeRow: { flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
   typeBtn: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: borderRadius.md, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.borderLight },
+  typeBtnError: { borderColor: theme.error },
   typeBtnActive: { backgroundColor: theme.gold, borderColor: theme.gold },
   typeText: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '700' },
   typeTextActive: { color: theme.backgroundDeep },
@@ -1059,7 +1152,38 @@ const getStyles = (theme, insets) => StyleSheet.create({
   cancelBtn: { flex: 1, paddingVertical: 16, borderRadius: borderRadius.md, backgroundColor: theme.surfaceLight, alignItems: 'center', borderWidth: 1, borderColor: theme.borderLight },
   cancelBtnText: { ...typography.button, color: theme.textSecondary },
   saveBtn: { flex: 1, paddingVertical: 16, borderRadius: borderRadius.md, backgroundColor: theme.gold, alignItems: 'center', ...shadows.button },
+  disabledBtn: { opacity: 0.6 },
   saveBtnText: { ...typography.button, color: theme.backgroundDeep },
+  successPopupOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: 'rgba(0,0,0,0.58)',
+  },
+  successPopupCard: {
+    width: 230,
+    height: 230,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    borderRadius: borderRadius.xl,
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.borderLight,
+    ...shadows.cardStrong,
+  },
+  successPopupIcon: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 18,
+    backgroundColor: theme.successBg,
+  },
+  successPopupTitle: { ...typography.h3, color: theme.textPrimary, textAlign: 'center', marginBottom: 8 },
+  successPopupMessage: { ...typography.bodySmall, color: theme.textSecondary, textAlign: 'center' },
 
   // TX modal
   txItemName: { ...typography.h4, color: theme.gold, marginBottom: 4 },

@@ -210,7 +210,9 @@ export const AdminNotifications = ({ navigation }) => {
   };
 
   const filteredNotifs = notifications.filter(n => {
-    const searchMatch = n.title.toLowerCase().includes(search.toLowerCase()) || n.message.toLowerCase().includes(search.toLowerCase());
+    const normalizedSearch = search.trim().toLowerCase();
+    const searchMatch = String(n.title || '').toLowerCase().includes(normalizedSearch)
+      || String(n.message || '').toLowerCase().includes(normalizedSearch);
     if (!searchMatch) return false;
     if (filter === 'unread') return !n.is_read;
     if (filter === 'read') return n.is_read;

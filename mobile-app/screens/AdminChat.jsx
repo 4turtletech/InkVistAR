@@ -75,7 +75,11 @@ export const AdminChat = ({ navigation }) => {
       prevSessionsRef.current = sorted;
       setLiveSessions(sorted);
       const sel = selectedRef.current;
-      if (sel && !sessions.find(s => s.id === sel.id)) setSelectedSession(null);
+      const currentSession = sel ? sessions.find(session => session.id === sel.id) : null;
+      if (sel && (!currentSession || currentSession.sessionId !== sel.sessionId)) {
+        setSelectedSession(null);
+        setMessages([]);
+      }
     });
     socket.connect();
 

@@ -50,6 +50,7 @@ export const AdminBilling = ({ navigation, route }) => {
   const [payoutBalanceLoading, setPayoutBalanceLoading] = useState(true);
   const [payoutBalanceError, setPayoutBalanceError] = useState('');
   const [artists, setArtists] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
 
   const [invoiceDetail, setInvoiceDetail] = useState(null);
@@ -68,21 +69,41 @@ export const AdminBilling = ({ navigation, route }) => {
 
   // Create Invoice
   const [createInvoiceModal, setCreateInvoiceModal] = useState(false);
-  const [invoiceForm, setInvoiceForm] = useState({ clientName: '', serviceType: 'Tattoo Session', amount: '' });
+  const [invoiceForm, setInvoiceForm] = useState({ customerId: '', clientName: '', serviceType: 'Tattoo Session', amount: '' });
+  const [invoiceClientFocused, setInvoiceClientFocused] = useState(false);
 
   const [invoiceErrors, setInvoiceErrors] = useState({});
   const [invoiceAttempted, setInvoiceAttempted] = useState(false);
   const changeInvoiceField = (field, value) => {
-    const next = { ...invoiceForm, [field]: value };
+    const next = {
+      ...invoiceForm,
+      [field]: value,
+      ...(field === 'clientName' ? { customerId: '' } : {}),
+    };
     setInvoiceForm(next);
     if (invoiceAttempted) setInvoiceErrors(invoiceFormErrors(next));
   };
+  const selectInvoiceCustomer = (customer) => {
+    const next = { ...invoiceForm, customerId: String(customer.id), clientName: customer.name };
+    setInvoiceForm(next);
+    setInvoiceClientFocused(false);
+    if (invoiceAttempted) setInvoiceErrors(invoiceFormErrors(next));
+  };
+  const invoiceClientSuggestions = invoiceClientFocused
+    ? customers.filter(customer => {
+      const query = invoiceForm.clientName.trim().toLowerCase();
+      return !query
+        || String(customer.name || '').toLowerCase().includes(query)
+        || String(customer.email || '').toLowerCase().includes(query);
+    }).slice(0, 6)
+    : [];
   const closeCreateInvoice = () => {
     Keyboard.dismiss();
     setCreateInvoiceModal(false);
+    setInvoiceClientFocused(false);
     setInvoiceErrors({});
     setInvoiceAttempted(false);
-    setInvoiceForm({ clientName: '', serviceType: 'Tattoo Session', amount: '' });
+    setInvoiceForm({ customerId: '', clientName: '', serviceType: 'Tattoo Session', amount: '' });
   };
 
   // Custom Date Range
@@ -147,6 +168,11 @@ export const AdminBilling = ({ navigation, route }) => {
       setPayouts(payData.success ? (payData.data || payData.payouts || []) : []);
       const allArtUsers = artData.success ? (artData.users || artData.data || []) : [];
       setArtists(allArtUsers.filter(u => u.user_type === 'artist' || u.role === 'artist'));
+      setCustomers(allArtUsers.filter(u => (
+        (u.user_type === 'customer' || u.role === 'customer')
+        && ![true, 1, '1'].includes(u.is_deleted)
+        && String(u.account_status || 'active').toLowerCase() === 'active'
+      )));
     } catch (e) {
       console.warn('AdminBilling fetch error:', e);
     } finally {
@@ -255,6 +281,7 @@ export const AdminBilling = ({ navigation, route }) => {
       const data = await fetchAPI('/admin/invoices', {
         method: 'POST',
         body: JSON.stringify({
+          customerId: invoiceForm.customerId || null,
           client: clientName.trim(),
           type: serviceType,
           amount: parsedAmount,
@@ -826,10 +853,31 @@ export const AdminBilling = ({ navigation, route }) => {
                 placeholder="e.g. Juan Dela Cruz"
                 placeholderTextColor={theme.textTertiary}
                 value={invoiceForm.clientName}
-                onChangeText={t => changeInvoiceField('clientName', t)}
+                onChangeText={t => { changeInvoiceField('clientName', t.slice(0, 255)); setInvoiceClientFocused(true); }}
+                onFocus={() => setInvoiceClientFocused(true)}
+                onBlur={() => setTimeout(() => setInvoiceClientFocused(false), 180)}
+                maxLength={255}
               />
-
               {invoiceErrors.clientName ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{invoiceErrors.clientName}</Text> : null}
+              {invoiceClientSuggestions.length > 0 ? (
+                <View style={styles.clientSuggestionList}>
+                  {invoiceClientSuggestions.map((customer, index) => (
+                    <TouchableOpacity
+                      key={String(customer.id)}
+                      style={[styles.clientSuggestionItem, index === invoiceClientSuggestions.length - 1 && styles.clientSuggestionItemLast]}
+                      onPressIn={() => selectInvoiceCustomer(customer)}
+                    >
+                      <View style={styles.clientSuggestionAvatar}>
+                        <Text style={styles.clientSuggestionInitial}>{String(customer.name || '?').trim().charAt(0).toUpperCase()}</Text>
+                      </View>
+                      <View style={styles.clientSuggestionTextWrap}>
+                        <Text style={styles.clientSuggestionName} numberOfLines={1}>{customer.name}</Text>
+                        <Text style={styles.clientSuggestionEmail} numberOfLines={1}>{customer.email}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : null}
               <Text style={styles.inputLabel}>Service Type</Text>
               <View style={styles.statusRow}>
                 {['Tattoo Session', 'Consultation', 'Touch-up', 'Other'].map(srv => (
@@ -985,6 +1033,14 @@ const getStyles = (theme, insets) => StyleSheet.create({
   fieldError: { color: theme.error, fontSize: 12, marginTop: -8, marginBottom: 14 },
   inputLabel: { ...typography.bodySmall, color: theme.textSecondary, marginBottom: 8, fontWeight: '600' },
   input: { backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.md, padding: 14, color: theme.textPrimary, ...typography.body, marginBottom: 20 },
+  clientSuggestionList: { backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.md, marginTop: -14, marginBottom: 20, overflow: 'hidden' },
+  clientSuggestionItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: theme.borderLight },
+  clientSuggestionItemLast: { borderBottomWidth: 0 },
+  clientSuggestionAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: theme.primaryLight, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  clientSuggestionInitial: { ...typography.bodySmall, color: theme.gold, fontWeight: '800' },
+  clientSuggestionTextWrap: { flex: 1 },
+  clientSuggestionName: { ...typography.bodySmall, color: theme.textPrimary, fontWeight: '700' },
+  clientSuggestionEmail: { ...typography.bodyXSmall, color: theme.textTertiary, marginTop: 2 },
   inputError: { borderColor: theme.error },
   inlineError: { ...typography.bodyXSmall, color: theme.error, marginTop: -14, marginBottom: 14 },
   availableBalanceBox: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.successBg || 'rgba(16,185,129,0.12)', borderRadius: borderRadius.md, padding: 12, marginBottom: 18 },

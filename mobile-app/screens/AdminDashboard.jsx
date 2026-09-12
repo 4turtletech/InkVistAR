@@ -363,7 +363,11 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
                 </AnimatedTouchable>
               ))}
               {inventoryAlerts.outOfStock.length > 0 && (
-                <AnimatedTouchable style={[styles.alertItem, { borderLeftWidth: 3, borderLeftColor: theme.error }]} onPress={() => navigation?.navigate?.('admin-inventory')}>
+                <AnimatedTouchable
+                  style={[styles.alertItem, { borderLeftWidth: 3, borderLeftColor: theme.error }]}
+                  onPress={() => navigation?.navigate?.('admin-inventory', { stockFilter: 'out' })}
+                  accessibilityLabel="View out of stock inventory items"
+                >
                   <View style={{ flex: 1, marginRight: 8 }}>
                     <Text style={[styles.alertText, { color: theme.error, fontWeight: '700' }]} numberOfLines={1} ellipsizeMode="tail">
                       {inventoryAlerts.outOfStock.length} item{inventoryAlerts.outOfStock.length !== 1 ? 's' : ''} out of stock
@@ -373,7 +377,11 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
                 </AnimatedTouchable>
               )}
               {inventoryAlerts.lowStock.length > 0 && (
-                <AnimatedTouchable style={[styles.alertItem, { borderLeftWidth: 3, borderLeftColor: theme.warning }]} onPress={() => navigation?.navigate?.('admin-inventory')}>
+                <AnimatedTouchable
+                  style={[styles.alertItem, { borderLeftWidth: 3, borderLeftColor: theme.warning }]}
+                  onPress={() => navigation?.navigate?.('admin-inventory', { stockFilter: 'low' })}
+                  accessibilityLabel="View low stock inventory items"
+                >
                   <View style={{ flex: 1, marginRight: 8 }}>
                     <Text style={[styles.alertText, { color: theme.warning, fontWeight: '700' }]} numberOfLines={1} ellipsizeMode="tail">
                       {inventoryAlerts.lowStock.length} item{inventoryAlerts.lowStock.length !== 1 ? 's' : ''} running low

@@ -31,8 +31,10 @@ import {
   getAdminAppointments, updateAppointmentByAdmin, deleteAppointmentByAdmin,
   createAppointmentByAdmin, API_BASE_URL, getAllUsersForAdmin, fetchAPI,
 } from '../src/utils/api';
-import { sessionTimeSelection } from '../src/utils/adminFormValidation';
-import { sanitizeNumeric, sanitizeEmail, isValidEmail, sanitizeText } from '../src/utils/validators';
+import { adminAppointmentSessionErrors, sessionTimeSelection } from '../src/utils/adminFormValidation';
+import { sanitizeNumeric, sanitizeEmail, isValidEmail, sanitizeText, normalizePhilippineMobileNumber } from '../src/utils/validators';
+import { composeCustomerName, customerProfileErrors } from '../src/utils/profileValidation';
+import { useToast } from '../src/context/ToastContext';
 
 const formatMaterialTraceability = (material) => [
   material.batch_number && `Batch ${material.batch_number}`,
@@ -51,8 +53,13 @@ const isFullyPaid = (appointment) => Boolean(appointment) && (
     && Number(appointment.total_paid ?? appointment.amount_paid ?? 0) + 0.005 >= getPayablePrice(appointment))
 );
 
+const filterPersonName = (value = '', maxLength = 50) => String(value)
+  .replace(/[^\p{L}\p{M} .'-]/gu, '')
+  .slice(0, maxLength);
+
 export const AdminAppointmentManagement = ({ navigation, route }) => {
   const { theme, hapticsEnabled } = useTheme();
+  const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const styles = getStyles(theme, insets);
 
@@ -73,6 +80,13 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
   const [editDiscountType, setEditDiscountType] = useState('flat');
   const [editDiscountAmount, setEditDiscountAmount] = useState('');
   const [editClientEmail, setEditClientEmail] = useState('');
+  const [clientMode, setClientMode] = useState('registered');
+  const [walkInFirstName, setWalkInFirstName] = useState('');
+  const [walkInMiddleName, setWalkInMiddleName] = useState('');
+  const [walkInLastName, setWalkInLastName] = useState('');
+  const [walkInSuffix, setWalkInSuffix] = useState('');
+  const [walkInPhone, setWalkInPhone] = useState('');
+  const [walkInEmail, setWalkInEmail] = useState('');
   const [editDesignTitle, setEditDesignTitle] = useState('');
   const [editServiceType, setEditServiceType] = useState('Tattoo Session');
   const [editArtistId, setEditArtistId] = useState('');
@@ -204,18 +218,33 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
 
   const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
   const TIME_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
-  const MIN_TATTOO_PRICE = 5000;
-
   const validateForm = (isCreate) => {
     const errs = {};
 
     // ─ Client email (create only)
     if (isCreate) {
-      const email = sanitizeEmail(editClientEmail);
-      if (!email) {
-        errs.clientEmail = 'Client email is required.';
-      } else if (!isValidEmail(email)) {
-        errs.clientEmail = 'Enter a valid email address.';
+      if (clientMode === 'walkin') {
+        const profileErrors = customerProfileErrors({
+          first_name: walkInFirstName,
+          middle_name: walkInMiddleName,
+          last_name: walkInLastName,
+          suffix: walkInSuffix,
+          phone: walkInPhone,
+        });
+        if (profileErrors.first_name) errs.walkInFirstName = profileErrors.first_name;
+        if (profileErrors.middle_name) errs.walkInMiddleName = profileErrors.middle_name;
+        if (profileErrors.last_name) errs.walkInLastName = profileErrors.last_name;
+        if (profileErrors.suffix) errs.walkInSuffix = profileErrors.suffix;
+        if (profileErrors.phone) errs.walkInPhone = profileErrors.phone;
+        const email = sanitizeEmail(walkInEmail);
+        if (email && !isValidEmail(email)) errs.walkInEmail = 'Enter a valid email address or leave it blank.';
+      } else {
+        const email = sanitizeEmail(editClientEmail);
+        if (!email) {
+          errs.clientEmail = 'Client email is required.';
+        } else if (!isValidEmail(email)) {
+          errs.clientEmail = 'Enter a valid email address.';
+        }
       }
     }
 
@@ -244,27 +273,21 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
     }
 
     // ─ Price
-    const priceNum = parseFloat(sanitizeNumeric(editPrice, true)) || 0;
-    if (priceNum < 0) {
-      errs.price = 'Price cannot be negative.';
-    } else if (priceNum > 0 && priceNum < MIN_TATTOO_PRICE) {
-      errs.price = `Minimum session price is ₱${MIN_TATTOO_PRICE.toLocaleString()}.`;
-    }
-
-    // ─ Status gate: cannot complete without a price (skip for already-paid follow-ups)
     const isAlreadyPaid = selectedAppt && selectedAppt.payment_status === 'paid';
-    if (editStatus === 'completed' && priceNum <= 0 && !isAlreadyPaid) {
-      errs.price = 'A price must be set before marking this session as Completed.';
-    }
+    Object.assign(errs, adminAppointmentSessionErrors({
+      isCreate,
+      serviceType: editServiceType,
+      designTitle: editDesignTitle,
+      price: editPrice,
+      artistId: editArtistId,
+      status: editStatus,
+      sessionNumber: editSessionNumber,
+      isAlreadyPaid,
+    }));
 
-    // ─ Design title: strip dangerous chars but allow empty
+    // ─ Design title: reject unsafe characters after required-field validation
     if (editDesignTitle && sanitizeText(editDesignTitle) !== editDesignTitle.trim()) {
       errs.designTitle = 'Design title contains invalid characters.';
-    }
-
-    // ─ Artist required for create
-    if (isCreate && !editArtistId) {
-      errs.artistId = 'Please assign an artist to this session.';
     }
 
     setFieldErrors(errs);
@@ -313,6 +336,13 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
     setEditDiscountType(appt ? (appt.discount_type || 'flat') : 'flat');
     setEditDiscountAmount(appt ? (appt.discount_amount ? String(appt.discount_amount) : '') : '');
     setEditClientEmail(appt ? appt.client_email || '' : '');
+    setClientMode('registered');
+    setWalkInFirstName('');
+    setWalkInMiddleName('');
+    setWalkInLastName('');
+    setWalkInSuffix('');
+    setWalkInPhone('');
+    setWalkInEmail('');
     setEditDesignTitle(appt ? appt.design_title || '' : '');
     setEditServiceType(appt ? appt.service_type || 'Tattoo Session' : 'Tattoo Session');
     setEditArtistId(appt ? String(appt.artist_id || '') : '');
@@ -335,19 +365,32 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
   const handleSave = async () => {
     const isCreate = !selectedAppt;
     if (!validateForm(isCreate)) {
-      Alert.alert(
-        'Validation Error',
-        'Please correct the highlighted fields before saving.',
-        [{ text: 'OK' }]
-      );
       return;
     }
 
     const sPrice = parseFloat(sanitizeNumeric(editPrice, true)) || 0;
 
     if (isCreate) {
-      const result = await createAppointmentByAdmin({
+      const walkInName = composeCustomerName({
+        first_name: walkInFirstName,
+        middle_name: walkInMiddleName,
+        last_name: walkInLastName,
+        suffix: walkInSuffix,
+      });
+      const clientIdentity = clientMode === 'walkin' ? {
+        customerId: 'admin',
+        customerName: walkInName,
+        guestFirstName: walkInFirstName.trim(),
+        guestMiddleName: walkInMiddleName.trim() || null,
+        guestLastName: walkInLastName.trim(),
+        guestSuffix: walkInSuffix.trim() || null,
+        guestPhone: normalizePhilippineMobileNumber(walkInPhone),
+        guestEmail: sanitizeEmail(walkInEmail) || null,
+      } : {
         clientEmail: sanitizeEmail(editClientEmail),
+      };
+      const result = await createAppointmentByAdmin({
+        ...clientIdentity,
         designTitle: sanitizeText(editDesignTitle),
         date: editDate.trim(),
         startTime: editTime.trim(),
@@ -361,12 +404,12 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
         originalSessionId: editOriginalSessionId
       });
       if (result.success) {
-        Alert.alert('Success', 'Appointment created');
         setModalVisible(false);
         setFieldErrors({});
+        showToast('Appointment created successfully.', 'success');
         loadData();
       } else {
-        Alert.alert('Error', result.message || 'Failed to create');
+        setFieldErrors(prev => ({ ...prev, general: result.message || 'Failed to create appointment.' }));
       }
       return;
     }
@@ -389,9 +432,9 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
       projectId: editIsMultiSession ? editProjectId : null,
     });
     if (result.success) {
-      Alert.alert('Success', 'Appointment updated');
       setModalVisible(false);
       setFieldErrors({});
+      showToast('Appointment updated successfully.', 'success');
       loadData();
     } else if (result.status === 409 || result.message?.toLowerCase().includes('conflict')) {
       Alert.alert('Scheduling Conflict', 'This artist already has an appointment at this time.');
@@ -793,7 +836,7 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
             </View>
 
             {/* Modal Scroll View */}
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator>
 
               {/* P2-7: ARCHIVE MODE — read-only completed session view */}
               {archiveMode && selectedAppt ? (
@@ -953,17 +996,65 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
               {/* Client email input — only shown when creating a new appointment */}
               {!selectedAppt?.id && (
                 <View style={styles.infoSection}>
-                  <Text style={styles.inputLabel}>Client Email <Text style={styles.requiredStar}>*</Text></Text>
-                  <TextInput
-                    style={[styles.input, fieldErrors.clientEmail && styles.inputError]}
-                    value={editClientEmail}
-                    onChangeText={t => { setEditClientEmail(t); clearError('clientEmail'); }}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    placeholder="client@email.com"
-                    placeholderTextColor={theme.textTertiary}
-                  />
-                  {fieldErrors.clientEmail ? <Text style={styles.errorText}>{fieldErrors.clientEmail}</Text> : null}
+                  <Text style={styles.inputLabel}>Client Type</Text>
+                  <View style={styles.clientModeRow}>
+                    {[
+                      ['registered', 'Registered Client'],
+                      ['walkin', 'Walk-In Client'],
+                    ].map(([value, label]) => (
+                      <AnimatedTouchable
+                        key={value}
+                        style={[styles.clientModeBtn, clientMode === value && styles.clientModeBtnActive]}
+                        onPress={() => { setClientMode(value); setFieldErrors({}); }}
+                      >
+                        <Text style={[styles.clientModeText, clientMode === value && styles.clientModeTextActive]}>{label}</Text>
+                      </AnimatedTouchable>
+                    ))}
+                  </View>
+
+                  {clientMode === 'registered' ? (
+                    <>
+                      <Text style={styles.inputLabel}>Client Email <Text style={styles.requiredStar}>*</Text></Text>
+                      <TextInput
+                        style={[styles.input, fieldErrors.clientEmail && styles.inputError]}
+                        value={editClientEmail}
+                        onChangeText={t => { setEditClientEmail(t); clearError('clientEmail'); }}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        maxLength={255}
+                        placeholder="client@email.com"
+                        placeholderTextColor={theme.textTertiary}
+                      />
+                      {fieldErrors.clientEmail ? <Text style={styles.errorText}>{fieldErrors.clientEmail}</Text> : null}
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.inputLabel}>First Name <Text style={styles.requiredStar}>*</Text></Text>
+                      <TextInput style={[styles.input, fieldErrors.walkInFirstName && styles.inputError]} value={walkInFirstName} onChangeText={t => { setWalkInFirstName(filterPersonName(t)); clearError('walkInFirstName'); }} autoCapitalize="words" maxLength={50} placeholder="First name" placeholderTextColor={theme.textTertiary} />
+                      {fieldErrors.walkInFirstName ? <Text style={styles.errorText}>{fieldErrors.walkInFirstName}</Text> : null}
+
+                      <Text style={styles.inputLabel}>Middle Name (Optional)</Text>
+                      <TextInput style={[styles.input, fieldErrors.walkInMiddleName && styles.inputError]} value={walkInMiddleName} onChangeText={t => { setWalkInMiddleName(filterPersonName(t)); clearError('walkInMiddleName'); }} autoCapitalize="words" maxLength={50} placeholder="Middle name" placeholderTextColor={theme.textTertiary} />
+                      {fieldErrors.walkInMiddleName ? <Text style={styles.errorText}>{fieldErrors.walkInMiddleName}</Text> : null}
+
+                      <Text style={styles.inputLabel}>Last Name <Text style={styles.requiredStar}>*</Text></Text>
+                      <TextInput style={[styles.input, fieldErrors.walkInLastName && styles.inputError]} value={walkInLastName} onChangeText={t => { setWalkInLastName(filterPersonName(t)); clearError('walkInLastName'); }} autoCapitalize="words" maxLength={50} placeholder="Last name" placeholderTextColor={theme.textTertiary} />
+                      {fieldErrors.walkInLastName ? <Text style={styles.errorText}>{fieldErrors.walkInLastName}</Text> : null}
+
+                      <Text style={styles.inputLabel}>Suffix (Optional)</Text>
+                      <TextInput style={[styles.input, fieldErrors.walkInSuffix && styles.inputError]} value={walkInSuffix} onChangeText={t => { setWalkInSuffix(filterPersonName(t, 10)); clearError('walkInSuffix'); }} autoCapitalize="words" maxLength={10} placeholder="Jr., Sr., III" placeholderTextColor={theme.textTertiary} />
+                      {fieldErrors.walkInSuffix ? <Text style={styles.errorText}>{fieldErrors.walkInSuffix}</Text> : null}
+
+                      <Text style={styles.inputLabel}>Phone Number (+63) <Text style={styles.requiredStar}>*</Text></Text>
+                      <TextInput style={[styles.input, fieldErrors.walkInPhone && styles.inputError]} value={walkInPhone} onChangeText={t => { setWalkInPhone(sanitizeNumeric(t).slice(0, 10)); clearError('walkInPhone'); }} keyboardType="number-pad" maxLength={10} placeholder="9171234567" placeholderTextColor={theme.textTertiary} />
+                      {fieldErrors.walkInPhone ? <Text style={styles.errorText}>{fieldErrors.walkInPhone}</Text> : null}
+
+                      <Text style={styles.inputLabel}>Email Address (Optional)</Text>
+                      <TextInput style={[styles.input, fieldErrors.walkInEmail && styles.inputError]} value={walkInEmail} onChangeText={t => { setWalkInEmail(t); clearError('walkInEmail'); }} keyboardType="email-address" autoCapitalize="none" maxLength={255} placeholder="guest@example.com" placeholderTextColor={theme.textTertiary} />
+                      {fieldErrors.walkInEmail ? <Text style={styles.errorText}>{fieldErrors.walkInEmail}</Text> : null}
+                    </>
+                  )}
+                  {fieldErrors.general ? <Text style={styles.errorText}>{fieldErrors.general}</Text> : null}
                 </View>
               )}
 
@@ -1023,17 +1114,22 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
                 </View>
               </ScrollView>
 
-              <Text style={styles.inputLabel}>Design Title</Text>
+              <Text style={styles.inputLabel}>
+                Design Title {!['cancelled', 'rejected'].includes(String(editStatus).toLowerCase()) ? <Text style={styles.requiredStar}>*</Text> : null}
+              </Text>
               <TextInput
                 style={[styles.input, fieldErrors.designTitle && styles.inputError]}
                 value={editDesignTitle}
                 onChangeText={t => { setEditDesignTitle(t); clearError('designTitle'); }}
                 placeholder="e.g. Floral Sleeve"
                 placeholderTextColor={theme.textTertiary}
+                maxLength={255}
               />
               {fieldErrors.designTitle ? <Text style={styles.errorText}>{fieldErrors.designTitle}</Text> : null}
 
-              <Text style={styles.inputLabel}>Assigned Artist</Text>
+              <Text style={styles.inputLabel}>
+                Assigned Artist {(!selectedAppt || editServiceType !== 'Consultation') && !['cancelled', 'rejected'].includes(editStatus) ? <Text style={styles.requiredStar}>*</Text> : null}
+              </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   {artists.length === 0 ? (
@@ -1107,7 +1203,9 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
                 return null;
               })()}
 
-              <Text style={styles.inputLabel}>Price (PHP)</Text>
+              <Text style={styles.inputLabel}>
+                Price (PHP) {editServiceType !== 'Consultation' && !['cancelled', 'rejected'].includes(editStatus) && !(Number(editSessionNumber || 1) > 1) ? <Text style={styles.requiredStar}>*</Text> : null}
+              </Text>
               <TextInput
                 style={[styles.input, fieldErrors.price && styles.inputError,
                   isFullyPaid(selectedAppt) && { opacity: 0.5 }
@@ -1776,6 +1874,15 @@ const getStyles = (theme, insets) => StyleSheet.create({
   },
   infoLabel: { ...typography.bodyXSmall, color: theme.textTertiary, fontWeight: '600', width: '35%' },
   infoValue: { ...typography.bodySmall, color: theme.textPrimary, flex: 1, textAlign: 'right' },
+  clientModeRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  clientModeBtn: {
+    flex: 1, alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8,
+    borderRadius: borderRadius.md, borderWidth: 1, borderColor: theme.border,
+    backgroundColor: theme.surface,
+  },
+  clientModeBtnActive: { backgroundColor: theme.gold, borderColor: theme.gold },
+  clientModeText: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '700' },
+  clientModeTextActive: { color: theme.backgroundDeep },
 
   // Image
   imgContainer: { marginBottom: 20 },

@@ -528,12 +528,13 @@ export const getGalleryWorks = async (filters = {}) => {
 
 // Get Notifications with pagination and filtering
 export const getNotifications = async (userId, options = {}) => {
-  const { page = 1, limit = 20, type, is_read } = options;
+  const { page = 1, limit = 20, type, is_read, search } = options;
   const params = new URLSearchParams();
   params.append('page', page);
   params.append('limit', limit);
   if (type) params.append('type', type);
   if (is_read !== undefined) params.append('is_read', is_read ? '1' : '0');
+  if (typeof search === 'string' && search.trim()) params.append('search', search.trim());
 
   return fetchAPI(`/notifications/${userId}?${params.toString()}`);
 };

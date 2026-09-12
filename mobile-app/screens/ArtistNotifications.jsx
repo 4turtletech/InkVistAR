@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, ScrollView, Animated, PanResponder, Dimensions, RefreshControl, Platform
+  View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, ScrollView, Animated, PanResponder, Dimensions, RefreshControl, Platform, TextInput
 } from 'react-native';
 import {
   ArrowLeft, Bell, Calendar, CheckCircle, XCircle, Star,
-  AlertTriangle, CreditCard, Mail, MailOpen, ChevronDown, Trash2, Filter, MessageSquare, Info
+  AlertTriangle, CreditCard, Mail, MailOpen, ChevronDown, Trash2, Filter, MessageSquare, Info, Search, X
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -162,8 +162,15 @@ export function ArtistNotifications({ onBack, userId }) {
   const [subFilter, setSubFilter] = useState('all_types');
   const [showDropdown, setShowDropdown] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  useEffect(() => { load(1); }, [userId, filterType, subFilter]);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => { setPage(1); load(1); }, [userId, filterType, subFilter, debouncedSearch]);
 
   const load = async (p = 1) => {
     if (!userId) { setLoading(false); return; }
@@ -175,6 +182,7 @@ export function ArtistNotifications({ onBack, userId }) {
       if (filterType === 'unread') opts.is_read = false;
       if (filterType === 'read') opts.is_read = true;
       if (subFilter !== 'all_types') opts.type = subFilter;
+      if (debouncedSearch) opts.search = debouncedSearch;
 
       const r = await getNotifications(userId, opts);
       if (r.success) {
@@ -282,6 +290,24 @@ export function ArtistNotifications({ onBack, userId }) {
         </TouchableOpacity>
       ) : null}
 
+      <View style={styles.searchBar}>
+        <Search size={18} color={theme.textTertiary} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search notifications..."
+          placeholderTextColor={theme.textTertiary}
+          value={search}
+          onChangeText={setSearch}
+          returnKeyType="search"
+          accessibilityLabel="Search artist notifications"
+        />
+        {!!search && (
+          <TouchableOpacity onPress={() => setSearch('')} style={styles.clearSearchBtn} accessibilityLabel="Clear notification search">
+            <X size={17} color={theme.textSecondary} />
+          </TouchableOpacity>
+        )}
+      </View>
+
       <View style={[styles.filterWrap, { zIndex: 10 }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
           {MAIN_FILTERS.map(f => (
@@ -327,7 +353,7 @@ export function ArtistNotifications({ onBack, userId }) {
           showsVerticalScrollIndicator={false}
           onRefresh={onRefresh}
           refreshing={refreshing}
-          ListEmptyComponent={<EmptyState icon={Bell} title="No notifications" subtitle="We'll let you know when something important happens" />}
+          ListEmptyComponent={<EmptyState icon={Bell} title="No notifications" subtitle={search.trim() ? 'Try a different search.' : "We'll let you know when something important happens"} />}
           ListFooterComponent={
             hasMore ? (
               <TouchableOpacity style={styles.loadMoreBtn} onPress={loadMore}>
@@ -355,6 +381,15 @@ const getStyles = (theme) => StyleSheet.create({
   },
   countText: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '600' },
   markAllText: { ...typography.bodySmall, color: theme.gold, fontWeight: '600' },
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 16, marginTop: 14, marginBottom: 10,
+    paddingHorizontal: 14, minHeight: 46,
+    borderRadius: borderRadius.lg, borderWidth: 1, borderColor: theme.border,
+    backgroundColor: theme.surface,
+  },
+  searchInput: { flex: 1, ...typography.body, color: theme.textPrimary, paddingVertical: 10 },
+  clearSearchBtn: { padding: 5 },
   filterWrap: { backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border, paddingBottom: 10 },
   filterRow: { paddingHorizontal: 16, paddingVertical: 6, gap: 8 },
   chip: {

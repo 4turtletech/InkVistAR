@@ -7,11 +7,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Dimensions, RefreshControl,
-  SafeAreaView, Modal, TouchableOpacity, Alert, TextInput,
+  SafeAreaView, Modal, TouchableOpacity, Alert, TextInput, Share,
 } from 'react-native';
 import {
   ArrowLeft, Calendar, Package, DollarSign, TrendingUp, Users,
   X, ChevronRight, BarChart2, CheckCircle, XCircle, Clock, Filter, Home, Palette, Plus, Trash2, Edit2,
+  Download, FileSpreadsheet, FileText, Share2,
 } from 'lucide-react-native';
 import { BarChart, PieChart } from 'react-native-chart-kit';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +24,8 @@ import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { formatCurrency, formatDate } from '../src/utils/formatters';
 import { fetchAPI } from '../src/utils/api';
+import { buildReportHTML, exportCSV, generateCSV, sharePDF } from '../src/utils/exportHelpers';
+import { analyticsPeriodLabel, buildAnalyticsExportReport } from '../src/utils/analyticsExport';
 
 const SCREEN_W = Dimensions.get('window').width;
 const CHART_W = SCREEN_W - 64;
@@ -97,6 +100,9 @@ export const AdminAnalytics = ({ navigation }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('monthly');
+  const [exportModal, setExportModal] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState('');
+  const [exportError, setExportError] = useState('');
 
   // Custom date range
   const [customDateModal, setCustomDateModal] = useState(false);
@@ -354,6 +360,45 @@ export const AdminAnalytics = ({ navigation }) => {
     }))
   });
 
+  const handleExport = async (format) => {
+    if (!data || exportingFormat) return;
+    const periodName = analyticsPeriodLabel(period, customStart, customEnd);
+    const report = buildAnalyticsExportReport(data, periodName);
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    const filename = `inkvistar_analytics_${period}_${dateStamp}`;
+
+    setExportError('');
+    setExportingFormat(format);
+    setExportModal(false);
+    try {
+      if (format === 'csv') {
+        const csv = generateCSV(report.csvRows, [
+          { key: 'section', label: 'Section' },
+          { key: 'item', label: 'Metric / Item' },
+          { key: 'value', label: 'Value' },
+          { key: 'details', label: 'Details' },
+        ]);
+        await exportCSV(csv, filename);
+      } else if (format === 'pdf') {
+        const html = buildReportHTML({
+          title: 'Analytics Report',
+          subtitle: `Period: ${periodName}`,
+          metrics: report.metrics,
+          tables: report.tables,
+        });
+        await sharePDF(html, filename);
+      } else if (format === 'text') {
+        await Share.share({ title: 'InkVistAR Analytics Report', message: report.text });
+      }
+    } catch (error) {
+      console.error('Analytics export error:', error);
+      setExportError('The report could not be exported. Please try again.');
+      setExportModal(true);
+    } finally {
+      setExportingFormat('');
+    }
+  };
+
   if (loading) return <View style={styles.loadingContainer}><PremiumLoader message="Loading analytics..." /></View>;
 
   return (
@@ -364,7 +409,15 @@ export const AdminAnalytics = ({ navigation }) => {
           <ArrowLeft size={22} color={theme.textPrimary} />
         </AnimatedTouchable>
         <Text style={styles.headerTitle}>Analytics</Text>
-        <View style={{ width: 32 }} />
+        <AnimatedTouchable
+          onPress={() => { setExportError(''); setExportModal(true); }}
+          style={styles.exportHeaderBtn}
+          disabled={!data || !!exportingFormat}
+          title="Export analytics report"
+          accessibilityLabel="Export analytics report"
+        >
+          <Download size={20} color={data ? theme.gold : theme.textTertiary} />
+        </AnimatedTouchable>
       </View>
 
       {/* Period Filter */}
@@ -647,6 +700,50 @@ export const AdminAnalytics = ({ navigation }) => {
         <View style={{ height: 40 }} />
       </ScrollView>
 
+      {/* Analytics Export Modal */}
+      <Modal visible={exportModal} transparent animationType="fade" onRequestClose={() => setExportModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, styles.exportModalCard]}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>Export Analytics</Text>
+                <Text style={styles.exportModalSubtitle}>
+                  {analyticsPeriodLabel(period, customStart, customEnd)}
+                </Text>
+              </View>
+              <AnimatedTouchable onPress={() => setExportModal(false)} style={styles.modalCloseBtn}>
+                <X size={20} color={theme.textSecondary} />
+              </AnimatedTouchable>
+            </View>
+            <View style={styles.exportOptions}>
+              {[
+                { key: 'csv', label: 'CSV File', detail: 'Spreadsheet-ready data', Icon: FileSpreadsheet },
+                { key: 'pdf', label: 'PDF Report', detail: 'Formatted printable report', Icon: FileText },
+                { key: 'text', label: 'Share as Text', detail: 'Send a readable summary', Icon: Share2 },
+              ].map(option => (
+                <AnimatedTouchable
+                  key={option.key}
+                  style={styles.exportOption}
+                  onPress={() => handleExport(option.key)}
+                  disabled={!!exportingFormat}
+                  accessibilityLabel={`Export analytics as ${option.label}`}
+                >
+                  <View style={styles.exportOptionIcon}>
+                    <option.Icon size={21} color={theme.gold} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.exportOptionLabel}>{option.label}</Text>
+                    <Text style={styles.exportOptionDetail}>{option.detail}</Text>
+                  </View>
+                  <ChevronRight size={18} color={theme.textTertiary} />
+                </AnimatedTouchable>
+              ))}
+              {exportError ? <Text accessibilityRole="alert" style={styles.exportError}>{exportError}</Text> : null}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Breakdown Modal */}
       <Modal visible={!!breakdown} transparent animationType="fade" onRequestClose={() => setBreakdown(null)}>
         <View style={styles.modalOverlay}>
@@ -816,6 +913,10 @@ const getStyles = (theme, insets) => StyleSheet.create({
   },
   backBtn: { padding: 4 },
   headerTitle: { ...typography.h2, color: theme.textPrimary },
+  exportHeaderBtn: {
+    width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.primaryLight || theme.surfaceLight,
+  },
 
   periodBar: {
     backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
@@ -885,6 +986,21 @@ const getStyles = (theme, insets) => StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   modalBody: { padding: 20 },
+  exportModalCard: { width: '100%', maxHeight: '80%' },
+  exportModalSubtitle: { ...typography.bodyXSmall, color: theme.textTertiary, marginTop: 3 },
+  exportOptions: { padding: 14 },
+  exportOption: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    padding: 14, marginBottom: 10, borderRadius: borderRadius.lg,
+    borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surfaceLight,
+  },
+  exportOptionIcon: {
+    width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.primaryLight || 'rgba(190,144,85,0.12)',
+  },
+  exportOptionLabel: { ...typography.body, color: theme.textPrimary, fontWeight: '700' },
+  exportOptionDetail: { ...typography.bodyXSmall, color: theme.textTertiary, marginTop: 2 },
+  exportError: { ...typography.bodySmall, color: theme.error, paddingHorizontal: 4, paddingVertical: 6 },
   bdRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.borderLight,

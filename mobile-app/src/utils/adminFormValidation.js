@@ -63,3 +63,49 @@ export const sessionTimeSelection = (value) => {
   const match = /^(\d{2}):(\d{2})(?::\d{2})?$/.exec(String(value || ''));
   return match && Number(match[1]) < 24 && Number(match[2]) < 60 ? `${match[1]}:${match[2]}` : '';
 };
+
+export const adminAppointmentSessionErrors = (form = {}) => {
+  const errors = {};
+  const isSession = String(form.serviceType || '').trim() !== 'Consultation';
+  const isCancelling = ['cancelled', 'rejected'].includes(String(form.status || '').toLowerCase());
+  const isSubsequentSession = Number(form.sessionNumber || 1) > 1;
+  const designTitle = String(form.designTitle || '').trim();
+  const priceText = String(form.price ?? '').trim();
+  const price = Number(priceText);
+
+  if (!isCancelling && !designTitle) {
+    errors.designTitle = 'Design title is required.';
+  } else if (designTitle.length > 255) {
+    errors.designTitle = 'Design title cannot exceed 255 characters.';
+  }
+
+  if ((isSession || form.isCreate) && !isCancelling && !String(form.artistId || '').trim()) {
+    errors.artistId = 'Please assign an artist to this session.';
+  }
+
+  if (priceText && (!/^\d+(?:\.\d{0,2})?$/.test(priceText) || !Number.isFinite(price) || price < 0)) {
+    errors.price = 'Enter a valid non-negative price with up to 2 decimal places.';
+  } else if (isSession && !isCancelling && !isSubsequentSession && (!priceText || price <= 0)) {
+    errors.price = 'Price is required for tattoo and piercing sessions.';
+  } else if (isSession && !isCancelling && !isSubsequentSession && price < 5000) {
+    errors.price = 'Minimum session price is ₱5,000.';
+  }
+
+  if (isSession && form.status === 'completed' && price <= 0 && !form.isAlreadyPaid) {
+    errors.price = 'A price must be set before marking this session as Completed.';
+  }
+
+  return errors;
+};
+
+export const adminAccountStatus = (user = {}) => {
+  if (Number(user.is_deleted) === 1) return 'deactivated';
+  const status = String(user.account_status || '').trim().toLowerCase();
+  return ['active', 'deactivated', 'banned'].includes(status) ? status : 'active';
+};
+
+export const adminAccountStatusRank = (user = {}) => ({
+  active: 0,
+  deactivated: 1,
+  banned: 2,
+}[adminAccountStatus(user)] ?? 0);

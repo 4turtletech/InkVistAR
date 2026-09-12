@@ -11,16 +11,14 @@ import {
   RefreshControl, ScrollView, Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Search, Plus, Pencil, Trash2, X, UserPlus, Shield, ChevronDown, ChevronLeft, Users, Camera, ArrowUpDown, ShieldCheck, ShieldOff, RotateCcw, Ban, Eye, EyeOff } from 'lucide-react-native';
+import { Search, Plus, Pencil, Trash2, X, UserPlus, ChevronDown, ChevronLeft, Users, Camera, ArrowUpDown, ShieldCheck, ShieldOff, RotateCcw, Ban, Eye, EyeOff } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
 import { typography, spacing, borderRadius, shadows } from '../src/theme';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { StaggerItem } from '../src/components/shared/StaggerItem';
-import { StatusBadge } from '../src/components/shared/StatusBadge';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
-import { ConfirmModal } from '../src/components/shared/ConfirmModal';
 import { ClientProfileModal } from '../src/components/Admin/ClientProfileModal';
 import { ArtistProfileModal } from '../src/components/Admin/ArtistProfileModal';
 import { getInitials } from '../src/utils/formatters';
@@ -31,9 +29,45 @@ import {
   updateUserByAdmin,
   updateUserStatusByAdmin,
 } from '../src/utils/api';
-import { adminUserErrors } from '../src/utils/adminFormValidation';
+import { adminAccountStatus, adminAccountStatusRank, adminUserErrors } from '../src/utils/adminFormValidation';
 import { nationalPHPhone } from '../src/utils/artistProfileValidation';
+import { composeCustomerName, customerProfileErrors, normalizeProfileName } from '../src/utils/profileValidation';
 import { sanitizeText, sanitizeEmail } from '../src/utils/validators';
+
+const EMPTY_USER_FORM = {
+  name: '', firstName: '', middleName: '', lastName: '', suffix: '',
+  email: '', type: 'customer', password: '', confirmPassword: '', phone: '', status: 'active',
+};
+
+const structuredNameFromForm = (form = {}) => ({
+  first_name: normalizeProfileName(form.firstName),
+  middle_name: normalizeProfileName(form.middleName),
+  last_name: normalizeProfileName(form.lastName),
+  suffix: normalizeProfileName(form.suffix),
+});
+
+const userFormErrors = (form, editing = false) => {
+  const phone = nationalPHPhone(form.phone);
+  if (editing) {
+    return adminUserErrors({ ...form, name: sanitizeText(form.name), email: sanitizeEmail(form.email), phone }, true);
+  }
+
+  const nameParts = structuredNameFromForm(form);
+  const errors = adminUserErrors({
+    ...form,
+    name: composeCustomerName(nameParts),
+    email: sanitizeEmail(form.email),
+    phone,
+  });
+  const profileErrors = customerProfileErrors({ ...nameParts, phone });
+  const fieldMap = {
+    first_name: 'firstName', middle_name: 'middleName', last_name: 'lastName', suffix: 'suffix',
+  };
+  Object.entries(fieldMap).forEach(([profileField, formField]) => {
+    if (profileErrors[profileField]) errors[formField] = profileErrors[profileField];
+  });
+  return errors;
+};
 
 const getRoleColors = (theme) => ({
   admin: { bg: theme.warningBg || 'rgba(245, 158, 11, 0.15)', text: theme.warning || '#f59e0b' },
@@ -66,12 +100,15 @@ export const AdminUserManagement = ({ navigation }) => {
   // Modal
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', type: 'customer', password: '', confirmPassword: '', phone: '', status: 'active' });
+  const [formData, setFormData] = useState(EMPTY_USER_FORM);
   const [profileImage, setProfileImage] = useState(null); // base64 uri
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const [createSubmitAttempted, setCreateSubmitAttempted] = useState(false);
+  const [userSaving, setUserSaving] = useState(false);
+  const [userSaveResult, setUserSaveResult] = useState(null);
+  const [formScrollMetrics, setFormScrollMetrics] = useState({ contentHeight: 0, viewportHeight: 0, atBottom: false });
 
   const passwordChecks = (pass) => {
     return [
@@ -84,9 +121,14 @@ export const AdminUserManagement = ({ navigation }) => {
   };
 
   const updateFormField = (field, value) => {
-    const next = { ...formData, [field]: value };
+    const isNamePart = ['firstName', 'middleName', 'lastName', 'suffix'].includes(field);
+    const maxLength = field === 'suffix' ? 10 : 50;
+    const nextValue = isNamePart
+      ? String(value).replace(/[^\p{L}\p{M} .'-]/gu, '').slice(0, maxLength)
+      : value;
+    const next = { ...formData, [field]: nextValue };
     setFormData(next);
-    if (createSubmitAttempted) setFormErrors(adminUserErrors(next, Boolean(editingUser)));
+    if (createSubmitAttempted) setFormErrors(userFormErrors(next, Boolean(editingUser)));
   };
 
   // Sort
@@ -96,6 +138,8 @@ export const AdminUserManagement = ({ navigation }) => {
   // Manage Status Modal
   const [statusModal, setStatusModal] = useState({ visible: false, user: null, selectedStatus: 'active', reason: '' });
   const [statusSaving, setStatusSaving] = useState(false);
+  const [statusError, setStatusError] = useState('');
+  const [statusSuccess, setStatusSuccess] = useState(null);
 
   // Delete confirm (with countdown)
   const [deleteModal, setDeleteModal] = useState({ visible: false, userId: null, userName: '', isDeleted: false });
@@ -141,44 +185,70 @@ export const AdminUserManagement = ({ navigation }) => {
       setEditingUser(user);
       setFormData({
         name: user.name, email: user.email,
+        firstName: '', middleName: '', lastName: '', suffix: '',
         type: user.user_type || 'customer', password: '',
         confirmPassword: '', phone: nationalPHPhone(user.phone), status: user.is_deleted ? 'suspended' : 'active',
       });
       setProfileImage(user.profile_image || null);
     } else {
       setEditingUser(null);
-      setFormData({ name: '', email: '', type: 'customer', password: '', confirmPassword: '', phone: '', status: 'active' });
+      setFormData(EMPTY_USER_FORM);
       setProfileImage(null);
     }
     setFormErrors({});
     setCreateSubmitAttempted(false);
+    setUserSaving(false);
+    setUserSaveResult(null);
+    setFormScrollMetrics({ contentHeight: 0, viewportHeight: 0, atBottom: false });
     setModalVisible(true);
   };
 
+  const closeUserModal = () => {
+    if (userSaving) return;
+    Keyboard.dismiss();
+    setModalVisible(false);
+    setUserSaveResult(null);
+    setFormErrors({});
+  };
+
   const handleSaveUser = async () => {
-    const sName = sanitizeText(formData.name);
+    if (userSaving) return;
+    const nameParts = structuredNameFromForm(formData);
+    const sName = editingUser ? sanitizeText(formData.name) : composeCustomerName(nameParts);
     const sEmail = sanitizeEmail(formData.email);
     const sPhone = nationalPHPhone(formData.phone);
     Keyboard.dismiss();
 
-    const nextErrors = adminUserErrors({ ...formData, name: sName, email: sEmail, phone: sPhone }, Boolean(editingUser));
+    const nextErrors = userFormErrors({ ...formData, name: sName, email: sEmail, phone: sPhone }, Boolean(editingUser));
     setCreateSubmitAttempted(true);
     setFormErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
+    setUserSaving(true);
 
     const payload = { ...formData, name: sName, email: sEmail, phone: sPhone };
+    if (!editingUser) {
+      payload.firstName = nameParts.first_name;
+      payload.middleName = nameParts.middle_name || null;
+      payload.lastName = nameParts.last_name;
+      payload.suffix = nameParts.suffix || null;
+    } else {
+      delete payload.firstName;
+      delete payload.middleName;
+      delete payload.lastName;
+      delete payload.suffix;
+    }
     if (profileImage) payload.profile_image = profileImage;
 
     const result = editingUser
       ? await updateUserByAdmin(editingUser.id, payload)
       : await createUserByAdmin(payload);
+    setUserSaving(false);
 
     if (result.success) {
-      Alert.alert('Success', editingUser ? 'User updated' : 'User created');
-      setModalVisible(false);
+      setUserSaveResult({ action: editingUser ? 'updated' : 'created', userName: sName });
       loadUsers();
     } else {
-      Alert.alert('Error', result.message || 'Operation failed');
+      setFormErrors(prev => ({ ...prev, general: result.message || 'Unable to save this user. Please try again.' }));
     }
   };
 
@@ -211,12 +281,13 @@ export const AdminUserManagement = ({ navigation }) => {
   };
 
   const openStatusModal = (user) => {
-    const accountStatus = (user?.account_status || user?.status || 'active').toLowerCase();
-    const normalizedStatus = ['active', 'deactivated', 'banned'].includes(accountStatus) ? accountStatus : 'active';
+    const normalizedStatus = adminAccountStatus(user);
+    setStatusError('');
+    setStatusSuccess(null);
     setStatusModal({
       visible: true,
       user,
-      selectedStatus: user.is_deleted ? 'deactivated' : normalizedStatus,
+      selectedStatus: normalizedStatus,
       reason: ''
     });
   };
@@ -226,35 +297,41 @@ export const AdminUserManagement = ({ navigation }) => {
     const { selectedStatus, reason, user } = statusModal;
     const trimmedReason = (reason || '').trim();
     if ((selectedStatus === 'deactivated' || selectedStatus === 'banned') && !trimmedReason) {
-      Alert.alert('Reason Required', 'Please explain this status change.');
+      setStatusError('Please explain why this account status is being changed.');
       return;
     }
+    setStatusError('');
     setStatusSaving(true);
     const payload = { status: selectedStatus };
     if (selectedStatus !== 'active' && trimmedReason) payload.reason = trimmedReason;
     const result = await updateUserStatusByAdmin(user.id, payload);
     setStatusSaving(false);
     if (result.success) {
-      setStatusModal({ visible: false, user: null, selectedStatus: 'active', reason: '' });
-      Alert.alert('Status Updated', `${user.name} has been set to ${selectedStatus}.`);
+      setStatusSuccess({ userName: user.name, status: selectedStatus });
       loadUsers();
     } else {
-      Alert.alert('Error', result.message || 'Failed to update status');
+      setStatusError(result.message || 'Failed to update status. Please try again.');
     }
+  };
+
+  const closeStatusModal = () => {
+    if (statusSaving) return;
+    setStatusModal({ visible: false, user: null, selectedStatus: 'active', reason: '' });
+    setStatusError('');
+    setStatusSuccess(null);
   };
 
   // Filter + Sort
   const filteredUsers = users
     .filter(u => {
       if (roleFilter !== 'all' && u.user_type !== roleFilter) return false;
-      if (statusFilter === 'active' && u.is_deleted === 1) return false;
-      if (statusFilter === 'suspended' && u.is_deleted !== 1) return false;
+      if (statusFilter !== 'all' && adminAccountStatus(u) !== statusFilter) return false;
       return true;
     })
     .sort((a, b) => {
       if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
       if (sortBy === 'role') return (a.user_type || '').localeCompare(b.user_type || '');
-      if (sortBy === 'status') return (a.is_deleted || 0) - (b.is_deleted || 0);
+      if (sortBy === 'status') return adminAccountStatusRank(a) - adminAccountStatusRank(b);
       if (sortBy === 'newest') return (b.id || 0) - (a.id || 0);
       return 0;
     });
@@ -267,6 +344,18 @@ export const AdminUserManagement = ({ navigation }) => {
     return users.filter(u => u.name.toLowerCase().includes(lower) || u.email.toLowerCase().includes(lower)).slice(0, 5);
   };
   const suggestions = getSuggestions();
+
+  const handleSuggestionSelect = (user) => {
+    const currentQuery = search.trim().toLowerCase();
+    const userName = String(user?.name || '');
+    const userEmail = String(user?.email || '');
+    const selectedValue = userEmail.toLowerCase().includes(currentQuery) && !userName.toLowerCase().includes(currentQuery)
+      ? userEmail
+      : userName;
+    setSearch(selectedValue);
+    setSearchFocused(false);
+    Keyboard.dismiss();
+  };
 
   const pickProfileImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -290,10 +379,18 @@ export const AdminUserManagement = ({ navigation }) => {
 
   const renderUser = ({ item, index }) => {
     const roleColor = ROLE_COLORS[item.user_type] || ROLE_COLORS.customer;
-    const isDeactivated = item.is_deleted === 1;
+    const isArchived = Number(item.is_deleted) === 1;
+    const accountStatus = adminAccountStatus(item);
+    const statusVisual = {
+      active: { icon: ShieldCheck, color: theme.success, label: 'Active' },
+      deactivated: { icon: ShieldOff, color: theme.warning, label: 'Deactivated' },
+      banned: { icon: Ban, color: theme.error, label: 'Banned' },
+    }[accountStatus];
+    const AccountStatusIcon = statusVisual.icon;
+    const isRestricted = accountStatus !== 'active';
     return (
       <StaggerItem key={item.id || index} index={index}>
-        <View style={[styles.userCard, isDeactivated && { opacity: 0.65, borderLeftWidth: 3, borderLeftColor: theme.error }]}>
+        <View style={[styles.userCard, isRestricted && { borderLeftWidth: 3, borderLeftColor: statusVisual.color }]}>
           <View style={styles.userLeft}>
             <View style={[styles.avatar, { backgroundColor: roleColor.bg }]}>
               <Text style={[styles.avatarText, { color: roleColor.text }]}>{getInitials(item.name)}</Text>
@@ -305,23 +402,23 @@ export const AdminUserManagement = ({ navigation }) => {
                 <View style={[styles.roleBadge, { backgroundColor: roleColor.bg }]}>
                   <Text style={[styles.roleText, { color: roleColor.text }]}>{(item.user_type || 'customer').toUpperCase()}</Text>
                 </View>
-                {isDeactivated && (
-                  <View style={[styles.roleBadge, { backgroundColor: 'rgba(239,68,68,0.12)' }]}>
-                    <Text style={[styles.roleText, { color: theme.error }]}>INACTIVE</Text>
-                  </View>
-                )}
               </View>
             </View>
           </View>
           <View style={styles.userActions}>
-            <AnimatedTouchable style={[styles.iconBtn, styles.editBtn]} onPress={() => openStatusModal(item)} title="Manage status">
-              <Shield size={16} color={theme.info || '#3b82f6'} />
+            <AnimatedTouchable
+              style={[styles.iconBtn, { backgroundColor: `${statusVisual.color}18`, borderColor: `${statusVisual.color}55` }]}
+              onPress={() => openStatusModal(item)}
+              title={`${statusVisual.label} — manage status`}
+              accessibilityLabel={`${item.name} account status: ${statusVisual.label}. Manage status`}
+            >
+              <AccountStatusIcon size={17} color={statusVisual.color} />
             </AnimatedTouchable>
             <AnimatedTouchable style={[styles.iconBtn, styles.editBtn]} onPress={() => handleOpenModal(item)} title="Edit user">
               <Pencil size={16} color={theme.warning} />
             </AnimatedTouchable>
-            <AnimatedTouchable style={[styles.iconBtn, styles.deleteBtn]} onPress={() => confirmDelete(item.id, item.name, isDeactivated)} title={isDeactivated ? 'Restore user' : 'Deactivate user'}>
-              {isDeactivated ? <RotateCcw size={16} color={theme.success} /> : <Trash2 size={16} color={theme.error} />}
+            <AnimatedTouchable style={[styles.iconBtn, styles.deleteBtn]} onPress={() => confirmDelete(item.id, item.name, isArchived)} title={isArchived ? 'Restore user' : 'Remove from roster'}>
+              {isArchived ? <RotateCcw size={16} color={theme.success} /> : <Trash2 size={16} color={theme.error} />}
             </AnimatedTouchable>
           </View>
         </View>
@@ -417,10 +514,7 @@ export const AdminUserManagement = ({ navigation }) => {
                 <TouchableOpacity 
                   key={s.id} 
                   style={styles.dropdownItem} 
-                  onPress={() => { 
-                    setSearch(s.name); 
-                    setSearchFocused(false); 
-                  }}
+                  onPressIn={() => handleSuggestionSelect(s)}
                 >
                   <View style={{ marginRight: 8 }}><Search size={14} color={theme.textTertiary} /></View>
                   <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -452,7 +546,7 @@ export const AdminUserManagement = ({ navigation }) => {
         {/* Status Filters */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterRow, { marginTop: 0 }]}>
           <Text style={{ ...typography.bodySmall, color: theme.textSecondary, alignSelf: 'center', marginRight: 8 }}>Status:</Text>
-          {['all', 'active', 'suspended'].map(status => (
+          {['all', 'active', 'deactivated', 'banned'].map(status => (
             <AnimatedTouchable
               key={`status-${status}`}
               style={[styles.filterPill, statusFilter === status && styles.filterPillActive]}
@@ -504,17 +598,51 @@ export const AdminUserManagement = ({ navigation }) => {
       />
 
       {/* Add/Edit Modal for Admins & Managers */}
-      <Modal visible={modalVisible && (!editingUser || ['admin', 'manager'].includes(editingUser.user_type))} animationType="fade" transparent onRequestClose={() => { Keyboard.dismiss(); setModalVisible(false); }}>
+      <Modal visible={modalVisible && (!editingUser || ['admin', 'manager'].includes(editingUser.user_type))} animationType="fade" transparent onRequestClose={closeUserModal}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={styles.modalCard}>
+            {userSaveResult ? (
+              <View style={styles.statusSuccessContent}>
+                <View style={[styles.statusSuccessIcon, { backgroundColor: `${theme.success}18` }]}>
+                  <UserPlus size={34} color={theme.success} />
+                </View>
+                <Text style={[styles.modalTitle, { textAlign: 'center' }]}>User {userSaveResult.action === 'created' ? 'Created' : 'Updated'}</Text>
+                <Text style={styles.statusSuccessMessage}>
+                  {userSaveResult.userName} was {userSaveResult.action} successfully{userSaveResult.action === 'created' ? ' and can now sign in.' : '.'}
+                </Text>
+                <AnimatedTouchable style={[styles.saveBtn, styles.statusDoneBtn]} onPress={closeUserModal}>
+                  <Text style={styles.saveBtnText}>Done</Text>
+                </AnimatedTouchable>
+              </View>
+            ) : (
+              <>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{editingUser ? 'Edit User' : 'New User'}</Text>
-              <AnimatedTouchable onPress={() => setModalVisible(false)} style={styles.closeBtn}>
+              <AnimatedTouchable onPress={closeUserModal} style={styles.closeBtn}>
                 <X size={20} color={theme.textSecondary} />
               </AnimatedTouchable>
             </View>
 
-            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ paddingBottom: 16 }}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={{ paddingBottom: 16 }}
+              onLayout={({ nativeEvent }) => setFormScrollMetrics(prev => ({
+                ...prev, viewportHeight: nativeEvent.layout.height,
+              }))}
+              onContentSizeChange={(_, contentHeight) => setFormScrollMetrics(prev => ({
+                ...prev, contentHeight,
+              }))}
+              onScroll={({ nativeEvent }) => {
+                const { contentOffset, layoutMeasurement, contentSize } = nativeEvent;
+                setFormScrollMetrics({
+                  contentHeight: contentSize.height,
+                  viewportHeight: layoutMeasurement.height,
+                  atBottom: contentOffset.y + layoutMeasurement.height >= contentSize.height - 12,
+                });
+              }}
+              scrollEventThrottle={16}
+            >
             {/* Avatar Picker */}
             <View style={{ alignItems: 'center', marginVertical: 16 }}>
               <AnimatedTouchable onPress={pickProfileImage} style={styles.avatarPickerBtn}>
@@ -532,16 +660,70 @@ export const AdminUserManagement = ({ navigation }) => {
               <Text style={{ ...typography.bodyXSmall, color: theme.textTertiary, marginTop: 6 }}>Tap to set profile photo</Text>
             </View>
 
-            <Text style={styles.inputLabel}>Full Name <Text style={{ color: theme.error }}>*</Text></Text>
-            <TextInput
-              style={[styles.input, formErrors.name && { borderColor: theme.error }]}
-              accessibilityLabel="Full Name, required"
-              placeholder="Full Name"
-              placeholderTextColor={theme.textTertiary}
-              value={formData.name}
-              onChangeText={t => updateFormField('name', t)}
-            />
-            {formErrors.name ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{formErrors.name}</Text> : null}
+            {editingUser ? (
+              <>
+                <Text style={styles.inputLabel}>Full Name <Text style={{ color: theme.error }}>*</Text></Text>
+                <TextInput
+                  style={[styles.input, formErrors.name && { borderColor: theme.error }]}
+                  accessibilityLabel="Full Name, required"
+                  placeholder="Full Name"
+                  placeholderTextColor={theme.textTertiary}
+                  value={formData.name}
+                  onChangeText={t => updateFormField('name', t)}
+                />
+                {formErrors.name ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{formErrors.name}</Text> : null}
+              </>
+            ) : (
+              <>
+                <Text style={styles.inputLabel}>First Name <Text style={{ color: theme.error }}>*</Text></Text>
+                <TextInput
+                  style={[styles.input, formErrors.firstName && { borderColor: theme.error }]}
+                  accessibilityLabel="First Name, required"
+                  placeholder="First Name"
+                  placeholderTextColor={theme.textTertiary}
+                  value={formData.firstName}
+                  onChangeText={t => updateFormField('firstName', t)}
+                  maxLength={50}
+                />
+                {formErrors.firstName ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{formErrors.firstName}</Text> : null}
+
+                <Text style={styles.inputLabel}>Middle Name (Optional)</Text>
+                <TextInput
+                  style={[styles.input, formErrors.middleName && { borderColor: theme.error }]}
+                  accessibilityLabel="Middle Name, optional"
+                  placeholder="Middle Name"
+                  placeholderTextColor={theme.textTertiary}
+                  value={formData.middleName}
+                  onChangeText={t => updateFormField('middleName', t)}
+                  maxLength={50}
+                />
+                {formErrors.middleName ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{formErrors.middleName}</Text> : null}
+
+                <Text style={styles.inputLabel}>Last Name <Text style={{ color: theme.error }}>*</Text></Text>
+                <TextInput
+                  style={[styles.input, formErrors.lastName && { borderColor: theme.error }]}
+                  accessibilityLabel="Last Name, required"
+                  placeholder="Last Name"
+                  placeholderTextColor={theme.textTertiary}
+                  value={formData.lastName}
+                  onChangeText={t => updateFormField('lastName', t)}
+                  maxLength={50}
+                />
+                {formErrors.lastName ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{formErrors.lastName}</Text> : null}
+
+                <Text style={styles.inputLabel}>Suffix (Optional)</Text>
+                <TextInput
+                  style={[styles.input, formErrors.suffix && { borderColor: theme.error }]}
+                  accessibilityLabel="Suffix, optional"
+                  placeholder="e.g. Jr."
+                  placeholderTextColor={theme.textTertiary}
+                  value={formData.suffix}
+                  onChangeText={t => updateFormField('suffix', t)}
+                  maxLength={10}
+                />
+                {formErrors.suffix ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{formErrors.suffix}</Text> : null}
+              </>
+            )}
             <Text style={styles.inputLabel}>Email <Text style={{ color: theme.error }}>*</Text></Text>
             <TextInput
               style={[styles.input, formErrors.email && { borderColor: theme.error }]}
@@ -561,9 +743,9 @@ export const AdminUserManagement = ({ navigation }) => {
               placeholder="9XXXXXXXXX"
               placeholderTextColor={theme.textTertiary}
               value={formData.phone}
-              onChangeText={t => updateFormField('phone', nationalPHPhone(t))}
+              onChangeText={t => updateFormField('phone', nationalPHPhone(t).slice(0, 10))}
               keyboardType="number-pad"
-              maxLength={16}
+              maxLength={10}
             />
 
             {formErrors.phone ? <Text accessibilityLiveRegion="polite" style={styles.fieldError}>{formErrors.phone}</Text> : null}
@@ -667,16 +849,29 @@ export const AdminUserManagement = ({ navigation }) => {
               </>
             )}
 
+            {formErrors.general ? (
+              <View style={styles.statusErrorBox} accessibilityRole="alert">
+                <Text style={styles.statusErrorText}>{formErrors.general}</Text>
+              </View>
+            ) : null}
             </ScrollView>
+            {formScrollMetrics.contentHeight > formScrollMetrics.viewportHeight + 8 && !formScrollMetrics.atBottom ? (
+              <View style={styles.scrollHint} pointerEvents="none" accessibilityElementsHidden>
+                <Text style={styles.scrollHintText}>Scroll for more</Text>
+                <ChevronDown size={14} color={theme.gold} />
+              </View>
+            ) : null}
             {/* Actions */}
             <View style={styles.modalActions}>
-              <AnimatedTouchable style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
+              <AnimatedTouchable style={styles.cancelBtn} onPress={closeUserModal} disabled={userSaving}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </AnimatedTouchable>
-              <AnimatedTouchable style={styles.saveBtn} onPress={handleSaveUser}>
-                <Text style={styles.saveBtnText}>{editingUser ? 'Update' : 'Create'}</Text>
+              <AnimatedTouchable style={[styles.saveBtn, userSaving && { opacity: 0.65 }]} onPress={handleSaveUser} disabled={userSaving}>
+                <Text style={styles.saveBtnText}>{userSaving ? 'Saving...' : editingUser ? 'Update' : 'Create'}</Text>
               </AnimatedTouchable>
             </View>
+              </>
+            )}
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -720,16 +915,39 @@ export const AdminUserManagement = ({ navigation }) => {
       </Modal>
 
       {/* Manage Status Modal */}
-      <Modal visible={statusModal.visible} animationType="fade" transparent onRequestClose={() => setStatusModal({ visible: false, user: null, selectedStatus: 'active', reason: '' })}>
+      <Modal visible={statusModal.visible} animationType="fade" transparent onRequestClose={closeStatusModal}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Manage Account Status</Text>
-              <AnimatedTouchable onPress={() => setStatusModal({ visible: false, user: null, selectedStatus: 'active', reason: '' })} style={styles.closeBtn}>
-                <X size={20} color={theme.textSecondary} />
-              </AnimatedTouchable>
-            </View>
-            {statusModal.user && (
+            {statusSuccess ? (
+              <View style={styles.statusSuccessContent}>
+                <View style={[styles.statusSuccessIcon, {
+                  backgroundColor: `${statusSuccess.status === 'active' ? theme.success : statusSuccess.status === 'deactivated' ? theme.warning : theme.error}18`,
+                }]}>
+                  {statusSuccess.status === 'active' ? (
+                    <ShieldCheck size={34} color={theme.success} />
+                  ) : statusSuccess.status === 'deactivated' ? (
+                    <ShieldOff size={34} color={theme.warning} />
+                  ) : (
+                    <Ban size={34} color={theme.error} />
+                  )}
+                </View>
+                <Text style={[styles.modalTitle, { textAlign: 'center' }]}>Status Updated</Text>
+                <Text style={styles.statusSuccessMessage}>
+                  {statusSuccess.userName} is now {statusSuccess.status}.
+                </Text>
+                <AnimatedTouchable style={[styles.saveBtn, styles.statusDoneBtn]} onPress={closeStatusModal}>
+                  <Text style={styles.saveBtnText}>Done</Text>
+                </AnimatedTouchable>
+              </View>
+            ) : (
+              <>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Manage Account Status</Text>
+                  <AnimatedTouchable onPress={closeStatusModal} style={styles.closeBtn}>
+                    <X size={20} color={theme.textSecondary} />
+                  </AnimatedTouchable>
+                </View>
+                {statusModal.user && (
               <ScrollView showsVerticalScrollIndicator={false}>
                 <Text style={{ ...typography.bodySmall, color: theme.textSecondary, marginBottom: 16 }}>
                   Updating status for <Text style={{ fontWeight: '700', color: theme.textPrimary }}>{statusModal.user.name}</Text>
@@ -750,7 +968,10 @@ export const AdminUserManagement = ({ navigation }) => {
                           backgroundColor: statusModal.selectedStatus === opt.key ? `${opt.color}12` : theme.surfaceLight
                         }
                       ]}
-                      onPress={() => setStatusModal(prev => ({ ...prev, selectedStatus: opt.key }))}
+                      onPress={() => {
+                        setStatusModal(prev => ({ ...prev, selectedStatus: opt.key }));
+                        setStatusError('');
+                      }}
                     >
                       <opt.icon size={20} color={opt.color} />
                       <View style={{ flex: 1 }}>
@@ -770,18 +991,27 @@ export const AdminUserManagement = ({ navigation }) => {
                   <>
                     <Text style={styles.inputLabel}>Reason (Required)</Text>
                     <TextInput
-                      style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                      style={[styles.input, { height: 80, textAlignVertical: 'top' }, statusError && styles.inputError]}
                       placeholder="Explain the reason for this status change..."
                       placeholderTextColor={theme.textTertiary}
                       multiline
                       value={statusModal.reason}
-                      onChangeText={t => setStatusModal(prev => ({ ...prev, reason: t }))}
+                      onChangeText={t => {
+                        setStatusModal(prev => ({ ...prev, reason: t }));
+                        if (statusError) setStatusError('');
+                      }}
                     />
                   </>
                 )}
 
+                {statusError ? (
+                  <View style={styles.statusErrorBox} accessibilityRole="alert">
+                    <Text style={styles.statusErrorText}>{statusError}</Text>
+                  </View>
+                ) : null}
+
                 <View style={styles.modalActions}>
-                  <AnimatedTouchable style={styles.cancelBtn} onPress={() => setStatusModal({ visible: false, user: null, selectedStatus: 'active', reason: '' })}>
+                  <AnimatedTouchable style={styles.cancelBtn} onPress={closeStatusModal}>
                     <Text style={styles.cancelBtnText}>Cancel</Text>
                   </AnimatedTouchable>
                   <AnimatedTouchable
@@ -793,6 +1023,8 @@ export const AdminUserManagement = ({ navigation }) => {
                   </AnimatedTouchable>
                 </View>
               </ScrollView>
+                )}
+              </>
             )}
           </View>
         </KeyboardAvoidingView>
@@ -892,6 +1124,26 @@ const getStyles = (theme, insets) => StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   fieldError: { color: theme.error, fontSize: 12, marginTop: -10, marginBottom: 10 },
+  inputError: { borderColor: theme.error },
+  statusErrorBox: {
+    backgroundColor: `${theme.error}12`, borderColor: `${theme.error}55`, borderWidth: 1,
+    borderRadius: borderRadius.md, padding: 12, marginBottom: 4,
+  },
+  statusErrorText: { ...typography.bodySmall, color: theme.error, fontWeight: '600' },
+  statusSuccessContent: { alignItems: 'center', paddingVertical: 12 },
+  statusSuccessIcon: {
+    width: 68, height: 68, borderRadius: 34, alignItems: 'center', justifyContent: 'center', marginBottom: 18,
+  },
+  statusSuccessMessage: {
+    ...typography.body, color: theme.textSecondary, textAlign: 'center', marginTop: 10, marginBottom: 24,
+  },
+  statusDoneBtn: { width: '100%', flex: 0 },
+  scrollHint: {
+    alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: `${theme.gold}12`, borderColor: `${theme.gold}35`, borderWidth: 1,
+    borderRadius: borderRadius.round, paddingHorizontal: 10, paddingVertical: 4, marginTop: 4,
+  },
+  scrollHintText: { ...typography.bodyXSmall, color: theme.gold, fontWeight: '700' },
   inputLabel: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '600', marginBottom: 8, marginTop: 8 },
   input: {
     backgroundColor: theme.surfaceLight, color: theme.textPrimary,

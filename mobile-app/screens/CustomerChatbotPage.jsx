@@ -20,6 +20,13 @@ import io from 'socket.io-client';
 
 const CHAT_UNAVAILABLE_MESSAGE = 'AI assistance is temporarily limited. Please retry in a moment or switch to Live Support.';
 
+const createLiveSupportWelcome = () => ({
+  id: `sys-start-${Date.now()}`,
+  sender: 'system',
+  text: 'Welcome to Live Support.',
+  timestamp: new Date(),
+});
+
 const AnimatedMessageBubble = ({ msg, currentUserName, theme, styles, onRetry, retryDisabled }) => {
   const animValue = useRef(new Animated.Value(0)).current;
 
@@ -201,7 +208,9 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
     const onClose = () => {
       isHumanModeRef.current = false;
       setIsHumanMode(false);
-      setHumanMessages(prev => [...prev, { id: `sys-reset-${Date.now()}`, sender: 'system', text: 'Live chat ended. Returning to AI assistant.', timestamp: new Date() }]);
+      setHumanMessages([{ id: `sys-reset-${Date.now()}`, sender: 'system', text: 'Live chat ended. Returning to AI assistant.', timestamp: new Date() }]);
+      setHistoryError('');
+      setHistoryLoading(false);
     };
 
     socket.on('connect', onConnect);
@@ -290,6 +299,10 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
     if (!isConnected) { Alert.alert('Connection Issue', 'Unable to reach live support. Please check your internet connection and try again.'); return; }
     // Start only on a user gesture. Restoring a saved mode merely checks whether
     // that server-side session is still active (including after an offline End).
+    setHumanMessages([createLiveSupportWelcome()]);
+    setHistoryError('');
+    setHistoryLoading(false);
+    setInputValue('');
     socketRef.current.emit('join_room', room);
     socketRef.current.emit('start_support_session', { room, name: currentUserName });
     setIsHumanMode(true);
