@@ -349,33 +349,33 @@ function ArtistAppointments() {
         <div className="portal-layout">
             <ArtistSideNav />
             <div className="portal-container artist-portal">
-                <header className="portal-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h1 style={{ margin: 0 }}>Schedule Management</h1>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <button className="btn btn-secondary" onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0.45rem 0.9rem', fontSize: '0.82rem' }}>
-                                <Download size={14} /> Export
-                            </button>
-                            <button className="btn btn-secondary" onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0.45rem 0.9rem', fontSize: '0.82rem' }}>
-                                <Printer size={14} /> Print
-                            </button>
-                        </div>
+                <header className="portal-header artist-schedule-header">
+                    <div className="header-title">
+                        <h1>Schedule Management</h1>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(248, 250, 252, 0.7)', backdropFilter: 'blur(10px)', padding: '5px 6px', borderRadius: '24px', border: '1px solid #e2e8f0', marginBottom: '10px' }}>
-                        <div className="modern-view-toggle" style={{ margin: 0, background: 'transparent', boxShadow: 'none' }}>
+                    <div className="header-actions artist-schedule-header-actions">
+                        <div className="modern-view-toggle">
                             <button
                                 className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
                                 onClick={() => setViewMode('list')}
+                                title="List View"
                             >
-                                <List size={14} /> <span>List View</span>
+                                <List size={16} /> <span>List</span>
                             </button>
                             <button
                                 className={`toggle-btn ${viewMode === 'calendar' ? 'active' : ''}`}
                                 onClick={() => setViewMode('calendar')}
+                                title="Calendar View"
                             >
-                                <Calendar size={14} /> <span>Calendar View</span>
+                                <Calendar size={16} /> <span>Calendar</span>
                             </button>
                         </div>
+                        <button className="btn btn-secondary" onClick={handleExport}>
+                            <Download size={16} /> Export
+                        </button>
+                        <button className="btn btn-secondary" onClick={handlePrint}>
+                            <Printer size={16} /> Print
+                        </button>
                     </div>
                 </header>
 

@@ -195,9 +195,13 @@
     margin-top: auto;
 }
 
-.logout-item:hover {
+.artist-sidenav .menu-item.logout-item {
+    color: #f87171;
+}
+
+.artist-sidenav .menu-item.logout-item:hover {
     background-color: rgba(239, 68, 68, 0.1) !important;
-    color: #ef4444 !important;
+    color: #fca5a5 !important;
 }
 
 /* Collapsed State */
@@ -385,4 +389,4 @@
     0% { box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); }
     50% { box-shadow: 0 2px 14px rgba(239, 68, 68, 0.7); }
     100% { box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); }
-}
+}

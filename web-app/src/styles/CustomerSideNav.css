@@ -195,9 +195,13 @@
     margin-top: auto;
 }
 
-.logout-item:hover {
+.customer-sidenav .menu-item.logout-item {
+    color: #f87171;
+}
+
+.customer-sidenav .menu-item.logout-item:hover {
     background-color: rgba(239, 68, 68, 0.1) !important;
-    color: #ef4444 !important;
+    color: #fca5a5 !important;
 }
 
 /* Collapsed State */

@@ -15,6 +15,7 @@
     top: 0;
     width: 260px;
     height: 100vh;
+    height: 100dvh;
     background-color: var(--sidenav-bg);
     color: var(--sidenav-text);
     padding: 0;
@@ -27,7 +28,7 @@
 }
 
 /* Header */
-.sidenav-header {
+.admin-sidenav .sidenav-header {
     padding: 24px 20px;
     display: flex;
     justify-content: space-between;
@@ -37,19 +38,19 @@
     height: 80px;
 }
 
-.logo-container {
+.admin-sidenav .logo-container {
     display: flex;
     align-items: center;
     gap: 12px;
     overflow: hidden;
 }
 
-.logo-icon {
+.admin-sidenav .logo-icon {
     color: var(--accent-color);
     flex-shrink: 0;
 }
 
-.logo-text {
+.admin-sidenav .logo-text {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 800;
@@ -57,7 +58,7 @@
     white-space: nowrap;
 }
 
-.close-nav {
+.admin-sidenav .close-nav {
     display: none;
     background: none;
     border: none;
@@ -68,40 +69,44 @@
     transition: opacity 0.2s;
 }
 
-.close-nav:hover {
+.admin-sidenav .close-nav:hover {
     opacity: 0.8;
 }
 
 @media (max-width: 768px) {
-    .close-nav {
+    .admin-sidenav .close-nav {
         display: block;
     }
 }
 
 /* Navigation Menu */
-.sidenav-menu {
+.admin-sidenav .sidenav-menu {
     padding: 1rem 0;
     display: flex;
     flex-direction: column;
     flex: 1;
+    min-height: 0;
     overflow: hidden;
 }
 
-.menu-section {
+.admin-sidenav .menu-section {
     flex: 1;
+    min-height: 0;
     padding: 0 12px;
     margin-bottom: 1rem;
     overflow-y: auto;
 }
 
-.menu-section-bottom {
+.admin-sidenav .menu-section.menu-section-bottom {
     padding: 1.5rem 12px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     margin-top: auto;
     flex: none;
+    margin-bottom: 0;
+    overflow: visible;
 }
 
-.menu-label {
+.admin-sidenav .menu-label {
     font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -111,24 +116,24 @@
     padding: 0 12px;
 }
 
-.menu-list {
+.admin-sidenav .menu-list {
     list-style: none;
     margin: 0;
     padding: 0;
 }
 
-.menu-list li {
+.admin-sidenav .menu-list li {
     margin-bottom: 4px;
     padding-bottom: 4px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.menu-list li:last-child {
+.admin-sidenav .menu-list li:last-child {
     border-bottom: none;
 }
 
 /* Menu Items */
-.menu-item {
+.admin-sidenav .menu-item {
     width: 100%;
     display: flex;
     align-items: center;
@@ -145,20 +150,21 @@
     position: relative;
 }
 
-.menu-item:hover {
+.admin-sidenav .menu-item:hover {
     background-color: var(--sidenav-hover);
     color: #f1f5f9;
 }
 
-.menu-item.active {
+.admin-sidenav .menu-item.active {
     background-color: var(--sidenav-active-bg);
     color: var(--sidenav-active-text);
     font-weight: 600;
 }
 
-.active-indicator {
+.admin-sidenav .active-indicator {
     position: absolute;
     right: 0;
+    left: auto;
     top: 50%;
     transform: translateY(-50%);
     width: 4px;
@@ -168,27 +174,28 @@
     box-shadow: -2px 0 8px rgba(190, 144, 85, 0.5);
 }
 
-.menu-item svg {
+.admin-sidenav .menu-item svg {
     flex-shrink: 0;
     opacity: 0.7;
     transition: opacity 0.2s;
 }
 
-.menu-item:hover svg, .menu-item.active svg {
+.admin-sidenav .menu-item:hover svg,
+.admin-sidenav .menu-item.active svg {
     opacity: 1;
 }
 
-.menu-text {
+.admin-sidenav .menu-text {
     flex: 1;
     text-align: left;
     white-space: nowrap;
 }
 
-.menu-item.logout-item {
+.admin-sidenav .menu-item.logout-item {
     color: #f87171;
 }
 
-.menu-item.logout-item:hover {
+.admin-sidenav .menu-item.logout-item:hover {
     background-color: rgba(239, 68, 68, 0.1);
     color: #fca5a5;
 }
@@ -307,7 +314,7 @@ body.sidenav-collapsed .admin-page-with-sidenav .admin-page {
 }
 
 /* Sidenav Toggle */
-.sidenav-toggle {
+.admin-sidenav .sidenav-toggle {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--sidenav-text);
@@ -325,7 +332,7 @@ body.sidenav-collapsed .admin-page-with-sidenav .admin-page {
     z-index: 1100;
 }
 
-.sidenav-toggle:hover {
+.admin-sidenav .sidenav-toggle:hover {
     background: rgba(255, 255, 255, 0.1);
     color: #fff;
     border-color: rgba(255, 255, 255, 0.2);
@@ -374,7 +381,7 @@ body.sidenav-collapsed .admin-page-with-sidenav .admin-page {
     }
 
     /* Hide the desktop collapse toggle chevron on mobile */
-    .sidenav-toggle {
+    .admin-sidenav .sidenav-toggle {
         display: none !important;
     }
 
@@ -394,44 +401,44 @@ body.sidenav-collapsed .admin-page-with-sidenav .admin-page {
 }
 
 /* Scrollbar Styling for Sidebar */
-.menu-section::-webkit-scrollbar {
+.admin-sidenav .menu-section::-webkit-scrollbar {
     width: 4px;
 }
 
-.menu-section::-webkit-scrollbar-track {
+.admin-sidenav .menu-section::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
 }
 
-.menu-section::-webkit-scrollbar-thumb {
+.admin-sidenav .menu-section::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
 }
 
-.menu-section::-webkit-scrollbar-thumb:hover {
+.admin-sidenav .menu-section::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.5);
 }
 
 /* Dropdown Menu Styles */
-.dropdown-item {
+.admin-sidenav .dropdown-item {
     position: relative;
 }
 
-.dropdown-toggle {
+.admin-sidenav .dropdown-toggle {
     position: relative;
 }
 
-.dropdown-toggle .dropdown-arrow {
+.admin-sidenav .dropdown-toggle .dropdown-arrow {
     margin-left: auto;
     display: flex;
     align-items: center;
     transition: transform 0.3s;
 }
 
-.dropdown-toggle.open .dropdown-arrow {
+.admin-sidenav .dropdown-toggle.open .dropdown-arrow {
     transform: rotate(180deg);
 }
 
-.dropdown-menu {
+.admin-sidenav .dropdown-menu {
     list-style: none;
     margin: 4px 0 8px 12px;
     padding: 4px 0;
@@ -441,35 +448,35 @@ body.sidenav-collapsed .admin-page-with-sidenav .admin-page {
     overflow: hidden;
 }
 
-.dropdown-menu .menu-item {
+.admin-sidenav .dropdown-menu .menu-item {
     padding-left: 3rem;
     font-size: 0.9rem;
     background-color: rgba(0, 0, 0, 0.1);
 }
 
-.dropdown-menu .menu-item:hover,
-.dropdown-menu .menu-item.active {
+.admin-sidenav .dropdown-menu .menu-item:hover,
+.admin-sidenav .dropdown-menu .menu-item.active {
     background-color: rgba(255, 255, 255, 0.1);
     border-left: 4px solid #be9055;
 }
 
-.dropdown-menu .menu-item svg {
+.admin-sidenav .dropdown-menu .menu-item svg {
     opacity: 0.8;
 }
 
-.dropdown-child {
+.admin-sidenav .dropdown-child {
     font-size: 0.875rem !important;
     padding: 8px 16px !important;
     margin-left: 12px;
     width: calc(100% - 12px) !important;
 }
 
-.parent-active {
+.admin-sidenav .parent-active {
     color: #f1f5f9;
 }
 
 /* Notification Dot */
-.notification-dot {
+.admin-sidenav .notification-dot {
     position: absolute;
     top: 50%;
     right: 16px;
@@ -505,7 +512,7 @@ body.sidenav-collapsed .admin-page-with-sidenav .admin-page {
 }
 
 /* Notification Badge (numeric counter) */
-.notification-badge {
+.admin-sidenav .notification-badge {
     position: absolute;
     top: 50%;
     right: 12px;
@@ -544,7 +551,7 @@ body.sidenav-collapsed .admin-page-with-sidenav .admin-page {
 }
 
 /* Urgent Payment Pulsing Red Dot */
-.urgent-pulse-dot {
+.admin-sidenav .urgent-pulse-dot {
     position: absolute;
     top: 8px;
     right: 8px;

@@ -93,6 +93,19 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
+.artist-portal .artist-schedule-header {
+    align-items: center;
+}
+
+.artist-portal .artist-schedule-header-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.artist-portal .artist-schedule-header-actions .modern-view-toggle {
+    margin: 0;
+}
+
 .session-manage-action {
     display: inline-flex;
     flex-direction: column;
@@ -756,6 +769,15 @@
     .artist-portal .portal-header > div {
         flex-wrap: wrap !important;
         gap: 6px !important;
+    }
+
+    .artist-portal .artist-schedule-header {
+        align-items: stretch;
+    }
+
+    .artist-portal .artist-schedule-header-actions {
+        width: 100%;
+        justify-content: flex-start;
     }
 
     /* ── ArtistAppointments: calendar split-view → stack vertically */
