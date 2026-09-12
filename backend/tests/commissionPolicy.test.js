@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { DEFAULT_COMMISSION_RATE, resolveCommissionRate, normalizeCommissionSplit, artistCommission } = require('../services/commissionPolicy');
+const { normalizeArtistProfileInput } = require('../services/profileValidation');
 
 const serverSource = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
 
@@ -15,7 +16,7 @@ function route(method, url, database) {
   let handler;
   vm.runInNewContext(serverSource.slice(start, end), {
     app: { [method]: (_, callback) => { handler = callback; } },
-    db: database, resolveCommissionRate, DEFAULT_COMMISSION_RATE, normalizeCommissionSplit, artistCommission, console,
+    db: database, resolveCommissionRate, DEFAULT_COMMISSION_RATE, normalizeCommissionSplit, artistCommission, normalizeArtistProfileInput, console,
   });
   return handler;
 }

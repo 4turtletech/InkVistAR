@@ -5,6 +5,7 @@ const { createConsentService } = require('../services/consentService');
 const { isValidStoredConsent } = require('../services/checkoutConsentPolicy');
 const { normalizeHealthScreeningInput } = require('../services/healthScreeningPolicy');
 const {
+  signatureMatchesCustomerName,
   validateConsentInput,
   validateWithdrawalChanges,
 } = require('../services/consentPolicyService');
@@ -33,6 +34,12 @@ test('checkbox waiver accepts the customer-facing age confirmation wording', () 
   const result = validateConsentInput(checkboxConsent);
   assert.equal(result.valid, true);
   assert.deepEqual(result.errors, []);
+});
+
+test('electronic signatures match the complete customer name without case or spacing errors', () => {
+  assert.equal(signatureMatchesCustomerName('  DATABASE   customer ', 'Database Customer'), true);
+  assert.equal(signatureMatchesCustomerName('Database', 'Database Customer'), false);
+  assert.equal(signatureMatchesCustomerName('Different Customer', 'Database Customer'), false);
 });
 
 test('required consents are independent and optional photo consent defaults to declined', () => {
@@ -124,9 +131,17 @@ test('consent creation derives appointment identity and hashes the exact waiver 
     canManageProcedure() { return false; },
   };
   const service = createConsentService(pool, accessService);
+  await assert.rejects(
+    () => service.createConsent(
+      { userId: 7, role: 'customer' },
+      { ...adultConsent, signatureEvidence: 'Different Customer' },
+      { ip: '127.0.0.1', userAgent: 'test-agent' }
+    ),
+    (error) => error.code === 'signature_mismatch' && error.status === 400
+  );
   const consent = await service.createConsent(
     { userId: 7, role: 'customer' },
-    { ...adultConsent, customerId: 999, customerName: 'Forged Name', waiverHash: 'forged' },
+    { ...adultConsent, signatureEvidence: '  database CUSTOMER ', customerId: 999, customerName: 'Forged Name', waiverHash: 'forged' },
     { ip: '127.0.0.1', userAgent: 'test-agent' }
   );
 
@@ -136,6 +151,7 @@ test('consent creation derives appointment identity and hashes the exact waiver 
   assert.equal(insert.params[2], 'Database Customer');
   assert.equal(insert.params[6], crypto.createHash('sha256').update(adultConsent.waiverText).digest('hex'));
   assert.notEqual(insert.params[6], 'forged');
+  assert.equal(insert.params[7], 'database CUSTOMER');
   assert.equal(insert.params[9], 0);
   assert.equal(insert.params[10], 0);
   assert.equal(consent.id, 99);

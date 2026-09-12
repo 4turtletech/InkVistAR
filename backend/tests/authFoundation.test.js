@@ -223,7 +223,7 @@ test('web refresh tokens use cookies while mobile tokens use the response body',
   assert.equal(getRefreshToken({ body: {}, headers: { cookie: 'other=x; inkvistar_refresh=cookie-secret' } }), 'cookie-secret');
 });
 
-test('password changes issue the OTP expected by the next-login verification screen', () => {
+test('password changes keep accounts verified and do not issue a redundant OTP', () => {
   const serverSource = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
   const customerStart = serverSource.indexOf("app.post('/api/customer/change-password'");
   const artistStart = serverSource.indexOf("app.post('/api/artist/change-password'");
@@ -232,10 +232,10 @@ test('password changes issue the OTP expected by the next-login verification scr
   const artistRoute = serverSource.slice(artistStart, nextRoute);
 
   for (const route of [customerRoute, artistRoute]) {
-    assert.match(route, /const otp_code = generateNumericOtp\(\)/);
-    assert.match(route, /otp_expires = new Date\(Date\.now\(\) \+ 5 \* 60 \* 1000\)/);
-    assert.match(route, /verification_token = NULL, otp_code = \?, otp_expires = \?/);
-    assert.match(route, /Password Changed Verification Code/);
-    assert.doesNotMatch(route, /verifyUrl|Verify Email Address/);
+    assert.match(route, /verification_token = NULL, otp_code = NULL, otp_expires = NULL/);
+    assert.doesNotMatch(route, /is_verified = 0/);
+    assert.doesNotMatch(route, /const otp_code = generateNumericOtp\(\)/);
+    assert.doesNotMatch(route, /Password Changed Verification Code/);
+    assert.match(route, /requireReverification: false, requiresLogin: true/);
   }
 });

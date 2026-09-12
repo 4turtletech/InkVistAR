@@ -11,6 +11,7 @@ require('./financialLedger.test');
 require('./paymentNotificationRouting.test');
 require('./migrationService.test');
 require('./phoneNumber.test');
+require('./profileValidation.test');
 require('./appointmentConflictPolicy.test');
 require('./appointmentNotificationPolicy.test');
 require('./captchaPolicy.test');

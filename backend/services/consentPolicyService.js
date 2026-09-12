@@ -5,6 +5,18 @@ const asPositiveInteger = (value) => {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
+const normalizeConsentIdentity = (value) => String(value || '')
+  .normalize('NFKC')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .toLocaleLowerCase('en-US');
+
+const signatureMatchesCustomerName = (signatureEvidence, customerName) => {
+  const signature = normalizeConsentIdentity(signatureEvidence);
+  const expectedName = normalizeConsentIdentity(customerName);
+  return Boolean(signature && expectedName && signature === expectedName);
+};
+
 function validateConsentInput(input) {
   const errors = [];
   if (input.ageConfirmed !== true) errors.push('You must confirm that you are 18 years old or older.');
@@ -29,6 +41,8 @@ function validateWithdrawalChanges(value) {
 module.exports = {
   OPTIONAL_CONSENT_FIELDS,
   asPositiveInteger,
+  normalizeConsentIdentity,
+  signatureMatchesCustomerName,
   validateConsentInput,
   validateWithdrawalChanges,
 };

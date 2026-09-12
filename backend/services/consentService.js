@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const {
   asPositiveInteger,
+  signatureMatchesCustomerName,
   validateConsentInput,
   validateWithdrawalChanges,
 } = require('./consentPolicyService');
@@ -60,6 +61,12 @@ function createConsentService(pool, accessService) {
 
     const validation = validateConsentInput(input);
     if (!validation.valid) throw new ConsentError('consent_invalid', validation.errors[0]);
+    if (!signatureMatchesCustomerName(input.signatureEvidence, appointment.customer_name)) {
+      throw new ConsentError(
+        'signature_mismatch',
+        "Electronic signature must match the customer's current full legal name."
+      );
+    }
 
     const waiverText = String(input.waiverText).trim();
     const waiverHash = crypto.createHash('sha256').update(waiverText, 'utf8').digest('hex');

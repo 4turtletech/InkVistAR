@@ -40,6 +40,7 @@ const { CONSENT_EXISTS_SQL } = require('./services/checkoutConsentPolicy');
 const { createConsentRouter } = require('./routes/consents');
 const { normalizeHealthScreeningInput } = require('./services/healthScreeningPolicy');
 const { normalizePhilippineMobileNumber } = require('./services/phoneNumber');
+const { normalizeArtistProfileInput, normalizeCustomerProfileInput, normalizeStructuredNameInput } = require('./services/profileValidation');
 const { buildAdminAppointmentConflictCheck } = require('./services/appointmentConflictPolicy');
 const { isRegisteredAppointmentCustomer, getAppointmentScheduleChange } = require('./services/appointmentNotificationPolicy');
 const { createSessionInventoryService, InventoryOperationError } = require('./services/sessionInventoryService');
@@ -364,6 +365,10 @@ db.getConnection((err, connection) => {
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
+        first_name VARCHAR(50) NULL,
+        middle_name VARCHAR(50) NULL,
+        last_name VARCHAR(50) NULL,
+        suffix VARCHAR(10) NULL,
         email VARCHAR(255) NOT NULL UNIQUE,
         phone VARCHAR(20) NULL,
         password_hash VARCHAR(255) NOT NULL,
@@ -395,6 +400,20 @@ db.getConnection((err, connection) => {
             console.log('[MIGRATE] Migrating users: Adding phone column...');
             db.query("ALTER TABLE users ADD COLUMN phone VARCHAR(20) NULL AFTER email");
           }
+        });
+
+        // Additive structured-name migration. The legacy `name` column remains
+        // the canonical display value for all existing features and clients.
+        ensureTableColumns(db, 'users', {
+          first_name: 'VARCHAR(50) NULL AFTER name',
+          middle_name: 'VARCHAR(50) NULL AFTER first_name',
+          last_name: 'VARCHAR(50) NULL AFTER middle_name',
+          suffix: 'VARCHAR(10) NULL AFTER last_name',
+        }).then(() => {
+          console.log('[OK] Structured user name columns ready');
+        }).catch((nameMigrationError) => {
+          console.error('[ERROR] Structured user name migration failed:', nameMigrationError.message);
+          process.exit(1);
         });
 
         // MIGRATION: Sanitize legacy phone numbers that contain a leading zero after +63
@@ -2673,12 +2692,11 @@ app.post('/api/customer/change-password', async (req, res) => {
       return res.status(400).json({ success: false, message: 'New password cannot be the same as the old password' });
     }
 
-    // Hash and update; require a fresh OTP before the next login.
+    // Hash and update. The caller has already proven account ownership, so keep
+    // the account verified and clear any OTP that was used for this change.
     const password_hash = await bcrypt.hash(newPassword, 10);
-    const otp_code = generateNumericOtp();
-    const otp_expires = new Date(Date.now() + 5 * 60 * 1000);
 
-    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, is_verified = 0, verification_token = NULL, otp_code = ?, otp_expires = ? WHERE id = ?', [password_hash, otp_code, otp_expires, customerId], async (updateErr) => {
+    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, verification_token = NULL, otp_code = NULL, otp_expires = NULL WHERE id = ?', [password_hash, customerId], async (updateErr) => {
       if (updateErr) {
         console.error('[ERROR] Error updating password:', updateErr);
         return res.status(500).json({ success: false, message: 'Failed to update password' });
@@ -2689,25 +2707,19 @@ app.post('/api/customer/change-password', async (req, res) => {
         console.error('[AUTH] Customer session revocation failed:', revokeError.message);
         return res.status(500).json({ success: false, message: 'Password changed, but existing sessions could not be revoked. Please contact support.' });
       }
-      logAction(customerId, 'PASSWORD_CHANGED', 'Customer changed their password — re-verification required', req.ip || '::1');
+      logAction(customerId, 'PASSWORD_CHANGED', 'Customer changed their password and active sessions were revoked', req.ip || '::1');
       createNotification(customerId, 'Password Changed', 'Your account password was successfully updated.', 'password_change');
 
-      // Send the OTP expected by the web/mobile verification screen.
+      // Send a security notice only. Do not issue a second verification code.
       const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Password Changed</h2>
-              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Re-verification required for your security</p>
-              <p style="margin:0 0 16px;">Your password was successfully updated. Enter this 6-digit code on the InkVistAR verification screen before logging in again:</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:20px 0;">
-                <div style="display:inline-block;background-color:#1a1a1a;border:2px solid rgba(193,154,107,0.3);border-radius:12px;padding:16px 32px;">
-                  <span style="font-size:36px;font-weight:800;letter-spacing:12px;color:#C19A6B;font-family:'Courier New',monospace;">${otp_code}</span>
-                </div>
-              </td></tr></table>
-              <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#334155;">5 minutes</strong>.</p>
-              <p style="margin:0;font-size:12px;color:#555;text-align:center;">If you did not make this change, contact our support team immediately. Do not share this code with anyone.</p>
+              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Security notification</p>
+              <p style="margin:0 0 16px;">Your password was successfully updated. For your security, your existing sessions have been signed out. Sign in again using your new password.</p>
+              <p style="margin:0;font-size:12px;color:#555;text-align:center;">If you did not make this change, contact our support team immediately.</p>
       `);
-      sendEmail(user.email, 'InkVistAR - Password Changed Verification Code', html);
+      sendEmail(user.email, 'InkVistAR - Password Changed', html);
 
-      res.json({ success: true, message: 'Password changed. Enter the verification code sent to your email before logging in again.', requireReverification: true, expires_in: 300 });
+      res.json({ success: true, message: 'Password changed successfully. Please sign in with your new password.', requireReverification: false, requiresLogin: true });
     });
   });
 });
@@ -2752,12 +2764,10 @@ app.post('/api/artist/change-password', async (req, res) => {
       return res.status(400).json({ success: false, message: 'New password cannot be the same as the old password' });
     }
 
-    // Hash and update; require a fresh OTP before the next login.
+    // Hash and update. Keep the verified state and clear stale verification data.
     const password_hash = await bcrypt.hash(newPassword, 10);
-    const otp_code = generateNumericOtp();
-    const otp_expires = new Date(Date.now() + 5 * 60 * 1000);
 
-    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, is_verified = 0, verification_token = NULL, otp_code = ?, otp_expires = ? WHERE id = ?', [password_hash, otp_code, otp_expires, artistId], async (updateErr) => {
+    db.query('UPDATE users SET password_hash = ?, must_change_password = 0, verification_token = NULL, otp_code = NULL, otp_expires = NULL WHERE id = ?', [password_hash, artistId], async (updateErr) => {
       if (updateErr) {
         console.error('[ERROR] Error updating password:', updateErr);
         return res.status(500).json({ success: false, message: 'Failed to update password' });
@@ -2768,25 +2778,19 @@ app.post('/api/artist/change-password', async (req, res) => {
         console.error('[AUTH] Artist session revocation failed:', revokeError.message);
         return res.status(500).json({ success: false, message: 'Password changed, but existing sessions could not be revoked. Please contact support.' });
       }
-      logAction(artistId, 'PASSWORD_CHANGED', 'Artist changed their password — re-verification required', req.ip || '::1');
+      logAction(artistId, 'PASSWORD_CHANGED', 'Artist changed their password and active sessions were revoked', req.ip || '::1');
       createNotification(artistId, 'Password Changed', 'Your account password was successfully updated.', 'password_change');
 
-      // Send the OTP expected by the web/mobile verification screen.
+      // Send a security notice only. Do not issue a second verification code.
       const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Password Changed</h2>
-              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Re-verification required for your security</p>
-              <p style="margin:0 0 16px;">Your password was successfully updated. Enter this 6-digit code on the InkVistAR verification screen before logging in again:</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:20px 0;">
-                <div style="display:inline-block;background-color:#1a1a1a;border:2px solid rgba(193,154,107,0.3);border-radius:12px;padding:16px 32px;">
-                  <span style="font-size:36px;font-weight:800;letter-spacing:12px;color:#C19A6B;font-family:'Courier New',monospace;">${otp_code}</span>
-                </div>
-              </td></tr></table>
-              <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#334155;">5 minutes</strong>.</p>
-              <p style="margin:0;font-size:12px;color:#555;text-align:center;">If you did not make this change, contact our support team immediately. Do not share this code with anyone.</p>
+              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Security notification</p>
+              <p style="margin:0 0 16px;">Your password was successfully updated. For your security, your existing sessions have been signed out. Sign in again using your new password.</p>
+              <p style="margin:0;font-size:12px;color:#555;text-align:center;">If you did not make this change, contact our support team immediately.</p>
       `);
-      sendEmail(user.email, 'InkVistAR - Password Changed Verification Code', html);
+      sendEmail(user.email, 'InkVistAR - Password Changed', html);
 
-      res.json({ success: true, message: 'Password changed. Enter the verification code sent to your email before logging in again.', requireReverification: true, expires_in: 300 });
+      res.json({ success: true, message: 'Password changed successfully. Please sign in with your new password.', requireReverification: false, requiresLogin: true });
     });
   });
 });
@@ -3275,7 +3279,7 @@ app.post('/api/register', async (req, res) => {
   try {
     console.log('\n[INFO] ========== REGISTER REQUEST ==========');
 
-    const { firstName, lastName, suffix, name, email, password, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent, captchaToken, health_conditions, allergens } = req.body;
+    const { email, password, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent, captchaToken, health_conditions, allergens } = req.body;
     const accountType = publicAccountType();
     const normalizedEmail = String(email || '').trim().toLowerCase();
 
@@ -3292,10 +3296,21 @@ app.post('/api/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
     }
 
-    // Handle combined name if firstName/lastName not provided (backward compatibility)
-    const fullName = (firstName && lastName)
-      ? `${firstName} ${lastName}${suffix ? ' ' + suffix : ''}`
-      : (name || 'Unknown User');
+    // Store structured names when supplied while retaining `name` as the
+    // backward-compatible display value used throughout the system.
+    let registrationName;
+    try {
+      registrationName = normalizeStructuredNameInput(req.body, { required: true });
+    } catch (nameError) {
+      return res.status(nameError.statusCode || 400).json({ success: false, message: nameError.message });
+    }
+    const {
+      name: fullName,
+      first_name,
+      middle_name,
+      last_name,
+      suffix: normalizedSuffix,
+    } = registrationName;
 
     // Validation
     if (!String(fullName).trim() || !normalizedEmail || !password) {
@@ -3342,10 +3357,10 @@ app.post('/api/register', async (req, res) => {
       const photoConsent = photo_marketing_consent === true ? 1 : 0;
       const emailConsent = email_promo_consent !== undefined ? (email_promo_consent ? 1 : 0) : 0;
 
-      const insertQuery = 'INSERT INTO users (name, email, password_hash, user_type, is_verified, verification_token, photo_marketing_consent, email_promo_consent) VALUES (?, ?, ?, ?, 0, ?, ?, ?)';
+      const insertQuery = 'INSERT INTO users (name, first_name, middle_name, last_name, suffix, email, password_hash, user_type, is_verified, verification_token, photo_marketing_consent, email_promo_consent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)';
       console.log('[DEBUG] Executing query:', insertQuery);
 
-      db.query(insertQuery, [String(fullName).trim(), normalizedEmail, password_hash, accountType, verification_token, photoConsent, emailConsent], (insertErr, result) => {
+      db.query(insertQuery, [fullName, first_name ?? null, middle_name ?? null, last_name ?? null, normalizedSuffix ?? null, normalizedEmail, password_hash, accountType, verification_token, photoConsent, emailConsent], (insertErr, result) => {
         if (insertErr) {
           console.error('[ERROR] Error inserting user:', insertErr.message);
           return res.status(500).json({
@@ -3426,6 +3441,10 @@ app.post('/api/register', async (req, res) => {
                 user: {
                   id: userId,
                   name: fullName,
+                  first_name,
+                  middle_name,
+                  last_name,
+                  suffix: normalizedSuffix,
                   email: normalizedEmail,
                   type: accountType
                 },
@@ -3811,15 +3830,22 @@ app.get('/api/artist/:artistId/clients', (req, res) => {
 // Update Artist Profile
 app.put('/api/artist/profile/:id', (req, res) => {
   const { id } = req.params;
-  const { name, specialization, hourly_rate, experience_years, phone, studio_name, profileImage, bio } = req.body;
-
-  // Server-side hardening: Truncate and clamp inputs
-  const safeName = name ? name.substring(0, 100) : null;
-  const safePhone = phone ? phone.substring(0, 15) : null;
-  const safeStudioName = studio_name ? studio_name.substring(0, 100) : null;
-  const safeSpecialization = specialization ? specialization.substring(0, 500) : null;
-  const safeExperienceYears = experience_years !== undefined ? Math.max(0, Math.min(100, parseInt(experience_years) || 0)) : undefined;
-  const safeBio = bio !== undefined ? (bio || '').substring(0, 1000) : undefined;
+  let validatedProfile;
+  try {
+    validatedProfile = normalizeArtistProfileInput(req.body);
+  } catch (error) {
+    return res.status(error.statusCode || 400).json({ success: false, message: error.message });
+  }
+  const {
+    name: safeName,
+    phone: safePhone,
+    studio_name: safeStudioName,
+    specialization,
+    experience_years: safeExperienceYears,
+    profileImage,
+    bio: safeBio,
+  } = validatedProfile;
+  const safeSpecialization = specialization ?? null;
 
   // Update users table (name, phone, profile_image)
   let userQuery = 'UPDATE users SET name = ?, phone = ?';
@@ -4035,7 +4061,8 @@ app.delete('/api/artist/clients/:id', (req, res) => {
 app.get('/api/customer/profile/:id', (req, res) => {
   const { id } = req.params;
   const query = `
-    SELECT u.name, u.email, c.profile_image, c.phone, c.location, c.notes,
+    SELECT u.name, u.first_name, u.middle_name, u.last_name, u.suffix,
+           u.email, c.profile_image, c.phone, c.location, c.notes,
            c.health_conditions, c.allergens
     FROM users u
     LEFT JOIN customers c ON u.id = c.user_id
@@ -4045,6 +4072,7 @@ app.get('/api/customer/profile/:id', (req, res) => {
     if (err) return res.status(500).json({ success: false, message: 'DB Error' });
     if (results.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
     const profile = results[0];
+    profile.name_needs_review = !(profile.first_name && profile.last_name);
     // Parse JSON arrays stored as TEXT
     try { profile.health_conditions = JSON.parse(profile.health_conditions || '[]'); } catch { profile.health_conditions = []; }
     try { profile.allergens = JSON.parse(profile.allergens || '[]'); } catch { profile.allergens = []; }
@@ -4055,26 +4083,42 @@ app.get('/api/customer/profile/:id', (req, res) => {
 // Update Customer Profile
 app.put('/api/customer/profile/:id', (req, res) => {
   const { id } = req.params;
-  const { name, email, phone, location, notes, profileImage, health_conditions, allergens } = req.body;
-  const normalizedEmail = email === undefined ? undefined : String(email).trim().toLowerCase();
-  const normalizedPhone = phone === undefined ? undefined : normalizePhilippineMobileNumber(phone);
-
-  if (name !== undefined && !String(name).trim()) {
-    return res.status(400).json({ success: false, message: 'Legal name is required' });
+  let validatedProfile;
+  try {
+    validatedProfile = normalizeCustomerProfileInput(req.body);
+  } catch (error) {
+    return res.status(error.statusCode || 400).json({ success: false, message: error.message });
   }
-  if (normalizedEmail !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-    return res.status(400).json({ success: false, message: 'Enter a valid email address' });
-  }
-  if (phone !== undefined && !normalizedPhone) {
-    return res.status(400).json({ success: false, message: 'Enter a valid PH mobile number, such as 9171234567' });
-  }
+  const {
+    name,
+    first_name,
+    middle_name,
+    last_name,
+    suffix,
+    structuredNameProvided,
+    email: normalizedEmail,
+    phone: normalizedPhone,
+    location,
+    notes,
+    profileImage,
+    health_conditions,
+    allergens,
+  } = validatedProfile;
 
   const updateUserPromise = new Promise((resolve, reject) => {
-    if (name === undefined && normalizedEmail === undefined && normalizedPhone === undefined && profileImage === undefined) return resolve();
+    if (name === undefined && normalizedEmail === undefined && normalizedPhone === undefined && profileImage === undefined && !structuredNameProvided) return resolve();
     let query = 'UPDATE users SET ';
     const params = [];
     const updates = [];
-    if (name !== undefined) { updates.push('name = ?'); params.push(name); }
+    if (structuredNameProvided) {
+      updates.push('name = ?', 'first_name = ?', 'middle_name = ?', 'last_name = ?', 'suffix = ?');
+      params.push(name, first_name, middle_name, last_name, suffix);
+    } else if (name !== undefined) {
+      // Legacy clients can still update the combined name. Clear potentially
+      // stale parts so newer clients know the name needs confirmation.
+      updates.push('name = ?', 'first_name = NULL', 'middle_name = NULL', 'last_name = NULL', 'suffix = NULL');
+      params.push(name);
+    }
     if (normalizedEmail !== undefined) { updates.push('email = ?'); params.push(normalizedEmail); }
     if (normalizedPhone !== undefined) { updates.push('phone = ?'); params.push(normalizedPhone); }
     if (profileImage !== undefined) { updates.push('profile_image = ?'); params.push(profileImage); }
@@ -4088,7 +4132,7 @@ app.put('/api/customer/profile/:id', (req, res) => {
   });
 
   const updateCustomerPromise = new Promise((resolve, reject) => {
-    const hasCustomerFields = phone !== undefined || location !== undefined || notes !== undefined ||
+    const hasCustomerFields = normalizedPhone !== undefined || location !== undefined || notes !== undefined ||
       profileImage !== undefined || health_conditions !== undefined || allergens !== undefined;
     if (!hasCustomerFields) return resolve();
 
@@ -4125,7 +4169,7 @@ app.put('/api/customer/profile/:id', (req, res) => {
 
   Promise.all([updateUserPromise, updateCustomerPromise])
     .then(() => {
-      res.json({ success: true, message: 'Profile updated successfully' });
+      res.json({ success: true, message: 'Profile updated successfully', name });
     })
     .catch(error => {
       res.status(error.status || 500).json({ success: false, message: error.message });
@@ -4518,13 +4562,15 @@ app.post('/api/customer/appointments', async (req, res) => {
 app.get('/api/customer/:customerId/appointments', (req, res) => {
   const { customerId } = req.params;
   const query = `
-    SELECT ap.*, ap.price, ap.tattoo_price, ap.piercing_price, u.name as artist_name, u.email as artist_email, 
+    SELECT ap.*, ap.price, ap.tattoo_price, ap.piercing_price,
+           u.name as artist_name, u.email as artist_email, customer_user.name as customer_name,
            COALESCE(a.studio_name, 'Independent Artist') as studio_name,
            ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid,
            ap.manual_payment_method,
            COALESCE(ap.reschedule_count, 0) as reschedule_count
     FROM appointments ap
     JOIN users u ON ap.artist_id = u.id
+    JOIN users customer_user ON ap.customer_id = customer_user.id
     LEFT JOIN artists a ON u.id = a.user_id
     WHERE ap.customer_id = ? AND ap.is_deleted = 0
     ORDER BY ap.appointment_date DESC, ap.start_time DESC
@@ -8584,7 +8630,8 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
 
   // 1. Get Customer Info
   const userQuery = `
-    SELECT u.id, u.name, u.email, c.phone, c.location, c.profile_image
+    SELECT u.id, u.name, u.first_name, u.middle_name, u.last_name, u.suffix,
+           u.email, c.phone, c.location, c.profile_image
     FROM users u
     LEFT JOIN customers c ON u.id = c.user_id
     WHERE u.id = ?
@@ -8601,6 +8648,7 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
     }
 
     const customer = userResults[0];
+    customer.name_needs_review = !(customer.first_name && customer.last_name);
 
     // 2. Get Appointments
     const appointmentsQuery = `
@@ -9383,10 +9431,17 @@ app.get('/api/admin/users', (req, res) => {
 
 // Admin: Create User
 app.post('/api/admin/users', async (req, res) => {
-  const { name, email, password, type, phone, status, profileImage, age, gender, is_verified } = req.body;
+  const { email, password, type, phone, status, profileImage, age, gender, is_verified } = req.body;
   const normalizedEmail = String(email || '').trim().toLowerCase();
 
-  if (!String(name || '').trim() || !normalizedEmail || !password || !phone || !type) {
+  let accountName;
+  try {
+    accountName = normalizeStructuredNameInput(req.body, { required: true });
+  } catch (nameError) {
+    return res.status(nameError.statusCode || 400).json({ success: false, message: nameError.message });
+  }
+
+  if (!accountName.name || !normalizedEmail || !password || !phone || !type) {
     return res.status(400).json({ success: false, message: 'Name, email, phone, password, and role are required' });
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
@@ -9409,9 +9464,9 @@ app.post('/api/admin/users', async (req, res) => {
     const password_hash = await bcrypt.hash(password, 10);
     const isDeleted = (status === 'inactive' || status === 'suspended') ? 1 : 0;
     const verifiedFlag = is_verified === 1 || is_verified === true ? 1 : 0;
-    const query = 'INSERT INTO users (name, email, password_hash, user_type, phone, is_deleted, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?)';
+    const query = 'INSERT INTO users (name, first_name, middle_name, last_name, suffix, email, password_hash, user_type, phone, is_deleted, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
 
-    db.query(query, [name, normalizedEmail, password_hash, type, phone, isDeleted, verifiedFlag], (err, result) => {
+    db.query(query, [accountName.name, accountName.first_name ?? null, accountName.middle_name ?? null, accountName.last_name ?? null, accountName.suffix ?? null, normalizedEmail, password_hash, type, phone, isDeleted, verifiedFlag], (err, result) => {
       if (err?.code === 'ER_DUP_ENTRY') return res.status(409).json({ success: false, message: 'That email address is already in use' });
       if (err) return res.status(500).json({ success: false, message: err.message });
 

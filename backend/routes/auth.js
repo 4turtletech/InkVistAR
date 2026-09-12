@@ -9,6 +9,10 @@ const {
 const safeUser = (user) => ({
   id: user.id,
   name: user.name,
+  first_name: user.first_name || null,
+  middle_name: user.middle_name || null,
+  last_name: user.last_name || null,
+  suffix: user.suffix || null,
   email: user.email,
   type: user.user_type,
   is_superadmin: user.is_superadmin === 1,
