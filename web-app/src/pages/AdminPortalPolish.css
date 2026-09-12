@@ -1,0 +1,184 @@
+/* Shared layout polish for the high-use admin workspaces.
+   Keep this scoped so page-specific tables, charts, and workflows are untouched. */
+.admin-page-with-sidenav .admin-page.admin-polished-page {
+    position: relative;
+    isolation: isolate;
+    min-height: 100vh;
+    padding: 2rem;
+    overflow-x: hidden;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+}
+
+.admin-polished-page::before,
+.admin-polished-page::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    animation: admin-gold-float 20s infinite ease-in-out alternate;
+}
+
+.admin-polished-page::before {
+    width: 500px;
+    height: 500px;
+    top: -150px;
+    left: -150px;
+    background: rgba(190, 144, 85, 0.15);
+}
+
+.admin-polished-page::after {
+    width: 600px;
+    height: 600px;
+    right: -100px;
+    bottom: -200px;
+    background: rgba(190, 144, 85, 0.08);
+    animation-delay: -5s;
+}
+
+.admin-polished-page > .portal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    margin: 0 0 2rem;
+    padding: 0;
+    flex-wrap: wrap;
+}
+
+.admin-polished-page > .portal-header .header-title {
+    display: flex;
+    flex: 1 1 280px;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+}
+
+.admin-polished-page > .portal-header .header-title h1 {
+    margin: 0;
+    line-height: 1.15;
+}
+
+.admin-polished-page > .portal-header .header-subtitle {
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
+}
+
+.admin-polished-page > .portal-header .header-actions {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    max-width: 100%;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
+/* Existing page sections already supplied their own 2rem outer gutter. The page
+   now owns that gutter, which keeps every section aligned to the same edge. */
+.admin-polished-page > .users-stats-grid,
+.admin-polished-page > .inventory-stats-grid,
+.admin-polished-page > .metrics-section,
+.admin-polished-page > .analytics-grid,
+.admin-polished-page > .analytics-dashboard-layout {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.admin-polished-page > .premium-filter-bar--stacked,
+.admin-polished-page > .table-card-container.glass-card,
+.admin-polished-page > .table-card,
+.admin-polished-page > .admin-chat-layout {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+@keyframes admin-gold-float {
+    0% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0, 0) scale(1); }
+}
+
+@media (max-width: 1100px) {
+    .admin-polished-page > .portal-header .header-actions {
+        flex-basis: 100%;
+        justify-content: flex-start;
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-page-with-sidenav .admin-page.admin-polished-page {
+        padding: 76px 0.75rem 1rem !important;
+    }
+
+    .admin-polished-page > .portal-header {
+        margin-bottom: 1.25rem;
+    }
+
+    .admin-polished-page > .portal-header .header-title,
+    .admin-polished-page > .portal-header .header-actions {
+        flex-basis: 100%;
+        width: 100%;
+    }
+
+    .admin-polished-page > .portal-header .header-actions {
+        justify-content: flex-start;
+    }
+
+    .admin-polished-page > .users-stats-grid,
+    .admin-polished-page > .inventory-stats-grid,
+    .admin-polished-page > .metrics-section,
+    .admin-polished-page > .analytics-grid,
+    .admin-polished-page > .analytics-dashboard-layout {
+        width: 100%;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .admin-polished-page > .premium-filter-bar--stacked,
+    .admin-polished-page > .table-card-container.glass-card,
+    .admin-polished-page > .table-card,
+    .admin-polished-page > .admin-chat-layout {
+        width: 100%;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .admin-polished-page .filter-group-glass {
+        width: 100%;
+        height: auto;
+        min-height: 40px;
+        padding: 0.6rem 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .admin-polished-page .filter-group-glass input,
+    .admin-polished-page .filter-group-glass select {
+        max-width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-polished-page::before,
+    .admin-polished-page::after {
+        animation: none;
+    }
+}
+
+@media print {
+    .admin-page-with-sidenav .admin-page.admin-polished-page {
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    .admin-polished-page::before,
+    .admin-polished-page::after {
+        display: none !important;
+    }
+}

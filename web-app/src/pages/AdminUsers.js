@@ -8,6 +8,7 @@ import './AdminUsers.css';
 import './PortalStyles.css';
 import './AdminStyles.css';
 import './AdminStaff.css';
+import './AdminPortalPolish.css';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import { API_URL } from '../config';
@@ -980,10 +981,11 @@ function AdminUsers() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-page page-container-enter">
+            <div className="admin-page page-container-enter admin-polished-page">
                 <header className="portal-header">
                     <div className="header-title">
                         <h1>User Management</h1>
+                        <p className="header-subtitle">Manage platform users, roles, and account status</p>
                     </div>
                     <div className="header-actions">
                         <button className="btn btn-primary" onClick={handleAddNew}>
@@ -991,7 +993,6 @@ function AdminUsers() {
                         </button>
                     </div>
                 </header>
-                <p className="header-subtitle">Manage platform users, roles, and account status</p>
 
                 {/* Stats Grid */}
                 <div className="users-stats-grid">

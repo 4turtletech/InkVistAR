@@ -11,6 +11,7 @@ import AnalyticsAuditModal, { RAINBOW_PALETTE, renderPieLabel } from '../compone
 import './AdminAnalytics.css';
 import './PortalStyles.css';
 import './AdminStyles.css';
+import './AdminPortalPolish.css';
 import { API_URL } from '../config';
 import { generateReportHeader, downloadCsv } from '../utils/csvExport';
 
@@ -319,10 +320,11 @@ function AdminAnalytics() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-page page-container-enter">
+            <div className="admin-page page-container-enter admin-polished-page">
                 <header className="portal-header">
                     <div className="header-title">
                         <h1>Analytics & Reports</h1>
+                        <p className="header-subtitle">Track your studio's performance and inventory</p>
                     </div>
                     <div className="header-actions">
                         <div className="filter-group-glass">
@@ -388,7 +390,6 @@ function AdminAnalytics() {
                         <button className="btn btn-primary" onClick={handleExport}><Download size={18} /> Export</button>
                     </div>
                 </header>
-                <p className="header-subtitle">Track your studio's performance and inventory</p>
 
                 {loading ? (
                     <div className="no-data" style={{ padding: '60px 0', textAlign: 'center', color: '#64748b' }}>Loading analytics...</div>

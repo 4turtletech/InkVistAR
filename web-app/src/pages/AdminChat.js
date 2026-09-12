@@ -8,6 +8,7 @@ import './AdminStyles.css';
 import { API_URL, SOCKET_URL, getSocketAccessToken } from '../config';
 import { io } from 'socket.io-client';
 import './AdminChat.css';
+import './AdminPortalPolish.css';
 
 function AdminChat() {
     const [liveSessions, setLiveSessions] = useState([]);
@@ -59,10 +60,12 @@ function AdminChat() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-page page-container-enter chat-page-wrapper">
+            <div className="admin-page page-container-enter chat-page-wrapper admin-polished-page">
                 <header className="portal-header">
                     <div className="header-title">
                         <h1>Chats & Consultations</h1>
+                        <p className="header-subtitle">Manage live support sessions and artist consultations from one unified dashboard.</p>
+                        {connectionError && <p className="header-subtitle" style={{ color: '#dc2626' }}>{connectionError}</p>}
                     </div>
                     <div className="header-actions">
                         <button
@@ -75,8 +78,6 @@ function AdminChat() {
                         </button>
                     </div>
                 </header>
-                <p className="header-subtitle">Manage live support sessions and artist consultations from one unified dashboard.</p>
-                {connectionError && <p className="header-subtitle" style={{ color: '#dc2626' }}>{connectionError}</p>}
 
                 <div className="admin-chat-layout glass-panel">
                     <div className="appointment-list-container">

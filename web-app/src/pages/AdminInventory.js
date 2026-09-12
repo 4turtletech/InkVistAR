@@ -9,6 +9,7 @@ import AdminSideNav from '../components/AdminSideNav';
 import './AdminInventory.css';
 import './PortalStyles.css';
 import './AdminStyles.css';
+import './AdminPortalPolish.css';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import ImageCropper from '../components/ImageCropper';
@@ -744,7 +745,7 @@ function AdminInventory() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-page page-container-enter">
+            <div className="admin-page page-container-enter admin-polished-page">
             {/* Print Only Header */}
             <div className="print-only-header">
                 <div className="admin-st-c6657cae">
