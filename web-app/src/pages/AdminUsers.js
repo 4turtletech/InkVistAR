@@ -943,7 +943,11 @@ function AdminUsers() {
 
         try {
             await Axios.post(`${API_URL}/api/admin/users`, {
-                name: fullName, email: createFormData.email,
+                name: fullName,
+                firstName: createFormData.firstName.trim(),
+                lastName: createFormData.lastName.trim(),
+                suffix: suffixPart || null,
+                email: createFormData.email,
                 password: createFormData.password, type: createFormData.user_type,
                 phone: fullPhone, status: 'active',
                 profileImage: createFormData.profileImage || null,

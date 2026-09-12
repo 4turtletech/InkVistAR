@@ -4,12 +4,20 @@ import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
 import { User, Mail, Phone, MapPin, Save, Edit2, X, FileText, Lock, Eye, EyeOff, CheckCircle, AlertCircle, Camera, Heart, ShieldAlert, Shield, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import './PortalStyles.css';
+import './CustomerProfile.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
 import ImageCropper from '../components/ImageCropper';
 import { getPhoneParts } from '../constants/countryCodes';
 import CountryCodeSelect from '../components/CountryCodeSelect';
-import { filterName } from '../utils/validation';
+import {
+    composeCustomerName,
+    customerProfileErrors,
+    filterName,
+    normalizePhilippineMobileNumber,
+    normalizeProfileText,
+    suggestCustomerNameParts,
+} from '../utils/validation';
 
 const PasswordStrengthMeter = ({ feedback }) => {
     const steps = [
@@ -48,14 +56,15 @@ function CustomerProfile() {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const customerId = user ? user.id : null;
 
-    const [profile, setProfile] = useState({
+    const [profile, setProfile] = useState(() => ({
         name: user.name || '',
+        ...suggestCustomerNameParts(user),
         email: user.email || '',
         phone: user.phone || '',
         location: user.location || '',
         preferences: user.notes || '',
         profile_image: user.profile_image || ''
-    });
+    }));
     const [isEditing, setIsEditing] = useState(false);
     const [originalProfile, setOriginalProfile] = useState(null);
     const [passwords, setPasswords] = useState({
@@ -135,14 +144,8 @@ function CustomerProfile() {
         setCustomAllergen('');
     };
 
-    const validateProfileField = (name, value) => {
-        let errorMsg = '';
-        if (name === 'name') {
-            if (!value.trim()) errorMsg = 'Name is required.';
-            else if (value.trim().length < 2) errorMsg = 'Name must be at least 2 characters.';
-        }
-        if (name === 'location' && value.trim().length > 200) errorMsg = 'Location cannot exceed 200 characters.';
-        if (name === 'preferences' && value.trim().length > 500) errorMsg = 'Preferences cannot exceed 500 characters.';
+    const validateProfileField = (name, value, currentProfile = profile) => {
+        const errorMsg = customerProfileErrors({ ...currentProfile, [name]: value })[name] || '';
         setErrors(prev => ({ ...prev, [name]: errorMsg }));
         return !errorMsg;
     };
@@ -161,8 +164,10 @@ function CustomerProfile() {
                 setLoading(true);
                 const res = await Axios.get(`${API_URL}/api/customer/profile/${customerId}`);
                 if (res.data.success) {
+                    const nameParts = suggestCustomerNameParts(res.data.profile);
                     setProfile({
                         name: res.data.profile.name || '',
+                        ...nameParts,
                         email: res.data.profile.email || '',
                         phone: res.data.profile.phone || '',
                         location: res.data.profile.location || '',
@@ -264,11 +269,19 @@ function CustomerProfile() {
         e.preventDefault();
         setMessage({ type: '', text: '' });
         
-        // Run all field validations
-        const nameValid = validateProfileField('name', profile.name);
-        if (!nameValid) {
-            setMessage({ type: 'error', text: errors.name || 'Please fix validation errors.' });
-            setSaving(false);
+        const profileFieldErrors = customerProfileErrors(profile);
+        setErrors(prev => ({
+            ...prev,
+            first_name: profileFieldErrors.first_name || '',
+            middle_name: profileFieldErrors.middle_name || '',
+            last_name: profileFieldErrors.last_name || '',
+            suffix: profileFieldErrors.suffix || '',
+            phone: profileFieldErrors.phone || '',
+            location: profileFieldErrors.location || '',
+            preferences: profileFieldErrors.preferences || ''
+        }));
+        if (Object.keys(profileFieldErrors).length > 0) {
+            setMessage({ type: 'error', text: 'Please fix the highlighted validation errors.' });
             return;
         }
         if (customCondition.trim()) {
@@ -282,6 +295,19 @@ function CustomerProfile() {
             return;
         }
         setSaving(true);
+
+        const normalizedProfile = {
+            ...profile,
+            first_name: normalizeProfileText(profile.first_name),
+            middle_name: normalizeProfileText(profile.middle_name) || null,
+            last_name: normalizeProfileText(profile.last_name),
+            suffix: normalizeProfileText(profile.suffix) || null,
+            name: composeCustomerName(profile),
+            name_needs_review: false,
+            phone: normalizePhilippineMobileNumber(profile.phone),
+            location: normalizeProfileText(profile.location),
+            preferences: String(profile.preferences || '').trim()
+        };
 
         // Password validation
         if (showChangePassword) {
@@ -308,9 +334,9 @@ function CustomerProfile() {
         try {
             // Update profile details including health data
             await Axios.put(`${API_URL}/api/customer/profile/${customerId}`, {
-                ...profile,
-                notes: profile.preferences,
-                profileImage: profile.profile_image,
+                ...normalizedProfile,
+                notes: normalizedProfile.preferences,
+                profileImage: normalizedProfile.profile_image,
                 health_conditions: selectedConditions,
                 allergens: selectedAllergens
             });
@@ -323,21 +349,31 @@ function CustomerProfile() {
                     newPassword: passwords.newPassword
                 });
 
-                // If backend requires re-verification, show success modal
-                if (pwRes.data.requireReverification) {
+                // Password changes revoke active sessions, but no longer
+                // de-verify the account or require a second OTP.
+                if (pwRes.data.requiresLogin || pwRes.data.requireReverification) {
                     localStorage.removeItem('user');
                     localStorage.removeItem('token');
-                    setSuccessModal({ mounted: true, visible: false, message: 'Password changed successfully! A verification email has been sent. Please verify your email to log in again.' });
+                    setSuccessModal({ mounted: true, visible: false, message: 'Password changed successfully. Please sign in with your new password.' });
                     setTimeout(() => setSuccessModal(prev => ({ ...prev, visible: true })), 10);
                     return;
                 }
             }
 
             // Update localStorage with new profile image
-            const updatedUser = { ...user, profile_image: profile.profile_image };
+            const updatedUser = {
+                ...user,
+                name: normalizedProfile.name,
+                first_name: normalizedProfile.first_name,
+                middle_name: normalizedProfile.middle_name,
+                last_name: normalizedProfile.last_name,
+                suffix: normalizedProfile.suffix,
+                profile_image: normalizedProfile.profile_image,
+            };
             localStorage.setItem('user', JSON.stringify(updatedUser));
 
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
+            setProfile(normalizedProfile);
             setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
             setPasswordErrors({});
             setShowChangePassword(false);
@@ -363,11 +399,11 @@ function CustomerProfile() {
         <>
             <div className="portal-layout">
                 <CustomerSideNav />
-                <div className="portal-container customer-portal">
+                <div className="portal-container customer-portal customer-profile-page">
                     <header className="portal-header"><h1>My Profile</h1></header>
                     <div className="portal-content">
                         {loading ? <div className="no-data">Loading...</div> : (
-                            <div className="data-card" style={{ maxWidth: '960px', margin: '0 auto', width: '100%' }}>
+                            <div className="data-card customer-profile-card" style={{ maxWidth: '1040px', margin: '0 auto', width: '100%' }}>
                                 {!isEditing ? (
                                     /* VIEW MODE */
                                     <div>
@@ -572,12 +608,40 @@ function CustomerProfile() {
                                                 <User size={20} color="#be9055" /> Personal Information
                                             </h3>
                                             <div className="grid-2col">
-                                                <div className="form-group">
-                                                    <label className="artist-profile-form-label"><User size={16} /> Name <span style={{ color: '#ef4444' }}>*</span></label>
-                                                    <input type="text" className="form-input artist-profile-input" value={profile.name}
-                                                        onChange={e => { const val = filterName(e.target.value).slice(0, 50); setProfile({ ...profile, name: val }); validateProfileField('name', val); }}
-                                                        placeholder="Your full name" maxLength={50} style={{ border: errors.name ? '1px solid #ef4444' : undefined }} />
-                                                    {errors.name && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.name}</span>}
+                                                {[
+                                                    { key: 'first_name', label: 'First Name', required: true, placeholder: 'e.g. Angela' },
+                                                    { key: 'middle_name', label: 'Middle Name', required: false, placeholder: 'Optional' },
+                                                    { key: 'last_name', label: 'Last Name', required: true, placeholder: 'e.g. Bautista' },
+                                                    { key: 'suffix', label: 'Suffix', required: false, placeholder: 'e.g. Jr.', maxLength: 10 },
+                                                ].map(field => (
+                                                    <div className="form-group" key={field.key}>
+                                                        <label className="artist-profile-form-label">
+                                                            <User size={16} /> {field.label}
+                                                            {field.required && <span className="customer-profile-required">*</span>}
+                                                            {!field.required && <span className="customer-profile-optional">Optional</span>}
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            className={`form-input artist-profile-input ${errors[field.key] ? 'error' : ''}`}
+                                                            value={profile[field.key] || ''}
+                                                            onChange={e => {
+                                                                const val = filterName(e.target.value).replace(/^\s+/, '').slice(0, field.maxLength || 50);
+                                                                const next = { ...profile, [field.key]: val };
+                                                                setProfile(next);
+                                                                validateProfileField(field.key, val, next);
+                                                            }}
+                                                            onBlur={e => validateProfileField(field.key, e.target.value)}
+                                                            placeholder={field.placeholder}
+                                                            maxLength={field.maxLength || 50}
+                                                            aria-invalid={Boolean(errors[field.key])}
+                                                        />
+                                                        {errors[field.key] && <span className="customer-profile-inline-error">{errors[field.key]}</span>}
+                                                    </div>
+                                                ))}
+                                                <div className={`customer-profile-name-note ${profile.name_needs_review ? 'needs-review' : ''}`}>
+                                                    {profile.name_needs_review
+                                                        ? 'We suggested these fields from your existing full name. Please review them before saving.'
+                                                        : 'Your complete legal name is used on bookings and electronic signatures.'}
                                                 </div>
                                                 <div className="form-group">
                                                     <label className="artist-profile-form-label"><Mail size={16} /> Email</label>
@@ -591,18 +655,30 @@ function CustomerProfile() {
                                                     </div>
                                                 </div>
                                                 <div className="form-group">
-                                                    <label className="artist-profile-form-label"><Phone size={16} /> Phone Number</label>
+                                                    <label className="artist-profile-form-label"><Phone size={16} /> Phone Number <span style={{ color: '#ef4444' }}>*</span></label>
                                                     {(() => {
                                                         const { code, currentNo } = getPhoneParts(profile.phone);
                                                         return (
                                                             <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                                                                <CountryCodeSelect value={code} onChange={newCode => { const { currentNo: num } = getPhoneParts(profile.phone); setProfile({ ...profile, phone: newCode + num.replace(/^0+/, '') }); }} />
-                                                                <input type="tel" className="form-input artist-profile-input" style={{ flex: 1 }} value={currentNo}
-                                                                    onChange={e => { const digits = e.target.value.replace(/[^\d]/g, '').slice(0, 11); const { code: currentCode } = getPhoneParts(profile.phone); setProfile({ ...profile, phone: currentCode + digits.replace(/^0+/, '') }); }}
+                                                                <CountryCodeSelect value={code} onChange={newCode => {
+                                                                    const { currentNo: num } = getPhoneParts(profile.phone);
+                                                                    const next = { ...profile, phone: newCode + num.replace(/^0+/, '') };
+                                                                    setProfile(next);
+                                                                    validateProfileField('phone', next.phone, next);
+                                                                }} />
+                                                                <input type="tel" className="form-input artist-profile-input" style={{ flex: 1, border: errors.phone ? '1px solid #ef4444' : undefined }} value={currentNo}
+                                                                    onChange={e => {
+                                                                        const digits = e.target.value.replace(/[^\d]/g, '').slice(0, 11);
+                                                                        const { code: currentCode } = getPhoneParts(profile.phone);
+                                                                        const next = { ...profile, phone: currentCode + digits.replace(/^0+/, '') };
+                                                                        setProfile(next);
+                                                                        validateProfileField('phone', next.phone, next);
+                                                                    }}
                                                                     placeholder="9123456789" maxLength={11} />
                                                             </div>
                                                         );
                                                     })()}
+                                                    {errors.phone && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.phone}</span>}
                                                 </div>
                                                 <div className="form-group">
                                                     <label className="artist-profile-form-label"><MapPin size={16} /> Location</label>

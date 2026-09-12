@@ -56,6 +56,7 @@ function Register() {
 
   const [formData, setFormData] = useState({
     firstName: wizardPrefill.firstName || '',
+    middleName: wizardPrefill.middleName || '',
     lastName: wizardPrefill.lastName || '',
     suffix: wizardPrefill.suffix || '',
     email: wizardPrefill.email || '',
@@ -113,7 +114,7 @@ function Register() {
     const { name, value } = e.target;
     let sanitizedValue = value;
 
-    if (name === 'firstName' || name === 'lastName') {
+    if (name === 'firstName' || name === 'middleName' || name === 'lastName') {
       sanitizedValue = filterName(value).replace(/^\s+/, '').slice(0, 50);
     } else if (name === 'suffix') {
       // Allow letters, periods, and spaces
@@ -230,7 +231,9 @@ function Register() {
 
       const response = await Axios.post(`${API_URL}/api/register`, {
         firstName: formData.firstName.trim(),
+        middleName: formData.middleName.trim() || null,
         lastName: formData.lastName.trim(),
+        suffix: formData.suffix.trim() || null,
         email: formData.email.trim(),
         phone: formData.countryCode + rawPhone,
         password: formData.password,
@@ -285,7 +288,12 @@ function Register() {
                 <span style={{ position: 'absolute', right: '12px', top: '14px', color: '#ef4444', fontSize: '1.1rem', lineHeight: '1', pointerEvents: 'none' }}>*</span>
                 {errors.lastName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.lastName}</small>}
               </div>
-              <div className="form-group" style={{ width: '90px', position: 'relative', flexShrink: 0 }}>
+            </div>
+            <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
+              <div className="form-group" style={{ flex: 1, position: 'relative' }}>
+                <input type="text" name="middleName" className="form-input" placeholder="Middle Name (Optional)" value={formData.middleName} onChange={handleChange} maxLength={50} />
+              </div>
+              <div className="form-group" style={{ width: '110px', position: 'relative', flexShrink: 0 }}>
                 <input type="text" name="suffix" className="form-input" placeholder="Suffix" value={formData.suffix} onChange={handleChange} maxLength={5} />
               </div>
             </div>

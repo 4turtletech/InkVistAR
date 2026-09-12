@@ -6,7 +6,7 @@
  */
 export const filterName = (val) => {
     if (!val) return '';
-    return val.replace(/[^a-zA-ZÀ-ÿ\s'-]/g, '');
+    return val.replace(/[^\p{L}\p{M}\s.'-]/gu, '');
 };
 
 /**
@@ -35,6 +35,104 @@ export const normalizePhilippineMobileNumber = (value) => {
     if (localNumber.startsWith('0')) localNumber = localNumber.slice(1);
 
     return /^9\d{9}$/.test(localNumber) ? `+63${localNumber}` : null;
+};
+
+export const normalizeProfileText = (value = '') => String(value)
+    .replace(/[<>\r\n]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+export const profileNameError = (value) => {
+    const name = normalizeProfileText(value);
+    if (!name) return 'Full name is required.';
+    if (name.length < 2) return 'Full name must be at least 2 characters.';
+    if (name.length > 100) return 'Full name cannot exceed 100 characters.';
+    return '';
+};
+
+export const composeCustomerName = (profile = {}) => [
+    profile.first_name,
+    profile.middle_name,
+    profile.last_name,
+    profile.suffix,
+].map(normalizeProfileText).filter(Boolean).join(' ');
+
+export const suggestCustomerNameParts = (profile = {}) => {
+    if (profile.first_name || profile.last_name) {
+        return {
+            first_name: normalizeProfileText(profile.first_name),
+            middle_name: normalizeProfileText(profile.middle_name),
+            last_name: normalizeProfileText(profile.last_name),
+            suffix: normalizeProfileText(profile.suffix),
+            name_needs_review: Boolean(profile.name_needs_review),
+        };
+    }
+
+    const [first_name = '', ...remaining] = normalizeProfileText(profile.name).split(' ').filter(Boolean);
+    return {
+        first_name,
+        middle_name: '',
+        last_name: remaining.join(' '),
+        suffix: '',
+        name_needs_review: Boolean(profile.name),
+    };
+};
+
+const profileNamePartError = (value, label, { required = false, maxLength = 50 } = {}) => {
+    const part = normalizeProfileText(value);
+    if (!part) return required ? `${label} is required.` : '';
+    if (part.length > maxLength) return `${label} cannot exceed ${maxLength} characters.`;
+    if (!/^[\p{L}\p{M} .'-]+$/u.test(part)) return `${label} contains unsupported characters.`;
+    return '';
+};
+
+export const artistProfileErrors = (profile = {}) => {
+    const errors = {};
+    const experienceText = String(profile.experience_years ?? '').trim();
+    const experience = Number(experienceText);
+    const specialization = normalizeProfileText(profile.specialization);
+    const phoneValue = String(profile.phone || '').trim();
+    const phoneDigits = phoneValue.replace(/\D/g, '');
+    const nameError = profileNameError(profile.name);
+
+    if (nameError) errors.name = nameError;
+    if (phoneValue && (!/^\+?[\d\s()-]+$/.test(phoneValue) || phoneDigits.length < 7 || phoneDigits.length > 15)) {
+        errors.phone = 'Enter a valid phone number with 7 to 15 digits.';
+    }
+    if (!experienceText || !Number.isInteger(experience) || experience < 0 || experience > 50) {
+        errors.experience_years = 'Experience must be a whole number from 0 to 50.';
+    }
+    if (!specialization) errors.specialization = 'Select at least one specialization.';
+    else if (specialization.length > 255) errors.specialization = 'Specialization cannot exceed 255 characters.';
+    if (String(profile.bio || '').length > 1000) errors.bio = 'Bio cannot exceed 1000 characters.';
+
+    return errors;
+};
+
+export const customerProfileErrors = (profile = {}) => {
+    const errors = {};
+    const usesStructuredName = ['first_name', 'middle_name', 'last_name', 'suffix']
+        .some(key => Object.prototype.hasOwnProperty.call(profile, key));
+    if (usesStructuredName) {
+        const firstNameError = profileNamePartError(profile.first_name, 'First name', { required: true });
+        const middleNameError = profileNamePartError(profile.middle_name, 'Middle name');
+        const lastNameError = profileNamePartError(profile.last_name, 'Last name', { required: true });
+        const suffixError = profileNamePartError(profile.suffix, 'Suffix', { maxLength: 10 });
+        if (firstNameError) errors.first_name = firstNameError;
+        if (middleNameError) errors.middle_name = middleNameError;
+        if (lastNameError) errors.last_name = lastNameError;
+        if (suffixError) errors.suffix = suffixError;
+        if (composeCustomerName(profile).length > 100) errors.first_name = 'Complete legal name cannot exceed 100 characters.';
+    } else {
+        const nameError = profileNameError(profile.name);
+        if (nameError) errors.name = nameError;
+    }
+    if (!normalizePhilippineMobileNumber(profile.phone)) {
+        errors.phone = 'Enter a valid PH mobile number, such as 9171234567.';
+    }
+    if (normalizeProfileText(profile.location).length > 200) errors.location = 'Location cannot exceed 200 characters.';
+    if (String(profile.preferences || '').trim().length > 500) errors.preferences = 'Preferences cannot exceed 500 characters.';
+    return errors;
 };
 
 /**

@@ -1,0 +1,147 @@
+.customer-profile-page .portal-content {
+    padding: clamp(1rem, 2.5vw, 2.5rem);
+}
+
+.customer-profile-page .customer-profile-card {
+    position: relative;
+    overflow: visible;
+    padding: clamp(1.25rem, 3vw, 2.5rem);
+    border: 1px solid rgba(190, 144, 85, 0.22);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.10), 0 4px 18px rgba(190, 144, 85, 0.08);
+    backdrop-filter: blur(18px);
+}
+
+.customer-profile-page .artist-profile-picture-section {
+    margin-bottom: 2rem;
+    padding: 0.5rem;
+    text-align: center;
+}
+
+.customer-profile-page .form-group {
+    min-width: 0;
+    margin-bottom: 1rem;
+}
+
+.customer-profile-page .grid-2col {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 1.25rem;
+}
+
+.customer-profile-page .artist-profile-form-label {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.5rem;
+    color: #334155;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.customer-profile-page .artist-profile-form-label svg {
+    color: #be9055;
+    flex: 0 0 auto;
+}
+
+.customer-profile-page .form-input.artist-profile-input {
+    display: block;
+    width: 100%;
+    min-height: 46px;
+    padding: 0.72rem 0.9rem;
+    border: 1.5px solid #dbe3ee;
+    border-radius: 11px;
+    background: #f8fafc;
+    color: #172033;
+    font: inherit;
+    font-size: 0.92rem;
+    line-height: 1.35;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.customer-profile-page textarea.form-input.artist-profile-input {
+    min-height: 92px;
+}
+
+.customer-profile-page .form-input.artist-profile-input:hover:not(:disabled) {
+    border-color: #c8b394;
+}
+
+.customer-profile-page .form-input.artist-profile-input:focus {
+    border-color: #be9055;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(190, 144, 85, 0.13);
+}
+
+.customer-profile-page .form-input.artist-profile-input.error,
+.customer-profile-page .form-input.artist-profile-input[aria-invalid="true"] {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.09);
+}
+
+.customer-profile-page .form-input.artist-profile-input:disabled {
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+.customer-profile-required {
+    color: #ef4444;
+}
+
+.customer-profile-optional {
+    margin-left: auto;
+    color: #94a3b8;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+.customer-profile-inline-error {
+    display: block;
+    margin-top: 0.35rem;
+    color: #dc2626;
+    font-size: 0.75rem;
+    line-height: 1.35;
+}
+
+.customer-profile-name-note {
+    grid-column: 1 / -1;
+    margin: -0.15rem 0 1.15rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid rgba(190, 144, 85, 0.24);
+    border-radius: 10px;
+    background: rgba(190, 144, 85, 0.08);
+    color: #755a37;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.customer-profile-name-note.needs-review {
+    border-color: rgba(217, 119, 6, 0.32);
+    background: #fffbeb;
+    color: #92400e;
+}
+
+.customer-profile-page .btn {
+    min-height: 44px;
+    border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+    .customer-profile-page .portal-content {
+        padding: 0.75rem;
+    }
+
+    .customer-profile-page .customer-profile-card {
+        overflow: visible;
+        padding: 1rem;
+        border-radius: 16px;
+    }
+
+    .customer-profile-page .grid-2col {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+}

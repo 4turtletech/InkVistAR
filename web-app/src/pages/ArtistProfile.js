@@ -15,7 +15,7 @@ import { TATTOO_STYLES } from '../constants/tattooStyles';
 import { getPhoneParts } from '../constants/countryCodes';
 import CountryCodeSelect from '../components/CountryCodeSelect';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
-import { filterName, filterDigits, clampNumber } from '../utils/validation';
+import { artistProfileErrors, filterName, filterDigits, clampNumber, normalizeProfileText } from '../utils/validation';
 const PasswordStrengthMeter = ({ feedback }) => {
   const steps = [
     { met: feedback.hasMinLength, hint: 'At least 8 characters' },
@@ -86,17 +86,8 @@ function ArtistProfile() {
     const navigate = useNavigate();
     const [cropperImage, setCropperImage] = useState(null);
 
-    const validateArtistField = (name, value) => {
-        let errorMsg = '';
-        if (name === 'name') {
-            if (!value.trim()) errorMsg = 'Artist name is required.';
-            else if (value.trim().length < 2) errorMsg = 'Name must be at least 2 characters.';
-        }
-        if (name === 'experience_years') {
-            const num = Number(value);
-            if (isNaN(num) || num < 0) errorMsg = 'Experience must be 0 or more.';
-            else if (num > 50) errorMsg = 'Experience cannot exceed 50 years.';
-        }
+    const validateArtistField = (name, value, currentProfile = profile) => {
+        const errorMsg = artistProfileErrors({ ...currentProfile, [name]: value })[name] || '';
         setErrors(prev => ({ ...prev, [name]: errorMsg }));
         return !errorMsg;
     };
@@ -188,24 +179,13 @@ function ArtistProfile() {
     const handleSave = async (e) => {
         e.preventDefault();
         setMessage({ type: '', text: '' });
-        setSaving(true);
-
-        // Validation
-        const nameValid = validateArtistField('name', profile.name);
-        const expValid = validateArtistField('experience_years', profile.experience_years);
-        if (!nameValid || !expValid) {
+        const profileFieldErrors = artistProfileErrors(profile);
+        setErrors(profileFieldErrors);
+        if (Object.keys(profileFieldErrors).length > 0) {
             setMessage({ type: 'error', text: 'Please fix the highlighted validation errors.' });
-            setSaving(false);
             return;
         }
-
-        if (profile.experience_years < 0 || profile.experience_years > 50) {
-            setMessage({ type: 'error', text: 'Experience years must be between 0 and 50' });
-            setSaving(false);
-            return;
-        }
-
-
+        setSaving(true);
 
         // Password validation
         if (showChangePassword) {
@@ -232,11 +212,11 @@ function ArtistProfile() {
         try {
             // Update profile
             await Axios.put(`${API_URL}/api/artist/profile/${artistId}`, {
-                name: profile.name,
+                name: normalizeProfileText(profile.name),
                 phone: profile.phone,
                 studio_name: profile.studio_name,
-                specialization: profile.specialization,
-                experience_years: profile.experience_years,
+                specialization: normalizeProfileText(profile.specialization),
+                experience_years: Number(profile.experience_years),
                 profileImage: profile.profile_image,
                 bio: profile.bio
             });
@@ -249,11 +229,12 @@ function ArtistProfile() {
                     newPassword: passwords.newPassword
                 });
 
-                // If backend requires re-verification, show success modal
-                if (pwRes.data.requireReverification) {
+                // Password changes revoke active sessions, but no longer
+                // de-verify the account or require a second OTP.
+                if (pwRes.data.requiresLogin || pwRes.data.requireReverification) {
                     localStorage.removeItem('user');
                     localStorage.removeItem('token');
-                    setSuccessModal({ mounted: true, visible: false, message: 'Password changed successfully! A verification email has been sent. Please verify your email to log in again.' });
+                    setSuccessModal({ mounted: true, visible: false, message: 'Password changed successfully. Please sign in with your new password.' });
                     setTimeout(() => setSuccessModal(prev => ({ ...prev, visible: true })), 10);
                     return;
                 }
@@ -462,7 +443,7 @@ function ArtistProfile() {
                                             </div>
                                         </div>
                                         <div className="form-group">
-                                            <label className="artist-profile-form-label"><Phone size={16} /> Phone Number</label>
+                                            <label className="artist-profile-form-label"><Phone size={16} /> Phone Number (Optional)</label>
                                             {(() => {
                                                 const { code, currentNo } = getPhoneParts(profile.phone);
                                                 return (
@@ -471,18 +452,22 @@ function ArtistProfile() {
                                                             value={code}
                                                             onChange={newCode => {
                                                                 const { currentNo: num } = getPhoneParts(profile.phone);
-                                                                setProfile({ ...profile, phone: newCode + num.replace(/^0+/, '') });
+                                                                const next = { ...profile, phone: newCode + num.replace(/^0+/, '') };
+                                                                setProfile(next);
+                                                                validateArtistField('phone', next.phone, next);
                                                             }}
                                                         />
                                                         <input
                                                             type="tel"
                                                             className="form-input artist-profile-input"
-                                                            style={{ flex: 1 }}
+                                                            style={{ flex: 1, border: errors.phone ? '1px solid #ef4444' : undefined }}
                                                             value={currentNo}
                                                             onChange={e => {
                                                                 const digits = filterDigits(e.target.value).replace(/^0+/, '').slice(0, 11);
                                                                 const { code: currentCode } = getPhoneParts(profile.phone);
-                                                                setProfile({ ...profile, phone: currentCode + digits });
+                                                                const next = { ...profile, phone: currentCode + digits };
+                                                                setProfile(next);
+                                                                validateArtistField('phone', next.phone, next);
                                                             }}
                                                             placeholder="9123456789"
                                                             maxLength={11}
@@ -490,6 +475,7 @@ function ArtistProfile() {
                                                     </div>
                                                 );
                                             })()}
+                                            {errors.phone && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.phone}</span>}
                                         </div>
                                         <div className="form-group">
                                             <label className="artist-profile-form-label"><Building size={16} /> Studio Name</label>
@@ -526,17 +512,22 @@ function ArtistProfile() {
                                     </h3>
                                     <div className="grid-2col" style={{ gap: '12px' }}>
                                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                            <label className="artist-profile-form-label"><Palette size={16} /> Specialization / Styles</label>
+                                            <label className="artist-profile-form-label"><Palette size={16} /> Specialization / Styles <span style={{ color: '#ef4444' }}>*</span></label>
                                             <MultiSelectDropdown 
                                                 options={TATTOO_STYLES}
                                                 selectedStr={profile.specialization}
-                                                onChange={(newVal) => setProfile({ ...profile, specialization: newVal })}
+                                                onChange={(newVal) => {
+                                                    const next = { ...profile, specialization: newVal };
+                                                    setProfile(next);
+                                                    validateArtistField('specialization', newVal, next);
+                                                }}
                                                 placeholder="Select your primary specialization(s)"
                                             />
+                                            {errors.specialization && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.specialization}</span>}
                                             <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginTop: '8px' }}>Choose the tattoo styles that best represent your work</span>
                                         </div>
                                         <div className="form-group">
-                                            <label className="artist-profile-form-label"><Clock size={16} /> Years of Experience</label>
+                                            <label className="artist-profile-form-label"><Clock size={16} /> Years of Experience <span style={{ color: '#ef4444' }}>*</span></label>
                                             <input
                                                 type="number"
                                                 className="form-input artist-profile-input"
