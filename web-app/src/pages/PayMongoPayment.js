@@ -12,9 +12,8 @@ const PayMongoPayment = () => {
     const navigate = useNavigate();
     const stateData = location.state || { appointmentId: null, price: 0, type: null, remainingBalance: 0, serviceType: 'Tattoo Session', bookingCode: null };
     const { appointmentId, price, type, remainingBalance, serviceType, bookingCode } = stateData;
-
-
-
+    const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+    const expectedCustomerName = stateData.customerName || currentUser?.name || '';
     const [status, setStatus] = useState(type === 'balance' ? 'ready' : 'selection'); // selection, ready, processing, failed
     const [paymentType, setPaymentType] = useState(type === 'balance' ? 'balance' : 'deposit');
     const [customAmount, setCustomAmount] = useState('');
@@ -46,8 +45,8 @@ const PayMongoPayment = () => {
     const initializeSession = async (overrideType, redirectToCheckout = false) => {
         const finalType = (typeof overrideType === 'string') ? overrideType : paymentType;
         if (!appointmentId) {
-            alert('Error: No appointment ID found. Cannot proceed with payment.');
-            navigate('/customer/bookings');
+            setErrors({ form: 'No appointment was selected. Return to your bookings and choose Pay again.' });
+            setStatus('failed');
             return;
         }
 
@@ -89,7 +88,7 @@ const PayMongoPayment = () => {
             console.error('Failed to create checkout session:', error);
             const errorMsg = error.response?.data?.message || error.message || 'Failed to initialize payment.';
             setStatus('failed');
-            alert(`Error: ${errorMsg}\n\nPlease try again or contact support.`);
+            setErrors({ form: `${errorMsg} Please try again or contact support.` });
         }
     };
 
@@ -103,11 +102,11 @@ const PayMongoPayment = () => {
             });
         } catch (error) {
             console.error('Failed to log consent:', error);
-            alert('Failed to record consent. Please try again.');
             setStatus(type === 'balance' ? 'ready' : 'selection');
-            return;
+            throw error;
         }
 
+        setShowWaiverModal(false);
         await initializeSession(paymentType, true);
     };
 
@@ -281,6 +280,7 @@ const PayMongoPayment = () => {
                         <div style={{ color: '#ef4444', marginBottom: '20px' }}>
                             <RefreshCw size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
                             <p style={{ fontWeight: '600' }}>Payment initialization failed.</p>
+                            {errors.form && <p style={{ color: '#b91c1c', fontSize: '0.88rem', lineHeight: 1.5 }}>{errors.form}</p>}
                         </div>
                         <button 
                             onClick={() => setStatus(type === 'balance' ? 'ready' : 'selection')}
@@ -303,12 +303,10 @@ const PayMongoPayment = () => {
             <PaymentConfirmationModal 
                 isOpen={showWaiverModal}
                 onClose={() => setShowWaiverModal(false)}
-                onAccept={(consentData) => {
-                    setShowWaiverModal(false);
-                    handlePayment(consentData);
-                }}
+                onAccept={handlePayment}
                 amount={paymentType === 'deposit' ? depositPrice : paymentType === 'custom' ? Number(customAmount) : location.state?.remainingBalance || price}
                 paymentType={paymentType === 'deposit' ? 'Downpayment' : paymentType === 'balance' ? 'Remaining Balance' : paymentType === 'custom' ? 'Custom Partial' : 'Full Payment'}
+                expectedCustomerName={expectedCustomerName}
             />
         </div>
     );

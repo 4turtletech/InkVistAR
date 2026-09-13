@@ -31,3 +31,10 @@ test('electronic signature must match the customer profile name', () => {
   assert.equal(customerSignatureError('Juan dela Cruz', 'Juan dela Cruz'), '');
   assert.match(source, /customerSignatureError\(\s*consentForm\.signatureEvidence,\s*selectedAppointment\.customer_name/s);
 });
+
+test('every mobile PayMongo payment requires a fresh waiver review', () => {
+  assert.doesNotMatch(source, /getAppointmentConsent|hasValidConsent/);
+  assert.match(source, /onPress=\{\(\) => reviewConsentForPayment\('balance'\)\}/);
+  assert.match(source, /onPress=\{\(\) => reviewConsentForPayment\('deposit'\)\}/);
+  assert.match(source, /reviewConsentForPayment\('custom', 500\)/);
+});

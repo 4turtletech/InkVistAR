@@ -20,7 +20,7 @@ import { useTheme } from '../src/context/ThemeContext';
 import { colors, typography, borderRadius, shadows } from '../src/theme';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
-import { getCustomerAppointments, createCheckoutSession, createConsentRecord, getAppointmentConsent, getPaymentStatus, getCustomerTransactions, API_URL } from '../src/utils/api';
+import { getCustomerAppointments, createCheckoutSession, createConsentRecord, getPaymentStatus, getCustomerTransactions, API_URL } from '../src/utils/api';
 import { cancelAppointment } from '../src/api/customerAPI';
 import { customerSignatureError } from '../src/utils/consentValidation';
 
@@ -216,23 +216,6 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
     });
     setShowPaymentOptions(false);
     setShowConsentModal(true);
-  };
-
-  const continueExistingPaymentFlow = async (type, customAmt = null) => {
-    if (!selectedAppointment) return;
-    setPaymentLoading(true);
-    const response = await getAppointmentConsent(selectedAppointment.id);
-    const consent = response?.consent;
-    const hasValidConsent = response.success
-      && consent?.procedure_consent && consent?.payment_consent && consent?.health_data_consent
-      && /^[a-f0-9]{64}$/.test(String(consent?.waiver_hash || ''))
-      && String(consent?.signature_evidence || '').trim().length >= 3;
-    setPaymentLoading(false);
-    if (hasValidConsent) {
-      await triggerPayment(type, customAmt);
-      return;
-    }
-    reviewConsentForPayment(type, customAmt);
   };
 
   const submitConsentAndPay = async () => {
@@ -808,14 +791,14 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
                 <Text style={{ ...typography.body, color: theme.textSecondary, marginBottom: 16 }}>Choose how you'd like to pay for your session.</Text>
                 <AnimatedTouchable 
                   style={{ backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, marginBottom: 12, borderWidth: 1, borderColor: theme.border }}
-                  onPress={() => continueExistingPaymentFlow('balance')}
+                  onPress={() => reviewConsentForPayment('balance')}
                 >
                   <Text style={{ ...typography.h4, color: theme.textPrimary, marginBottom: 4 }}>Pay Full Balance</Text>
                   <Text style={{ ...typography.bodySmall, color: theme.textSecondary }}>Settle the remaining amount for this session.</Text>
                 </AnimatedTouchable>
                 <AnimatedTouchable 
                   style={{ backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, marginBottom: 12, borderWidth: 1, borderColor: theme.border }}
-                  onPress={() => continueExistingPaymentFlow('deposit')}
+                  onPress={() => reviewConsentForPayment('deposit')}
                 >
                   <Text style={{ ...typography.h4, color: theme.textPrimary, marginBottom: 4 }}>Pay Downpayment</Text>
                   <Text style={{ ...typography.bodySmall, color: theme.textSecondary }}>Pay a standard ₱5,000 to secure or maintain your spot.</Text>
@@ -827,9 +810,9 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
                     setTimeout(() => {
                       Alert.alert('Custom Payment', 'Please select the amount you wish to pay.', [
                         { text: 'Cancel', style: 'cancel' },
-                        { text: '\u20b1500', onPress: () => continueExistingPaymentFlow('custom', 500) },
-                        { text: '\u20b11,000', onPress: () => continueExistingPaymentFlow('custom', 1000) },
-                        { text: '\u20b12,500', onPress: () => continueExistingPaymentFlow('custom', 2500) }
+                        { text: '\u20b1500', onPress: () => reviewConsentForPayment('custom', 500) },
+                        { text: '\u20b11,000', onPress: () => reviewConsentForPayment('custom', 1000) },
+                        { text: '\u20b12,500', onPress: () => reviewConsentForPayment('custom', 2500) }
                       ]);
                     }, 350);
                   }}

@@ -21,7 +21,13 @@ const WAIVER_CLAUSES = [
 const checkboxStyle = { marginTop: '4px', width: '18px', height: '18px', accentColor: '#be9055' };
 const labelStyle = { display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '12px', cursor: 'pointer' };
 
-export default function PaymentConfirmationModal({ isOpen, onClose, onAccept, amount, paymentType }) {
+const normalizeSignature = (value) => String(value || '')
+    .normalize('NFKC')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLocaleLowerCase('en-US');
+
+export default function PaymentConfirmationModal({ isOpen, onClose, onAccept, amount, paymentType, expectedCustomerName }) {
     const [staffList, setStaffList] = useState([]);
     const [ageConfirmed, setAgeConfirmed] = useState(false);
     const [procedureConsent, setProcedureConsent] = useState(false);
@@ -31,6 +37,10 @@ export default function PaymentConfirmationModal({ isOpen, onClose, onAccept, am
     const [photoConsent, setPhotoConsent] = useState(false);
     const [signature, setSignature] = useState('');
     const [witnessId, setWitnessId] = useState('');
+    const [signatureTouched, setSignatureTouched] = useState(false);
+    const [signatureApiError, setSignatureApiError] = useState('');
+    const [submissionError, setSubmissionError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -42,6 +52,10 @@ export default function PaymentConfirmationModal({ isOpen, onClose, onAccept, am
         setPhotoConsent(false);
         setSignature('');
         setWitnessId('');
+        setSignatureTouched(false);
+        setSignatureApiError('');
+        setSubmissionError('');
+        setIsSubmitting(false);
         axios.get(`${API_URL}/api/public/staff`)
             .then((res) => { if (res.data.success) setStaffList(res.data.staff); })
             .catch((error) => console.error('Failed to fetch staff:', error));
@@ -49,26 +63,51 @@ export default function PaymentConfirmationModal({ isOpen, onClose, onAccept, am
 
     if (!isOpen) return null;
 
+    const normalizedExpectedName = normalizeSignature(expectedCustomerName);
+    const normalizedEnteredSignature = normalizeSignature(signature);
+    const signatureIsLongEnough = signature.trim().length > 2;
+    const signatureMatches = !normalizedExpectedName || normalizedEnteredSignature === normalizedExpectedName;
+    const signatureError = signatureApiError || (signatureTouched && !signatureIsLongEnough
+        ? 'Your full legal name is required.'
+        : signatureTouched && !signatureMatches
+            ? `Enter your full legal name exactly as shown on your profile${expectedCustomerName ? `: ${expectedCustomerName}` : '.'}`
+            : '');
     const canSubmit = ageConfirmed && procedureConsent && paymentConsent
-        && healthDataConsent && signature.trim().length > 2;
+        && healthDataConsent && signatureIsLongEnough && signatureMatches && !isSubmitting;
     const displayAmount = `₱${(amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
+        setSignatureTouched(true);
+        setSignatureApiError('');
+        setSubmissionError('');
         if (!canSubmit) return;
         const witness = staffList.find((staff) => String(staff.id) === String(witnessId));
-        onAccept({
-            ageConfirmed,
-            procedureConsent,
-            paymentConsent,
-            healthDataConsent,
-            marketingConsent,
-            photoConsent,
-            signatureEvidence: signature.trim(),
-            witnessName: witness?.name || null,
-            witnessUserId: witness?.id || null,
-            waiverVersion: '1.3-adult-confirmation-payment',
-            waiverText: WAIVER_CLAUSES.join('\n'),
-        });
+        setIsSubmitting(true);
+        try {
+            await onAccept({
+                ageConfirmed,
+                procedureConsent,
+                paymentConsent,
+                healthDataConsent,
+                marketingConsent,
+                photoConsent,
+                signatureEvidence: signature.trim(),
+                witnessName: witness?.name || null,
+                witnessUserId: witness?.id || null,
+                waiverVersion: '1.3-adult-confirmation-payment',
+                waiverText: WAIVER_CLAUSES.join('\n'),
+            });
+        } catch (error) {
+            const message = error.response?.data?.message || error.message || 'Unable to record consent. Please try again.';
+            if (error.response?.data?.code === 'signature_mismatch') {
+                setSignatureTouched(true);
+                setSignatureApiError(message);
+            } else {
+                setSubmissionError(message);
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -122,7 +161,22 @@ export default function PaymentConfirmationModal({ isOpen, onClose, onAccept, am
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
                             <label style={{ fontWeight: 600, fontSize: '0.9rem', color: '#475569' }}>Electronic Signature (Type your full name) *</label>
-                            <input type="text" value={signature} onChange={(event) => setSignature(event.target.value)} placeholder="E.g. Juan Dela Cruz" style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', width: '100%', boxSizing: 'border-box' }} />
+                            <input
+                                type="text"
+                                value={signature}
+                                onChange={(event) => {
+                                    setSignature(event.target.value.slice(0, 255));
+                                    setSignatureTouched(true);
+                                    setSignatureApiError('');
+                                    setSubmissionError('');
+                                }}
+                                onBlur={() => setSignatureTouched(true)}
+                                placeholder="E.g. Juan Dela Cruz"
+                                aria-invalid={Boolean(signatureError)}
+                                aria-describedby={signatureError ? 'payment-signature-error' : undefined}
+                                style={{ padding: '12px', borderRadius: '8px', border: `1px solid ${signatureError ? '#dc2626' : '#cbd5e1'}`, fontSize: '1rem', width: '100%', boxSizing: 'border-box' }}
+                            />
+                            {signatureError && <small id="payment-signature-error" className="tos-inline-error">{signatureError}</small>}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             <label style={{ fontWeight: 600, fontSize: '0.9rem', color: '#475569' }}>Artist / Staff Witness (Optional)</label>
@@ -131,13 +185,14 @@ export default function PaymentConfirmationModal({ isOpen, onClose, onAccept, am
                                 {staffList.map((staff) => <option key={staff.id} value={staff.id}>{staff.name} ({staff.user_type})</option>)}
                             </select>
                         </div>
+                        {submissionError && <div className="tos-form-error" role="alert">{submissionError}</div>}
                     </div>
                 </div>
 
                 <div className="tos-modal-footer" style={{ display: 'flex', gap: '12px', width: '100%', justifyContent: 'flex-end', background: '#f8fafc', padding: '16px 24px', borderTop: '1px solid #e2e8f0', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px' }}>
-                    <button className="tos-btn-decline" onClick={onClose}>Cancel</button>
+                    <button className="tos-btn-decline" onClick={onClose} disabled={isSubmitting}>Cancel</button>
                     <button className="tos-btn-accept" onClick={handleSubmit} disabled={!canSubmit} style={{ background: canSubmit ? '#be9055' : '#cbd5e1', cursor: canSubmit ? 'pointer' : 'not-allowed' }}>
-                        <Shield size={16} /> Proceed to Payment
+                        <Shield size={16} /> {isSubmitting ? 'Recording Consent...' : 'Proceed to Payment'}
                     </button>
                 </div>
             </div>
