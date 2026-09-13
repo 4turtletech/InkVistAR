@@ -5,6 +5,7 @@ import CustomerSideNav from '../components/CustomerSideNav';
 import { MessageSquare, Plus, X, Send, ChevronDown, ChevronUp, Paperclip, Shield, UserCircle } from 'lucide-react';
 import './PortalStyles.css';
 import './CustomerStyles.css';
+import './CustomerReports.css';
 import ConfirmModal from '../components/ConfirmModal';
 import ImageLightbox from '../components/ImageLightbox';
 
@@ -277,7 +278,7 @@ function CustomerReports() {
         {/* Compose Modal */}
         {showCompose && (
           <div className={`modal-overlay ${composeVisible ? 'open' : ''}`} onClick={closeCompose}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '560px' }}>
+            <div className="modal-content customer-report-modal" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{ background: 'rgba(190,144,85,0.1)', borderRadius: '50%', padding: '10px', display: 'flex' }}>
@@ -290,12 +291,12 @@ function CustomerReports() {
                 </div>
                 <button className="close-btn" onClick={closeCompose}><X size={24} /></button>
               </div>
-              <form onSubmit={handleSubmit}>
-                <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-                  <div className="grid-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+              <form className="customer-report-form" onSubmit={handleSubmit}>
+                <div className="modal-body customer-report-body">
+                  <div className="grid-form-row customer-report-grid">
                     <div className="form-group">
                       <label className="premium-label">Report Type</label>
-                      <select className="premium-select-v2" value={form.report_type} onChange={e => setForm(p => ({ ...p, report_type: e.target.value }))} style={{ width: '100%' }}>
+                      <select className="premium-select-v2 customer-report-control" value={form.report_type} onChange={e => setForm(p => ({ ...p, report_type: e.target.value }))}>
                         <option value="bug">Bug Report</option>
                         <option value="feature">Feature Request</option>
                         <option value="ui_ux">UI/UX Issue</option>
@@ -304,32 +305,32 @@ function CustomerReports() {
                     </div>
                     <div className="form-group">
                       <label className="premium-label">Category</label>
-                      <select className="premium-select-v2" value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} style={{ width: '100%' }}>
+                      <select className="premium-select-v2 customer-report-control" value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>
                         {Object.entries(CAT_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                       </select>
                     </div>
                   </div>
                   <div className="form-group" style={{ marginBottom: '14px', width: '100%', display: 'flex', flexDirection: 'column', textAlign: 'left', alignItems: 'stretch' }}>
                     <label className="premium-label">Title *</label>
-                    <input type="text" className="form-input" required maxLength={255} value={form.title}
+                    <input type="text" className="form-input customer-report-control" required maxLength={255} value={form.title}
                       onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Brief summary of the issue" style={{ width: '100%', boxSizing: 'border-box' }} />
                   </div>
                   <div className="form-group" style={{ marginBottom: '14px', width: '100%', display: 'flex', flexDirection: 'column', textAlign: 'left', alignItems: 'stretch' }}>
                     <label className="premium-label">Description *</label>
-                    <textarea className="form-input" required rows={4} value={form.description}
+                    <textarea className="form-input customer-report-control customer-report-textarea" required rows={4} value={form.description}
                       onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Describe the issue or feedback in detail..." style={{ resize: 'vertical', width: '100%', boxSizing: 'border-box' }} />
                   </div>
                   {form.report_type === 'bug' && (
                     <div className="form-group" style={{ marginBottom: '14px', width: '100%', display: 'flex', flexDirection: 'column', textAlign: 'left', alignItems: 'stretch' }}>
                       <label className="premium-label">Steps to Reproduce (Optional)</label>
-                      <textarea className="form-input" rows={3} value={form.steps_to_reproduce}
+                      <textarea className="form-input customer-report-control customer-report-textarea" rows={3} value={form.steps_to_reproduce}
                         onChange={e => setForm(p => ({ ...p, steps_to_reproduce: e.target.value }))} placeholder="1. Go to...\n2. Click on...\n3. Observe..." style={{ resize: 'vertical', width: '100%', boxSizing: 'border-box' }} />
                     </div>
                   )}
                   <div className="form-group">
                     <label className="premium-label">Attachment (Optional, max 3MB)</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <label style={{
+                    <div className="customer-report-attachment-row">
+                      <label className="customer-report-file-button" style={{
                         padding: '8px 16px', border: '1px dashed #cbd5e1', borderRadius: '8px', cursor: 'pointer',
                         fontSize: '0.82rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px'
                       }}>
@@ -346,7 +347,7 @@ function CustomerReports() {
                     </div>
                   </div>
                 </div>
-                <div className="modal-footer">
+                <div className="modal-footer customer-report-footer">
                   <button type="button" className="btn btn-secondary" onClick={closeCompose}>Cancel</button>
                   <button type="submit" className="btn btn-primary" disabled={submitting} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     {submitting ? 'Submitting...' : <><Send size={15} /> Submit Report</>}

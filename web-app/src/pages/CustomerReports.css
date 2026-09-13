@@ -1,0 +1,214 @@
+/* Submit report modal ---------------------------------------------------
+   This modal owns its form styling so lazy-loaded portal styles cannot make
+   the controls fall back to their browser defaults. */
+.modal-content.customer-report-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(620px, calc(100vw - 40px));
+  max-width: 620px;
+  max-height: min(88vh, 760px);
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.25);
+}
+
+.customer-report-modal .modal-header {
+  flex: 0 0 auto;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e7ecf3;
+}
+
+.customer-report-modal .modal-header > div {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.customer-report-modal .modal-header h2 {
+  margin: 0;
+  color: #182338;
+  font-size: 1.2rem;
+  line-height: 1.25;
+}
+
+.customer-report-modal .modal-header p {
+  margin: 0.18rem 0 0;
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.customer-report-form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.customer-report-modal .customer-report-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  padding: 1.5rem;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.customer-report-modal .customer-report-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.customer-report-modal .form-group {
+  display: flex;
+  align-items: stretch;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  margin: 0 0 1rem;
+  text-align: left;
+}
+
+.customer-report-modal .customer-report-grid .form-group,
+.customer-report-modal .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.customer-report-modal .premium-label {
+  display: block;
+  margin: 0 0 0.45rem;
+  color: #526078;
+  font-size: 0.76rem;
+  font-weight: 750;
+  letter-spacing: 0.035em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.customer-report-modal .customer-report-control {
+  display: block;
+  width: 100% !important;
+  min-width: 0;
+  min-height: 46px;
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #d7e0eb;
+  border-radius: 10px;
+  outline: none;
+  background: #f8fafc;
+  color: #1e293b;
+  font: inherit;
+  font-size: 0.93rem;
+  line-height: 1.35;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.customer-report-modal select.customer-report-control {
+  cursor: pointer;
+}
+
+.customer-report-modal .customer-report-control:hover {
+  border-color: #c2cedd;
+  background: #fff;
+}
+
+.customer-report-modal .customer-report-control:focus {
+  border-color: #be9055;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(190, 144, 85, 0.13);
+}
+
+.customer-report-modal .customer-report-control::placeholder {
+  color: #9aa7b8;
+}
+
+.customer-report-modal .customer-report-textarea {
+  min-height: 108px;
+  resize: vertical;
+}
+
+.customer-report-attachment-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-height: 52px;
+}
+
+.customer-report-modal .customer-report-file-button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.65rem 1rem !important;
+  border: 1.5px dashed #c7d1df !important;
+  border-radius: 10px !important;
+  background: #f8fafc;
+  color: #526078 !important;
+  font-size: 0.84rem !important;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.customer-report-modal .customer-report-file-button:hover {
+  border-color: #be9055 !important;
+  background: #fbf7f1;
+  color: #9b703c !important;
+}
+
+.customer-report-modal .customer-report-footer {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.customer-report-modal .customer-report-footer .btn {
+  min-height: 42px;
+  padding: 0.68rem 1.1rem;
+  border-radius: 9px;
+}
+
+.customer-report-modal .customer-report-footer .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 145px;
+}
+
+@media (max-width: 640px) {
+  .modal-content.customer-report-modal {
+    width: calc(100vw - 24px);
+    max-height: 90vh;
+    border-radius: 16px;
+  }
+
+  .customer-report-modal .modal-header,
+  .customer-report-modal .customer-report-body,
+  .customer-report-modal .customer-report-footer {
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .customer-report-modal .customer-report-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-report-modal .customer-report-grid .form-group:first-child {
+    margin-bottom: 0;
+  }
+
+  .customer-report-modal .customer-report-footer .btn {
+    flex: 1 1 0;
+  }
+}
