@@ -95,21 +95,52 @@ function AdminNotifications() {
             // Generate System-wide Alerts (Mirroring Dashboard logic for consistency)
             const alerts = [];
 
-            // 1. Inventory Alerts
+            // 1. Inventory Alerts -- summarize by severity instead of creating
+            // one notification per item. Missing legacy stock values are treated
+            // conservatively as zero until the record is corrected.
             if (inventoryResponse.data.success) {
-                const lowStockItems = inventoryResponse.data.data.filter(item => item.current_stock <= item.min_stock);
-                lowStockItems.forEach(item => {
+                const inventoryItems = Array.isArray(inventoryResponse.data.data) ? inventoryResponse.data.data : [];
+                const normalizedItems = inventoryItems.map(item => {
+                    const parsedCurrent = Number(item.current_stock);
+                    const parsedMinimum = Number(item.min_stock);
+                    return {
+                        ...item,
+                        currentStock: item.current_stock === null || item.current_stock === '' || !Number.isFinite(parsedCurrent)
+                            ? 0
+                            : Math.max(0, parsedCurrent),
+                        minStock: item.min_stock === null || item.min_stock === '' || !Number.isFinite(parsedMinimum)
+                            ? 0
+                            : Math.max(0, parsedMinimum)
+                    };
+                });
+                const outOfStockItems = normalizedItems.filter(item => item.currentStock === 0);
+                const lowStockItems = normalizedItems.filter(item => item.currentStock > 0 && item.currentStock <= item.minStock);
+
+                if (outOfStockItems.length > 0) {
                     alerts.push({
-                        id: `inv-${item.id}`,
-                        title: 'Inventory Alert',
-                        message: `Low stock detected: ${item.name} (${item.current_stock} remaining).`,
+                        id: 'inv-out-of-stock',
+                        title: 'Inventory Out of Stock',
+                        message: `${outOfStockItems.length} inventory item${outOfStockItems.length === 1 ? ' is' : 's are'} out of stock and require restocking.`,
+                        type: 'inventory',
+                        severity: 'critical',
+                        created_at: new Date().toISOString(),
+                        is_read: false,
+                        path: '/admin/inventory?stock=out_of_stock'
+                    });
+                }
+
+                if (lowStockItems.length > 0) {
+                    alerts.push({
+                        id: 'inv-low-stock',
+                        title: 'Inventory Low Stock',
+                        message: `${lowStockItems.length} inventory item${lowStockItems.length === 1 ? ' is' : 's are'} at or below the minimum stock level.`,
                         type: 'inventory',
                         severity: 'high',
                         created_at: new Date().toISOString(),
                         is_read: false,
-                        path: '/admin/inventory'
+                        path: '/admin/inventory?stock=low'
                     });
-                });
+                }
             }
 
             // 2. Pending Appointments
@@ -160,9 +191,10 @@ function AdminNotifications() {
 
             setNotifications(prev => {
                 // Silent merge: only update if data actually changed
-                const prevIds = prev.map(n => `${n.id}-${n.is_read}`).join(',');
-                const newIds = combined.map(n => `${n.id}-${n.is_read}`).join(',');
-                return prevIds !== newIds ? combined : prev;
+                const notificationSignature = list => list.map(n => (
+                    `${n.id}-${n.is_read}-${n.title}-${n.message}-${n.path || ''}`
+                )).join(',');
+                return notificationSignature(prev) !== notificationSignature(combined) ? combined : prev;
             });
             setLoading(false);
         } catch (error) {

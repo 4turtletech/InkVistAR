@@ -5,7 +5,8 @@
     isolation: isolate;
     min-height: 100vh;
     padding: 2rem;
-    overflow-x: hidden;
+    /* Keep the browser viewport as the only vertical scroll container. */
+    overflow-x: clip;
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
 }
 

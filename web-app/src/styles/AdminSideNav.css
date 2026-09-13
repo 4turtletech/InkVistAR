@@ -260,7 +260,8 @@
     margin-left: 260px;
     width: calc(100% - 260px);
     max-width: calc(100% - 260px);
-    overflow-x: hidden;
+    /* Clip wide page content without making this pane a vertical scroller. */
+    overflow-x: clip;
     transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

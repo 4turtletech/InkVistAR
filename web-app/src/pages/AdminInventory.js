@@ -33,6 +33,12 @@ const getStockFilterFromSearch = (search) => {
     return INVENTORY_STOCK_FILTERS.includes(requestedFilter) ? requestedFilter : 'all';
 };
 
+const normalizeInventoryStock = (value, fallback = 0) => {
+    if (value === null || value === undefined || value === '') return fallback;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+};
+
 const escapePrintHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({
     '&': '&amp;',
     '<': '&lt;',
@@ -95,20 +101,49 @@ function AdminInventory() {
     // Validation state
     const [errors, setErrors] = useState({});
 
-    const validateInventoryField = (field, value) => {
+    const getInventoryFieldError = (field, value, values = formData) => {
         let errorMsg = "";
         if (field === 'name' && (!value || !value.trim())) errorMsg = "Name is required";
         if (field === 'unit' && (!value || !value.trim())) errorMsg = "Unit is required";
-        if (['currentStock', 'minStock', 'maxStock', 'cost', 'retailPrice'].includes(field) && Number(value) < 0) {
+
+        if (['currentStock', 'minStock', 'maxStock'].includes(field)) {
+            if (value === '' || value === null || value === undefined) {
+                return 'This stock value is required';
+            }
+            const numericValue = Number(value);
+            if (!Number.isInteger(numericValue)) return 'Enter a whole number';
+            if (numericValue < 0) return 'Cannot be negative';
+
+            const minimum = Number(values.minStock);
+            const maximum = Number(values.maxStock);
+            const hasMinimum = values.minStock !== '' && values.minStock !== null && values.minStock !== undefined;
+            const hasMaximum = values.maxStock !== '' && values.maxStock !== null && values.maxStock !== undefined;
+            if (field === 'minStock' && hasMaximum && Number.isInteger(maximum) && numericValue >= maximum) {
+                return 'Minimum stock must be less than maximum stock';
+            }
+            if (field === 'maxStock' && hasMinimum && Number.isInteger(minimum) && numericValue <= minimum) {
+                return 'Maximum stock must be greater than minimum stock';
+            }
+        }
+
+        if (['cost', 'retailPrice'].includes(field) && Number(value) < 0) {
             errorMsg = "Cannot be negative";
         }
-        setErrors(prev => ({ ...prev, [field]: errorMsg }));
-        return errorMsg === "";
+        return errorMsg;
     };
 
     const handleInventoryInputChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        validateInventoryField(field, value);
+        const nextFormData = { ...formData, [field]: value };
+        setFormData(nextFormData);
+
+        const fieldsToValidate = ['currentStock', 'minStock', 'maxStock'].includes(field)
+            ? ['currentStock', 'minStock', 'maxStock']
+            : [field];
+        const nextErrors = fieldsToValidate.reduce((result, fieldName) => ({
+            ...result,
+            [fieldName]: getInventoryFieldError(fieldName, nextFormData[fieldName], nextFormData)
+        }), {});
+        setErrors(prev => ({ ...prev, ...nextErrors }));
     };
 
     const normalizeStockInput = (value) => {
@@ -336,10 +371,10 @@ function AdminInventory() {
                 // Map backend fields to frontend state if needed, but they match mostly
                 const mapped = res.data.data.map(i => ({
                     ...i,
-                    currentStock: i.current_stock,
+                    currentStock: normalizeInventoryStock(i.current_stock, 0),
                     lastRestocked: i.last_restocked,
-                    minStock: i.min_stock,
-                    maxStock: i.max_stock,
+                    minStock: normalizeInventoryStock(i.min_stock, 0),
+                    maxStock: normalizeInventoryStock(i.max_stock, 100),
                     retailPrice: i.retail_price
                 }));
                 setInventory(mapped);
@@ -598,9 +633,12 @@ function AdminInventory() {
     };
 
     const getStockStatus = (current, min, max) => {
-        if (current === 0) return 'out_of_stock';
-        if (min && current <= min) return 'low';
-        if (max && current > max) return 'overstock';
+        const currentStock = normalizeInventoryStock(current, 0);
+        const minimumStock = normalizeInventoryStock(min, 0);
+        const maximumStock = normalizeInventoryStock(max, 100);
+        if (currentStock === 0) return 'out_of_stock';
+        if (currentStock <= minimumStock) return 'low';
+        if (maximumStock > 0 && currentStock > maximumStock) return 'overstock';
         return 'optimal';
     };
 
@@ -610,12 +648,12 @@ function AdminInventory() {
             name: item.name,
             image: item.image || '',
             category: item.category,
-            currentStock: item.currentStock,
+            currentStock: normalizeInventoryStock(item.currentStock, 0),
             unit: item.unit,
             cost: item.cost,
             retailPrice: item.retailPrice || 0,
-            minStock: item.minStock || 0,
-            maxStock: item.maxStock || 0,
+            minStock: normalizeInventoryStock(item.minStock, 0),
+            maxStock: normalizeInventoryStock(item.maxStock, 100),
             supplier: item.supplier || '',
             manufacturer: item.manufacturer || '',
             lot_number: item.lot_number || '',
@@ -628,6 +666,7 @@ function AdminInventory() {
             recall_status: item.recall_status || 'none',
             storage_requirements: item.storage_requirements || ''
         });
+        setErrors({});
         openModal(setAddEditModal);
     };
 
@@ -704,6 +743,7 @@ function AdminInventory() {
             recall_status: 'none',
             storage_requirements: ''
         });
+        setErrors({});
         openModal(setAddEditModal);
     };
 
@@ -711,17 +751,15 @@ function AdminInventory() {
         e.preventDefault();
         if (isSaving) return;
 
-        let valid = true;
-        valid = validateInventoryField('name', formData.name) && valid;
-        valid = validateInventoryField('unit', formData.unit) && valid;
-        valid = validateInventoryField('cost', formData.cost) && valid;
-        valid = validateInventoryField('retailPrice', formData.retailPrice) && valid;
-        valid = validateInventoryField('currentStock', formData.currentStock) && valid;
-        valid = validateInventoryField('minStock', formData.minStock) && valid;
-        valid = validateInventoryField('maxStock', formData.maxStock) && valid;
+        const fieldsToValidate = ['name', 'unit', 'cost', 'retailPrice', 'currentStock', 'minStock', 'maxStock'];
+        const validationErrors = fieldsToValidate.reduce((result, field) => ({
+            ...result,
+            [field]: getInventoryFieldError(field, formData[field], formData)
+        }), {});
+        setErrors(prev => ({ ...prev, ...validationErrors }));
+        const valid = Object.values(validationErrors).every(error => !error);
 
         if (!valid) {
-            showAlert("Invalid Input", "Please correct the errors in the form.", "warning");
             return;
         }
 
@@ -861,7 +899,7 @@ function AdminInventory() {
         return matchesSearch && matchesType && matchesDate;
     });
 
-    const lowStockItems = inventory.filter(i => i.currentStock <= i.minStock).length;
+    const lowStockItems = inventory.filter(i => i.currentStock > 0 && i.currentStock <= i.minStock).length;
     const totalValue = inventory.reduce((sum, i) => sum + (i.currentStock * i.cost), 0);
 
     // Compute autocomplete suggestions dynamically from the dataset
@@ -1264,7 +1302,7 @@ function AdminInventory() {
                                         <div className="form-group">
                                             <label className="premium-label">Stock Status</label>
                                             <div className="glass-panel">
-                                                <label className="admin-st-4d4ffce1">Initial / Current Quantity</label>
+                                                <label className="admin-st-4d4ffce1">Initial / Current Quantity <span style={{ color: '#ef4444' }}>*</span></label>
                                                 <input
                                                     type="number"
                                                     min="0"
@@ -1280,7 +1318,7 @@ function AdminInventory() {
                                             <span className="panel-title">Stock Limits</span>
                                             <div className="admin-st-ece89b73">
                                                 <div>
-                                                    <label className="admin-st-496ebd9a">Min (Alert)</label>
+                                                    <label className="admin-st-496ebd9a">Min (Alert) <span style={{ color: '#ef4444' }}>*</span></label>
                                                     <input
                                                         type="number"
                                                         min="0"
@@ -1291,7 +1329,7 @@ function AdminInventory() {
                                                     {errors.minStock && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.minStock}</small>}
                                                 </div>
                                                 <div>
-                                                    <label className="admin-st-496ebd9a">Max (Goal)</label>
+                                                    <label className="admin-st-496ebd9a">Max (Goal) <span style={{ color: '#ef4444' }}>*</span></label>
                                                     <input
                                                         type="number"
                                                         min="0"

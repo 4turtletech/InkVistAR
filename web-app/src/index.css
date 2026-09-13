@@ -43,7 +43,9 @@ button {
 
 body {
   margin: 0;
-  overflow-x: hidden;
+  /* `hidden` can implicitly promote the other axis to `auto`, producing a
+     second vertical scroller on tall portal pages. `clip` only clips X. */
+  overflow-x: clip;
   color: #1a1416;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
