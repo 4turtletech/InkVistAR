@@ -4,6 +4,7 @@ import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
 import { MessageSquare, Plus, X, Send, ChevronDown, ChevronUp, Paperclip, Shield, UserCircle } from 'lucide-react';
 import './PortalStyles.css';
+import './CustomerStyles.css';
 import ConfirmModal from '../components/ConfirmModal';
 import ImageLightbox from '../components/ImageLightbox';
 
@@ -137,9 +138,9 @@ function CustomerReports() {
   reports.forEach(r => { if (r.status !== 'junk') statusCounts[r.status] = (statusCounts[r.status] || 0) + 1; });
 
   return (
-    <div className="admin-page-with-sidenav">
+    <div className="portal-layout">
       <CustomerSideNav />
-      <div className="admin-page page-container-enter">
+      <div className="portal-container customer-portal">
         <header className="portal-header">
           <h1>My Reports</h1>
           <button className="btn btn-primary" onClick={openCompose} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -308,21 +309,21 @@ function CustomerReports() {
                       </select>
                     </div>
                   </div>
-                  <div className="form-group" style={{ marginBottom: '14px' }}>
+                  <div className="form-group" style={{ marginBottom: '14px', width: '100%', display: 'flex', flexDirection: 'column', textAlign: 'left', alignItems: 'stretch' }}>
                     <label className="premium-label">Title *</label>
                     <input type="text" className="form-input" required maxLength={255} value={form.title}
-                      onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Brief summary of the issue" />
+                      onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Brief summary of the issue" style={{ width: '100%', boxSizing: 'border-box' }} />
                   </div>
-                  <div className="form-group" style={{ marginBottom: '14px' }}>
+                  <div className="form-group" style={{ marginBottom: '14px', width: '100%', display: 'flex', flexDirection: 'column', textAlign: 'left', alignItems: 'stretch' }}>
                     <label className="premium-label">Description *</label>
                     <textarea className="form-input" required rows={4} value={form.description}
-                      onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Describe the issue or feedback in detail..." style={{ resize: 'vertical' }} />
+                      onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Describe the issue or feedback in detail..." style={{ resize: 'vertical', width: '100%', boxSizing: 'border-box' }} />
                   </div>
                   {form.report_type === 'bug' && (
-                    <div className="form-group" style={{ marginBottom: '14px' }}>
+                    <div className="form-group" style={{ marginBottom: '14px', width: '100%', display: 'flex', flexDirection: 'column', textAlign: 'left', alignItems: 'stretch' }}>
                       <label className="premium-label">Steps to Reproduce (Optional)</label>
                       <textarea className="form-input" rows={3} value={form.steps_to_reproduce}
-                        onChange={e => setForm(p => ({ ...p, steps_to_reproduce: e.target.value }))} placeholder="1. Go to...\n2. Click on...\n3. Observe..." style={{ resize: 'vertical' }} />
+                        onChange={e => setForm(p => ({ ...p, steps_to_reproduce: e.target.value }))} placeholder="1. Go to...\n2. Click on...\n3. Observe..." style={{ resize: 'vertical', width: '100%', boxSizing: 'border-box' }} />
                     </div>
                   )}
                   <div className="form-group">

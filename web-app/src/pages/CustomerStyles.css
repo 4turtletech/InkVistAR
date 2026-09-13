@@ -1515,7 +1515,7 @@
     position: relative;
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
     z-index: 1;
-    overflow: hidden; /* Ensure glowing orbs don't create scrollbars */
+    overflow: clip; /* Contain glowing orbs without creating a scroll container that clips content */
 }
 .customer-portal::before, .customer-portal::after {
     content: '';
