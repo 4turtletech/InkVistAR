@@ -87,6 +87,7 @@ function AdminInventory() {
     const [editingKitServiceType, setEditingKitServiceType] = useState('');
     const [editingKitOriginalType, setEditingKitOriginalType] = useState('');
     const [editingKitMaterials, setEditingKitMaterials] = useState([]);
+    const [deletingKitName, setDeletingKitName] = useState('');
     const [transactionError, setTransactionError] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const adminUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -276,20 +277,23 @@ function AdminInventory() {
     };
 
     const confirmDeleteKit = async (serviceType) => {
+        setDeletingKitName(serviceType);
         try {
-            const res = await Axios.delete(`${API_URL}/api/admin/service-kits/${encodeURIComponent((serviceType || '').trim())}`);
+            const res = await Axios.delete(`${API_URL}/api/admin/service-kits`, {
+                data: { service_type: (serviceType || '').trim() }
+            });
             if (res.data.success) {
-                showAlert('Deleted', `Service kit '${serviceType}' has been removed.`, 'success');
                 if (editingKitOriginalType === serviceType) resetKitEditor();
-                fetchServiceKits();
+                await fetchServiceKits();
+                showAlert('Kit Deleted', `The saved kit "${serviceType}" has been removed.`, 'success');
             } else {
-                showAlert('Error', res.data.message || 'Failed to delete service kit.', 'danger');
+                showAlert('Delete Failed', res.data.message || 'Failed to delete service kit.', 'danger');
             }
         } catch (error) {
             console.error('Error deleting service kit', error);
-            showAlert('Error', error.response?.data?.message || 'Failed to delete service kit.', 'danger');
+            showAlert('Delete Failed', error.response?.data?.message || 'Failed to delete service kit.', 'danger');
         } finally {
-            setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+            setDeletingKitName('');
         }
     };
 
@@ -897,11 +901,11 @@ function AdminInventory() {
                         <Download size={18}/>
                     </button>
                     
-                    <div className="modern-view-toggle" style={{ margin: '0 8px' }}>
-                        <button className="toggle-btn active" onClick={fetchHistory} title="View Stock History">
+                    <div className="inventory-header-tools">
+                        <button className="inventory-header-tool" onClick={fetchHistory} title="View Stock History" aria-haspopup="dialog">
                             <History size={16}/> <span>History</span>
                         </button>
-                        <button className="toggle-btn" onClick={handleManageKits} title="Manage Service Kits" style={{ color: '#1e293b' }}>
+                        <button className="inventory-header-tool" onClick={handleManageKits} title="Manage Service Kits" aria-haspopup="dialog">
                             <Package size={16}/> <span>Kits</span>
                         </button>
                     </div>
@@ -1775,9 +1779,10 @@ function AdminInventory() {
                                                     type="button"
                                                     className="saved-kit-delete-btn"
                                                     onClick={() => handleDeleteKit(kitName)}
+                                                    disabled={deletingKitName === kitName}
                                                     aria-label={`Delete ${kitName}`}
                                                 >
-                                                    <Trash2 size={16}/> Delete
+                                                    <Trash2 size={16}/> {deletingKitName === kitName ? 'Deleting...' : 'Delete'}
                                                 </button>
                                             </div>
                                         </div>

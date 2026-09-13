@@ -5277,9 +5277,10 @@ app.post('/api/admin/service-kits', (req, res) => {
   });
 });
 
-// Delete a service kit by service type
-app.delete('/api/admin/service-kits/:service_type', (req, res) => {
-  const serviceType = (req.params.service_type || '').trim();
+const deleteServiceKit = (req, res) => {
+  const serviceType = String(
+    req.params?.service_type || req.body?.service_type || req.query?.service_type || ''
+  ).trim();
   console.log(`[DEBUG] Attempting to delete service kit with type: "${serviceType}"`);
 
   if (!serviceType) return res.status(400).json({ success: false, message: 'Service type required' });
@@ -5296,7 +5297,13 @@ app.delete('/api/admin/service-kits/:service_type', (req, res) => {
     console.log(`[SUCCESS] Deleted ${result.affectedRows} items for service kit: "${serviceType}"`);
     res.json({ success: true, message: 'Service kit deleted' });
   });
-});
+};
+
+// Prefer the collection endpoint with a request body so kit names containing
+// slashes or other path characters remain intact. Keep the parameterized route
+// for compatibility with existing mobile builds.
+app.delete('/api/admin/service-kits', deleteServiceKit);
+app.delete('/api/admin/service-kits/:service_type', deleteServiceKit);
 
 // GET all appointments (Admin)
 app.get('/api/admin/appointments', (req, res) => {
