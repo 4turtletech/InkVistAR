@@ -64,6 +64,9 @@ export const AdminBilling = ({ navigation, route }) => {
   const [payoutFeedback, setPayoutFeedback] = useState(null);
   const [payoutSubmitting, setPayoutSubmitting] = useState(false);
   const payoutSubmittingRef = useRef(false);
+  const payoutArtistScrollRef = useRef(null);
+  const payoutArtistLayoutsRef = useRef({});
+  const pendingPayoutArtistScrollRef = useRef('');
   const [isEditingInvoice, setIsEditingInvoice] = useState(false);
   const [payoutDetail, setPayoutDetail] = useState(null);
   const [billingFeedback, setBillingFeedback] = useState(null);
@@ -210,7 +213,18 @@ export const AdminBilling = ({ navigation, route }) => {
 
   const selectedPayoutBalance = payoutBalances.find(balance => String(balance.artistId) === String(payoutForm.artistId));
 
+  const scrollToPayoutArtist = (artistId) => {
+    const targetId = String(artistId || '');
+    const layout = payoutArtistLayoutsRef.current[targetId];
+    if (!targetId || !layout || !payoutArtistScrollRef.current) return false;
+
+    payoutArtistScrollRef.current.scrollTo({ x: Math.max(layout.x - 12, 0), animated: true });
+    pendingPayoutArtistScrollRef.current = '';
+    return true;
+  };
+
   const openPayoutModal = (balance = null) => {
+    pendingPayoutArtistScrollRef.current = balance ? String(balance.artistId) : '';
     setPayoutForm({
       artistId: balance ? String(balance.artistId) : '',
       amount: balance && balance.availableBalance > 0 ? Number(balance.availableBalance).toFixed(2) : '',
@@ -818,9 +832,20 @@ export const AdminBilling = ({ navigation, route }) => {
               </AnimatedTouchable>
             </View>
             <ScrollView style={styles.modalBody}>
-              <Text style={styles.inputLabel}>Select Artist</Text>
+              <Text style={styles.inputLabel}>
+                Select Artist <Text style={{ color: payoutForm.artistId ? theme.textSecondary : theme.error }}>*</Text>
+              </Text>
               <View style={styles.statusRow}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <ScrollView
+                  ref={payoutArtistScrollRef}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 8, paddingRight: 8 }}
+                  onContentSizeChange={() => {
+                    const targetId = pendingPayoutArtistScrollRef.current;
+                    if (targetId) requestAnimationFrame(() => scrollToPayoutArtist(targetId));
+                  }}
+                >
                   {artists.length === 0 ? (
                     <Text style={styles.emptyArtistText}>No artists found. Please try again.</Text>
                   ) : artists.map(a => (
@@ -828,6 +853,13 @@ export const AdminBilling = ({ navigation, route }) => {
                       key={String(a.id)}
                       style={[styles.statusBtn, String(payoutForm.artistId) === String(a.id) && styles.statusBtnActive]}
                       onPress={() => selectPayoutArtist(a.id)}
+                      onLayout={({ nativeEvent: { layout } }) => {
+                        const artistId = String(a.id);
+                        payoutArtistLayoutsRef.current[artistId] = layout;
+                        if (pendingPayoutArtistScrollRef.current === artistId) {
+                          requestAnimationFrame(() => scrollToPayoutArtist(artistId));
+                        }
+                      }}
                     >
                       <Text style={[styles.statusBtnText, String(payoutForm.artistId) === String(a.id) && styles.statusBtnTextActive]}>{a.name}</Text>
                     </AnimatedTouchable>
@@ -854,7 +886,9 @@ export const AdminBilling = ({ navigation, route }) => {
                 </View>
               ) : null}
 
-              <Text style={styles.inputLabel}>Amount (PHP)</Text>
+              <Text style={styles.inputLabel}>
+                Amount (PHP) <Text style={{ color: Number(payoutForm.amount) > 0 ? theme.textSecondary : theme.error }}>*</Text>
+              </Text>
               <TextInput
                 style={[styles.input, payoutErrors.amount && styles.inputError]}
                 value={payoutForm.amount}

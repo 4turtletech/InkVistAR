@@ -1687,7 +1687,9 @@ function AdminBilling() {
                             <form onSubmit={handlePayoutSubmit}>
                                 <div className="modal-body admin-st-7cea880d">
                                     <div className="form-group admin-st-7002f9ca">
-                                        <label className={`admin-st-19644797 ${payoutErrors.artistId ? 'text-red-500' : ''}`}>Target Recipient (Artist)</label>
+                                        <label className={`admin-st-19644797 ${payoutErrors.artistId ? 'text-red-500' : ''}`}>
+                                            Target Recipient (Artist) <span style={{ color: newPayout.artistId ? undefined : '#ef4444' }}>*</span>
+                                        </label>
                                         <select className={`form-input ${payoutErrors.artistId ? 'border-red-500 bg-red-50' : ''}`} required value={newPayout.artistId} onChange={e => handlePayoutArtistChange(e.target.value)}>
                                             <option value="">Select Professional Artist...</option>
                                             {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -1711,7 +1713,9 @@ function AdminBilling() {
                                     </div>
                                     <div className="admin-st-c200c71d">
                                         <div className="form-group">
-                                            <label className={`admin-st-19644797 ${payoutErrors.amount ? 'text-red-500' : ''}`}>Remittance Amount (₱)</label>
+                                            <label className={`admin-st-19644797 ${payoutErrors.amount ? 'text-red-500' : ''}`}>
+                                                Remittance Amount (₱) <span style={{ color: Number(newPayout.amount) > 0 ? undefined : '#ef4444' }}>*</span>
+                                            </label>
                                             <input type="number" step="0.01" min="0.01" max={MAX_PAYOUT_AMOUNT} className={`form-input ${payoutErrors.amount ? 'border-red-500 bg-red-50' : ''}`} required value={newPayout.amount} onChange={e => handlePayoutChange('amount', filterMoney(e.target.value))} />
                                             {payoutErrors.amount && <span className="text-red-500 text-xs mt-1 block">{payoutErrors.amount}</span>}
                                         </div>
