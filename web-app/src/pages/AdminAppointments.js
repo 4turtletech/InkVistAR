@@ -27,6 +27,25 @@ const getTodayDateInputValue = () => {
 
 const WALK_IN_DETAILS_PATTERN = /\n?\[Walk-In Details\]\n([\s\S]*?)\n\[\/Walk-In Details\]\n?/i;
 
+const escapePrintHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+}[character]));
+
+const formatPrintDate = (dateValue) => {
+    if (!dateValue) return 'N/A';
+    const date = new Date(`${String(dateValue).slice(0, 10)}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return String(dateValue);
+    return date.toLocaleDateString('en-PH', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+};
+
 const parseWalkInDetails = (notes = '') => {
     const normalizedNotes = String(notes || '').replace(/\\n/g, '\n');
     const detailsBlock = normalizedNotes.match(WALK_IN_DETAILS_PATTERN)?.[1] || '';
@@ -1421,7 +1440,191 @@ function AdminAppointments() {
     };
 
     const handlePrint = () => {
-        window.print();
+        if (filteredAppointments.length === 0) {
+            showAlert('Nothing to Print', 'There are no appointments in the current filtered view.', 'info');
+            return;
+        }
+
+        const currency = (value) => Number(value || 0).toLocaleString('en-PH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        const paymentLabel = (appointment) => {
+            const payable = Number(appointment.payablePrice ?? appointment.price ?? 0);
+            const paid = Number(appointment.totalPaid || 0);
+            if (payable <= 0) return 'No Charge';
+            if (appointment.paymentStatus === 'paid' || paid >= payable) return 'Fully Paid';
+            if (appointment.paymentStatus === 'downpayment_paid' || paid > 0) {
+                return `Balance: ₱${currency(Math.max(0, payable - paid))}`;
+            }
+            return 'Unpaid';
+        };
+        const statusClass = (status) => {
+            const normalized = String(status || '').toLowerCase();
+            if (normalized === 'completed') return 'completed';
+            if (normalized === 'confirmed' || normalized === 'scheduled') return 'confirmed';
+            if (normalized === 'cancelled' || normalized === 'rejected') return 'cancelled';
+            if (normalized === 'in_progress') return 'progress';
+            return 'pending';
+        };
+
+        const rows = filteredAppointments.map((appointment) => `
+            <tr>
+                <td class="code">${escapePrintHtml(getDisplayCode(appointment.bookingCode, appointment.id))}</td>
+                <td><strong>${escapePrintHtml(appointment.clientName || 'N/A')}</strong></td>
+                <td>${escapePrintHtml(appointment.artistName || 'Unassigned')}</td>
+                <td>
+                    ${escapePrintHtml(appointment.serviceType || 'N/A')}
+                    ${appointment.designTitle ? `<span class="subtext">${escapePrintHtml(appointment.designTitle)}</span>` : ''}
+                </td>
+                <td class="schedule">
+                    ${escapePrintHtml(formatPrintDate(appointment.date))}
+                    <span class="subtext">${escapePrintHtml(formatTime12Hour(appointment.time))}</span>
+                </td>
+                <td><span class="pill ${statusClass(appointment.status)}">${escapePrintHtml(formatStatus(appointment.status))}</span></td>
+                <td>${escapePrintHtml(paymentLabel(appointment))}</td>
+                <td class="money">&#8369;${currency(appointment.price)}</td>
+            </tr>`).join('');
+
+        const statusSummary = filteredAppointments.reduce((summary, appointment) => {
+            const status = String(appointment.status || 'unknown').toLowerCase();
+            summary[status] = (summary[status] || 0) + 1;
+            return summary;
+        }, {});
+        const totalAmount = filteredAppointments.reduce((sum, appointment) => sum + Number(appointment.price || 0), 0);
+        const activeFilters = [
+            statusFilter !== 'all' && `Status: ${formatStatus(statusFilter)}`,
+            serviceFilter !== 'all' && `Service: ${serviceFilter}`,
+            dateFilter && `Date: ${formatPrintDate(dateFilter)}`,
+            timePeriodFilter !== 'all' && `Period: ${formatStatus(timePeriodFilter)}`,
+            searchTerm.trim() && `Search: ${searchTerm.trim()}`
+        ].filter(Boolean);
+
+        const printFrame = document.createElement('iframe');
+        printFrame.setAttribute('title', 'Appointment report print frame');
+        printFrame.setAttribute('aria-hidden', 'true');
+        Object.assign(printFrame.style, {
+            position: 'fixed',
+            right: '0',
+            bottom: '0',
+            width: '1px',
+            height: '1px',
+            border: '0',
+            opacity: '0',
+            pointerEvents: 'none'
+        });
+        document.body.appendChild(printFrame);
+
+        const frameWindow = printFrame.contentWindow;
+        const frameDocument = frameWindow?.document;
+        if (!frameWindow || !frameDocument) {
+            printFrame.remove();
+            showAlert('Print Failed', 'The appointment report could not be prepared. Please try again.', 'danger');
+            return;
+        }
+
+        frameDocument.open();
+        frameDocument.write(`<!doctype html>
+            <html>
+                <head>
+                    <meta charset="utf-8" />
+                    <title>InkVistAR Appointment Report</title>
+                    <style>
+                        @page { size: A4 landscape; margin: 11mm; }
+                        * { box-sizing: border-box; }
+                        body { margin: 0; color: #172033; font-family: Arial, sans-serif; }
+                        .report-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; padding-bottom: 13px; border-bottom: 3px solid #be9055; }
+                        .brand { color: #9b703c; font-size: 11px; font-weight: 800; letter-spacing: .24em; text-transform: uppercase; }
+                        h1 { margin: 5px 0 3px; font-size: 24px; }
+                        .subtitle, .meta p { margin: 3px 0; color: #627089; font-size: 10px; }
+                        .meta { min-width: 230px; text-align: right; }
+                        .filters { margin: 10px 0 0; padding: 7px 10px; border: 1px solid #e3e7ee; border-radius: 6px; color: #526078; background: #f8fafc; font-size: 10px; }
+                        .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 12px 0; }
+                        .summary-card { padding: 8px 10px; border: 1px solid #dfe5ed; border-radius: 7px; background: #fbfcfe; }
+                        .summary-label { color: #718096; font-size: 8px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+                        .summary-value { display: block; margin-top: 3px; color: #172033; font-size: 15px; font-weight: 800; }
+                        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                        thead { display: table-header-group; }
+                        tr { break-inside: avoid; page-break-inside: avoid; }
+                        th, td { border: 1px solid #d9e0ea; padding: 7px 6px; text-align: left; vertical-align: top; font-size: 9px; overflow-wrap: anywhere; }
+                        th { color: #53627a; background: #edf2f7; font-size: 8px; letter-spacing: .04em; text-transform: uppercase; }
+                        tbody tr:nth-child(even) { background: #fafbfd; }
+                        th:nth-child(1) { width: 12%; }
+                        th:nth-child(2) { width: 15%; }
+                        th:nth-child(3) { width: 13%; }
+                        th:nth-child(4) { width: 16%; }
+                        th:nth-child(5) { width: 13%; }
+                        th:nth-child(6) { width: 10%; }
+                        th:nth-child(7) { width: 11%; }
+                        th:nth-child(8) { width: 10%; }
+                        .code { color: #3b475b; font-family: Consolas, monospace; font-size: 8px; font-weight: 700; }
+                        .subtext { display: block; margin-top: 3px; color: #738096; font-size: 8px; }
+                        .schedule { white-space: nowrap; }
+                        .money { text-align: right; white-space: nowrap; font-weight: 700; }
+                        .pill { display: inline-block; padding: 3px 6px; border: 1px solid; border-radius: 999px; font-size: 7px; font-weight: 800; white-space: nowrap; text-transform: uppercase; }
+                        .pill.completed { color: #047857; border-color: #6ee7b7; background: #ecfdf5; }
+                        .pill.confirmed { color: #1d4ed8; border-color: #93c5fd; background: #eff6ff; }
+                        .pill.pending { color: #a16207; border-color: #fde68a; background: #fffbeb; }
+                        .pill.progress { color: #6d28d9; border-color: #c4b5fd; background: #f5f3ff; }
+                        .pill.cancelled { color: #b91c1c; border-color: #fca5a5; background: #fef2f2; }
+                        .report-footer { margin-top: 9px; display: flex; justify-content: space-between; color: #7b879a; font-size: 8px; }
+                        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+                    </style>
+                </head>
+                <body>
+                    <header class="report-header">
+                        <div>
+                            <div class="brand">InkVistAR Studio</div>
+                            <h1>Appointment Management Report</h1>
+                            <p class="subtitle">Filtered schedule and booking overview</p>
+                        </div>
+                        <div class="meta">
+                            <p><strong>Generated:</strong> ${escapePrintHtml(new Date().toLocaleString('en-PH'))}</p>
+                            <p><strong>Source view:</strong> ${escapePrintHtml(viewMode === 'calendar' ? 'Calendar View' : 'List View')}</p>
+                            <p><strong>Sort:</strong> ${escapePrintHtml(formatStatus(sortBy))}</p>
+                        </div>
+                    </header>
+                    <div class="filters"><strong>Active filters:</strong> ${escapePrintHtml(activeFilters.length ? activeFilters.join('  |  ') : 'None — all appointments')}</div>
+                    <section class="summary-grid">
+                        <div class="summary-card"><span class="summary-label">Results</span><span class="summary-value">${filteredAppointments.length}</span></div>
+                        <div class="summary-card"><span class="summary-label">Pending</span><span class="summary-value">${statusSummary.pending || 0}</span></div>
+                        <div class="summary-card"><span class="summary-label">Confirmed</span><span class="summary-value">${(statusSummary.confirmed || 0) + (statusSummary.scheduled || 0)}</span></div>
+                        <div class="summary-card"><span class="summary-label">Completed</span><span class="summary-value">${statusSummary.completed || 0}</span></div>
+                        <div class="summary-card"><span class="summary-label">Listed Value</span><span class="summary-value">&#8369;${currency(totalAmount)}</span></div>
+                    </section>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Appointment ID</th>
+                                <th>Client</th>
+                                <th>Assigned Staff</th>
+                                <th>Service / Design</th>
+                                <th>Schedule</th>
+                                <th>Status</th>
+                                <th>Payment</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                    <footer class="report-footer">
+                        <span>Confidential studio operations report</span>
+                        <span>${filteredAppointments.length} appointment${filteredAppointments.length === 1 ? '' : 's'}</span>
+                    </footer>
+                </body>
+            </html>`);
+        frameDocument.close();
+
+        let cleanedUp = false;
+        const cleanupPrintFrame = () => {
+            if (cleanedUp) return;
+            cleanedUp = true;
+            printFrame.remove();
+        };
+        frameWindow.addEventListener('afterprint', cleanupPrintFrame, { once: true });
+        frameWindow.focus();
+        frameWindow.print();
+        window.setTimeout(cleanupPrintFrame, 60000);
     };
 
     const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
@@ -1438,19 +1641,6 @@ function AdminAppointments() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter appointments-page">
-                {/* Print Only Header */}
-                <div className="print-only-header">
-                    <div className="admin-st-c6657cae">
-                        <div>
-                            <h1 className="admin-st-b43c9608">InkVistAR Studio</h1>
-                            <p className="admin-m-0">Appointments & Schedule Report</p>
-                        </div>
-                        <div className="admin-st-7851dbc0">
-                            <p className="admin-m-0">Date: {new Date().toLocaleDateString()}</p>
-                            <p className="admin-m-0">View: {viewMode.charAt(0).toUpperCase() + viewMode.slice(1)}</p>
-                        </div>
-                    </div>
-                </div>
                 <header className="portal-header">
                     <div className="header-title">
                         <h1>Appointment Management</h1>
@@ -2012,35 +2202,6 @@ function AdminAppointments() {
                                 unit="appointments"
                             />
 
-                            {/* Print-only full table (hidden on screen, shown when printing) */}
-                            <div className="print-only-table">
-                                <table className="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Client Name</th>
-                                            <th>Artist</th>
-                                            <th>Service Type</th>
-                                            <th>Date</th>
-                                            <th>Time</th>
-                                            <th>Status</th>
-                                            <th>Price</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredAppointments.map(a => (
-                                            <tr key={`print-${a.id}`}>
-                                                <td>{a.clientName || 'N/A'}</td>
-                                                <td>{a.artistName || 'N/A'}</td>
-                                                <td>{a.serviceType || 'N/A'}</td>
-                                                <td>{a.date || 'N/A'}</td>
-                                                <td>{a.time || 'N/A'}</td>
-                                                <td>{(a.status || '').toUpperCase()}</td>
-                                                <td>₱{parseFloat(a.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
                         </div>
                     </>
                 )}

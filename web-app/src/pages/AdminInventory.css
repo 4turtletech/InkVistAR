@@ -672,6 +672,138 @@
     z-index: 1;
 }
 
+/* Transaction history modal --------------------------------------------
+   Own the complete layout so it cannot fall back to native form controls
+   when Inventory is the first lazy-loaded admin page. */
+.modal-content.large.inventory-history-modal {
+    display: flex;
+    flex-direction: column;
+    width: min(1180px, calc(100vw - 48px));
+    max-width: 1180px;
+    height: min(85vh, 800px);
+    max-height: 800px;
+    overflow: hidden;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 22px;
+    background: #fff;
+}
+
+.inventory-history-modal .modal-header {
+    flex: 0 0 auto;
+    padding: 1.4rem 1.75rem;
+    border-bottom: 1px solid #e7ecf3;
+}
+
+.inventory-history-filters {
+    display: grid;
+    flex: 0 0 auto;
+    grid-template-columns: minmax(280px, 1fr) auto auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 1rem 1.75rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.inventory-history-search {
+    position: relative;
+    min-width: 0;
+}
+
+.inventory-history-modal .inventory-history-input,
+.inventory-history-modal .inventory-history-select {
+    display: block;
+    min-height: 46px;
+    margin: 0;
+    padding: 0.72rem 0.9rem;
+    border: 1px solid #d7e0eb;
+    border-radius: 10px;
+    outline: none;
+    background: #fff;
+    color: #1e293b;
+    font: inherit;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.inventory-history-modal .inventory-history-input {
+    width: 100% !important;
+    padding-left: 2.35rem !important;
+}
+
+.inventory-history-modal .inventory-history-select {
+    width: auto !important;
+    min-width: 132px;
+    padding-right: 2rem;
+    cursor: pointer;
+}
+
+.inventory-history-modal .inventory-history-input:focus,
+.inventory-history-modal .inventory-history-select:focus {
+    border-color: #be9055;
+    box-shadow: 0 0 0 3px rgba(190, 144, 85, 0.12);
+}
+
+.inventory-history-modal .inventory-history-input::placeholder {
+    color: #94a3b8;
+}
+
+.inventory-history-modal .inventory-history-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0;
+    overflow: auto;
+    background: #fff;
+}
+
+.inventory-history-table-wrap {
+    min-width: 940px;
+    overflow: visible;
+}
+
+.inventory-history-modal .inventory-history-table {
+    width: 100%;
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.85rem;
+}
+
+.inventory-history-modal .inventory-history-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.inventory-history-modal .inventory-history-table th {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    white-space: nowrap;
+}
+
+.inventory-history-modal .inventory-history-table td {
+    padding: 0.72rem 1rem;
+    border-bottom: 1px solid #edf1f6;
+    vertical-align: middle;
+}
+
+.inventory-history-modal .inventory-history-table tbody tr:hover {
+    background: #fbf8f3;
+}
+
+.inventory-history-modal .inventory-history-footer {
+    display: flex;
+    flex: 0 0 auto;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.75rem;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
 @media (max-width: 768px) {
     .modal-content.large.inventory-item-modal {
         width: 100%;
@@ -696,6 +828,37 @@
 
     .inventory-transaction-modal .modal-footer .btn {
         flex: 1 1 calc(50% - 6px);
+    }
+
+    .modal-content.large.inventory-history-modal {
+        width: calc(100vw - 24px);
+        height: min(90vh, 800px);
+        border-radius: 16px;
+    }
+
+    .inventory-history-modal .modal-header,
+    .inventory-history-filters,
+    .inventory-history-modal .inventory-history-footer {
+        padding-right: 1rem;
+        padding-left: 1rem;
+    }
+
+    .inventory-history-filters {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .inventory-history-search {
+        grid-column: 1 / -1;
+    }
+
+    .inventory-history-modal .inventory-history-select {
+        width: 100% !important;
+        min-width: 0;
+    }
+
+    .inventory-history-modal .inventory-history-footer {
+        align-items: flex-start;
+        flex-direction: column;
     }
 }
 

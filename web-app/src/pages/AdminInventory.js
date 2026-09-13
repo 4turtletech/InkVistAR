@@ -1483,7 +1483,7 @@ function AdminInventory() {
             {/* History Modal */}
             {historyModal.mounted && (
                 <div className={`modal-overlay ${historyModal.visible ? 'open' : ''}`} onClick={() => { closeModal(setHistoryModal); setHistorySearch(''); setHistoryTypeFilter('all'); setHistoryDateFilter('all'); }}>
-                    <div className="modal-content large" onClick={(e) => e.stopPropagation()} style={{ height: '85vh', maxHeight: '800px', display: 'flex', flexDirection: 'column' }}>
+                    <div className="modal-content large inventory-history-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #6366f1, #818cf8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1498,15 +1498,15 @@ function AdminInventory() {
                         </div>
 
                         {/* Filter Bar */}
-                        <div style={{ padding: '12px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', background: '#f8fafc' }}>
-                            <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
+                        <div className="inventory-history-filters">
+                            <div className="inventory-history-search">
                                 <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                                 <input
                                     type="text"
                                     placeholder="Search by item, reason, or user..."
                                     value={historySearch}
                                     onChange={(e) => setHistorySearch(e.target.value)}
-                                    className="form-input"
+                                    className="form-input inventory-history-input"
                                     style={{ paddingLeft: '32px', fontSize: '0.95rem', height: '46px', borderRadius: '8px' }}
                                     maxLength={100}
                                 />
@@ -1514,7 +1514,7 @@ function AdminInventory() {
                             <select
                                 value={historyDateFilter}
                                 onChange={(e) => setHistoryDateFilter(e.target.value)}
-                                className="form-input"
+                                className="form-input inventory-history-select"
                                 style={{ width: 'auto', height: '46px', fontSize: '0.95rem', borderRadius: '8px', cursor: 'pointer' }}
                             >
                                 <option value="all">All Time</option>
@@ -1526,7 +1526,7 @@ function AdminInventory() {
                             <select
                                 value={historyTypeFilter}
                                 onChange={(e) => setHistoryTypeFilter(e.target.value)}
-                                className="form-input"
+                                className="form-input inventory-history-select"
                                 style={{ width: 'auto', height: '46px', fontSize: '0.95rem', borderRadius: '8px', cursor: 'pointer' }}
                             >
                                 <option value="all">All Types</option>
@@ -1537,7 +1537,7 @@ function AdminInventory() {
                         </div>
 
                         {/* Body */}
-                        <div className="modal-body" style={{ flex: 1, overflow: 'auto', padding: '0' }}>
+                        <div className="modal-body inventory-history-body">
                             {historyLoading ? (
                                 <div style={{ padding: '60px 20px', textAlign: 'center', color: '#94a3b8' }}>
                                     <Clock size={32} style={{ marginBottom: '12px', opacity: 0.5 }} />
@@ -1556,8 +1556,8 @@ function AdminInventory() {
                                     </p>
                                 </div>
                             ) : (
-                                <div className="table-responsive">
-                                    <table className="data-table" style={{ fontSize: '0.85rem' }}>
+                                <div className="table-responsive inventory-history-table-wrap">
+                                    <table className="data-table inventory-history-table">
                                         <thead>
                                             <tr>
                                                 <th style={{ width: '160px' }}>Date & Time</th>
@@ -1629,7 +1629,7 @@ function AdminInventory() {
                         </div>
 
                         {/* Footer with pagination */}
-                        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="modal-footer inventory-history-footer">
                             <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
                                 Showing {filteredTransactions.length} of {historyTotal} transactions
                                 {historyTotalPages > 1 && ` (page ${historyPage} of ${historyTotalPages})`}
