@@ -229,6 +229,84 @@
     text-align: center !important;
 }
 
+/* Manual payment dialog is self-contained so its fields do not depend on CSS
+   from another lazy-loaded admin route. */
+.manual-payment-modal {
+    width: min(520px, calc(100vw - 40px));
+    max-width: 520px;
+}
+
+.manual-payment-modal .modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.75rem 2rem;
+}
+
+.manual-payment-modal .form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    margin: 0;
+    text-align: left;
+}
+
+.manual-payment-modal .form-input {
+    width: 100%;
+    min-height: 46px;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    outline: none;
+    background: #ffffff;
+    color: #1e293b;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.manual-payment-modal .form-input:focus {
+    border-color: #be9055;
+    box-shadow: 0 0 0 3px rgba(190, 144, 85, 0.16);
+}
+
+.manual-payment-modal .form-input.error {
+    border-color: #ef4444;
+    background: #fffafa;
+}
+
+.manual-payment-modal .required-marker,
+.manual-payment-error,
+.manual-payment-form-error {
+    color: #dc2626;
+}
+
+.manual-payment-help,
+.manual-payment-error {
+    display: block;
+    margin-top: 0.45rem;
+    font-size: 0.78rem;
+}
+
+.manual-payment-help {
+    color: #64748b;
+}
+
+.manual-payment-error {
+    font-weight: 600;
+}
+
+.manual-payment-form-error {
+    padding: 0.75rem 0.9rem;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    background: #fef2f2;
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
 @media (max-width: 1100px) {
     .appointments-page .stats-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -259,6 +337,10 @@
 
     .appointments-page .stat-count {
         font-size: 1.25rem;
+    }
+
+    .manual-payment-modal .modal-body {
+        padding: 1.25rem;
     }
 }
 

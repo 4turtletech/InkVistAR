@@ -1540,7 +1540,7 @@ function AdminInventory() {
             {/* Service Kits Modal */}
             {serviceKitsModal.mounted && (
                 <div className={`modal-overlay ${serviceKitsModal.visible ? 'open' : ''}`} onClick={() => { resetKitEditor(); closeModal(setServiceKitsModal); }}>
-                    <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content large inventory-kits-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <div className="admin-flex-center admin-gap-15">
                                 <div className="admin-st-007284eb">
@@ -1554,40 +1554,45 @@ function AdminInventory() {
                             <button className="close-btn" onClick={() => { resetKitEditor(); closeModal(setServiceKitsModal); }}><X size={24}/></button>
                         </div>
                         <div className="modal-body admin-st-7215da49">
-                            <div className="glass-card admin-st-654f1b6d">
+                            <div className="glass-card admin-st-654f1b6d kit-editor-card">
                                 <h3 className="admin-st-299edae5">
                                     {editingKitOriginalType ? <Edit2 size={18} /> : <Plus size={18} />}
                                     {editingKitOriginalType ? `Edit ${editingKitOriginalType}` : 'Create New Kit'}
                                 </h3>
-                                <div className="form-group">
-                                    <label className="admin-st-d050454a">Kit Name *</label>
-                                    <input
-                                        type="text"
-                                        className={`form-input ${errors.kit_name ? 'error' : ''}`}
-                                        value={editingKitServiceType}
-                                        onChange={event => {
-                                            const value = event.target.value.substring(0, 100);
-                                            setEditingKitServiceType(value);
-                                            validateKitField(value);
-                                        }}
-                                        placeholder="e.g. Standard Tattoo Setup"
-                                        maxLength={100}
-                                    />
-                                    {errors.kit_name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.kit_name}</small>}
-                                </div>
-                                <div className="form-group admin-st-185d793c">
-                                    <label>Kit Items *</label>
-                                    <CustomSelect
-                                        value=""
-                                        onChange={addKitMaterial}
-                                        options={[
-                                            { value: '', label: '-- Select Inventory Item --' },
-                                            ...inventory
-                                                .filter(item => !editingKitMaterials.some(material => material.inventory_id === item.id))
-                                                .map(item => ({ value: item.id, label: `${item.name} (${item.unit})` }))
-                                        ]}
-                                    />
-                                    {errors.kit_materials && <small className="error-text">{errors.kit_materials}</small>}
+                                <div className="kit-editor-fields">
+                                    <div className="form-group">
+                                        <label className="admin-st-d050454a" htmlFor="inventory-kit-name">Kit Name <span className="kit-required-marker">*</span></label>
+                                        <input
+                                            id="inventory-kit-name"
+                                            type="text"
+                                            className={`form-input ${errors.kit_name ? 'error' : ''}`}
+                                            value={editingKitServiceType}
+                                            onChange={event => {
+                                                const value = event.target.value.substring(0, 100);
+                                                setEditingKitServiceType(value);
+                                                validateKitField(value);
+                                            }}
+                                            placeholder="e.g. Standard Tattoo Setup"
+                                            maxLength={100}
+                                            aria-invalid={Boolean(errors.kit_name)}
+                                        />
+                                        {errors.kit_name && <small className="kit-field-error">{errors.kit_name}</small>}
+                                    </div>
+                                    <div className="form-group admin-st-185d793c">
+                                        <label>Kit Items <span className="kit-required-marker">*</span></label>
+                                        <CustomSelect
+                                            value=""
+                                            onChange={addKitMaterial}
+                                            width="100%"
+                                            options={[
+                                                { value: '', label: '-- Select Inventory Item --' },
+                                                ...inventory
+                                                    .filter(item => !editingKitMaterials.some(material => material.inventory_id === item.id))
+                                                    .map(item => ({ value: item.id, label: `${item.name} (${item.unit})` }))
+                                            ]}
+                                        />
+                                        {errors.kit_materials && <small className="kit-field-error">{errors.kit_materials}</small>}
+                                    </div>
                                 </div>
                                 
                                 {editingKitMaterials.length > 0 && (

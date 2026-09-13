@@ -255,7 +255,7 @@ function ArtistGallery() {
                                 </div>
                             </div>
                         )) : (
-                            <div className="no-data">No works in portfolio. Add some!</div>
+                            <div className="no-data artist-portfolio-empty">No works in portfolio. Add some!</div>
                         )}
                     </div>
                 )}
@@ -358,7 +358,7 @@ function ArtistGallery() {
             {/* Add/Edit Modal */}
             {addWorkModal.mounted && (
                 <div className={`modal-overlay ${addWorkModal.visible ? 'open' : ''}`} onClick={() => closeModal(setAddWorkModal)}>
-                    <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content large artist-work-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>{editingId ? 'Edit Masterpiece' : 'Upload New Work'}</h2>
                             <button className="close-btn" onClick={() => closeModal(setAddWorkModal)}><X size={24}/></button>

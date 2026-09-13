@@ -548,6 +548,90 @@
     gap: 20px;
 }
 
+/* Portfolio owns its empty state and editor controls instead of depending on
+   styles from whichever lazy-loaded portal happened to open first. */
+.artist-portfolio-empty {
+    grid-column: 1 / -1;
+    min-height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 2rem;
+    color: #64748b;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.6;
+    text-align: center;
+}
+
+.artist-work-modal {
+    width: min(960px, calc(100vw - 40px));
+    max-width: 960px;
+}
+
+.artist-work-modal form {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.artist-work-modal .modal-body {
+    padding: 1.75rem 2rem;
+}
+
+.artist-work-modal .form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+    margin: 0;
+    text-align: left;
+}
+
+.artist-work-modal .form-input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.72rem 0.9rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    outline: none;
+    background: #ffffff;
+    color: #1e293b;
+    font: inherit;
+    font-size: 0.9rem;
+    line-height: 1.35;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.artist-work-modal textarea.form-input {
+    min-height: 96px;
+    resize: vertical;
+}
+
+.artist-work-modal .form-input::placeholder {
+    color: #94a3b8;
+}
+
+.artist-work-modal .form-input:focus {
+    border-color: #be9055;
+    box-shadow: 0 0 0 3px rgba(190, 144, 85, 0.16);
+}
+
+.artist-work-modal .form-input.error {
+    border-color: #ef4444;
+    background: #fffafa;
+}
+
+.artist-work-modal .error-text {
+    display: block;
+    margin-top: 0.4rem;
+    color: #dc2626;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
 .artist-price-large {
     font-size: 1.5rem;
     font-weight: 800;
@@ -668,6 +752,14 @@
     .artist-gallery-grid-2 {
         grid-template-columns: 1fr !important;
         gap: 12px;
+    }
+
+    .artist-portfolio-empty {
+        min-height: 240px;
+    }
+
+    .artist-work-modal .modal-body {
+        padding: 1.25rem;
     }
 
     /* Notification dropdown -> full-width mobile */

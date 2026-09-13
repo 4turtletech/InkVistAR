@@ -117,6 +117,7 @@ function AdminAppointments() {
     const [modalTab, setModalTab] = useState('details'); // 'details', 'pricing', or 'notes'
     const [appointmentModal, setAppointmentModal] = useState({ mounted: false, visible: false });
     const [manualPaymentModal, setManualPaymentModal] = useState({ isOpen: false, amount: '', method: 'Cash' });
+    const [manualPaymentErrors, setManualPaymentErrors] = useState({ amount: '', form: '' });
     const [isSavingAppointment, setIsSavingAppointment] = useState(false);
     const [isRecordingPayment, setIsRecordingPayment] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'danger', isAlert: false });
@@ -1316,32 +1317,59 @@ function AdminAppointments() {
         }
     };
 
+    const getManualPaymentRemainingBalance = () => Math.max(
+        0,
+        Number(selectedAppointment?.payablePrice ?? formData.price ?? 0)
+            - Number(selectedAppointment?.totalPaid || 0)
+    );
+
+    const getManualPaymentAmountError = (value) => {
+        const rawAmount = String(value ?? '').trim();
+        const remainingBalance = getManualPaymentRemainingBalance();
+        if (!rawAmount) return 'Payment amount is required.';
+        if (!/^\d+(\.\d{1,2})?$/.test(rawAmount)) return 'Enter a valid amount with no more than two decimal places.';
+
+        const amount = Number(rawAmount);
+        if (!Number.isFinite(amount) || amount <= 0) return 'Payment amount must be greater than ₱0.00.';
+        if (amount > remainingBalance + 0.001) {
+            return `Amount cannot exceed the remaining balance of ₱${remainingBalance.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
+        }
+        return '';
+    };
+
+    const closeManualPaymentModal = () => {
+        setManualPaymentModal(current => ({ ...current, isOpen: false, amount: '' }));
+        setManualPaymentErrors({ amount: '', form: '' });
+    };
+
     const handleApplyManualPayment = async () => {
-        const remainingBalance = Math.max(0, (selectedAppointment?.payablePrice ?? formData.price) - (selectedAppointment?.totalPaid || 0));
-        const inputAmount = parseFloat(manualPaymentModal.amount);
-
-        if (!inputAmount || inputAmount <= 0) return;
-
-        if (inputAmount > remainingBalance) {
-            showAlert('Invalid Amount', `Amount exceeds the remaining balance of ₱${remainingBalance.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'warning');
+        const amountError = getManualPaymentAmountError(manualPaymentModal.amount);
+        if (amountError) {
+            setManualPaymentErrors({ amount: amountError, form: '' });
             return;
         }
 
+        const inputAmount = Number(manualPaymentModal.amount);
+
         setIsRecordingPayment(true);
+        setManualPaymentErrors({ amount: '', form: '' });
         try {
             const res = await Axios.post(`${API_URL}/api/admin/appointments/${selectedAppointment.id}/manual-payment`, {
-                amount: manualPaymentModal.amount,
+                amount: inputAmount,
                 method: manualPaymentModal.method
             });
             if (res.data.success) {
-                setManualPaymentModal({ ...manualPaymentModal, isOpen: false, amount: '' });
+                closeManualPaymentModal();
                 // Refresh the list and update the locally selected appointment to show the new balance
                 const newList = await fetchAppointments();
                 const freshData = newList.find(a => a.id === selectedAppointment.id);
                 if (freshData) setSelectedAppointment(freshData);
             }
         } catch (error) {
-            showAlert("Payment Failed", error.response?.data?.message || "Failed to record payment", "danger");
+            setManualPaymentErrors({
+                amount: '',
+                form: error.response?.data?.message || 'Failed to record payment. Please try again.'
+            });
         } finally {
             setIsRecordingPayment(false);
         }
@@ -3257,7 +3285,10 @@ function AdminAppointments() {
                                                     )}
 
                                                     {selectedAppointment && (
-                                                        <button className="btn btn-primary admin-st-f9f5beee" onClick={() => setManualPaymentModal({ isOpen: true, amount: Math.max(0, selectedAppointment.payablePrice - selectedAppointment.totalPaid), method: 'Cash' })}>
+                                                        <button className="btn btn-primary admin-st-f9f5beee" onClick={() => {
+                                                            setManualPaymentErrors({ amount: '', form: '' });
+                                                            setManualPaymentModal({ isOpen: true, amount: Math.max(0, selectedAppointment.payablePrice - selectedAppointment.totalPaid), method: 'Cash' });
+                                                        }}>
                                                             <PhilippinePeso size={20} /> Record Manual Payment
                                                         </button>
                                                     )}
@@ -3637,28 +3668,51 @@ function AdminAppointments() {
                 {/* Manual Payment Modal */}
                 {manualPaymentModal.isOpen && (
                     <div className="modal-overlay admin-st-b92d1844">
-                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-content manual-payment-modal" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <h2>Record Payment</h2>
-                                <button className="close-btn" onClick={() => setManualPaymentModal({ ...manualPaymentModal, isOpen: false })}><X size={24} /></button>
+                                <button className="close-btn" onClick={closeManualPaymentModal}><X size={24} /></button>
                             </div>
                             <div className="modal-body">
                                 <div className="form-group admin-mb-20">
-                                    <label className="admin-st-80a8a11c">Payment Amount (₱)</label>
+                                    <label className="admin-st-80a8a11c" htmlFor="manual-payment-amount">Payment Amount (₱) <span className="required-marker">*</span></label>
                                     <input
+                                        id="manual-payment-amount"
                                         type="number"
-                                        min="0"
-                                        className="form-input admin-st-22430afb"
+                                        inputMode="decimal"
+                                        min="0.01"
+                                        max={getManualPaymentRemainingBalance()}
+                                        step="0.01"
+                                        className={`form-input admin-st-22430afb ${manualPaymentErrors.amount ? 'error' : ''}`}
                                         value={manualPaymentModal.amount}
-                                        onChange={(e) => setManualPaymentModal({ ...manualPaymentModal, amount: e.target.value })}
+                                        onChange={(e) => {
+                                            const amount = e.target.value;
+                                            setManualPaymentModal(current => ({ ...current, amount }));
+                                            setManualPaymentErrors(current => ({
+                                                ...current,
+                                                amount: amount ? getManualPaymentAmountError(amount) : '',
+                                                form: ''
+                                            }));
+                                        }}
+                                        onBlur={(e) => setManualPaymentErrors(current => ({ ...current, amount: getManualPaymentAmountError(e.target.value) }))}
+                                        aria-invalid={Boolean(manualPaymentErrors.amount)}
+                                        aria-describedby="manual-payment-amount-help manual-payment-amount-error"
                                     />
+                                    <small id="manual-payment-amount-help" className="manual-payment-help">
+                                        Remaining balance: ₱{getManualPaymentRemainingBalance().toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </small>
+                                    {manualPaymentErrors.amount && <small id="manual-payment-amount-error" className="manual-payment-error" role="alert">{manualPaymentErrors.amount}</small>}
                                 </div>
                                 <div className="form-group">
-                                    <label className="admin-st-80a8a11c">Payment Method</label>
+                                    <label className="admin-st-80a8a11c" htmlFor="manual-payment-method">Payment Method <span className="required-marker">*</span></label>
                                     <select
+                                        id="manual-payment-method"
                                         className="form-input"
                                         value={manualPaymentModal.method}
-                                        onChange={(e) => setManualPaymentModal({ ...manualPaymentModal, method: e.target.value })}
+                                        onChange={(e) => {
+                                            setManualPaymentModal(current => ({ ...current, method: e.target.value }));
+                                            setManualPaymentErrors(current => ({ ...current, form: '' }));
+                                        }}
                                     >
                                         <option value="Cash">Cash</option>
                                         <option value="GCash">GCash</option>
@@ -3666,9 +3720,10 @@ function AdminAppointments() {
                                         <option value="Card">Card</option>
                                     </select>
                                 </div>
+                                {manualPaymentErrors.form && <div className="manual-payment-form-error" role="alert">{manualPaymentErrors.form}</div>}
                             </div>
                             <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={() => setManualPaymentModal({ ...manualPaymentModal, isOpen: false })}>Cancel</button>
+                                <button className="btn btn-secondary" onClick={closeManualPaymentModal}>Cancel</button>
                                 <button className="btn btn-primary" onClick={handleApplyManualPayment} disabled={isRecordingPayment} style={{ opacity: isRecordingPayment ? 0.7 : 1, cursor: isRecordingPayment ? 'not-allowed' : 'pointer' }}>{isRecordingPayment ? 'Recording...' : 'Record Payment'}</button>
                             </div>
                         </div>
