@@ -18,7 +18,7 @@ import { getPhoneParts } from '../constants/countryCodes';
 import CountryCodeSelect from '../components/CountryCodeSelect';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
 import CustomSelect from '../components/CustomSelect';
-import { composeCustomerName, customerProfileErrors, filterName, filterDigits, clampNumber } from '../utils/validation';
+import { composeCustomerName, customerProfileErrors, filterName, filterDigits, suggestCustomerNameParts } from '../utils/validation';
 
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
@@ -61,8 +61,11 @@ function AdminUsers() {
     const [selectedUser, setSelectedUser] = useState(null);
     const [userModal, setUserModal] = useState({ mounted: false, visible: false });
     const [formData, setFormData] = useState({
-        name: '', email: '', phone: '', user_type: 'customer', status: 'active', password: ''
+        first_name: '', middle_name: '', last_name: '', suffix: '',
+        email: '', phone: '', countryCode: '+63', user_type: 'customer', status: 'active', password: ''
     });
+    const [userErrors, setUserErrors] = useState({});
+    const [isSavingUser, setIsSavingUser] = useState(false);
 
     // ─── Client (Customer) Modal ───
     const [clientModal, setClientModal] = useState({ mounted: false, visible: false });
@@ -80,6 +83,8 @@ function AdminUsers() {
     const [artistActiveTab, setArtistActiveTab] = useState('profile');
     const [artistDetails, setArtistDetails] = useState({ profile: {}, appointments: [], portfolio: [], stats: {} });
     const [artistFormData, setArtistFormData] = useState({});
+    const [artistErrors, setArtistErrors] = useState({});
+    const [isSavingArtist, setIsSavingArtist] = useState(false);
     const [loadingArtistDetails, setLoadingArtistDetails] = useState(false);
     const artistOriginalFormData = useRef({});
 
@@ -154,6 +159,7 @@ function AdminUsers() {
     const closeAdminModal = () => {
         setUserModal({ mounted: false, visible: false });
         setSelectedUser(null);
+        setUserErrors({});
     };
 
     const openClientModalAnim = () => {
@@ -174,6 +180,7 @@ function AdminUsers() {
     const closeArtistModal = () => {
         setArtistModal({ mounted: false, visible: false });
         setSelectedArtist(null);
+        setArtistErrors({});
     };
 
     const isArtistFormDirty = () => {
@@ -193,8 +200,8 @@ function AdminUsers() {
                 isAlert: false,
                 onConfirm: async () => {
                     setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-                    await handleUpdateArtistProfile();
-                    closeArtistModal();
+                    const saved = await handleUpdateArtistProfile();
+                    if (saved) closeArtistModal();
                 },
                 onClose: () => {
                     setConfirmDialog(prev => ({ ...prev, isOpen: false }));
@@ -288,7 +295,7 @@ function AdminUsers() {
         } else if (user.user_type === 'artist') {
             openArtistManageModal(user);
         } else {
-            // admin (and legacy manager) — use existing flat edit modal
+            // Admin accounts use the compact account editor.
             handleEdit(user);
         }
     };
@@ -297,35 +304,88 @@ function AdminUsers() {
     // ADMIN EDIT (existing logic preserved)
     // ═══════════════════════════════════════════════════════════
 
+    const getManagedIdentityErrors = (values, { countryCode = '+63' } = {}) => {
+        const errors = customerProfileErrors({
+            first_name: values.first_name,
+            middle_name: values.middle_name,
+            last_name: values.last_name,
+            suffix: values.suffix,
+            phone: countryCode === '+63' ? values.phone : '9171234567'
+        });
+        const email = String(values.email || '').trim();
+        const phone = String(values.phone || '').trim();
+
+        if (!email) errors.email = 'Email address is required.';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Enter a valid email address.';
+        if (countryCode !== '+63') {
+            if (!phone) errors.phone = 'Phone number is required.';
+            else if (!/^\d{7,10}$/.test(phone)) errors.phone = 'Enter a valid phone number with 7 to 10 digits.';
+        }
+        if (!['admin', 'artist', 'customer'].includes(values.user_type)) errors.user_type = 'Select a valid user role.';
+        return errors;
+    };
+
+    const apiProfileError = (message, fallback = 'Unable to save the profile. Please review the fields and try again.') => {
+        const normalized = String(message || '').toLowerCase();
+        if (normalized.includes('email')) return { email: message };
+        if (normalized.includes('first name')) return { first_name: message };
+        if (normalized.includes('last name')) return { last_name: message };
+        if (normalized.includes('full name') || normalized.includes('name')) return { first_name: message };
+        if (normalized.includes('phone')) return { phone: message };
+        if (normalized.includes('role')) return { user_type: message };
+        if (normalized.includes('experience')) return { experience_years: message };
+        if (normalized.includes('specialization')) return { specialization: message };
+        return { form: message || fallback };
+    };
+
     const handleEdit = (user) => {
         setSelectedUser(user);
         const { code, currentNo } = getPhoneParts(user.phone || '');
+        const nameParts = suggestCustomerNameParts(user);
         setFormData({
-            name: user.name, email: user.email, phone: currentNo,
+            ...nameParts,
+            email: user.email, phone: currentNo,
             countryCode: code,
             user_type: user.user_type, status: user.is_deleted ? 'inactive' : 'active', password: ''
         });
+        setUserErrors({});
         openAdminModal();
     };
 
     const handleSave = async () => {
+        if (!selectedUser || isSavingUser) return;
+        const nextErrors = getManagedIdentityErrors(formData, { countryCode: formData.countryCode || '+63' });
+        if (!['active', 'inactive', 'suspended'].includes(formData.status)) nextErrors.status = 'Select a valid account status.';
+        if (Object.keys(nextErrors).length) {
+            setUserErrors(nextErrors);
+            return;
+        }
+
+        setIsSavingUser(true);
+        setUserErrors({});
         try {
-            if (selectedUser) {
-                const fullPhone = (formData.countryCode || '+63') + (formData.phone || '').replace(/^0+/, '');
-                await Axios.put(`${API_URL}/api/admin/users/${selectedUser.id}`, {
-                    name: formData.name, email: formData.email, type: formData.user_type,
-                    phone: fullPhone, status: formData.status
-                }, {
-                    headers: { 'X-User-Email': currentUser.email || '' }
-                });
-                showAlert("Success", "User updated successfully!", "success");
-            }
-            fetchUsers();
+            const fullPhone = (formData.countryCode || '+63') + (formData.phone || '').replace(/^0+/, '');
+            await Axios.put(`${API_URL}/api/admin/users/${selectedUser.id}`, {
+                first_name: formData.first_name,
+                middle_name: formData.middle_name,
+                last_name: formData.last_name,
+                suffix: formData.suffix,
+                email: formData.email.trim().toLowerCase(),
+                type: formData.user_type,
+                phone: fullPhone,
+                status: formData.status
+            }, {
+                headers: { 'X-User-Email': currentUser.email || '' }
+            });
+            await fetchUsers();
             closeAdminModal();
-            setSelectedUser(null);
+            showAlert("Success", "User updated successfully!", "success");
         } catch (error) {
             console.error("Error saving user:", error);
-            showAlert("Error", 'Error saving user: ' + (error.response?.data?.message || error.message), "danger");
+            const message = error.response?.data?.message || error.message;
+            setUserErrors(apiProfileError(message, 'Unable to save this account. Please try again.'));
+        } finally {
+            setIsSavingUser(false);
         }
     };
 
@@ -499,8 +559,9 @@ function AdminUsers() {
                 .replace(/^63/, '')
                 .replace(/^0+/, '')
                 .slice(0, 10);
+            const nameParts = suggestCustomerNameParts(profile);
             setClientDetails({ profile, appointments: combinedHistory, notes: profile.notes || '' });
-            setClientFormData({ ...profile, phone: localPhone });
+            setClientFormData({ ...profile, ...nameParts, phone: localPhone, user_type: client.user_type });
             setClientErrors({});
         } catch (error) {
             console.error("Error fetching client details:", error);
@@ -511,7 +572,8 @@ function AdminUsers() {
     const validateClientField = (field, value) => {
         const trimmed = String(value || '').trim();
         let message = '';
-        if (field === 'name' && !trimmed) message = 'Legal name is required';
+        if (field === 'first_name' && !trimmed) message = 'First name is required';
+        if (field === 'last_name' && !trimmed) message = 'Last name is required';
         if (field === 'email') {
             if (!trimmed) message = 'Email is required';
             else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) message = 'Enter a valid email address';
@@ -520,6 +582,8 @@ function AdminUsers() {
             if (!trimmed) message = 'Phone number is required';
             else if (!/^9\d{9}$/.test(trimmed)) message = 'Enter a 10-digit PH number starting with 9';
         }
+        if (field === 'notes' && String(value || '').length > 500) message = 'Internal notes cannot exceed 500 characters';
+        if (field === 'user_type' && !['admin', 'artist', 'customer'].includes(value)) message = 'Select a valid user role';
         setClientErrors(prev => ({ ...prev, [field]: message }));
         return !message;
     };
@@ -531,17 +595,34 @@ function AdminUsers() {
 
     const handleSaveClient = async () => {
         if (!selectedClient) return;
-        const nameValid = validateClientField('name', clientFormData.name);
-        const emailValid = validateClientField('email', clientFormData.email);
-        const phoneValid = validateClientField('phone', clientFormData.phone);
-        if (!nameValid || !emailValid || !phoneValid) return;
+        const nextErrors = getManagedIdentityErrors(clientFormData);
+        if (String(clientFormData.notes || '').length > 500) nextErrors.notes = 'Internal notes cannot exceed 500 characters.';
+        if (Object.keys(nextErrors).length) {
+            setClientErrors(nextErrors);
+            return;
+        }
         try {
             await Axios.put(`${API_URL}/api/customer/profile/${selectedClient.id}`, {
                 ...clientFormData,
-                name: clientFormData.name.trim(),
+                first_name: clientFormData.first_name,
+                middle_name: clientFormData.middle_name,
+                last_name: clientFormData.last_name,
+                suffix: clientFormData.suffix,
                 email: clientFormData.email.trim().toLowerCase(),
                 phone: `+63${clientFormData.phone}`
             });
+            if (currentUser.is_superadmin && clientFormData.user_type !== selectedClient.user_type) {
+                await Axios.put(`${API_URL}/api/admin/users/${selectedClient.id}`, {
+                    first_name: clientFormData.first_name,
+                    middle_name: clientFormData.middle_name,
+                    last_name: clientFormData.last_name,
+                    suffix: clientFormData.suffix,
+                    email: clientFormData.email.trim().toLowerCase(),
+                    phone: `+63${clientFormData.phone}`,
+                    type: clientFormData.user_type,
+                    status: 'active'
+                }, { headers: { 'X-User-Email': currentUser.email || '' } });
+            }
             showAlert("Success", "Client profile updated!", "success");
             closeClientModal();
             fetchUsers();
@@ -551,7 +632,7 @@ function AdminUsers() {
             if (error.response?.status === 409 || message.toLowerCase().includes('email')) {
                 setClientErrors(prev => ({ ...prev, email: message }));
             } else {
-                showAlert("Error", message, "danger");
+                setClientErrors(prev => ({ ...prev, ...apiProfileError(message, 'Unable to update the client profile.') }));
             }
         }
     };
@@ -579,6 +660,7 @@ function AdminUsers() {
         setSelectedArtist(artist);
         setLoadingArtistDetails(true);
         setArtistActiveTab('profile');
+        setArtistErrors({});
         openArtistModalAnim();
 
         try {
@@ -589,17 +671,31 @@ function AdminUsers() {
 
             if (dashboardRes.data.success && portfolioRes.data.success) {
                 const data = dashboardRes.data;
+                const nameParts = suggestCustomerNameParts(data.artist);
+                const localPhone = String(data.artist.phone || '')
+                    .replace(/\D/g, '')
+                    .replace(/^63/, '')
+                    .replace(/^0+/, '')
+                    .slice(0, 10);
                 setArtistDetails({
                     profile: data.artist, appointments: data.appointments || [],
                     portfolio: portfolioRes.data.works || [], stats: data.stats || {}
                 });
                 setArtistFormData({
-                    name: data.artist.name, specialization: data.artist.specialization,
+                    ...nameParts,
+                    email: data.artist.email,
+                    phone: localPhone,
+                    user_type: artist.user_type,
+                    specialization: data.artist.specialization,
                     hourly_rate: data.artist.hourly_rate, experience_years: data.artist.experience_years,
                     commission_rate: data.artist.commission_rate
                 });
                 artistOriginalFormData.current = {
-                    name: data.artist.name, specialization: data.artist.specialization,
+                    ...nameParts,
+                    email: data.artist.email,
+                    phone: localPhone,
+                    user_type: artist.user_type,
+                    specialization: data.artist.specialization,
                     hourly_rate: data.artist.hourly_rate, experience_years: data.artist.experience_years,
                     commission_rate: data.artist.commission_rate
                 };
@@ -616,15 +712,49 @@ function AdminUsers() {
     };
 
     const handleUpdateArtistProfile = async () => {
+        if (!selectedArtist || isSavingArtist) return false;
+        const nextErrors = getManagedIdentityErrors(artistFormData);
+        const experience = Number(artistFormData.experience_years);
+        if (!String(artistFormData.specialization || '').trim()) nextErrors.specialization = 'Select at least one specialization.';
+        if (!Number.isInteger(experience) || experience < 0 || experience > 50) nextErrors.experience_years = 'Experience must be a whole number from 0 to 50.';
+        if (Object.keys(nextErrors).length) {
+            setArtistErrors(nextErrors);
+            return false;
+        }
+
+        setIsSavingArtist(true);
+        setArtistErrors({});
         try {
-            await Axios.put(`${API_URL}/api/artist/profile/${selectedArtist.id}`, artistFormData);
+            const normalizedPhone = `+63${artistFormData.phone}`;
+            const accountName = composeCustomerName(artistFormData);
+            await Axios.put(`${API_URL}/api/artist/profile/${selectedArtist.id}`, {
+                ...artistFormData,
+                name: accountName,
+                phone: normalizedPhone
+            });
+            await Axios.put(`${API_URL}/api/admin/users/${selectedArtist.id}`, {
+                first_name: artistFormData.first_name,
+                middle_name: artistFormData.middle_name,
+                last_name: artistFormData.last_name,
+                suffix: artistFormData.suffix,
+                email: artistFormData.email.trim().toLowerCase(),
+                phone: normalizedPhone,
+                type: artistFormData.user_type,
+                status: 'active'
+            }, { headers: { 'X-User-Email': currentUser.email || '' } });
             showAlert("Success", "Profile updated successfully", "success");
-            setArtistDetails(prev => ({ ...prev, profile: { ...prev.profile, ...artistFormData } }));
+            setArtistDetails(prev => ({ ...prev, profile: { ...prev.profile, ...artistFormData, name: accountName, phone: normalizedPhone } }));
             artistOriginalFormData.current = { ...artistFormData };
-            fetchUsers();
+            await fetchUsers();
+            if (artistFormData.user_type !== selectedArtist.user_type) closeArtistModal();
+            return true;
         } catch (error) {
             console.error("Error updating profile:", error);
-            showAlert("Error", "Failed to update profile", "danger");
+            const message = error.response?.data?.message || error.message;
+            setArtistErrors(apiProfileError(message, 'Unable to update the artist profile.'));
+            return false;
+        } finally {
+            setIsSavingArtist(false);
         }
     };
 
@@ -697,27 +827,66 @@ function AdminUsers() {
         <div className="tab-content">
             <div className="form-grid">
                 <div className="form-group">
-                    <label>Name</label>
-                    <input type="text" className="form-input" value={artistFormData.name || ''} onChange={e => setArtistFormData({ ...artistFormData, name: filterName(e.target.value).slice(0, 50) })} maxLength={50} />
+                    <label>First Name *</label>
+                    <input type="text" className={`form-input ${artistErrors.first_name ? 'error' : ''}`} value={artistFormData.first_name || ''} onChange={e => { setArtistFormData({ ...artistFormData, first_name: filterName(e.target.value).slice(0, 50) }); setArtistErrors(prev => ({ ...prev, first_name: '', form: '' })); }} maxLength={50} />
+                    {artistErrors.first_name && <small className="error-text">{artistErrors.first_name}</small>}
                 </div>
                 <div className="form-group">
-                    <label>Specialization / Styles</label>
+                    <label>Middle Name</label>
+                    <input type="text" className={`form-input ${artistErrors.middle_name ? 'error' : ''}`} value={artistFormData.middle_name || ''} onChange={e => { setArtistFormData({ ...artistFormData, middle_name: filterName(e.target.value).slice(0, 50) }); setArtistErrors(prev => ({ ...prev, middle_name: '', form: '' })); }} maxLength={50} />
+                    {artistErrors.middle_name && <small className="error-text">{artistErrors.middle_name}</small>}
+                </div>
+                <div className="form-group">
+                    <label>Last Name *</label>
+                    <input type="text" className={`form-input ${artistErrors.last_name ? 'error' : ''}`} value={artistFormData.last_name || ''} onChange={e => { setArtistFormData({ ...artistFormData, last_name: filterName(e.target.value).slice(0, 50) }); setArtistErrors(prev => ({ ...prev, last_name: '', form: '' })); }} maxLength={50} />
+                    {artistErrors.last_name && <small className="error-text">{artistErrors.last_name}</small>}
+                </div>
+                <div className="form-group">
+                    <label>Suffix</label>
+                    <input type="text" className={`form-input ${artistErrors.suffix ? 'error' : ''}`} value={artistFormData.suffix || ''} onChange={e => { setArtistFormData({ ...artistFormData, suffix: filterName(e.target.value).slice(0, 10) }); setArtistErrors(prev => ({ ...prev, suffix: '', form: '' })); }} maxLength={10} placeholder="e.g. Jr." />
+                    {artistErrors.suffix && <small className="error-text">{artistErrors.suffix}</small>}
+                </div>
+                <div className="form-group">
+                    <label>Email Address *</label>
+                    <input type="email" className={`form-input ${artistErrors.email ? 'error' : ''}`} value={artistFormData.email || ''} onChange={e => { setArtistFormData({ ...artistFormData, email: e.target.value.replace(/\s/g, '').slice(0, 254) }); setArtistErrors(prev => ({ ...prev, email: '', form: '' })); }} maxLength={254} />
+                    {artistErrors.email && <small className="error-text">{artistErrors.email}</small>}
+                </div>
+                <div className="form-group">
+                    <label>Phone Number (+63) *</label>
+                    <input type="tel" className={`form-input ${artistErrors.phone ? 'error' : ''}`} value={artistFormData.phone || ''} onChange={e => { setArtistFormData({ ...artistFormData, phone: filterDigits(e.target.value).replace(/^0+/, '').slice(0, 10) }); setArtistErrors(prev => ({ ...prev, phone: '', form: '' })); }} maxLength={10} placeholder="9XXXXXXXXX" />
+                    {artistErrors.phone && <small className="error-text">{artistErrors.phone}</small>}
+                </div>
+                <div className="form-group">
+                    <label>Specialization / Styles *</label>
                     <MultiSelectDropdown
                         options={TATTOO_STYLES}
                         selectedStr={artistFormData.specialization}
-                        onChange={(newVal) => setArtistFormData({ ...artistFormData, specialization: newVal })}
+                        onChange={(newVal) => { setArtistFormData({ ...artistFormData, specialization: newVal }); setArtistErrors(prev => ({ ...prev, specialization: '', form: '' })); }}
                         placeholder="Select styles"
                     />
+                    {artistErrors.specialization && <small className="error-text">{artistErrors.specialization}</small>}
                 </div>
                 <div className="form-group">
-                    <label>Experience (Years)</label>
-                    <input type="number" className="form-input" value={artistFormData.experience_years || 0} onChange={e => setArtistFormData({ ...artistFormData, experience_years: clampNumber(e.target.value, 0, 50) })} min="0" max="50" />
+                    <label>Experience (Years) *</label>
+                    <input type="number" className={`form-input ${artistErrors.experience_years ? 'error' : ''}`} value={artistFormData.experience_years ?? ''} onChange={e => { setArtistFormData({ ...artistFormData, experience_years: e.target.value }); setArtistErrors(prev => ({ ...prev, experience_years: '', form: '' })); }} min="0" max="50" step="1" />
+                    {artistErrors.experience_years && <small className="error-text">{artistErrors.experience_years}</small>}
+                </div>
+                <div className="form-group">
+                    <label>Account Role *</label>
+                    <select className={`form-input ${artistErrors.user_type ? 'error' : ''}`} value={artistFormData.user_type || 'artist'} onChange={e => { setArtistFormData({ ...artistFormData, user_type: e.target.value }); setArtistErrors(prev => ({ ...prev, user_type: '', form: '' })); }} disabled={!currentUser.is_superadmin || selectedArtist?.is_superadmin}>
+                        <option value="admin">Admin</option>
+                        <option value="artist">Artist</option>
+                        <option value="customer">Customer</option>
+                    </select>
+                    {artistErrors.user_type && <small className="error-text">{artistErrors.user_type}</small>}
+                    {!currentUser.is_superadmin && <small>Only the super admin can change user roles.</small>}
                 </div>
                 <div className="form-group">
                     <label>Commission Rate (%)</label>
-                    <input className="form-input admin-st-10bc60ad" type="text" value="30" disabled />
+                    <input className="form-input admin-st-10bc60ad" type="text" value="60" disabled />
                 </div>
             </div>
+            {artistErrors.form && <div className="profile-inline-error" role="alert">{artistErrors.form}</div>}
             <div className="stats-row admin-st-40088812">
                 <div className="stat-item">
                     <span className="stat-label">Total Appointments</span>
@@ -1202,39 +1371,60 @@ function AdminUsers() {
                             <div className="modal-body">
                                 <div className="form-row">
                                     <div className="form-group">
-                                        <label className="premium-label">Full Name *</label>
-                                        <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: filterName(e.target.value).slice(0, 50) })} maxLength={50} className="form-input" placeholder="Full Name" />
+                                        <label className="premium-label">First Name *</label>
+                                        <input type="text" value={formData.first_name || ''} onChange={(e) => { setFormData({ ...formData, first_name: filterName(e.target.value).slice(0, 50) }); setUserErrors(prev => ({ ...prev, first_name: '', form: '' })); }} maxLength={50} className={`form-input ${userErrors.first_name ? 'error' : ''}`} placeholder="First Name" />
+                                        {userErrors.first_name && <small className="admin-inline-error">{userErrors.first_name}</small>}
                                     </div>
                                     <div className="form-group">
-                                        <label className="premium-label">Email Address *</label>
-                                        <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} maxLength={254} className="form-input" placeholder="email@example.com" />
+                                        <label className="premium-label">Last Name *</label>
+                                        <input type="text" value={formData.last_name || ''} onChange={(e) => { setFormData({ ...formData, last_name: filterName(e.target.value).slice(0, 50) }); setUserErrors(prev => ({ ...prev, last_name: '', form: '' })); }} maxLength={50} className={`form-input ${userErrors.last_name ? 'error' : ''}`} placeholder="Last Name" />
+                                        {userErrors.last_name && <small className="admin-inline-error">{userErrors.last_name}</small>}
                                     </div>
                                 </div>
                                 <div className="form-row">
                                     <div className="form-group">
-                                        <label className="premium-label">Phone Number</label>
+                                        <label className="premium-label">Middle Name</label>
+                                        <input type="text" value={formData.middle_name || ''} onChange={(e) => { setFormData({ ...formData, middle_name: filterName(e.target.value).slice(0, 50) }); setUserErrors(prev => ({ ...prev, middle_name: '', form: '' })); }} maxLength={50} className={`form-input ${userErrors.middle_name ? 'error' : ''}`} placeholder="Middle Name (Optional)" />
+                                        {userErrors.middle_name && <small className="admin-inline-error">{userErrors.middle_name}</small>}
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="premium-label">Suffix</label>
+                                        <input type="text" value={formData.suffix || ''} onChange={(e) => { setFormData({ ...formData, suffix: filterName(e.target.value).slice(0, 10) }); setUserErrors(prev => ({ ...prev, suffix: '', form: '' })); }} maxLength={10} className={`form-input ${userErrors.suffix ? 'error' : ''}`} placeholder="e.g. Jr." />
+                                        {userErrors.suffix && <small className="admin-inline-error">{userErrors.suffix}</small>}
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label className="premium-label">Email Address *</label>
+                                        <input type="email" value={formData.email || ''} onChange={(e) => { setFormData({ ...formData, email: e.target.value.replace(/\s/g, '').slice(0, 254) }); setUserErrors(prev => ({ ...prev, email: '', form: '' })); }} maxLength={254} className={`form-input ${userErrors.email ? 'error' : ''}`} placeholder="email@example.com" />
+                                        {userErrors.email && <small className="admin-inline-error">{userErrors.email}</small>}
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="premium-label">Phone Number *</label>
                                         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                                             <CountryCodeSelect
                                                 value={formData.countryCode || '+63'}
-                                                onChange={(code) => setFormData({ ...formData, countryCode: code })}
+                                                onChange={(code) => { setFormData({ ...formData, countryCode: code }); setUserErrors(prev => ({ ...prev, phone: '', form: '' })); }}
                                             />
-                                            <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: filterDigits(e.target.value).replace(/^0+/, '').slice(0, 10) })} maxLength={10} className="form-input" style={{ flex: 1 }} placeholder="9XXXXXXXXX" />
+                                            <input type="tel" value={formData.phone || ''} onChange={(e) => { setFormData({ ...formData, phone: filterDigits(e.target.value).replace(/^0+/, '').slice(0, 10) }); setUserErrors(prev => ({ ...prev, phone: '', form: '' })); }} maxLength={10} className={`form-input ${userErrors.phone ? 'error' : ''}`} style={{ flex: 1 }} placeholder="9XXXXXXXXX" />
                                         </div>
+                                        {userErrors.phone && <small className="admin-inline-error">{userErrors.phone}</small>}
                                     </div>
                                 </div>
                                 <div className="form-row">
                                     <div className="form-group">
-                                        <label className="premium-label">User Role</label>
+                                        <label className="premium-label">User Role *</label>
                                         <select
                                             value={formData.user_type}
-                                            onChange={(e) => setFormData({ ...formData, user_type: e.target.value })}
-                                            className="form-input"
-                                            disabled={!currentUser.is_superadmin}
+                                            onChange={(e) => { setFormData({ ...formData, user_type: e.target.value }); setUserErrors(prev => ({ ...prev, user_type: '', form: '' })); }}
+                                            className={`form-input ${userErrors.user_type ? 'error' : ''}`}
+                                            disabled={!currentUser.is_superadmin || selectedUser?.is_superadmin}
                                         >
                                             <option value="admin">Admin</option>
                                             <option value="artist">Artist</option>
                                             <option value="customer">Customer</option>
                                         </select>
+                                        {userErrors.user_type && <small className="admin-inline-error">{userErrors.user_type}</small>}
                                         {!currentUser.is_superadmin && (
                                             <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
                                                 Only the super admin can change user roles.
@@ -1242,16 +1432,18 @@ function AdminUsers() {
                                         )}
                                     </div>
                                     <div className="form-group">
-                                        <label className="premium-label">Account Status</label>
-                                        <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="form-input"
+                                        <label className="premium-label">Account Status *</label>
+                                        <select value={formData.status} onChange={(e) => { setFormData({ ...formData, status: e.target.value }); setUserErrors(prev => ({ ...prev, status: '', form: '' })); }} className={`form-input ${userErrors.status ? 'error' : ''}`}
                                             disabled={selectedUser && selectedUser.is_superadmin && currentUser.email !== selectedUser.email}
                                         >
                                             <option value="active">Active</option>
                                             <option value="inactive">Inactive / Deactivated</option>
                                             <option value="suspended">Suspended</option>
                                         </select>
+                                        {userErrors.status && <small className="admin-inline-error">{userErrors.status}</small>}
                                     </div>
                                 </div>
+                                {userErrors.form && <div className="profile-inline-error" role="alert">{userErrors.form}</div>}
                             </div>
                             <div className="modal-footer">
                                 <div className="admin-st-c6588e1a">
@@ -1263,8 +1455,8 @@ function AdminUsers() {
                                 </div>
                                 <button className="btn btn-secondary" onClick={closeAdminModal}>Cancel</button>
                                 <button className="btn btn-primary admin-st-9be3106b" onClick={handleSave}
-                                    disabled={selectedUser && selectedUser.is_superadmin && currentUser.email !== selectedUser.email}
-                                >Save Changes</button>
+                                    disabled={isSavingUser || (selectedUser && selectedUser.is_superadmin && currentUser.email !== selectedUser.email)}
+                                >{isSavingUser ? 'Saving...' : 'Save Changes'}</button>
                             </div>
                         </div>
                     </div>
@@ -1311,9 +1503,24 @@ function AdminUsers() {
                                             <div className="admin-st-e7646dcc">
                                                 <div className="admin-st-ff43421e">
                                                     <div className="form-group">
-                                                        <label className="admin-st-19644797">Legal Name *</label>
-                                                        <input type="text" className={`form-input ${clientErrors.name ? 'error' : ''}`} value={clientFormData.name || ''} onChange={e => handleClientFieldChange('name', filterName(e.target.value).slice(0, 50))} onBlur={() => validateClientField('name', clientFormData.name)} maxLength={50} />
-                                                        {clientErrors.name && <small className="error-text">{clientErrors.name}</small>}
+                                                        <label className="admin-st-19644797">First Name *</label>
+                                                        <input type="text" className={`form-input ${clientErrors.first_name ? 'error' : ''}`} value={clientFormData.first_name || ''} onChange={e => handleClientFieldChange('first_name', filterName(e.target.value).slice(0, 50))} onBlur={() => validateClientField('first_name', clientFormData.first_name)} maxLength={50} />
+                                                        {clientErrors.first_name && <small className="error-text">{clientErrors.first_name}</small>}
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label className="admin-st-19644797">Middle Name</label>
+                                                        <input type="text" className={`form-input ${clientErrors.middle_name ? 'error' : ''}`} value={clientFormData.middle_name || ''} onChange={e => handleClientFieldChange('middle_name', filterName(e.target.value).slice(0, 50))} maxLength={50} />
+                                                        {clientErrors.middle_name && <small className="error-text">{clientErrors.middle_name}</small>}
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label className="admin-st-19644797">Last Name *</label>
+                                                        <input type="text" className={`form-input ${clientErrors.last_name ? 'error' : ''}`} value={clientFormData.last_name || ''} onChange={e => handleClientFieldChange('last_name', filterName(e.target.value).slice(0, 50))} onBlur={() => validateClientField('last_name', clientFormData.last_name)} maxLength={50} />
+                                                        {clientErrors.last_name && <small className="error-text">{clientErrors.last_name}</small>}
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label className="admin-st-19644797">Suffix</label>
+                                                        <input type="text" className={`form-input ${clientErrors.suffix ? 'error' : ''}`} value={clientFormData.suffix || ''} onChange={e => handleClientFieldChange('suffix', filterName(e.target.value).slice(0, 10))} maxLength={10} placeholder="e.g. Jr." />
+                                                        {clientErrors.suffix && <small className="error-text">{clientErrors.suffix}</small>}
                                                     </div>
                                                     <div className="form-group">
                                                         <label className="admin-st-19644797">Direct Link (Email) *</label>
@@ -1325,6 +1532,16 @@ function AdminUsers() {
                                                         <input type="text" className={`form-input ${clientErrors.phone ? 'error' : ''}`} value={clientFormData.phone || ''} onChange={e => handleClientFieldChange('phone', filterDigits(e.target.value).replace(/^0+/, '').slice(0, 10))} onBlur={() => validateClientField('phone', clientFormData.phone)} maxLength={10} placeholder="9XXXXXXXXX" />
                                                         {clientErrors.phone && <small className="error-text">{clientErrors.phone}</small>}
                                                     </div>
+                                                    <div className="form-group">
+                                                        <label className="admin-st-19644797">Account Role *</label>
+                                                        <select className={`form-input ${clientErrors.user_type ? 'error' : ''}`} value={clientFormData.user_type || 'customer'} onChange={e => handleClientFieldChange('user_type', e.target.value)} disabled={!currentUser.is_superadmin || selectedClient?.is_superadmin}>
+                                                            <option value="admin">Admin</option>
+                                                            <option value="artist">Artist</option>
+                                                            <option value="customer">Customer</option>
+                                                        </select>
+                                                        {clientErrors.user_type && <small className="error-text">{clientErrors.user_type}</small>}
+                                                        {!currentUser.is_superadmin && <small>Only the super admin can change user roles.</small>}
+                                                    </div>
                                                 </div>
                                                 <div className="admin-st-ff43421e">
                                                     <div className="form-group">
@@ -1333,9 +1550,10 @@ function AdminUsers() {
                                                             className="form-input admin-st-6c845e15" rows="8"
                                                             placeholder="Record specific sensitivities, design preferences, or billing history notes..."
                                                             value={clientFormData.notes || ''}
-                                                            onChange={e => setClientFormData({ ...clientFormData, notes: e.target.value.substring(0, 2000) })}
-                                                            maxLength={2000}
+                                                            onChange={e => handleClientFieldChange('notes', e.target.value.substring(0, 500))}
+                                                            maxLength={500}
                                                         ></textarea>
+                                                        {clientErrors.notes && <small className="error-text">{clientErrors.notes}</small>}
                                                     </div>
                                                 </div>
                                             </div>
@@ -1487,6 +1705,7 @@ function AdminUsers() {
                                                 </table>
                                             </div>
                                         )}
+                                        {clientActiveTab === 'profile' && clientErrors.form && <div className="profile-inline-error" role="alert">{clientErrors.form}</div>}
                                     </div>
                                 )}
                             </div>
@@ -1568,8 +1787,8 @@ function AdminUsers() {
                                     <X size={16} /> Close
                                 </button>
                                 {artistActiveTab === 'profile' && (
-                                    <button className="btn btn-primary admin-st-f9a92399" onClick={handleUpdateArtistProfile}>
-                                        <Save size={18} /> Sync Account Updates
+                                    <button className="btn btn-primary admin-st-f9a92399" onClick={handleUpdateArtistProfile} disabled={isSavingArtist}>
+                                        <Save size={18} /> {isSavingArtist ? 'Saving...' : 'Sync Account Updates'}
                                     </button>
                                 )}
                             </div>

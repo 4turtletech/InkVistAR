@@ -510,6 +510,18 @@
     text-align: center;
 }
 
+.admin-page .profile-inline-error {
+    margin-top: 1rem;
+    padding: 0.8rem 0.95rem;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 0.84rem;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
 .form-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

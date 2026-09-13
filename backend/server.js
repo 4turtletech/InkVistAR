@@ -9585,7 +9585,7 @@ app.get('/api/admin/dashboard', (req, res) => {
 // Admin: Get All Users
 app.get('/api/admin/users', (req, res) => {
   const { search, status } = req.query;
-  let query = 'SELECT id, name, email, phone, user_type, is_verified, is_deleted, is_superadmin, account_status, status_reason, appeal_status, appeal_message FROM users WHERE 1=1';
+  let query = 'SELECT id, name, first_name, middle_name, last_name, suffix, email, phone, user_type, is_verified, is_deleted, is_superadmin, account_status, status_reason, appeal_status, appeal_message FROM users WHERE 1=1';
   let params = [];
 
   // We map the incoming UI filter "status" to the DB states.
@@ -9683,8 +9683,31 @@ app.post('/api/admin/users', async (req, res) => {
 // Admin: Update User
 app.put('/api/admin/users/:id', (req, res) => {
   const { id } = req.params;
-  const { name, email, type, phone, status } = req.body;
+  const { email, type, phone, status } = req.body;
   const requestorEmail = req.headers['x-user-email'] || '';
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const normalizedPhone = String(phone || '').replace(/[\s()-]/g, '');
+  const allowedRoles = new Set(['admin', 'artist', 'customer']);
+
+  let accountName;
+  try {
+    accountName = normalizeStructuredNameInput(req.body, { required: true });
+  } catch (nameError) {
+    return res.status(nameError.statusCode || 400).json({ success: false, message: nameError.message });
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || normalizedEmail.length > 254) {
+    return res.status(400).json({ success: false, message: 'Enter a valid email address.' });
+  }
+  if (normalizedPhone && !/^\+?\d{7,15}$/.test(normalizedPhone)) {
+    return res.status(400).json({ success: false, message: 'Enter a valid phone number with 7 to 15 digits.' });
+  }
+  if (!allowedRoles.has(type)) {
+    return res.status(400).json({ success: false, message: 'Select a valid user role.' });
+  }
+  if (!['active', 'inactive', 'suspended'].includes(status)) {
+    return res.status(400).json({ success: false, message: 'Select a valid account status.' });
+  }
 
   // Look up the target user to check super admin status
   db.query('SELECT email, user_type, is_superadmin FROM users WHERE id = ?', [id], (lookupErr, lookupResults) => {
@@ -9696,6 +9719,9 @@ app.put('/api/admin/users/:id', (req, res) => {
     // GUARD: Nobody can modify the super admin account except the super admin themselves
     if (targetUser.is_superadmin && requestorEmail !== targetUser.email) {
       return res.status(403).json({ success: false, message: 'Cannot modify the system super admin account.' });
+    }
+    if (targetUser.is_superadmin && type !== 'admin') {
+      return res.status(400).json({ success: false, message: 'The system super admin role cannot be changed.' });
     }
 
     // GUARD: Only the super admin can change a user's role
@@ -9715,30 +9741,65 @@ app.put('/api/admin/users/:id', (req, res) => {
     function performUpdate() {
       const { profile_image } = req.body;
       const isDeleted = (status === 'inactive' || status === 'suspended') ? 1 : 0;
-      const query = 'UPDATE users SET name = ?, email = ?, user_type = ?, phone = ?, is_deleted = ? WHERE id = ?';
-      db.query(query, [name, email, type, phone, isDeleted, id], (err) => {
+      const updates = ['name = ?', 'email = ?', 'user_type = ?', 'phone = ?', 'is_deleted = ?'];
+      const params = [accountName.name, normalizedEmail, type, normalizedPhone || null, isDeleted];
+      if (accountName.structuredNameProvided) {
+        updates.push('first_name = ?', 'middle_name = ?', 'last_name = ?', 'suffix = ?');
+        params.push(accountName.first_name, accountName.middle_name, accountName.last_name, accountName.suffix);
+      }
+      if (profile_image !== undefined && type === 'admin') {
+        updates.push('profile_image = ?');
+        params.push(profile_image);
+      }
+      params.push(id);
+
+      db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, params, (err) => {
+        if (err?.code === 'ER_DUP_ENTRY') return res.status(409).json({ success: false, message: 'That email address is already in use.' });
         if (err) return res.status(500).json({ success: false, message: err.message });
 
-        // If a profile_image is provided, upsert it into the role-appropriate table
-        if (profile_image !== undefined) {
-          const roleType = type || targetUser.user_type;
-          let imgQuery = null;
-          if (roleType === 'artist') {
-            imgQuery = 'UPDATE artists SET profile_image = ? WHERE user_id = ?';
-          } else if (roleType === 'customer') {
-            imgQuery = `INSERT INTO customers (user_id, profile_image) VALUES (?, ?)
-              ON DUPLICATE KEY UPDATE profile_image = VALUES(profile_image)`;
-          } else {
-            // admin/manager: store in users table directly
-            imgQuery = 'UPDATE users SET profile_image = ? WHERE id = ?';
-          }
-          if (imgQuery) {
-            db.query(imgQuery, [profile_image, id], () => {});
-          }
-        }
+        const finishUpdate = () => {
+          const complete = () => {
+            logAction(getAdminId(req), 'UPDATE_USER', `Updated user ${id} (${normalizedEmail})`, req.ip);
+            res.json({ success: true, message: 'User updated successfully' });
+          };
 
-        logAction(getAdminId(req), 'UPDATE_USER', `Updated user ${id} (${email})`, req.ip);
-        res.json({ success: true, message: 'User updated successfully' });
+          if (profile_image === undefined || type === 'admin') return complete();
+          const imageQuery = type === 'artist'
+            ? 'UPDATE artists SET profile_image = ? WHERE user_id = ?'
+            : 'UPDATE customers SET profile_image = ? WHERE user_id = ?';
+          db.query(imageQuery, [profile_image, id], (imageErr) => {
+            if (imageErr) return res.status(500).json({ success: false, message: 'Failed to update the profile image.' });
+            complete();
+          });
+        };
+
+        // A role conversion must create the destination profile row so opening
+        // that portal never leaves the user in an incomplete account state.
+        if (type === 'artist') {
+          db.query(
+            `INSERT INTO artists (user_id, studio_name, commission_rate)
+             VALUES (?, 'New Studio', ?)
+             ON DUPLICATE KEY UPDATE user_id = VALUES(user_id)`,
+            [id, DEFAULT_COMMISSION_RATE],
+            (profileErr) => {
+              if (profileErr) return res.status(500).json({ success: false, message: 'Failed to initialize the artist profile.' });
+              finishUpdate();
+            }
+          );
+        } else if (type === 'customer') {
+          db.query(
+            `INSERT INTO customers (user_id, phone)
+             VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE user_id = VALUES(user_id)`,
+            [id, normalizedPhone || null],
+            (profileErr) => {
+              if (profileErr) return res.status(500).json({ success: false, message: 'Failed to initialize the customer profile.' });
+              finishUpdate();
+            }
+          );
+        } else {
+          finishUpdate();
+        }
       });
     }
   });
