@@ -33,6 +33,14 @@ const getStockFilterFromSearch = (search) => {
     return INVENTORY_STOCK_FILTERS.includes(requestedFilter) ? requestedFilter : 'all';
 };
 
+const escapePrintHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+}[character]));
+
 function AdminInventory() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -434,7 +442,110 @@ function AdminInventory() {
             showAlert('Nothing to Print', 'There are no inventory items in the current filtered view.', 'info');
             return;
         }
-        window.print();
+
+        const reportRows = filteredInventory.map((item) => {
+            const displayedCost = item.retailPrice || item.cost || 0;
+            return `
+                <tr>
+                    <td>${escapePrintHtml(item.name || 'N/A')}</td>
+                    <td>${escapePrintHtml(item.category || 'N/A')}</td>
+                    <td class="number">${escapePrintHtml(item.currentStock ?? 0)}</td>
+                    <td class="number">${escapePrintHtml(item.minStock ?? 0)}</td>
+                    <td>${escapePrintHtml(item.unit || 'N/A')}</td>
+                    <td class="number">&#8369;${Number(displayedCost).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td>${escapePrintHtml(getStockStatus(item.currentStock, item.minStock, item.maxStock))}</td>
+                </tr>`;
+        }).join('');
+
+        // Print from an in-page frame so browser popup blockers cannot swallow
+        // the report and unrelated admin-page styles cannot alter the output.
+        const printFrame = document.createElement('iframe');
+        printFrame.setAttribute('title', 'Inventory report print frame');
+        printFrame.setAttribute('aria-hidden', 'true');
+        Object.assign(printFrame.style, {
+            position: 'fixed',
+            right: '0',
+            bottom: '0',
+            width: '1px',
+            height: '1px',
+            border: '0',
+            opacity: '0',
+            pointerEvents: 'none'
+        });
+        document.body.appendChild(printFrame);
+
+        const frameWindow = printFrame.contentWindow;
+        const frameDocument = frameWindow?.document;
+        if (!frameWindow || !frameDocument) {
+            printFrame.remove();
+            showAlert('Print Failed', 'The inventory report could not be prepared. Please try again.', 'danger');
+            return;
+        }
+
+        frameDocument.open();
+        frameDocument.write(`<!doctype html>
+            <html>
+                <head>
+                    <meta charset="utf-8" />
+                    <title>InkVistAR Inventory Report</title>
+                    <style>
+                        @page { size: landscape; margin: 14mm; }
+                        * { box-sizing: border-box; }
+                        body { margin: 0; color: #172033; font-family: Arial, sans-serif; }
+                        header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 22px; padding-bottom: 14px; border-bottom: 2px solid #be9055; }
+                        h1 { margin: 0 0 5px; font-size: 24px; }
+                        p { margin: 3px 0; color: #526078; font-size: 12px; }
+                        .summary { text-align: right; }
+                        table { width: 100%; border-collapse: collapse; }
+                        th, td { border: 1px solid #d7deea; padding: 8px 10px; text-align: left; font-size: 11px; }
+                        th { background: #edf2f8; color: #526078; text-transform: uppercase; letter-spacing: .04em; }
+                        tbody tr:nth-child(even) { background: #fafbfd; }
+                        .number { text-align: right; }
+                        footer { margin-top: 14px; color: #738096; font-size: 10px; }
+                    </style>
+                </head>
+                <body>
+                    <header>
+                        <div>
+                            <h1>InkVistAR Studio</h1>
+                            <p>Inventory &amp; Stock Report</p>
+                        </div>
+                        <div class="summary">
+                            <p>Generated: ${escapePrintHtml(new Date().toLocaleString('en-PH'))}</p>
+                            <p>Items: ${filteredInventory.length}</p>
+                            <p>Total inventory cost: &#8369;${Number(totalValue).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        </div>
+                    </header>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th>Category</th>
+                                <th>Current Stock</th>
+                                <th>Min Stock</th>
+                                <th>Unit</th>
+                                <th>Cost</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>${reportRows}</tbody>
+                    </table>
+                    <footer>This report reflects the filters currently applied in Inventory Management.</footer>
+                </body>
+            </html>`);
+        frameDocument.close();
+
+        let cleanedUp = false;
+        const cleanupPrintFrame = () => {
+            if (cleanedUp) return;
+            cleanedUp = true;
+            printFrame.remove();
+        };
+
+        frameWindow.addEventListener('afterprint', cleanupPrintFrame, { once: true });
+        frameWindow.focus();
+        frameWindow.print();
+        window.setTimeout(cleanupPrintFrame, 60000);
     };
 
     const handleExportCSV = () => {

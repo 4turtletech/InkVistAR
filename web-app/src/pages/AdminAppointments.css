@@ -390,7 +390,13 @@
     background: #f1f5f9;
 }
 
-.print-only-header {
+.appointments-page .print-only-header {
+    display: none;
+}
+
+/* Keep the report copy out of the normal List View. This rule is deliberately
+   scoped so another lazy-loaded admin page cannot control its visibility. */
+.appointments-page .print-only-table {
     display: none;
 }
 
@@ -474,11 +480,11 @@
 
 @media print {
     /* Show print-only elements */
-    .print-only-header {
+    .appointments-page .print-only-header {
         display: block !important;
     }
 
-    .print-only-table {
+    .appointments-page .print-only-table {
         display: block !important;
     }
 

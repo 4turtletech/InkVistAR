@@ -811,21 +811,21 @@
     }
 }
 
-.print-only-header {
+.inventory-page .print-only-header {
     display: none;
 }
 
-.print-only-table {
+.inventory-page .print-only-table {
     display: none;
 }
 
 @media print {
     /* Show print-only elements */
-    .print-only-header {
+    .inventory-page .print-only-header {
         display: block !important;
     }
 
-    .print-only-table {
+    .inventory-page .print-only-table {
         display: block !important;
     }
 
