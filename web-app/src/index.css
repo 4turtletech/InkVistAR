@@ -78,7 +78,10 @@ select option {
 }
 
 .page-container-enter {
-  animation: pageEnterGlobal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  /* Do not retain the animation's transform after it finishes. A transformed
+     page becomes the containing block for position: fixed descendants, which
+     makes modal overlays center against the full page instead of the viewport. */
+  animation: pageEnterGlobal 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 button:active {

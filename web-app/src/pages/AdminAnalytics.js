@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Download, Package, Printer, Filter, X, BarChart3, PieChart as PieChartIcon, Calendar, LayoutDashboard, Check, DollarSign, Home, Users, Palette, CheckCircle, Clock } from 'lucide-react';
@@ -347,7 +348,7 @@ function AdminAnalytics() {
                         </div>
                         <div>
                             <button className="btn btn-secondary" onClick={() => setIsWidgetModalOpen(true)}><LayoutDashboard size={18} /> Layout</button>
-                            {isWidgetModalOpen && (
+                            {isWidgetModalOpen && ReactDOM.createPortal(
                                 <div className="modal-overlay open" onClick={() => setIsWidgetModalOpen(false)}>
                                     <div className="modal-content" style={{ maxWidth: '600px', width: '90%' }} onClick={e => e.stopPropagation()}>
                                         <div className="modal-header">
@@ -383,7 +384,8 @@ function AdminAnalytics() {
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </div>,
+                                document.body
                             )}
                         </div>
                         <button className="btn btn-secondary" onClick={handlePrint}><Printer size={18} /> Print</button>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { X, BarChart3, Plus, Trash2, Edit3, Check, Search, ChevronLeft, ChevronRight, FileText, PieChart as PieChartIcon } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import './AnalyticsAuditModal.css';
 
 /* ═══════════════ SHARED CONSTANTS ═══════════════ */
 const RAINBOW_PALETTE = ['#be9055', '#ef4444', '#10b981', '#a855f7', '#f59e0b', '#06b6d4', '#ec4899', '#84cc16', '#a67c52', '#14b8a6'];
@@ -285,9 +287,9 @@ function AnalyticsAuditModal({
         );
     };
 
-    return (
+    return ReactDOM.createPortal(
         <div className="modal-overlay open" onClick={onClose}>
-            <div className="modal-content xl" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px' }}>
+            <div className="modal-content xl analytics-audit-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px' }}>
                 <div className="modal-header">
                     <div className="admin-flex-center admin-gap-15">
                         <div style={{ width: '40px', height: '40px', background: 'rgba(30,41,59,0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -301,12 +303,12 @@ function AnalyticsAuditModal({
                     <button className="close-btn" onClick={onClose}><X size={24} /></button>
                 </div>
                 <div className="modal-body" style={{ padding: '0', maxHeight: '75vh', overflowY: 'auto' }}>
-                    <div className="modal-tabs-wrapper-v2" style={{ padding: '20px 24px 0 24px', borderBottom: '1px solid rgba(226,232,240,0.5)', marginBottom: '20px', display: 'flex', gap: '8px' }}>
-                        <button type="button" onClick={() => setModalTab('summary')} className={`modal-tab-btn ${modalTab === 'summary' ? 'active' : ''}`}>
+                    <div className="modal-tabs-wrapper-v2" role="tablist" aria-label="Audit details">
+                        <button type="button" role="tab" aria-selected={modalTab === 'summary'} aria-controls="analytics-audit-summary" onClick={() => setModalTab('summary')} className={`modal-tab-btn ${modalTab === 'summary' ? 'active' : ''}`}>
                             <PieChartIcon size={14} /> Analytics Overview
                         </button>
                         {(auditModal.type !== 'expenses' && auditModal.type !== 'artists') && (
-                            <button type="button" onClick={() => setModalTab('logs')} className={`modal-tab-btn ${modalTab === 'logs' ? 'active' : ''}`}>
+                            <button type="button" role="tab" aria-selected={modalTab === 'logs'} aria-controls="analytics-audit-log" onClick={() => setModalTab('logs')} className={`modal-tab-btn ${modalTab === 'logs' ? 'active' : ''}`}>
                                 <FileText size={14} /> {getSecondTabLabel()}
                             </button>
                         )}
@@ -314,7 +316,7 @@ function AnalyticsAuditModal({
 
                     <div style={{ padding: '0 24px 20px 24px' }}>
                         {modalTab === 'summary' && (
-                            <>
+                            <div id="analytics-audit-summary" role="tabpanel">
 
                                 {/* General breakdown pie + list (Revenue/Appointments/Completion/Users) */}
                                 {auditModal.data?.breakdown && auditModal.type !== 'expenses' && (
@@ -530,14 +532,14 @@ function AnalyticsAuditModal({
                                     </div>
                                 )}
 
-                            </>
+                            </div>
                         )}
 
                         {modalTab === 'logs' && (
-                            <>
+                            <div id="analytics-audit-log" role="tabpanel">
                                 {/* ═══ TRANSACTION LOG TABLE (appended to all applicable types) ═══ */}
                                 {renderAuditTable()}
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -545,7 +547,8 @@ function AnalyticsAuditModal({
                     <button className="btn btn-secondary" onClick={onClose}>Close</button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 

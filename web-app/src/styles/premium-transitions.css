@@ -18,7 +18,9 @@
 /* --- Premium Page Transition --- */
 /* Apply this to the root container of each page */
 .page-transition-wrapper {
-  animation: premiumPageReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  /* Let transform return to its unanimated `none` value so fixed overlays
+     remain relative to the browser viewport after the reveal completes. */
+  animation: premiumPageReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes premiumPageReveal {
