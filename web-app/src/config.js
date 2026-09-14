@@ -21,9 +21,11 @@ export const SOCKET_URL = explicitApi || (isProduction ? BACKEND_DIRECT_URL : 'h
 
 let accessToken = null;
 let refreshPromise = null;
-const refreshClient = Axios.create({ withCredentials: true });
+let sessionVersion = 0;
+const refreshClient = Axios.create({ withCredentials: true, timeout: 15000 });
 
 export const setAccessToken = (token) => {
+  sessionVersion += 1;
   accessToken = token || null;
 };
 
@@ -40,15 +42,29 @@ const isAccessTokenExpired = (token) => {
   }
 };
 
-const refreshWebAccessToken = async () => {
-  if (accessToken) return accessToken;
+const isSessionRejected = (error) => [401, 403].includes(error.response?.status);
+
+const refreshWebAccessToken = async (rejectedToken = null) => {
+  if (accessToken && accessToken !== rejectedToken && !isAccessTokenExpired(accessToken)) return accessToken;
   if (!refreshPromise) {
-    refreshPromise = refreshClient
-      .post(`${API_URL}/api/auth/refresh`, {})
-      .then((response) => {
-        setAccessToken(response.data.accessToken);
-        if (response.data.user) localStorage.setItem('user', JSON.stringify(response.data.user));
-        return response.data.accessToken;
+    const version = sessionVersion;
+    const renew = async () => {
+      if (version !== sessionVersion) throw new Error('Session changed during refresh.');
+      const response = await refreshClient.post(`${API_URL}/api/auth/refresh`, {});
+      if (version !== sessionVersion) throw new Error('Session changed during refresh.');
+      if (!response.data?.accessToken) throw new Error('Invalid authentication refresh response.');
+      accessToken = response.data.accessToken;
+      if (response.data.user) localStorage.setItem('user', JSON.stringify(response.data.user));
+      return accessToken;
+    };
+    // Tabs share the HttpOnly refresh cookie. Serialize rotation so simultaneous
+    // renewals don't look like reuse of a revoked refresh token to the server.
+    refreshPromise = (navigator.locks?.request
+      ? navigator.locks.request('inkvistar-session-refresh', renew)
+      : renew())
+      .catch((error) => {
+        if (version === sessionVersion && isSessionRejected(error)) clearWebSession();
+        throw error;
       })
       .finally(() => { refreshPromise = null; });
   }
@@ -56,24 +72,26 @@ const refreshWebAccessToken = async () => {
 };
 
 export const getSocketAccessToken = async () => {
-  if (accessToken && isAccessTokenExpired(accessToken)) accessToken = null;
-  if (accessToken || !localStorage.getItem('user')) return accessToken;
+  if (!localStorage.getItem('user')) return null;
   try {
     return await refreshWebAccessToken();
   } catch (_) {
-    clearWebSession();
     return null;
   }
 };
 
 export const clearWebSession = () => {
+  sessionVersion += 1;
   accessToken = null;
   localStorage.removeItem('user');
   localStorage.removeItem('token');
 };
 
 export const logoutWebSession = async () => {
+  clearWebSession();
   try {
+    // Let a pending rotation finish before revoking its replacement cookie.
+    if (refreshPromise) await refreshPromise.catch(() => {});
     await refreshClient.post(`${API_URL}/api/auth/logout`, {});
   } catch (_) {
     // Local cleanup still happens if the network is unavailable.
@@ -93,14 +111,10 @@ Axios.defaults.withCredentials = true;
 Axios.interceptors.request.use(async (config) => {
   const requestUrl = String(config.url || '');
   const isAuthRequest = ['/api/login', '/api/auth/refresh', '/api/auth/logout'].some((path) => requestUrl.includes(path));
-  if (!accessToken && !isAuthRequest && localStorage.getItem('user')) {
-    try {
-      await refreshWebAccessToken();
-    } catch (refreshError) {
-      clearWebSession();
-      throw refreshError;
-    }
+  if (!isAuthRequest && localStorage.getItem('user')) {
+    await refreshWebAccessToken();
   }
+  config.headers = config.headers || {};
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
   return config;
 });
@@ -115,18 +129,19 @@ Axios.interceptors.response.use(
     const requestUrl = String(originalRequest?.url || '');
     const isAuthRequest = ['/api/login', '/api/auth/refresh', '/api/auth/logout'].some((path) => requestUrl.includes(path));
 
-    if (error.response?.status !== 401 || originalRequest?._authRetried || isAuthRequest || !localStorage.getItem('user')) {
+    if (!originalRequest || error.response?.status !== 401 || originalRequest._authRetried || isAuthRequest || !localStorage.getItem('user')) {
       return Promise.reject(error);
     }
 
     originalRequest._authRetried = true;
     try {
-      const nextAccessToken = await refreshWebAccessToken();
+      const rejectedToken = String(originalRequest.headers?.Authorization || '').replace(/^Bearer\s+/i, '');
+      const nextAccessToken = await refreshWebAccessToken(rejectedToken);
+      originalRequest.headers = originalRequest.headers || {};
       originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`;
       return Axios(originalRequest);
     } catch (refreshError) {
-      clearWebSession();
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/admin') {
+      if (isSessionRejected(refreshError) && !localStorage.getItem('user') && window.location.pathname !== '/login' && window.location.pathname !== '/admin') {
         window.location.assign('/login');
       }
       return Promise.reject(refreshError);

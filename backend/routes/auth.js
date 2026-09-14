@@ -37,7 +37,8 @@ function createAuthRouter({ tokenService, authenticate }) {
         ...transport,
       });
     } catch (error) {
-      clearRefreshCookie(res);
+      // A temporary database/server outage must not destroy a valid browser session.
+      if (error instanceof AuthTokenError && [401, 403].includes(error.status)) clearRefreshCookie(res);
       if (!(error instanceof AuthTokenError)) console.error('[AUTH] Refresh failed:', error.message);
       const status = error instanceof AuthTokenError ? error.status : 500;
       res.status(status).json({

@@ -1,4 +1,5 @@
 require('./authFoundation.test');
+require('./sessionRenewal.test');
 require('./highRiskProtection.test');
 require('./socketAuthorization.test');
 require('./supportSessionResume.test');

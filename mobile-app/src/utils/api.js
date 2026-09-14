@@ -7,6 +7,7 @@ const ACCESS_TOKEN_KEY = 'inkvistar_access_token';
 const REFRESH_TOKEN_KEY = 'inkvistar_refresh_token';
 const ACCESS_TOKEN_EXPIRY_KEY = 'inkvistar_access_token_expiry';
 let refreshInFlight = null;
+let sessionVersion = 0;
 
 const getAccessTokenExpiry = (token) => {
   try {
@@ -32,28 +33,26 @@ export const fetchAPI = async (endpoint, options = {}) => {
     'Accept': 'application/json',
   };
 
-  // Add auth token if available
-  let token = await getAuthToken();
-  if (requireAuth && !token) token = await refreshMobileSession();
-  if (requireAuth && !token) {
-    return { success: false, status: 401, message: 'Your session has expired. Please sign in again to continue.' };
-  }
-  if (token) {
-    defaultHeaders['Authorization'] = `Bearer ${token}`;
-  }
-
   const startTime = Date.now();
   
   try {
+    const isAuthEndpoint = ['/login', '/auth/refresh', '/auth/logout'].includes(endpoint);
+    // Renew before sending protected requests, including the first request after
+    // Android/iOS resumes from the background. Auth endpoints must never recurse.
+    const token = isAuthEndpoint || skipAuthRefresh ? await getAuthToken() : await refreshMobileSession();
+    if (requireAuth && !token) {
+      return { success: false, status: 401, message: 'Your session has expired. Please sign in again to continue.' };
+    }
+    if (token) defaultHeaders.Authorization = `Bearer ${token}`;
     let response = await fetch(url, {
       ...requestOptions,
       headers: { ...defaultHeaders, ...requestOptions.headers },
       timeout: 30000, // 30 second timeout
     });
 
-    const isAuthEndpoint = ['/login', '/auth/refresh', '/auth/logout'].includes(endpoint);
     if (response.status === 401 && !skipAuthRefresh && !isAuthEndpoint) {
-      const nextAccessToken = await refreshMobileSession();
+      const rejectedToken = String(requestOptions.headers?.Authorization || defaultHeaders.Authorization || '').replace(/^Bearer\s+/i, '');
+      const nextAccessToken = await refreshMobileSession(rejectedToken);
       if (nextAccessToken) {
         response = await fetch(url, {
           ...requestOptions,
@@ -141,6 +140,7 @@ export const getAuthToken = async () => {
 
 // Helper to save auth token
 export const saveAuthToken = async (token) => {
+  sessionVersion += 1;
   try {
     await Promise.all([
       SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token),
@@ -154,6 +154,7 @@ export const saveAuthToken = async (token) => {
 
 // Helper to remove auth token
 export const removeAuthToken = async () => {
+  sessionVersion += 1;
   try {
     await Promise.all([
       SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY),
@@ -168,6 +169,7 @@ export const removeAuthToken = async () => {
 
 export const saveAuthSession = async ({ accessToken, refreshToken }) => {
   if (!accessToken || !refreshToken) throw new Error('A complete mobile authentication session is required.');
+  sessionVersion += 1;
   await Promise.all([
     SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken),
     SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken),
@@ -175,44 +177,59 @@ export const saveAuthSession = async ({ accessToken, refreshToken }) => {
   ]);
 };
 
-const refreshMobileSession = async () => {
+const refreshMobileSession = async (rejectedToken = null) => {
   if (refreshInFlight) return refreshInFlight;
+  const version = sessionVersion;
   refreshInFlight = (async () => {
+    const [token, expiry] = await Promise.all([
+      SecureStore.getItemAsync(ACCESS_TOKEN_KEY),
+      SecureStore.getItemAsync(ACCESS_TOKEN_EXPIRY_KEY),
+    ]);
+    if (token && token !== rejectedToken && Number(expiry) > Date.now() + 30000) return token;
     const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
     if (!refreshToken) return null;
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
       const response = await fetch(`${API_URL}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ refreshToken, clientType: 'mobile' }),
+        signal: controller.signal,
       });
+      if (version !== sessionVersion) return null;
       if (!response.ok) {
-        await removeAuthToken();
-        return null;
+        if ([401, 403].includes(response.status)) {
+          await removeAuthToken();
+          return null;
+        }
+        throw new Error('Unable to renew your session right now. Please try again.');
       }
       const result = await response.json();
+      if (version !== sessionVersion) return null;
       if (!result.accessToken || !result.refreshToken) {
-        await removeAuthToken();
-        return null;
+        throw new Error('Invalid authentication refresh response. Please try again.');
       }
       await saveAuthSession(result);
       return result.accessToken;
     } catch (error) {
       console.warn('Authentication refresh failed:', error.message);
-      return null;
+      throw error;
+    } finally {
+      clearTimeout(timeout);
     }
   })().finally(() => { refreshInFlight = null; });
   return refreshInFlight;
 };
 
 export const getSocketAuthToken = async () => {
-  const [token, expiry] = await Promise.all([
-    SecureStore.getItemAsync(ACCESS_TOKEN_KEY),
-    SecureStore.getItemAsync(ACCESS_TOKEN_EXPIRY_KEY),
-  ]);
-  if (token && Number(expiry) > Date.now() + 30000) return token;
-  return refreshMobileSession();
+  try {
+    return await refreshMobileSession();
+  } catch (_) {
+    // A connection failure is not a logout; reconnect can retry later.
+    return null;
+  }
 };
 
 // Validation Helpers
