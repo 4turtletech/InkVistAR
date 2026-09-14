@@ -1408,51 +1408,51 @@ function ArtistSessions() {
                                                 </div>
                                             </div>
                                         )}
-                                        <div className="artist-session-card">
+                                        <div className="artist-session-card artist-session-photo-card">
                                             <label className="artist-session-label">{isPiercingRole ? 'Pre-Piercing' : 'Before State'} <span style={{ color: '#ef4444' }}>*</span></label>
                                             <div className="artist-session-photo-container">
                                                 {sessionData.beforePhoto ? (
-                                                    <>
-                                                        <img src={sessionData.beforePhoto} alt="Before" className="lightbox-trigger" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => setLightboxSrc(sessionData.beforePhoto)} />
-                                                        <div style={{ display: 'flex', gap: '8px', marginTop: '10px', justifyContent: 'center' }}>
-                                                            <button type="button" className="btn btn-secondary" onClick={() => document.getElementById('before-photo-input').click()}>
-                                                                <Upload size={14} /> Replace
-                                                            </button>
-                                                            <button type="button" className="btn btn-secondary" style={{ color: '#991b1b', background: '#fee2e2', borderColor: '#fecaca' }} onClick={() => handlePhotoRemove('beforePhoto')}>
-                                                                <X size={14} /> Remove
-                                                            </button>
-                                                        </div>
-                                                    </>
+                                                    <img src={sessionData.beforePhoto} alt="Before" className="lightbox-trigger" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => setLightboxSrc(sessionData.beforePhoto)} />
                                                 ) : (
-                                                    <button className="btn btn-secondary" onClick={() => document.getElementById('before-photo-input').click()}>
+                                                    <button type="button" className="btn btn-secondary" onClick={() => document.getElementById('before-photo-input').click()}>
                                                         <Upload size={16} /> Upload
                                                     </button>
                                                 )}
                                                 <input id="before-photo-input" type="file" hidden accept="image/*" onChange={(e) => handlePhotoUpload(e, 'beforePhoto')} />
                                             </div>
+                                            {sessionData.beforePhoto && (
+                                                <div className="artist-session-photo-actions">
+                                                    <button type="button" className="btn btn-secondary" aria-label="Replace before photo" onClick={() => document.getElementById('before-photo-input').click()}>
+                                                        <Upload size={14} /> Replace
+                                                    </button>
+                                                    <button type="button" className="btn btn-secondary artist-session-photo-remove" aria-label="Remove before photo" onClick={() => handlePhotoRemove('beforePhoto')}>
+                                                        <X size={14} /> Remove
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div style={{ background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '15px', textAlign: 'center' }}>
-                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>{isPiercingRole ? 'Post-Piercing' : 'Post Procedure'} <span style={{ color: '#ef4444' }}>*</span></label>
-                                            <div style={{ height: '180px', borderRadius: '12px', overflow: 'hidden', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <div className="artist-session-card artist-session-photo-card">
+                                            <label className="artist-session-label">{isPiercingRole ? 'Post-Piercing' : 'Post Procedure'} <span style={{ color: '#ef4444' }}>*</span></label>
+                                            <div className="artist-session-photo-container">
                                                 {sessionData.afterPhoto ? (
-                                                    <>
-                                                        <img src={sessionData.afterPhoto} alt="After" className="lightbox-trigger" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => setLightboxSrc(sessionData.afterPhoto)} />
-                                                        <div style={{ display: 'flex', gap: '8px', marginTop: '10px', justifyContent: 'center' }}>
-                                                            <button type="button" className="btn btn-secondary" onClick={() => document.getElementById('after-photo-input').click()}>
-                                                                <Upload size={14} /> Replace
-                                                            </button>
-                                                            <button type="button" className="btn btn-secondary" style={{ color: '#991b1b', background: '#fee2e2', borderColor: '#fecaca' }} onClick={() => handlePhotoRemove('afterPhoto')}>
-                                                                <X size={14} /> Remove
-                                                            </button>
-                                                        </div>
-                                                    </>
+                                                    <img src={sessionData.afterPhoto} alt="After" className="lightbox-trigger" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => setLightboxSrc(sessionData.afterPhoto)} />
                                                 ) : (
-                                                    <button className="btn btn-secondary" onClick={() => document.getElementById('after-photo-input').click()}>
+                                                    <button type="button" className="btn btn-secondary" onClick={() => document.getElementById('after-photo-input').click()}>
                                                         <Upload size={16} /> Upload
                                                     </button>
                                                 )}
                                                 <input id="after-photo-input" type="file" hidden accept="image/*" onChange={(e) => handlePhotoUpload(e, 'afterPhoto')} />
                                             </div>
+                                            {sessionData.afterPhoto && (
+                                                <div className="artist-session-photo-actions">
+                                                    <button type="button" className="btn btn-secondary" aria-label="Replace after photo" onClick={() => document.getElementById('after-photo-input').click()}>
+                                                        <Upload size={14} /> Replace
+                                                    </button>
+                                                    <button type="button" className="btn btn-secondary artist-session-photo-remove" aria-label="Remove after photo" onClick={() => handlePhotoRemove('afterPhoto')}>
+                                                        <X size={14} /> Remove
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="form-group">

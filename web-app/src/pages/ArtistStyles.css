@@ -381,6 +381,38 @@
     display: block;
 }
 
+.artist-session-photo-card {
+    min-width: 0;
+}
+
+.artist-session-photo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.artist-session-photo-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 8px 12px;
+    white-space: nowrap;
+}
+
+.artist-session-photo-actions .artist-session-photo-remove {
+    color: #991b1b;
+    background: #fee2e2;
+    border-color: #fecaca;
+}
+
+.artist-session-photo-actions .artist-session-photo-remove:hover {
+    background: #fecaca;
+}
+
 .artist-session-photo-container {
     height: 180px;
     border-radius: 12px;
