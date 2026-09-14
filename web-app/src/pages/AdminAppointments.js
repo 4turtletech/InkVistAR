@@ -293,7 +293,7 @@ function AdminAppointments() {
                 }
                 break;
             case 'serviceType':
-                if (!value || !value.trim()) errorMsg = "Service type is required";
+                if (!['Tattoo Session', 'Consultation', 'Piercing', 'Tattoo + Piercing', 'Touch-up'].includes(value)) errorMsg = "Select the actual service type. General Session is not a procedure classification.";
                 break;
             case 'date':
                 if (!value) errorMsg = "Date is required";
@@ -2955,6 +2955,8 @@ function AdminAppointments() {
                                                             <div className="premium-input-group">
                                                                 <label className={`admin-st-b8618eb2 ${errors.serviceType ? 'text-red-500' : ''}`}>Service Type *</label>
                                                                 <select value={formData.serviceType} onChange={(e) => handleInputChange('serviceType', e.target.value)} className={`premium-select-v2 ${errors.serviceType ? 'border-red-500 bg-red-50' : ''}`}>
+                                                                    <option value="" disabled>Select service type</option>
+                                                                    {formData.serviceType && !['Tattoo Session', 'Consultation', 'Piercing', 'Tattoo + Piercing', 'Touch-up'].includes(formData.serviceType) && <option value={formData.serviceType} disabled>{formData.serviceType} — confirm procedure</option>}
                                                                     <option value="Tattoo Session">Tattoo Session</option>
                                                                     <option value="Consultation">Consultation</option>
                                                                     <option value="Piercing">Piercing</option>
@@ -2962,6 +2964,7 @@ function AdminAppointments() {
                                                                     <option value="Touch-up">Touch-up</option>
                                                                 </select>
                                                                 {errors.serviceType && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.serviceType}</span>}
+                                                                {formData.serviceType === 'General Session' && <p style={{ color: '#92400e', fontSize: '0.8rem', marginTop: 6 }}>This older booking has no specific procedure recorded. Confirm the actual service above to enable the appropriate aftercare.</p>}
                                                             </div>
                                                             <div className="premium-input-group">
                                                                 <label className={`admin-st-b8618eb2 ${errors.designTitle ? 'text-red-500' : ''}`}>Design / Idea</label>

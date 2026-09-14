@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
     Calendar,
+    Heart,
     Image,
     User,
     ChevronLeft,
@@ -104,6 +105,7 @@ function CustomerSideNav() {
     const menuItems = [
         { label: 'Dashboard', icon: LayoutDashboard, path: '/customer' },
         { label: 'My Bookings', icon: Calendar, path: '/customer/bookings' },
+        { label: 'Aftercare', icon: Heart, path: '/customer/aftercare' },
         { label: 'Gallery', icon: Image, path: '/customer/gallery' },
         { label: 'Try-On Tattoo', icon: Sparkles, path: '/customer/try-on', disabled: true },
         { label: 'Notifications', icon: Bell, path: '/customer/notifications' },
