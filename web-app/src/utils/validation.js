@@ -37,7 +37,7 @@ export const normalizePhilippineMobileNumber = (value) => {
     return /^9\d{9}$/.test(localNumber) ? `+63${localNumber}` : null;
 };
 
-export const normalizeProfileText = (value = '') => String(value)
+export const normalizeProfileText = (value = '') => String(value ?? '')
     .replace(/[<>\r\n]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
