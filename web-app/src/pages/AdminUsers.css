@@ -1,5 +1,87 @@
 /* --- MODERN GLASSMORPHISM USER STYLES --- */
 
+/* Shared gold tabs for customer and artist profile dialogs. */
+.user-profile-tabs {
+    display: flex;
+    flex-flow: row nowrap;
+    flex-shrink: 0;
+    align-items: flex-end;
+    gap: 6px;
+    padding: 16px 24px 0;
+    overflow-x: auto;
+    background: #f8fafc;
+    border-bottom: 1px solid #dbe3ec;
+}
+
+.user-profile-tabs .user-profile-tab {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 10px 18px;
+    border: 1px solid #dbe3ec;
+    border-radius: 10px 10px 0 0;
+    background: #eef2f7;
+    color: #64748b;
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.user-profile-tabs .user-profile-tab[aria-selected="true"] {
+    border-top-color: #be9055;
+    border-bottom-color: #fff;
+    background: #fff;
+    color: #9a6a31;
+    box-shadow: inset 0 3px 0 #be9055;
+}
+
+.user-profile-tabs .user-profile-tab:hover:not([aria-selected="true"]) {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.user-profile-tabs .user-profile-tab:focus-visible {
+    outline: 2px solid #be9055;
+    outline-offset: -3px;
+}
+
+@media (max-width: 600px) {
+    .user-profile-tabs {
+        padding: 12px 12px 0;
+    }
+
+    .user-profile-tabs .user-profile-tab {
+        padding: 10px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Portaled dialogs escape the isolated page layer and cover the sidebar. */
+.artist-profile-overlay.modal-overlay {
+    z-index: 2000;
+}
+
+.artist-profile-submodal.modal-overlay {
+    z-index: 2100;
+}
+
+.artist-profile-overlay .modal-body {
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.artist-profile-overlay .form-input.error,
+.artist-profile-submodal .form-input.error {
+    border-color: #dc2626;
+    background-color: #fff7f7;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+}
+
 
 /* .header-title-area styles are now defined globally in AdminStyles.css */
 

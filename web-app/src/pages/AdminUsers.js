@@ -1485,16 +1485,23 @@ function AdminUsers() {
                                 <button className="close-btn" onClick={closeClientModal}><X size={24} /></button>
                             </div>
 
-                            <div className="settings-tabs admin-st-13b83aa7">
-                                <button className={`tab-button ${clientActiveTab === 'profile' ? 'active' : ''}`} onClick={() => setClientActiveTab('profile')}>
+                            <div className="user-profile-tabs" role="tablist" aria-label="Customer profile sections" onKeyDown={event => {
+                                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                                event.preventDefault();
+                                const nextTab = event.key === 'Home' ? 'profile' : event.key === 'End' ? 'history' : clientActiveTab === 'profile' ? 'history' : 'profile';
+                                setClientActiveTab(nextTab);
+                                if (nextTab === 'history') setExpandedRecordId(null);
+                                event.currentTarget.querySelector(`#client-tab-${nextTab}`)?.focus();
+                            }}>
+                                <button id="client-tab-profile" type="button" role="tab" aria-selected={clientActiveTab === 'profile'} aria-controls="client-profile-panel" tabIndex={clientActiveTab === 'profile' ? 0 : -1} className="user-profile-tab" onClick={() => setClientActiveTab('profile')}>
                                     <User size={16} /> Personal Information
                                 </button>
-                                <button className={`tab-button ${clientActiveTab === 'history' ? 'active' : ''}`} onClick={() => { setClientActiveTab('history'); setExpandedRecordId(null); }}>
+                                <button id="client-tab-history" type="button" role="tab" aria-selected={clientActiveTab === 'history'} aria-controls="client-profile-panel" tabIndex={clientActiveTab === 'history' ? 0 : -1} className="user-profile-tab" onClick={() => { setClientActiveTab('history'); setExpandedRecordId(null); }}>
                                     <Calendar size={16} /> Visit History
                                 </button>
                             </div>
 
-                            <div className="modal-body admin-st-d6e6b0a9">
+                            <div id="client-profile-panel" role="tabpanel" aria-labelledby={`client-tab-${clientActiveTab}`} tabIndex={0} className="modal-body admin-st-d6e6b0a9">
                                 {loadingClientDetails ? (
                                     <div className="admin-st-e70dab8d"><div className="loading-spinner"></div></div>
                                 ) : (
@@ -1725,9 +1732,9 @@ function AdminUsers() {
                 {/* ═══════════════════════════════════════════════════ */}
                 {/* ARTIST MODAL — 4 tabs */}
                 {/* ═══════════════════════════════════════════════════ */}
-                {artistModal.mounted && selectedArtist && (
-                    <div className={`modal-overlay ${artistModal.visible ? 'open' : ''}`} onClick={handleCloseArtistModal}>
-                        <div className="modal-content xl admin-st-980ed307" onClick={(e) => e.stopPropagation()}>
+                {artistModal.mounted && selectedArtist && ReactDOM.createPortal(
+                    <div className={`modal-overlay artist-profile-overlay ${artistModal.visible ? 'open' : ''}`} onClick={handleCloseArtistModal}>
+                        <div className="modal-content xl admin-st-980ed307" role="dialog" aria-modal="true" aria-label="Artist profile" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <div className="admin-flex-center admin-gap-20">
                                     <div className="admin-st-d84f98fc" style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', border: '1px solid #e2e8f0' }}>
@@ -1748,22 +1755,28 @@ function AdminUsers() {
                                 <button className="close-btn" onClick={handleCloseArtistModal} aria-label="Close modal"><X size={24} /></button>
                             </div>
 
-                            <div className="settings-tabs admin-st-23c98a22">
-                                <button className={`tab-button ${artistActiveTab === 'profile' ? 'active' : ''}`} onClick={() => setArtistActiveTab('profile')} style={{ gap: '8px' }}>
-                                    <UserCircle size={16} /> Profile Information
-                                </button>
-                                <button className={`tab-button ${artistActiveTab === 'schedule' ? 'active' : ''}`} onClick={() => setArtistActiveTab('schedule')} style={{ gap: '8px' }}>
-                                    <Calendar size={16} /> Procedure Schedule
-                                </button>
-                                <button className={`tab-button ${artistActiveTab === 'portfolio' ? 'active' : ''}`} onClick={() => setArtistActiveTab('portfolio')} style={{ gap: '8px' }}>
-                                    <Palette size={16} /> Media Portfolio
-                                </button>
-                                <button className={`tab-button ${artistActiveTab === 'earnings' ? 'active' : ''}`} onClick={() => setArtistActiveTab('earnings')} style={{ gap: '8px' }}>
-                                    <PhilippinePeso size={16} /> Remittance Log
-                                </button>
+                            <div className="user-profile-tabs" role="tablist" aria-label="Artist profile sections" onKeyDown={event => {
+                                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                                event.preventDefault();
+                                const tabs = ['profile', 'schedule', 'portfolio', 'earnings'];
+                                const index = tabs.indexOf(artistActiveTab);
+                                const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+                                setArtistActiveTab(tabs[nextIndex]);
+                                event.currentTarget.querySelector(`#artist-tab-${tabs[nextIndex]}`)?.focus();
+                            }}>
+                                {[
+                                    ['profile', 'Profile Information', UserCircle],
+                                    ['schedule', 'Procedure Schedule', Calendar],
+                                    ['portfolio', 'Media Portfolio', Palette],
+                                    ['earnings', 'Remittance Log', PhilippinePeso]
+                                ].map(([tab, label, Icon]) => (
+                                    <button key={tab} id={`artist-tab-${tab}`} type="button" role="tab" aria-selected={artistActiveTab === tab} aria-controls="artist-profile-panel" tabIndex={artistActiveTab === tab ? 0 : -1} className="user-profile-tab" onClick={() => setArtistActiveTab(tab)}>
+                                        <Icon size={16} /> {label}
+                                    </button>
+                                ))}
                             </div>
 
-                            <div className="modal-body admin-st-89c672df">
+                            <div id="artist-profile-panel" role="tabpanel" aria-labelledby={`artist-tab-${artistActiveTab}`} tabIndex={0} className="modal-body admin-st-89c672df">
                                 {loadingArtistDetails ? (
                                     <div className="admin-st-578fa77f">
                                         <div className="loading-spinner"></div>
@@ -1793,14 +1806,14 @@ function AdminUsers() {
                                 )}
                             </div>
                         </div>
-                    </div>
+                    </div>, document.body
                 )}
 
                 {/* ═══════════════════════════════════════════════════ */}
                 {/* PORTFOLIO EDITOR SUB-MODAL */}
                 {/* ═══════════════════════════════════════════════════ */}
-                {editWorkModal.mounted && selectedWork && (
-                    <div className={`modal-overlay ${editWorkModal.visible ? 'open' : ''} admin-st-63d3f2c7`} onClick={closeEditWork} style={{ zIndex: 2100 }}>
+                {editWorkModal.mounted && selectedWork && ReactDOM.createPortal(
+                    <div className={`modal-overlay artist-profile-submodal ${editWorkModal.visible ? 'open' : ''} admin-st-63d3f2c7`} onClick={closeEditWork} style={{ zIndex: 2100 }}>
                         <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <div>
@@ -1862,7 +1875,7 @@ function AdminUsers() {
                                 </div>
                             </form>
                         </div>
-                    </div>
+                    </div>, document.body
                 )}
 
                 {/* ═══════════════════════════════════════════════════ */}
@@ -2049,8 +2062,8 @@ function AdminUsers() {
                 )}
 
                 {/* Block Date Modal */}
-                {blockDateModal.isOpen && (
-                    <div className="modal-overlay open" onClick={() => setBlockDateModal({ isOpen: false, date: '' })}>
+                {blockDateModal.isOpen && ReactDOM.createPortal(
+                    <div className="modal-overlay open artist-profile-submodal" onClick={() => setBlockDateModal({ isOpen: false, date: '' })}>
                         <div className="modal-content small" onClick={e => e.stopPropagation()}>
                             <div className="modal-header">
                                 <h2>Block Date</h2>
@@ -2074,7 +2087,7 @@ function AdminUsers() {
                                 <button className="btn btn-primary" onClick={submitBlockDate} disabled={!blockDateModal.date}>Block Date</button>
                             </div>
                         </div>
-                    </div>
+                    </div>, document.body
                 )}
 
                 {/* Confirm Modal */}
