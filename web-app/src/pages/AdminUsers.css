@@ -16,6 +16,40 @@
     min-height: 0;
 }
 
+.customer-profile-loading {
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 24px;
+    text-align: center;
+    color: #334155;
+}
+
+.customer-profile-loading .customer-profile-loading-icon {
+    flex-shrink: 0;
+    color: #be9055;
+    animation: customer-profile-loading-spin 1s linear infinite;
+}
+
+.customer-profile-loading p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+@keyframes customer-profile-loading-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .customer-profile-loading .customer-profile-loading-icon {
+        animation: none;
+    }
+}
+
 .customer-profile-layout {
     display: grid;
     gap: 16px;

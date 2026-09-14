@@ -23,7 +23,7 @@ import { composeCustomerName, customerProfileErrors, filterName, filterDigits, s
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
     User, Calendar, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText,
-    Eye, EyeOff, Camera, ChevronUp, ChevronDown, AlertTriangle
+    Eye, EyeOff, Camera, ChevronUp, ChevronDown, AlertTriangle, LoaderCircle
 } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
 
@@ -1501,9 +1501,13 @@ function AdminUsers() {
                                 </button>
                             </div>
 
-                            <div id="client-profile-panel" role="tabpanel" aria-labelledby={`client-tab-${clientActiveTab}`} tabIndex={0} className="modal-body admin-st-d6e6b0a9">
+                            <div id="client-profile-panel" role="tabpanel" aria-labelledby={`client-tab-${clientActiveTab}`} aria-busy={loadingClientDetails} tabIndex={0} className="modal-body admin-st-d6e6b0a9">
                                 {loadingClientDetails ? (
-                                    <div className="admin-st-e70dab8d"><div className="loading-spinner"></div></div>
+                                    <div className="customer-profile-loading" role="status" aria-live="polite">
+                                        <LoaderCircle className="customer-profile-loading-icon" size={32} aria-hidden="true" />
+                                        <strong>{clientActiveTab === 'profile' ? 'Loading personal information...' : 'Loading visit history...'}</strong>
+                                        <p>Please wait while we retrieve the customer details.</p>
+                                    </div>
                                 ) : (
                                     <div className="fade-in">
                                         {clientActiveTab === 'profile' ? (
@@ -1721,7 +1725,7 @@ function AdminUsers() {
                                     <Trash2 size={16} /> Archive Account
                                 </button>
                                 <button className="btn btn-secondary" onClick={closeClientModal}>Cancel</button>
-                                <button className="btn btn-primary admin-st-f9a92399" onClick={handleSaveClient}>
+                                <button className="btn btn-primary admin-st-f9a92399" onClick={handleSaveClient} disabled={loadingClientDetails}>
                                     <Save size={18} /> Commit Changes
                                 </button>
                             </div>
