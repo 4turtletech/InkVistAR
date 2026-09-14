@@ -262,8 +262,7 @@ function AdminNotifications() {
 
     const openPaymentResolution = (alerts) => {
         if (!alerts?.length) return;
-        sessionStorage.removeItem('paymentAlertShown');
-        window.dispatchEvent(new CustomEvent('payment-alert', { detail: { alerts } }));
+        window.dispatchEvent(new CustomEvent('payment-alert', { detail: { alerts, openPopup: true } }));
     };
 
     const handleNotificationAction = (notification) => {

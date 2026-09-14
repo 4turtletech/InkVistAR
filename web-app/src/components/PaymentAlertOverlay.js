@@ -38,7 +38,7 @@ function PaymentAlertOverlay() {
     // Listen for payment-alert events from AdminSideNav
     useEffect(() => {
         const handlePaymentAlert = (e) => {
-            const { alerts: newAlerts } = e.detail;
+            const { alerts: newAlerts, openPopup = false } = e.detail;
             if (newAlerts && newAlerts.length > 0) {
                 setAlerts(newAlerts);
                 setToastHidden(false);
@@ -48,8 +48,11 @@ function PaymentAlertOverlay() {
                     return stillExists || newAlerts[0];
                 });
                 const alreadyShownThisSession = sessionStorage.getItem('paymentAlertShown');
-                if (!alreadyShownThisSession && !hasShownOnLoginRef.current) {
+                // An explicit notification action must reopen a dismissed popup.
+                // Polling events still respect the once-per-session behavior.
+                if (openPopup || (!alreadyShownThisSession && !hasShownOnLoginRef.current)) {
                     setShowPopup(true);
+                    setPopupDismissed(false);
                     hasShownOnLoginRef.current = true;
                 } else if (!hasShownOnLoginRef.current) {
                     setPopupDismissed(true);
