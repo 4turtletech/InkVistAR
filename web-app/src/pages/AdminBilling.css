@@ -16,7 +16,10 @@
         linear-gradient(180deg, #f8fafc 0%, #f4f6f9 100%);
 }
 
-.billing-hero {
+.billing-workspace > .billing-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
     position: relative;
     overflow: hidden;
     padding: 24px 26px;
@@ -44,6 +47,12 @@
     z-index: 1;
 }
 
+.billing-hero .header-title {
+    display: block;
+    min-width: 0;
+    text-align: left;
+}
+
 .billing-eyebrow,
 .billing-section-kicker {
     display: block;
@@ -54,7 +63,7 @@
     text-transform: uppercase;
 }
 
-.billing-hero h1 {
+.billing-hero .header-title h1 {
     margin: 4px 0 6px;
     color: var(--billing-ink);
     letter-spacing: -0.035em;
@@ -65,14 +74,43 @@
     max-width: 560px;
 }
 
-.billing-header-actions,
-.billing-primary-actions {
-    display: flex;
+.billing-hero .billing-header-actions {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    width: 100%;
     align-items: center;
-    gap: 9px;
+    gap: 16px;
 }
 
-.billing-view-toggle {
+.billing-hero .billing-primary-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    width: 360px;
+    max-width: 100%;
+    justify-self: end;
+}
+
+.billing-hero .billing-primary-actions > .btn {
+    min-width: 0;
+    min-height: 48px;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+/* Keep the payment/payout action in the same slot on both tabs. */
+.billing-hero .billing-primary-actions > .btn:last-child {
+    grid-column: 2;
+}
+
+.billing-hero .billing-header-actions svg {
+    flex-shrink: 0;
+}
+
+.billing-hero .billing-view-toggle {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
     margin: 0;
     padding: 4px;
     border: 1px solid #e7dfd4;
@@ -81,7 +119,12 @@
     box-shadow: inset 0 1px 2px rgba(30, 41, 59, 0.04);
 }
 
-.billing-view-toggle .toggle-btn {
+.billing-hero .billing-view-toggle .toggle-btn {
+    min-width: 0;
+    padding: 6px 10px;
+    justify-content: center;
+    white-space: nowrap;
+    font-weight: 600;
     min-height: 38px;
     border-radius: 9px;
     color: #475569;
@@ -621,10 +664,54 @@
     color: #b91c1c;
 }
 
+/* Keep payout validation visible independently of other pages' stylesheets. */
+.payout-remittance-form .form-input[aria-invalid="true"] {
+    border: 1px solid #dc2626;
+    background-color: #fef2f2;
+}
+
+.payout-remittance-form .form-input[aria-invalid="true"]:focus {
+    border-color: #dc2626;
+    outline: 2px solid rgba(220, 38, 38, 0.2);
+    outline-offset: 1px;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.payout-remittance-form .payout-label-error,
+.payout-remittance-form .payout-field-error {
+    color: #dc2626;
+}
+
+.payout-remittance-form .payout-field-error {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    text-align: left;
+}
+
 .payout-inline-feedback--success {
     border: 1px solid #a7f3d0;
     background: #ecfdf5;
     color: #047857;
+}
+
+@media (max-width: 1100px) {
+    .billing-hero .billing-header-actions {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .billing-hero .billing-primary-actions {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .billing-hero .billing-primary-actions > .btn,
+    .billing-hero .billing-view-toggle .toggle-btn {
+        min-height: 58px;
+        white-space: normal;
+    }
 }
 
 /* ========== MOBILE RESPONSIVE ========== */
@@ -634,7 +721,7 @@
         gap: 14px;
     }
 
-    .billing-hero {
+    .billing-workspace > .billing-hero {
         align-items: stretch;
         padding: 20px;
     }

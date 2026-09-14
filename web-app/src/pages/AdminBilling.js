@@ -782,20 +782,22 @@ function AdminBilling() {
                                 <CreditCard size={16}/> <span>Artist Payouts</span>
                             </button>
                         </div>
-                        {activeTab === 'invoices' ? (
-                            <div className="billing-primary-actions">
-                                <button className="btn btn-secondary" onClick={openDraftModal}>
-                                    <FileText size={18} /> Create Draft
+                        <div className="billing-primary-actions">
+                            {activeTab === 'invoices' ? (
+                                <>
+                                    <button className="btn btn-secondary" onClick={openDraftModal}>
+                                        <FileText size={18} /> Create Draft
+                                    </button>
+                                    <button className="btn btn-primary admin-st-4796037d" onClick={openModal}>
+                                        <Plus size={18} className="admin-st-c02c7d9c" /> Record Payment
+                                    </button>
+                                </>
+                            ) : (
+                                <button className="btn btn-primary" onClick={() => openPayoutModal()}>
+                                    <Plus size={18} className="admin-st-c02c7d9c" /> Record Payout
                                 </button>
-                                <button className="btn btn-primary admin-st-4796037d" onClick={openModal}>
-                                    <Plus size={18} className="admin-st-c02c7d9c" /> Record Payment
-                                </button>
-                            </div>
-                        ) : (
-                            <button className="btn btn-primary" onClick={() => openPayoutModal()}>
-                                <Plus size={18} className="admin-st-c02c7d9c" /> Record Payout
-                            </button>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </header>
                 {billingLoadWarning && <div className="payout-inline-feedback payout-inline-feedback--error" role="status">{billingLoadWarning}</div>}
@@ -1732,17 +1734,17 @@ function AdminBilling() {
                                 </div>
                                 <button className="close-btn" onClick={() => setPayoutModal({ mounted: false, visible: false })}><X size={24}/></button>
                             </div>
-                            <form onSubmit={handlePayoutSubmit}>
+                            <form className="payout-remittance-form" onSubmit={handlePayoutSubmit} noValidate>
                                 <div className="modal-body admin-st-7cea880d">
                                     <div className="form-group admin-st-7002f9ca">
-                                        <label className={`admin-st-19644797 ${payoutErrors.artistId ? 'text-red-500' : ''}`}>
+                                        <label htmlFor="payout-artist" className={`admin-st-19644797 ${payoutErrors.artistId ? 'payout-label-error' : ''}`}>
                                             Target Recipient (Artist) <span style={{ color: newPayout.artistId ? undefined : '#ef4444' }}>*</span>
                                         </label>
-                                        <select className={`form-input ${payoutErrors.artistId ? 'border-red-500 bg-red-50' : ''}`} required value={newPayout.artistId} onChange={e => handlePayoutArtistChange(e.target.value)}>
+                                        <select id="payout-artist" className="form-input" aria-invalid={!!payoutErrors.artistId} aria-describedby={payoutErrors.artistId ? 'payout-artist-error' : undefined} onBlur={() => validatePayoutField('artistId', newPayout.artistId)} required value={newPayout.artistId} onChange={e => handlePayoutArtistChange(e.target.value)}>
                                             <option value="">Select Professional Artist...</option>
                                             {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                         </select>
-                                        {payoutErrors.artistId && <span className="text-red-500 text-xs mt-1 block">{payoutErrors.artistId}</span>}
+                                        {payoutErrors.artistId && <span id="payout-artist-error" className="payout-field-error" role="alert">{payoutErrors.artistId}</span>}
                                         {newPayout.artistId && (
                                             payoutBalanceLoading ? (
                                                 <div className="payout-available-balance payout-available-balance--loading">Loading available balance…</div>
@@ -1761,28 +1763,28 @@ function AdminBilling() {
                                     </div>
                                     <div className="admin-st-c200c71d">
                                         <div className="form-group">
-                                            <label className={`admin-st-19644797 ${payoutErrors.amount ? 'text-red-500' : ''}`}>
+                                            <label htmlFor="payout-amount" className={`admin-st-19644797 ${payoutErrors.amount ? 'payout-label-error' : ''}`}>
                                                 Remittance Amount (₱) <span style={{ color: Number(newPayout.amount) > 0 ? undefined : '#ef4444' }}>*</span>
                                             </label>
-                                            <input type="number" step="0.01" min="0.01" max={MAX_PAYOUT_AMOUNT} className={`form-input ${payoutErrors.amount ? 'border-red-500 bg-red-50' : ''}`} required value={newPayout.amount} onChange={e => handlePayoutChange('amount', filterMoney(e.target.value))} />
-                                            {payoutErrors.amount && <span className="text-red-500 text-xs mt-1 block">{payoutErrors.amount}</span>}
+                                            <input id="payout-amount" type="number" step="0.01" min="0.01" max={MAX_PAYOUT_AMOUNT} className="form-input" aria-invalid={!!payoutErrors.amount} aria-describedby={payoutErrors.amount ? 'payout-amount-error' : undefined} onBlur={() => validatePayoutField('amount', newPayout.amount)} required value={newPayout.amount} onChange={e => handlePayoutChange('amount', filterMoney(e.target.value))} />
+                                            {payoutErrors.amount && <span id="payout-amount-error" className="payout-field-error" role="alert">{payoutErrors.amount}</span>}
                                         </div>
                                         <div className="form-group">
-                                            <label className={`admin-st-19644797 ${payoutErrors.method ? 'text-red-500' : ''}`}>Transfer Protocol</label>
-                                            <select className={`form-input ${payoutErrors.method ? 'border-red-500 bg-red-50' : ''}`} value={newPayout.method} onChange={e => handlePayoutChange('method', e.target.value)}>
+                                            <label htmlFor="payout-method" className={`admin-st-19644797 ${payoutErrors.method ? 'payout-label-error' : ''}`}>Transfer Protocol</label>
+                                            <select id="payout-method" className="form-input" aria-invalid={!!payoutErrors.method} aria-describedby={payoutErrors.method ? 'payout-method-error' : undefined} value={newPayout.method} onChange={e => handlePayoutChange('method', e.target.value)}>
                                                 <option value="Bank Transfer">Bank Transfer</option>
                                                 <option value="Cash">Cash Disbursement</option>
                                                 <option value="GCash">GCash</option>
                                             </select>
-                                            {payoutErrors.method && <span className="text-red-500 text-xs mt-1 block">{payoutErrors.method}</span>}
+                                            {payoutErrors.method && <span id="payout-method-error" className="payout-field-error" role="alert">{payoutErrors.method}</span>}
                                         </div>
                                     </div>
                                     <div className="form-group">
-                                        <label className={`admin-st-19644797 ${payoutErrors.reference ? 'text-red-500' : ''}`}>
+                                        <label htmlFor="payout-reference" className={`admin-st-19644797 ${payoutErrors.reference ? 'payout-label-error' : ''}`}>
                                             Transaction Reference / Memo {newPayout.method === 'Cash' ? '(Optional)' : '*'}
                                         </label>
-                                        <input type="text" className={`form-input ${payoutErrors.reference ? 'border-red-500 bg-red-50' : ''}`} placeholder="Bank ref # or payout notes..." value={newPayout.reference} onChange={e => handlePayoutChange('reference', e.target.value)} maxLength={100} />
-                                        {payoutErrors.reference && <span className="text-red-500 text-xs mt-1 block">{payoutErrors.reference}</span>}
+                                        <input id="payout-reference" type="text" className="form-input" aria-invalid={!!payoutErrors.reference} aria-describedby={payoutErrors.reference ? 'payout-reference-error' : undefined} required={PAYOUT_METHODS_REQUIRING_REFERENCE.includes(newPayout.method)} onBlur={() => validatePayoutField('reference', newPayout.reference)} placeholder="Bank ref # or payout notes..." value={newPayout.reference} onChange={e => handlePayoutChange('reference', e.target.value)} maxLength={100} />
+                                        {payoutErrors.reference && <span id="payout-reference-error" className="payout-field-error" role="alert">{payoutErrors.reference}</span>}
                                     </div>
                                     <p className="payout-external-note">Record this payout only after the cash, GCash, or bank transfer has been completed outside the system.</p>
                                     {payoutFeedback && (
