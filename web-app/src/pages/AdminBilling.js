@@ -53,6 +53,23 @@ function AdminBilling() {
     const [searchTerm, setSearchTerm] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchRef = useRef(null);
+    const notificationAppointmentIdRef = useRef(new URLSearchParams(window.location.search).get('appointment'));
+    const notificationTargetHandledRef = useRef(false);
+
+    useEffect(() => {
+        const appointmentId = notificationAppointmentIdRef.current;
+        if (!appointmentId || notificationTargetHandledRef.current || invoices.length === 0) return;
+
+        const matchingInvoice = invoices.find(invoice => String(invoice.appointment_id ?? invoice.related_id ?? '') === String(appointmentId));
+        notificationTargetHandledRef.current = true;
+        setActiveTab('invoices');
+        if (matchingInvoice) {
+            setSearchTerm(matchingInvoice.invoice_number || `INV-${String(matchingInvoice.id).padStart(6, '0')}`);
+            setBillingFeedback({ type: 'success', message: `Showing the payment record linked to appointment #${appointmentId}.` });
+        } else {
+            setBillingFeedback({ type: 'error', message: `Billing opened for appointment #${appointmentId}, but no matching transaction record was found.` });
+        }
+    }, [invoices]);
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -749,22 +766,24 @@ function AdminBilling() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-page page-container-enter">
-                <header className="portal-header">
+            <div className="admin-page page-container-enter billing-workspace">
+                <header className="portal-header billing-hero">
                     <div className="header-title">
+                        <span className="billing-eyebrow">Financial operations</span>
                         <h1>Billing & Payments</h1>
+                        <p className="header-subtitle">Track studio revenue, invoices, and artist compensation from one workspace.</p>
                     </div>
-                    <div className="header-actions">
-                        <div className="modern-view-toggle" style={{ margin: '0 8px' }}>
+                    <div className="header-actions billing-header-actions">
+                        <div className="modern-view-toggle billing-view-toggle">
                             <button className={`toggle-btn ${activeTab === 'invoices' ? 'active' : ''}`} onClick={() => setActiveTab('invoices')} title="Transaction Logs">
                                 <FileText size={16}/> <span>Transaction Logs</span>
                             </button>
-                            <button className={`toggle-btn ${activeTab === 'payouts' ? 'active' : ''}`} onClick={() => setActiveTab('payouts')} title="Artist Payouts" style={{ color: activeTab === 'payouts' ? '#be9055' : '#1e293b' }}>
+                            <button className={`toggle-btn ${activeTab === 'payouts' ? 'active' : ''}`} onClick={() => setActiveTab('payouts')} title="Artist Payouts">
                                 <CreditCard size={16}/> <span>Artist Payouts</span>
                             </button>
                         </div>
                         {activeTab === 'invoices' ? (
-                            <div style={{ display: 'flex', gap: '8px' }}>
+                            <div className="billing-primary-actions">
                                 <button className="btn btn-secondary" onClick={openDraftModal}>
                                     <FileText size={18} /> Create Draft
                                 </button>
@@ -779,28 +798,33 @@ function AdminBilling() {
                         )}
                     </div>
                 </header>
-                <p className="header-subtitle">Manage studio revenue, invoices, and payment tracking</p>
                 {billingLoadWarning && <div className="payout-inline-feedback payout-inline-feedback--error" role="status">{billingLoadWarning}</div>}
                 {billingFeedback && !invoiceModal.mounted && <div className={`payout-inline-feedback payout-inline-feedback--${billingFeedback.type}`} role="status">{billingFeedback.message}</div>}
 
                 {activeTab === 'invoices' ? (
                         <div className="page-container-enter" key="invoices">
-                        <div className="stats-row">
-                            <div className="stat-item">
+                        <div className="stats-row billing-summary-grid">
+                            <div className="stat-item billing-summary-card billing-summary-card--revenue">
+                                <span className="billing-summary-icon"><CreditCard size={19} /></span>
                                 <span className="stat-label">Total Revenue</span>
                                 <span className="stat-count">₱{invoices.filter(i => i.status?.toLowerCase() === 'paid').reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className="billing-summary-note">Confirmed transactions</span>
                             </div>
-                            <div className="stat-item">
+                            <div className="stat-item billing-summary-card billing-summary-card--pending">
+                                <span className="billing-summary-icon"><FileText size={19} /></span>
                                 <span className="stat-label">Pending Receivable</span>
                                 <span className="stat-count">₱{invoices.filter(i => i.status?.toLowerCase() === 'pending').reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className="billing-summary-note">Awaiting settlement</span>
                             </div>
-                            <div className="stat-item">
+                            <div className="stat-item billing-summary-card billing-summary-card--issued">
+                                <span className="billing-summary-icon"><CheckCircle size={19} /></span>
                                 <span className="stat-label">Invoices Issued</span>
                                 <span className="stat-count">{invoices.length}</span>
+                                <span className="billing-summary-note">All recorded documents</span>
                             </div>
                         </div>
 
-                        <div className="premium-filter-bar premium-filter-bar--stacked">
+                        <div className="premium-filter-bar premium-filter-bar--stacked billing-filter-panel">
                             <div className="premium-search-box premium-search-box--full" ref={searchRef} style={{ position: 'relative' }}>
                                 <Search size={16} className="premium-search-icon" />
                                 <input
@@ -892,7 +916,14 @@ function AdminBilling() {
                             </div>
                         </div>
 
-                        <div className="table-card-container">
+                        <div className="table-card-container billing-table-card">
+                            <div className="billing-section-heading">
+                                <div>
+                                    <span className="billing-section-kicker">Studio ledger</span>
+                                    <h2>Transaction history</h2>
+                                </div>
+                                <span className="billing-result-count">{sortedInvoices.length} record{sortedInvoices.length === 1 ? '' : 's'}</span>
+                            </div>
                             <div className="table-responsive">
                                 <table className="data-table">
                                     <thead>
@@ -922,7 +953,10 @@ function AdminBilling() {
                                         {loading ? (
                                             <tr><td colSpan="8" className="no-data admin-st-3927920f">Loading invoices...</td></tr>
                                         ) : paginatedInvoices.map(inv => (
-                                            <tr key={`${inv.record_source || 'record'}-${inv.id}`}>
+                                            <tr
+                                                key={`${inv.record_source || 'record'}-${inv.id}`}
+                                                className={String(inv.appointment_id ?? inv.related_id ?? '') === String(notificationAppointmentIdRef.current || '') ? 'billing-target-row' : undefined}
+                                            >
                                                 <td data-label="Invoice ID">{inv.invoice_number || `INV-${String(inv.id).padStart(6, '0')}`}</td>
                                                 <td data-label="Client">{inv.client_name || 'Walk-in Customer'}</td>
                                                 <td data-label="Service">
@@ -988,16 +1022,20 @@ function AdminBilling() {
                     </div>
                 ) : activeTab === 'payouts' ? (
                     <div className="payouts-container page-container-enter" key="payouts">
-                        <div className="stats-row admin-st-2579959f">
-                            <div className="stat-item glass-card">
+                        <div className="stats-row admin-st-2579959f billing-summary-grid billing-summary-grid--payouts">
+                            <div className="stat-item glass-card billing-summary-card billing-summary-card--paid">
+                                <span className="billing-summary-icon"><CheckCircle size={19} /></span>
                                 <span className="stat-label" >Total Paid to Artists</span>
                                 <span className="stat-count">₱{payouts.reduce((sum, p) => sum + Number(p.amount), 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className="billing-summary-note">Recorded payout history</span>
                             </div>
-                            <div className="stat-item">
+                            <div className="stat-item billing-summary-card billing-summary-card--available">
+                                <span className="billing-summary-icon"><CreditCard size={19} /></span>
                                 <span className="stat-label">Available to Pay</span>
                                 <span className="stat-count text-warning">
                                     {payoutBalanceLoading ? 'Loading…' : payoutBalanceError ? 'Unavailable' : `₱${payoutBalances.reduce((sum, balance) => sum + Number(balance.availableBalance || 0), 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                 </span>
+                                <span className="billing-summary-note">Eligible artist balances</span>
                             </div>
                         </div>
 
@@ -1007,6 +1045,7 @@ function AdminBilling() {
                                     <h2 id="artist-payout-balances-title">Artists to Pay</h2>
                                     <p>Completed and fully paid commissions, minus recorded payouts.</p>
                                 </div>
+                                <span className="billing-result-count">{payoutBalances.filter(balance => Number(balance.availableBalance) > 0).length} due</span>
                             </div>
                             <div className="artist-payout-balances__grid">
                                 {payoutBalanceLoading ? (
@@ -1038,7 +1077,7 @@ function AdminBilling() {
                             </div>
                         </section>
 
-                        <div className="premium-filter-bar premium-filter-bar--stacked">
+                        <div className="premium-filter-bar premium-filter-bar--stacked billing-filter-panel">
                             <div className="premium-search-box premium-search-box--full" ref={payoutSearchRef} style={{ position: 'relative' }}>
                                 <Search size={16} className="premium-search-icon" />
                                 <input
@@ -1114,7 +1153,15 @@ function AdminBilling() {
                             </div>
                         </div>
 
-                        <div className="table-card-container">
+                        <div className="table-card-container billing-table-card">
+                            <div className="billing-section-heading">
+                                <div>
+                                    <span className="billing-section-kicker">Payout ledger</span>
+                                    <h2>Artist payout history</h2>
+                                </div>
+                                <span className="billing-result-count">{filteredPayouts.length} record{filteredPayouts.length === 1 ? '' : 's'}</span>
+                            </div>
+                            <div className="table-responsive">
                             <table className="data-table">
                                 <thead>
                                     <tr>
@@ -1140,6 +1187,7 @@ function AdminBilling() {
                                     {filteredPayouts.length === 0 && <tr><td colSpan="6" className="admin-st-3927920f">No payouts found matching your criteria.</td></tr>}
                                 </tbody>
                             </table>
+                            </div>
                         </div>
                         <Pagination
                             currentPage={payoutCurrentPage}

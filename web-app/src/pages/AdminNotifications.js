@@ -63,6 +63,8 @@ function AdminNotifications() {
     const [replyText, setReplyText] = useState('');
     const [replySending, setReplySending] = useState(false);
     const [replySuccess, setReplySuccess] = useState(false);
+    const [notificationFeedback, setNotificationFeedback] = useState(null);
+    const [isClearingNotifications, setIsClearingNotifications] = useState(false);
     const navigate = useNavigate();
 
     const isFirstLoadRef = React.useRef(true);
@@ -184,7 +186,9 @@ function AdminNotifications() {
                 ...directNotifs.map(n => ({
                     ...n,
                     severity: n.type === 'system' ? 'medium' : 'low',
-                    path: n.type === 'payment_success' ? '/admin/billing' : (n.type === 'new_review' ? '/admin/studio?tab=reviews' : undefined)
+                    path: n.type === 'payment_success'
+                        ? `/admin/billing${n.related_id ? `?appointment=${encodeURIComponent(n.related_id)}` : ''}`
+                        : (n.type === 'new_review' ? '/admin/studio?tab=reviews' : undefined)
                 }))
             ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             const combined = [...pinnedAlerts, ...sorted];
@@ -252,6 +256,65 @@ function AdminNotifications() {
             case 'contact_inquiry': return <MessageSquare size={20} style={{ color: '#be9055' }} />;
             default: return <Bell size={20} />;
         }
+    };
+
+    const isSavedNotification = (notification) => /^\d+$/.test(String(notification?.id ?? ''));
+
+    const openPaymentResolution = (alerts) => {
+        if (!alerts?.length) return;
+        sessionStorage.removeItem('paymentAlertShown');
+        window.dispatchEvent(new CustomEvent('payment-alert', { detail: { alerts } }));
+    };
+
+    const handleNotificationAction = (notification) => {
+        if (notification.type === 'payment_resolution') {
+            openPaymentResolution(notification._paymentAlerts);
+            return;
+        }
+        if (notification.path) {
+            if (!notification.is_read && isSavedNotification(notification)) markAsRead(notification.id);
+            navigate(notification.path);
+        }
+    };
+
+    const deleteSavedNotification = async (notification) => {
+        if (!isSavedNotification(notification)) return;
+        try {
+            await Axios.delete(`${API_URL}/api/notifications/${notification.id}`);
+            setNotifications(prev => prev.filter(item => String(item.id) !== String(notification.id)));
+            setSelectedNotification(prev => String(prev?.id) === String(notification.id) ? null : prev);
+            setNotificationFeedback({ type: 'success', message: 'Notification deleted.' });
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+            setNotificationFeedback({ type: 'error', message: 'The notification could not be deleted. Please try again.' });
+        }
+    };
+
+    const clearSavedNotifications = async () => {
+        const savedNotifications = notifications.filter(isSavedNotification);
+        if (savedNotifications.length === 0) {
+            setNotificationFeedback({ type: 'info', message: 'There are no saved notifications to delete. Active system alerts remain until their issue is resolved.' });
+            return;
+        }
+        if (!window.confirm(`Delete ${savedNotifications.length} saved notification${savedNotifications.length === 1 ? '' : 's'}? Active system alerts will remain visible until resolved.`)) return;
+
+        setIsClearingNotifications(true);
+        setNotificationFeedback(null);
+        const results = await Promise.allSettled(
+            savedNotifications.map(notification => Axios.delete(`${API_URL}/api/notifications/${notification.id}`))
+        );
+        const deletedIds = new Set(
+            savedNotifications
+                .filter((_notification, index) => results[index].status === 'fulfilled')
+                .map(notification => String(notification.id))
+        );
+        const failedCount = results.length - deletedIds.size;
+        setNotifications(prev => prev.filter(notification => !deletedIds.has(String(notification.id))));
+        setIsClearingNotifications(false);
+        setNotificationFeedback(failedCount > 0
+            ? { type: 'error', message: `${deletedIds.size} notification${deletedIds.size === 1 ? '' : 's'} deleted; ${failedCount} could not be deleted.` }
+            : { type: 'success', message: `${deletedIds.size} saved notification${deletedIds.size === 1 ? '' : 's'} deleted. Active system alerts remain until resolved.` }
+        );
     };
 
     const markAsRead = async (id) => {
@@ -370,15 +433,26 @@ function AdminNotifications() {
                         </button>
                         <button
                             className="premium-btn secondary"
-                            onClick={async () => {
-                                setNotifications(notifications.filter(n => !n.id.toString().startsWith('inv-') && n.id !== 'apt-pending'));
-                            }}
-                            title="Clear system alerts"
+                            onClick={clearSavedNotifications}
+                            title="Delete saved notifications"
+                            disabled={isClearingNotifications}
                         >
-                            <Trash2 size={16} /> Clear Alerts
+                            <Trash2 size={16} /> {isClearingNotifications ? 'Clearing...' : 'Clear Notifications'}
                         </button>
                     </div>
                 </header>
+
+                {notificationFeedback && (
+                    <div role="status" style={{
+                        marginBottom: '16px', padding: '11px 14px', borderRadius: '10px',
+                        border: `1px solid ${notificationFeedback.type === 'error' ? '#fecaca' : notificationFeedback.type === 'success' ? '#a7f3d0' : '#bfdbfe'}`,
+                        background: notificationFeedback.type === 'error' ? '#fef2f2' : notificationFeedback.type === 'success' ? '#ecfdf5' : '#eff6ff',
+                        color: notificationFeedback.type === 'error' ? '#b91c1c' : notificationFeedback.type === 'success' ? '#047857' : '#1d4ed8',
+                        fontSize: '0.85rem'
+                    }}>
+                        {notificationFeedback.message}
+                    </div>
+                )}
 
                 <div className="portal-stats-row" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
                     <div className="glass-card" style={{ flex: '1 1 200px', padding: '12px', textAlign: 'center' }}>
@@ -482,9 +556,8 @@ function AdminNotifications() {
                                                 } : {})
                                             }} onClick={(e) => {
                                                 if (!e.target.closest('.notif-actions')) {
-                                                    if (isPaymentResolution && n._paymentAlerts) {
-                                                        window.dispatchEvent(new CustomEvent('payment-alert', { detail: { alerts: n._paymentAlerts } }));
-                                                        sessionStorage.removeItem('paymentAlertShown');
+                                                        if (isPaymentResolution && n._paymentAlerts) {
+                                                            openPaymentResolution(n._paymentAlerts);
                                                     } else {
                                                         setSelectedNotification(n);
                                                         if (!n.is_read && n.id && typeof n.id === 'number') markAsRead(n.id);
@@ -512,11 +585,10 @@ function AdminNotifications() {
                                                                 <button
                                                                     className="notif-btn primary"
                                                                     style={{ padding: '6px 12px', background: '#dc2626', color: 'white', borderRadius: '6px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', display: 'flex', gap: '4px', alignItems: 'center' }}
-                                                                    onClick={() => {
-                                                                        if (n._paymentAlerts) {
-                                                                            window.dispatchEvent(new CustomEvent('payment-alert', { detail: { alerts: n._paymentAlerts } }));
-                                                                            sessionStorage.removeItem('paymentAlertShown');
-                                                                        }
+                                                                    type="button"
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        handleNotificationAction(n);
                                                                     }}
                                                                 >
                                                                     Take Action <ArrowRight size={14} />
@@ -525,7 +597,11 @@ function AdminNotifications() {
                                                                 <button
                                                                     className="notif-btn primary"
                                                                     style={{ padding: '6px 12px', background: '#3b82f6', color: 'white', borderRadius: '6px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', display: 'flex', gap: '4px', alignItems: 'center' }}
-                                                                    onClick={() => navigate(n.path)}
+                                                                    type="button"
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        handleNotificationAction(n);
+                                                                    }}
                                                                 >
                                                                     Take Action <ArrowRight size={14} />
                                                                 </button>
@@ -549,6 +625,21 @@ function AdminNotifications() {
                                                                         <RotateCcw size={14} />
                                                                     </button>
                                                                 )
+                                                            )}
+                                                            {!isPaymentResolution && isSavedNotification(n) && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="notif-btn ghost"
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        deleteSavedNotification(n);
+                                                                    }}
+                                                                    title="Delete notification"
+                                                                    aria-label={`Delete ${n.title} notification`}
+                                                                    style={{ padding: '6px', background: 'transparent', border: 'none', color: '#dc2626', cursor: 'pointer' }}
+                                                                >
+                                                                    <Trash2 size={14} />
+                                                                </button>
                                                             )}
                                                         </div>
                                                     </div>
@@ -626,8 +717,10 @@ function AdminNotifications() {
                             <div className="notif-actions" style={{ display: 'flex', gap: '10px' }}>
                                 {selectedNotification.type !== 'contact_inquiry' && (selectedNotification.path || selectedNotification.related_id) && (
                                     <button className="btn btn-primary" style={{ padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', display: 'flex', gap: '6px', alignItems: 'center' }} onClick={() => {
-                                        const link = selectedNotification.path || `/admin/appointments?appointment=${selectedNotification.related_id}`;
-                                        navigate(link);
+                                        handleNotificationAction({
+                                            ...selectedNotification,
+                                            path: selectedNotification.path || `/admin/appointments?appointment=${selectedNotification.related_id}`
+                                        });
                                         setSelectedNotification(null);
                                     }}>Take Action <ArrowRight size={14} /></button>
                                 )}
