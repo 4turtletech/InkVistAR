@@ -359,7 +359,7 @@ function CustomerNotifications() {
                                                                     <button onClick={(event) => { event.stopPropagation(); openInvoice(getNotificationInvoiceNumber(n)); }} style={glassChipBrand}>Invoice</button>
                                                                 )}
                                                                 {(n.type === 'aftercare_reminder' || n.type === 'aftercare_daily') && (
-                                                                    <button onClick={(e) => { e.stopPropagation(); navigate('/customer/aftercare'); }} style={glassChipBrand}>View Guide</button>
+                                                                    <button onClick={(e) => { e.stopPropagation(); navigate(`/customer/aftercare${n.related_id ? `?appointmentId=${encodeURIComponent(n.related_id)}` : ''}`); }} style={glassChipBrand}>View Guide</button>
                                                                 )}
                                                                 {n.type === 'review_prompt' && (
                                                                     reviewedAppointments.has(Number(n.related_id)) ? (
@@ -436,7 +436,7 @@ function CustomerNotifications() {
                                 })()}
                                 {['pos_invoice', 'invoice_pending', 'invoice_paid'].includes(selectedNotification.type) && getNotificationInvoiceNumber(selectedNotification) && <button onClick={() => openInvoice(getNotificationInvoiceNumber(selectedNotification))} style={glassModalBtnPrimary}>View Invoice</button>}
                                 {(selectedNotification.type === 'email_change' || selectedNotification.type === 'password_change') && <button onClick={() => navigate('/customer/profile')} style={glassModalBtnPrimary}>Manage Profile</button>}
-                                {(selectedNotification.type === 'aftercare_reminder' || selectedNotification.type === 'aftercare_daily') && <button onClick={() => { setSelectedNotification(null); navigate('/customer/aftercare'); }} style={glassModalBtnPrimary}>View Guide</button>}
+                                {(selectedNotification.type === 'aftercare_reminder' || selectedNotification.type === 'aftercare_daily') && <button onClick={() => { setSelectedNotification(null); navigate(`/customer/aftercare${selectedNotification.related_id ? `?appointmentId=${encodeURIComponent(selectedNotification.related_id)}` : ''}`); }} style={glassModalBtnPrimary}>View Guide</button>}
                                 {selectedNotification.type === 'appointment_request' && selectedNotification.message && selectedNotification.message.includes('[WAIVER_SIGNED]') && selectedNotification.related_id && (
                                     <a href={`/customer/waiver/${selectedNotification.related_id}`} style={glassModalBtnPrimary}>View Waiver</a>
                                 )}

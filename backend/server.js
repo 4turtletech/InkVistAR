@@ -44,6 +44,7 @@ const { normalizeArtistProfileInput, normalizeCustomerProfileInput, normalizeStr
 const { normalizeAdminWalkInIdentity, storedWalkInEmail, storedWalkInName } = require('./services/walkInIdentity');
 const { buildAdminAppointmentConflictCheck } = require('./services/appointmentConflictPolicy');
 const { isRegisteredAppointmentCustomer, getAppointmentScheduleChange } = require('./services/appointmentNotificationPolicy');
+const { normalizeServiceType, resolveAftercareService, isTattooAftercare, TATTOO_AFTERCARE_SQL } = require('./services/aftercarePolicy');
 const { createSessionInventoryService, InventoryOperationError } = require('./services/sessionInventoryService');
 const { createFinancialLedgerService, summarizeAppointmentFinances } = require('./services/financialLedgerService');
 const { InvoiceRecordInputError, InvoiceRecordNotFoundError, buildInvoiceUpdate, updateInvoiceRecord } = require('./services/invoiceRecordService');
@@ -5421,6 +5422,11 @@ app.post('/api/admin/appointments', async (req, res) => {
   try { commissionSplit = normalizeCommissionSplit(commissionSplit); }
   catch (error) { return res.status(400).json({ success: false, message: error.message }); }
 
+  serviceType = normalizeServiceType(serviceType ?? req.body.service_type);
+  if (!serviceType) {
+    return res.status(400).json({ success: false, field: 'serviceType', message: 'Select a service type: Tattoo Session, Piercing, Tattoo + Piercing, Touch-up, or Consultation.' });
+  }
+
   const isAdminWalkInBooking = customerId === 'admin' && !isFromWizard;
   let guestName = customerName ? String(customerName).replace(/[<>\r\n]/g, '').trim().substring(0, 100) : null;
   let guestFirstNameValue = null;
@@ -5630,7 +5636,7 @@ app.post('/api/admin/appointments', async (req, res) => {
               (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, guest_name, guest_first_name, guest_middle_name, guest_last_name, guest_suffix, waiver_accepted_at, piercing_jewelry, is_guest_placeholder, project_id, session_number, total_sessions)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `;
-          conn.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, guestName, guestFirstNameValue, guestMiddleNameValue, guestLastNameValue, guestSuffixValue, sanitizedWaiverAt, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0, resolvedProjectId, sanitizedSessionNumber, sanitizedTotalSessions], (err, result) => {
+          conn.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType, finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, guestName, guestFirstNameValue, guestMiddleNameValue, guestLastNameValue, guestSuffixValue, sanitizedWaiverAt, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0, resolvedProjectId, sanitizedSessionNumber, sanitizedTotalSessions], (err, result) => {
             if (err) {
               // Graceful fallback if new columns don't exist yet (first deploy)
               if (err.code === 'ER_BAD_FIELD_ERROR') {
@@ -5640,7 +5646,7 @@ app.post('/api/admin/appointments', async (req, res) => {
                     (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, piercing_jewelry, is_guest_placeholder)
                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?)
                 `;
-                return conn.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (fbErr, fbResult) => {
+                return conn.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType, finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (fbErr, fbResult) => {
                   if (fbErr) {
                     console.error('[ERROR] Fallback INSERT also failed:', fbErr);
                     return conn.rollback(() => { conn.release(); res.status(500).json({ success: false, message: 'Database error: ' + fbErr.message }); });
@@ -6015,7 +6021,7 @@ app.post('/api/admin/appointments', async (req, res) => {
               (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, guest_name, guest_first_name, guest_middle_name, guest_last_name, guest_suffix, waiver_accepted_at, piercing_jewelry, is_guest_placeholder)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `;
-          connection.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, guestName, guestFirstNameValue, guestMiddleNameValue, guestLastNameValue, guestSuffixValue, waiverAcceptedAt || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (err, result) => {
+          connection.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType, finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, guestName, guestFirstNameValue, guestMiddleNameValue, guestLastNameValue, guestSuffixValue, waiverAcceptedAt || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (err, result) => {
             if (err) {
               // Graceful fallback while a rolling deploy is still adding newer columns.
               if (err.code === 'ER_BAD_FIELD_ERROR') {
@@ -6025,7 +6031,7 @@ app.post('/api/admin/appointments', async (req, res) => {
                 (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, piercing_jewelry, is_guest_placeholder)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?)
             `;
-                return connection.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (fbErr, fbResult) => {
+                return connection.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit ?? 50, date, startTime || null, combinedTitle, serviceType, finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (fbErr, fbResult) => {
                   if (fbErr) {
                     console.error('[ERROR] Fallback INSERT also failed:', fbErr);
                     return connection.rollback(() => { connection.release(); res.status(500).json({ success: false, message: 'Database error: ' + fbErr.message }); });
@@ -6279,7 +6285,11 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   const price = body.price !== undefined ? (body.price === '' ? 0 : parseFloat(body.price)) : undefined;
   const manualPaidAmount = body.manualPaidAmount !== undefined ? (body.manualPaidAmount === '' ? 0 : parseFloat(body.manualPaidAmount)) : undefined;
 
-  const serviceType = body.serviceType;
+  const suppliedServiceType = body.serviceType !== undefined ? body.serviceType : body.service_type;
+  const serviceType = suppliedServiceType === undefined ? undefined : normalizeServiceType(suppliedServiceType);
+  if (serviceType === null) {
+    return res.status(400).json({ success: false, field: 'serviceType', message: 'Select a service type: Tattoo Session, Piercing, Tattoo + Piercing, Touch-up, or Consultation.' });
+  }
   const designTitle = body.designTitle;
   const status = body.status;
   const paymentStatus = body.paymentStatus;
@@ -7722,8 +7732,11 @@ app.put('/api/appointments/:id/status', async (req, res) => {
         if (isFullyComplete || isFullyComplete === undefined) {
           createNotification(appointment.customer_id, 'Tattoo Journey Complete!', `Your session for "${designTitle}" is finished! We hope you love your new ink.`, 'appointment_completed', id);
 
-          // Trigger Aftercare Reminder
-          createNotification(appointment.customer_id, 'Don\'t forget your Aftercare!', `Proper healing is key! Review the aftercare instructions for your new "${designTitle}" tattoo to keep it looking fresh.`, 'aftercare_reminder', id);
+          // Do not promise a tattoo guide for consultations, piercings or an
+          // unclassified legacy procedure.
+          if (isTattooAftercare(appointment)) {
+            createNotification(appointment.customer_id, 'Don\'t forget your Aftercare!', `Proper healing is key! Review the aftercare instructions for your new "${designTitle}" tattoo to keep it looking fresh.`, 'aftercare_reminder', id);
+          }
 
           // Trigger Review Prompt
           createNotification(appointment.customer_id, 'How did we do?', `Please take a moment to leave a review for your artist! We value your feedback on your latest session.`, 'review_prompt', id);
@@ -8881,7 +8894,7 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
               FROM appointments ap
               LEFT JOIN users u ON ap.artist_id = u.id
               WHERE ap.customer_id = ? AND ap.status = 'completed' AND ap.is_deleted = 0
-                AND ap.service_type LIKE '%Tattoo%'
+                AND ${TATTOO_AFTERCARE_SQL}
                 AND DATEDIFF(CURDATE(), DATE(ap.appointment_date)) BETWEEN 0 AND 30
               ORDER BY ap.appointment_date DESC
               LIMIT 1
@@ -9011,22 +9024,26 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
 // GET full aftercare data for a customer (used by the dedicated aftercare page)
 app.get('/api/customer/aftercare/:customerId', (req, res) => {
   const { customerId } = req.params;
+  const requestedId = req.query.appointmentId;
+  if (requestedId !== undefined && !/^[1-9]\d*$/.test(String(requestedId))) {
+    return res.status(400).json({ success: false, message: 'Invalid appointment ID.' });
+  }
 
   // Find most recent completed tattoo within 30 days
   const apptQuery = `
-    SELECT ap.id, ap.design_title, ap.appointment_date, ap.service_type,
+    SELECT ap.id, ap.booking_code, ap.design_title, ap.appointment_date, ap.service_type,
            DATEDIFF(CURDATE(), DATE(ap.appointment_date)) as days_since,
            u.name as artist_name
     FROM appointments ap
     LEFT JOIN users u ON ap.artist_id = u.id
     WHERE ap.customer_id = ? AND ap.status = 'completed' AND ap.is_deleted = 0
-      AND ap.service_type LIKE '%Tattoo%'
-      AND DATEDIFF(CURDATE(), DATE(ap.appointment_date)) BETWEEN 0 AND 30
-    ORDER BY ap.appointment_date DESC
+      ${requestedId ? 'AND ap.id = ?' : ''}
+    ORDER BY (${TATTOO_AFTERCARE_SQL} AND DATEDIFF(CURDATE(), DATE(ap.appointment_date)) BETWEEN 0 AND 30) DESC,
+      ap.appointment_date DESC, ap.id DESC
     LIMIT 1
   `;
 
-  db.query(apptQuery, [customerId], (err, apptRes) => {
+  db.query(apptQuery, requestedId ? [customerId, requestedId] : [customerId], (err, apptRes) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
 
     if (!apptRes || apptRes.length === 0) {
@@ -9034,6 +9051,15 @@ app.get('/api/customer/aftercare/:customerId', (req, res) => {
     }
 
     const appt = apptRes[0];
+    const service = resolveAftercareService(appt);
+    const reason = !service ? 'service_confirmation_required'
+      : !isTattooAftercare(appt) ? 'not_tattoo'
+      : appt.days_since === null || appt.days_since < 0 ? 'date_confirmation_required'
+      : appt.days_since > 30 ? 'outside_tracking_window' : null;
+    if (reason) {
+      return res.json({ success: true, active: false, aftercare: null, templates: [], reason,
+        appointment: { id: appt.id, bookingCode: appt.booking_code, serviceType: appt.service_type } });
+    }
     const currentDay = Math.max(1, appt.days_since || 1);
 
     // Get all templates
@@ -12476,7 +12502,7 @@ function startAftercareCron() {
         FROM appointments ap
         WHERE ap.status = 'completed' 
           AND ap.is_deleted = 0
-          AND ap.service_type LIKE '%Tattoo%'
+          AND ${TATTOO_AFTERCARE_SQL}
           AND DATEDIFF(CURDATE(), DATE(ap.appointment_date)) BETWEEN 1 AND 30
         ORDER BY ap.appointment_date DESC
       `;

@@ -20,6 +20,28 @@ describe('Philippine mobile number validation', () => {
 });
 
 describe('profile validation', () => {
+    test.each([null, undefined, ''])('keeps missing optional name fields blank when reopening a profile (%p)', (emptyValue) => {
+        // The API returns database NULL for optional name parts cleared on save.
+        const savedProfile = {
+            first_name: 'Jean Angela', middle_name: emptyValue,
+            last_name: 'Bautista', suffix: emptyValue,
+        };
+        expect(normalizeProfileText(emptyValue)).toBe('');
+        expect(suggestCustomerNameParts(savedProfile)).toEqual({
+            first_name: 'Jean Angela', middle_name: '', last_name: 'Bautista',
+            suffix: '', name_needs_review: false,
+        });
+        expect(composeCustomerName(savedProfile)).toBe('Jean Angela Bautista');
+        expect(customerProfileErrors({ ...savedProfile, phone: '9171234567' })).toEqual({});
+    });
+
+    test('does not accept database null as a required name or specialization', () => {
+        expect(customerProfileErrors({ first_name: null, last_name: null, phone: '9171234567' }))
+            .toMatchObject({ first_name: 'First name is required.', last_name: 'Last name is required.' });
+        expect(artistProfileErrors({ name: null, specialization: null, experience_years: 5 }))
+            .toMatchObject({ name: 'Full name is required.', specialization: 'Select at least one specialization.' });
+    });
+
     test('artist profile validates identity and professional fields together', () => {
         expect(artistProfileErrors({ name: 'Juan Dela Cruz', phone: '+639171234567', experience_years: 5, specialization: 'Realism', bio: '' })).toEqual({});
         const errors = artistProfileErrors({ name: ' ', phone: '+6312', experience_years: 2.5, specialization: '', bio: 'x'.repeat(1001) });

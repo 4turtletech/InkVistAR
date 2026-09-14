@@ -1,4 +1,5 @@
 require('./authFoundation.test');
+require('./sessionRenewal.test');
 require('./highRiskProtection.test');
 require('./socketAuthorization.test');
 require('./supportSessionResume.test');
@@ -16,6 +17,7 @@ require('./profileValidation.test');
 require('./walkInIdentity.test');
 require('./appointmentConflictPolicy.test');
 require('./appointmentNotificationPolicy.test');
+require('./aftercarePolicy.test');
 require('./captchaPolicy.test');
 require('./chatbotResilience.test');
 require('./groqProvider.test');

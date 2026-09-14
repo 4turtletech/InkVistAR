@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Sun, Droplets, Shield, AlertTriangle, CheckCircle, Clock, Heart, Sparkles } from 'lucide-react';
 import CustomerSideNav from '../components/CustomerSideNav';
 import './PortalStyles.css';
@@ -17,31 +17,51 @@ function CustomerAftercare() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const customerId = user?.id;
+  const [searchParams] = useSearchParams();
+  const appointmentId = searchParams.get('appointmentId');
 
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState(false);
   const [aftercare, setAftercare] = useState(null);
   const [templates, setTemplates] = useState([]);
+  const [reason, setReason] = useState(null);
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
-    if (customerId) fetchAftercare();
-  }, [customerId]);
-
-  const fetchAftercare = async () => {
-    try {
+    let cancelled = false;
+    const fetchAftercare = async () => {
       setLoading(true);
-      const res = await Axios.get(`${API_URL}/api/customer/aftercare/${customerId}`);
-      if (res.data.success) {
+      setError('');
+      try {
+        if (!customerId) throw new Error('Missing customer');
+        const res = await Axios.get(`${API_URL}/api/customer/aftercare/${customerId}`, {
+          params: appointmentId ? { appointmentId } : {},
+        });
+        if (cancelled) return;
+        if (!res.data.success) throw new Error('Unable to load aftercare');
         setActive(res.data.active);
         setAftercare(res.data.aftercare);
         setTemplates(res.data.templates || []);
+        setReason(res.data.reason || null);
+      } catch (error) {
+        if (!cancelled) setError('We could not load your aftercare. Please try again.');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching aftercare:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    fetchAftercare();
+    return () => { cancelled = true; };
+  }, [customerId, appointmentId, retry]);
+
+  const emptyState = {
+    service_confirmation_required: ['Session type needs confirmation', 'You have a completed session, but its procedure was not recorded clearly. Please ask the studio to confirm its service type so we can show the correct aftercare.'],
+    date_confirmation_required: ['Session date needs confirmation', 'This session is marked completed, but its recorded appointment date is missing or in the future. Please ask the studio to correct the date.'],
+    not_tattoo: ['Tattoo guide does not apply', 'This appointment is recorded as a piercing or consultation. Please contact your artist for the appropriate guidance.'],
+    outside_tracking_window: ['Tracking period has ended', 'This completed tattoo appointment is outside the 30-day tracking period. Please contact your artist if you need further guidance.'],
+  }[reason] || ['No Active Aftercare', appointmentId
+    ? 'This booking is not available as a completed session. Check My Bookings or contact the studio.'
+    : 'No completed session is currently available for aftercare. Check My Bookings or contact the studio if you have already finished a session.'];
 
   const progressPercent = aftercare ? Math.min(100, (aftercare.currentDay / aftercare.totalDays) * 100) : 0;
   const circumference = 2 * Math.PI * 54;
@@ -70,18 +90,23 @@ function CustomerAftercare() {
         <div className="portal-content" style={{ paddingBottom: '40px' }}>
           {loading ? (
             <div className="dashboard-loader-container"><div className="premium-loader"></div><p>Loading aftercare data...</p></div>
+          ) : error ? (
+            <div role="alert" style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <p>{error}</p>
+              <button className="btn btn-primary" onClick={() => setRetry(value => value + 1)}>Try Again</button>
+            </div>
           ) : !active || !aftercare ? (
             /* No active aftercare */
             <div style={{ textAlign: 'center', padding: '80px 20px' }}>
               <div style={{ width: '80px', height: '80px', background: 'rgba(190, 144, 85, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
                 <Heart size={36} color="#be9055" />
               </div>
-              <h2 style={{ margin: '0 0 10px', color: '#1e293b', fontSize: '1.5rem' }}>No Active Aftercare</h2>
+              <h2 style={{ margin: '0 0 10px', color: '#1e293b', fontSize: '1.5rem' }}>{emptyState[0]}</h2>
               <p style={{ color: '#64748b', maxWidth: '400px', margin: '0 auto 24px', lineHeight: '1.6' }}>
-                You don't have a recently completed tattoo session. Your personalized aftercare guide will appear here once a tattoo session is marked as complete.
+                {emptyState[1]}
               </p>
               <button onClick={() => navigate('/customer/bookings')} style={{ background: '#be9055', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', fontSize: '0.95rem' }}>
-                Book a Session
+                View My Bookings
               </button>
             </div>
           ) : (

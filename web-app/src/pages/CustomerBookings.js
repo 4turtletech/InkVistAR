@@ -2,10 +2,11 @@ import './CustomerStyles.css';
 import React, { useState, useEffect, lazy, Suspense, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Axios from 'axios';
-import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin, Receipt, CalendarDays, Clock, AlertTriangle, RotateCcw, PlusCircle, History, MessageSquare, Paintbrush, Gem, Video, Users, ShieldCheck, RefreshCw, Syringe, Wrench, Layers, Circle } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Sparkles, Check, ArrowRight, ArrowLeft, MapPin, Receipt, CalendarDays, Clock, AlertTriangle, RotateCcw, PlusCircle, History, MessageSquare, Paintbrush, Gem, Video, Users, ShieldCheck, RefreshCw, Syringe, Wrench, Layers, Circle } from 'lucide-react';
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
+import AppointmentAftercareLink from '../components/AppointmentAftercareLink';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
 import ImageLightbox from '../components/ImageLightbox';
@@ -102,7 +103,6 @@ function CustomerBookings(){
     const [selectedApt, setSelectedApt] = useState(null);
     const [modalTransactions, setModalTransactions] = useState([]);
     const [modalLoading, setModalLoading] = useState(false);
-    const [showAftercare, setShowAftercare] = useState(false);
     const [confirmModal, setConfirmModal] = useState({ 
         isOpen: false, 
         title: '', 
@@ -1236,14 +1236,11 @@ function CustomerBookings(){
                                                                 >
                                                                     <CreditCard size={14}/> Pay Balance
                                                                 </button>
-                                                            ) : a.status === 'completed' ? (
-                                                                <button className="btn btn-primary customer-st-6c6e14b5" onClick={(e) => { e.stopPropagation(); setSelectedApt(a); setShowAftercare(true); }} >
-                                                                    <Heart size={14}/> Aftercare
-                                                                </button>
                                                             ) : (
                                                                 <span className="customer-st-48e66a80" >-</span>
                                                             )}
                                                         </div>
+                                                        <AppointmentAftercareLink appointment={a} />
                                                     </td>
                                                 </tr>
                                             ))}</tbody>
@@ -1660,44 +1657,6 @@ function CustomerBookings(){
 
 
 
-            {showAftercare && selectedApt && (
-                <div className="modal-overlay" onClick={() => setShowAftercare(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2 className="customer-st-da70abb8" ><Heart size={24} color="#10b981" /> Aftercare Guide</h2>
-                            <button className="close-btn" onClick={() => setShowAftercare(false)}><X size={24} /></button>
-                        </div>
-                        <div className="modal-body">
-                            <p className="customer-st-5242ed5e" >Congratulations on your new tattoo! Proper aftercare is crucial for vibrant colors and smooth healing. Please follow these steps carefully:</p>
-                            
-                            <div className="customer-st-409d6bf5" >
-                                <div className="customer-st-360705c8" >
-                                    <h4 className="customer-st-e458bee7" >1. The First Hours</h4>
-                                    <p className="customer-st-c9d8a99f" >
-                                        Leave the bandage on for 2-4 hours. Wash gently with warm water and fragrance-free antibacterial soap. Do not scrub.
-                                    </p>
-                                </div>
-                                
-                                <div className="customer-st-360705c8" >
-                                    <h4 className="customer-st-e458bee7" >2. Healing Phase (14 Days)</h4>
-                                    <p className="customer-st-c9d8a99f" >
-                                        Apply a thin layer of unscented lotion 2-3 times a day. Do NOT pick or scratch scabs. Avoid direct sunlight and swimming.
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <div className="customer-st-040844df" >
-                                <p className="customer-st-e7d774e4" >
-                                    Questions? Reach out to your artist immediately if red, swollen, or hot to the touch.
-                                </p>
-                            </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-secondary customer-st-1daa6293" onClick={() => setShowAftercare(false)}>Got it!</button>
-                        </div>
-                    </div>
-                </div>
-            )}
             
             {/* Reschedule Modal */}
             {isRescheduleModalOpen && selectedApt && (

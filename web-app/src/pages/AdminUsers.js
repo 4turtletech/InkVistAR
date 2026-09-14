@@ -23,7 +23,7 @@ import { composeCustomerName, customerProfileErrors, filterName, filterDigits, s
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
     User, Calendar, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText,
-    Eye, EyeOff, Camera, ChevronUp, ChevronDown, AlertTriangle
+    Eye, EyeOff, Camera, ChevronUp, ChevronDown, AlertTriangle, LoaderCircle
 } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
 
@@ -1467,7 +1467,7 @@ function AdminUsers() {
                 {/* ═══════════════════════════════════════════════════ */}
                 {clientModal.mounted && selectedClient && (
                     <div className={`modal-overlay ${clientModal.visible ? 'open' : ''}`} onClick={closeClientModal}>
-                        <div className="modal-content large" onClick={e => e.stopPropagation()}>
+                        <div className="modal-content large customer-profile-modal" onClick={e => e.stopPropagation()}>
                             <div className="modal-header">
                                 <div className="admin-flex-center admin-gap-15">
                                     <div className="admin-st-c911153f" style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', border: '1px solid #e2e8f0' }}>
@@ -1501,14 +1501,18 @@ function AdminUsers() {
                                 </button>
                             </div>
 
-                            <div id="client-profile-panel" role="tabpanel" aria-labelledby={`client-tab-${clientActiveTab}`} tabIndex={0} className="modal-body admin-st-d6e6b0a9">
+                            <div id="client-profile-panel" role="tabpanel" aria-labelledby={`client-tab-${clientActiveTab}`} aria-busy={loadingClientDetails} tabIndex={0} className="modal-body admin-st-d6e6b0a9">
                                 {loadingClientDetails ? (
-                                    <div className="admin-st-e70dab8d"><div className="loading-spinner"></div></div>
+                                    <div className="customer-profile-loading" role="status" aria-live="polite">
+                                        <LoaderCircle className="customer-profile-loading-icon" size={32} aria-hidden="true" />
+                                        <strong>{clientActiveTab === 'profile' ? 'Loading personal information...' : 'Loading visit history...'}</strong>
+                                        <p>Please wait while we retrieve the customer details.</p>
+                                    </div>
                                 ) : (
                                     <div className="fade-in">
                                         {clientActiveTab === 'profile' ? (
-                                            <div className="admin-st-e7646dcc">
-                                                <div className="admin-st-ff43421e">
+                                            <div className="customer-profile-layout">
+                                                <div className="customer-profile-fields">
                                                     <div className="form-group">
                                                         <label className="admin-st-19644797">First Name *</label>
                                                         <input type="text" className={`form-input ${clientErrors.first_name ? 'error' : ''}`} value={clientFormData.first_name || ''} onChange={e => handleClientFieldChange('first_name', filterName(e.target.value).slice(0, 50))} onBlur={() => validateClientField('first_name', clientFormData.first_name)} maxLength={50} />
@@ -1529,7 +1533,7 @@ function AdminUsers() {
                                                         <input type="text" className={`form-input ${clientErrors.suffix ? 'error' : ''}`} value={clientFormData.suffix || ''} onChange={e => handleClientFieldChange('suffix', filterName(e.target.value).slice(0, 10))} maxLength={10} placeholder="e.g. Jr." />
                                                         {clientErrors.suffix && <small className="error-text">{clientErrors.suffix}</small>}
                                                     </div>
-                                                    <div className="form-group">
+                                                    <div className="form-group customer-profile-email">
                                                         <label className="admin-st-19644797">Direct Link (Email) *</label>
                                                         <input type="email" className={`form-input ${clientErrors.email ? 'error' : ''}`} value={clientFormData.email || ''} onChange={e => handleClientFieldChange('email', e.target.value.replace(/\s/g, '').slice(0, 254))} onBlur={() => validateClientField('email', clientFormData.email)} maxLength={254} />
                                                         {clientErrors.email && <small className="error-text">{clientErrors.email}</small>}
@@ -1550,11 +1554,11 @@ function AdminUsers() {
                                                         {!currentUser.is_superadmin && <small>Only the super admin can change user roles.</small>}
                                                     </div>
                                                 </div>
-                                                <div className="admin-st-ff43421e">
+                                                <div className="customer-profile-notes">
                                                     <div className="form-group">
                                                         <label className="admin-st-19644797">Internal Confidential Notes</label>
                                                         <textarea
-                                                            className="form-input admin-st-6c845e15" rows="8"
+                                                            className="form-input" rows="3"
                                                             placeholder="Record specific sensitivities, design preferences, or billing history notes..."
                                                             value={clientFormData.notes || ''}
                                                             onChange={e => handleClientFieldChange('notes', e.target.value.substring(0, 500))}
@@ -1721,7 +1725,7 @@ function AdminUsers() {
                                     <Trash2 size={16} /> Archive Account
                                 </button>
                                 <button className="btn btn-secondary" onClick={closeClientModal}>Cancel</button>
-                                <button className="btn btn-primary admin-st-f9a92399" onClick={handleSaveClient}>
+                                <button className="btn btn-primary admin-st-f9a92399" onClick={handleSaveClient} disabled={loadingClientDetails}>
                                     <Save size={18} /> Commit Changes
                                 </button>
                             </div>
