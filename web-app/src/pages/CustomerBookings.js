@@ -13,6 +13,17 @@ import ImageLightbox from '../components/ImageLightbox';
 import { getDisplayCode, formatTime12Hour } from '../utils/formatters';
 const BodyModelViewer = lazy(() => import('../components/BodyModelViewer'));
 
+const toLocalDateOnly = (value) => {
+    if (!value) return null;
+    const datePart = typeof value === 'string' ? value.slice(0, 10) : '';
+    const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+};
+
 function CustomerBookings(){
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -830,9 +841,14 @@ function CustomerBookings(){
             return;
         }
 
+        const currentAppointmentDay = toLocalDateOnly(appt.appointment_date);
+        const firstEligibleDay = currentAppointmentDay
+            ? new Date(currentAppointmentDay.getFullYear(), currentAppointmentDay.getMonth(), currentAppointmentDay.getDate() + 1)
+            : new Date();
+
         setRescheduleDate('');
         setRescheduleTime('');
-        setRescheduleMonth(new Date());
+        setRescheduleMonth(new Date(firstEligibleDay.getFullYear(), firstEligibleDay.getMonth(), 1));
         setRescheduleReason('');
         setRescheduleReasonText('');
         setShowRescheduleConfirm(false);
@@ -842,6 +858,12 @@ function CustomerBookings(){
     const handleReschedulePreSubmit = () => {
         if (!rescheduleDate) {
             showAlert("Required", "Please select a new date.", "warning");
+            return;
+        }
+        const selectedDay = toLocalDateOnly(rescheduleDate);
+        const currentAppointmentDay = toLocalDateOnly(selectedApt?.appointment_date);
+        if (!selectedDay || (currentAppointmentDay && selectedDay <= currentAppointmentDay)) {
+            showAlert("Invalid Date", "Please select a date later than your current appointment.", "warning");
             return;
         }
         if (!rescheduleReason) {
@@ -1042,8 +1064,7 @@ function CustomerBookings(){
         const maxDate = new Date();
         maxDate.setMonth(today.getMonth() + 3);
 
-        const currentApptDate = selectedApt ? new Date(selectedApt.appointment_date) : null;
-        if (currentApptDate) currentApptDate.setHours(0,0,0,0);
+        const currentApptDate = toLocalDateOnly(selectedApt?.appointment_date);
 
         // Collect all dates where this customer already has active appointments (excluding the one being rescheduled)
         const bookedDateSet = new Set();
@@ -1066,7 +1087,7 @@ function CustomerBookings(){
             const isSelected = rescheduleDate === dateStr;
             const isPast = dateObj < twelveHoursFromNow;
             const isTooFar = dateObj > maxDate;
-            const isSameAsCurrentAppt = currentApptDate ? dateObj.getTime() === currentApptDate.getTime() : false;
+            const isNotLaterThanCurrentAppt = currentApptDate ? dateObj <= currentApptDate : false;
             const isAlreadyBooked = bookedDateSet.has(dateStr);
             
             const dateData = bookedDates[dateStr] || { consultationTimes: [], piercingTimes: [], sessionCount: 0 };
@@ -1088,13 +1109,13 @@ function CustomerBookings(){
                 isBusy = dateData.sessionCount >= Math.max(1, studioCapacity - 1);
             }
 
-            const isDisabled = isPast || isTooFar || isSameAsCurrentAppt || isAlreadyBooked || isFull;
+            const isDisabled = isPast || isTooFar || isNotLaterThanCurrentAppt || isAlreadyBooked || isFull;
 
             let bgColor = 'white';
             let textColor = '#1e293b';
             let borderColor = '#e2e8f0';
 
-            if (isPast || isTooFar || isSameAsCurrentAppt) {
+            if (isPast || isTooFar || isNotLaterThanCurrentAppt) {
                 bgColor = '#f8fafc';
                 textColor = '#cbd5e1';
                 borderColor = 'transparent';
@@ -1118,9 +1139,9 @@ function CustomerBookings(){
 
             days.push(
                 <div key={i} className={`calendar-day ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
-                    style={{ backgroundColor: bgColor, color: textColor, border: isSelected ? '2px solid #be9055' : `1px solid ${borderColor}`, opacity: isPast || isTooFar || isSameAsCurrentAppt ? 0.4 : (isAlreadyBooked || isFull ? 0.65 : 1), boxShadow: isSelected ? '0 0 0 3px rgba(193, 154, 107, 0.2)' : 'none' }}
+                    style={{ backgroundColor: bgColor, color: textColor, border: isSelected ? '2px solid #be9055' : `1px solid ${borderColor}`, opacity: isPast || isTooFar || isNotLaterThanCurrentAppt ? 0.4 : (isAlreadyBooked || isFull ? 0.65 : 1), boxShadow: isSelected ? '0 0 0 3px rgba(193, 154, 107, 0.2)' : 'none' }}
                     onClick={() => { if (!isDisabled) setRescheduleDate(dateStr); }}
-                    title={isAlreadyBooked ? 'You already have a session on this date' : isSameAsCurrentAppt ? 'This is the current appointment date' : isFull ? 'This date is fully booked' : ''}
+                    title={isAlreadyBooked ? 'You already have a session on this date' : isNotLaterThanCurrentAppt ? 'Choose a date after the current appointment' : isFull ? 'This date is fully booked' : ''}
                 >
                     <span style={{ fontWeight: isSelected ? '700' : '500' }}>{i}</span>
                 </div>
