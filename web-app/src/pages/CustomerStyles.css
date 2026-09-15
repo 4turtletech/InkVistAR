@@ -1635,6 +1635,66 @@
 .action-title-v2 { font-size: 1.1rem; font-weight: 600; color: #0e0e0eff; margin-bottom: 4px; }
 .action-subtitle-v2 { font-size: 0.85rem; color: #a0a0a0; }
 
+/* Only the four Customer Dashboard shortcuts use these solid, interactive cards. */
+.customer-portal .dashboard-shortcut {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-left: 4px solid #be9055;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.09);
+    gap: 12px;
+    min-height: 92px;
+    font-family: inherit;
+    backdrop-filter: none;
+    transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+.customer-portal .dashboard-shortcut .action-icon-wrapper {
+    margin-right: 0;
+}
+.customer-portal .dashboard-shortcut .action-content-v2 {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+}
+.customer-portal .dashboard-shortcut .action-title-v2 {
+    color: #1e293b;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+.customer-portal .dashboard-shortcut .action-subtitle-v2 {
+    color: #526176;
+    line-height: 1.5;
+}
+.customer-portal .dashboard-shortcut-arrow {
+    flex-shrink: 0;
+    color: #91652e;
+}
+.customer-portal .dashboard-shortcut:hover {
+    background: #fffaf2;
+    border-color: #be9055;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.14);
+    transform: translateY(-2px);
+}
+.customer-portal .dashboard-shortcut:focus-visible {
+    outline: 3px solid #91652e;
+    outline-offset: 3px;
+}
+.customer-portal .dashboard-shortcut:active {
+    transform: translateY(0);
+    background: #f8eedf;
+}
+.customer-portal .dashboard-shortcut-reports {
+    margin-top: 24px;
+}
+@media (prefers-reduced-motion: reduce) {
+    .customer-portal .dashboard-shortcut {
+        transition: none;
+    }
+    .customer-portal .dashboard-shortcut:hover {
+        transform: none;
+    }
+}
+
 .notif-trigger-btn {
     background: none; border: none; color: #64748b; cursor: pointer;
     padding: 8px; border-radius: 50%; transition: all 0.2s;

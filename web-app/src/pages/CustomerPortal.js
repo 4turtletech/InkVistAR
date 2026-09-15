@@ -406,7 +406,7 @@ function CustomerPortal() {
                             </div>
 
                             <div className="quick-actions-grid">
-                                <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/gallery', { state: { initialViewMode: 'Favorites' } })}>
+                                <button type="button" className="action-card-v2 dashboard-shortcut" onClick={() => navigate('/customer/gallery', { state: { initialViewMode: 'Favorites' } })}>
                                     <div className="action-icon-wrapper blue">
                                         <Heart size={20} />
                                     </div>
@@ -414,9 +414,10 @@ function CustomerPortal() {
                                         <span className="action-title-v2">Saved Designs</span>
                                         <span className="action-subtitle-v2">Explore your inspirations</span>
                                     </div>
+                                    <ArrowRight className="dashboard-shortcut-arrow" size={18} aria-hidden="true" />
                                 </button>
 
-                                <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/gallery', { state: { initialViewMode: 'My Tattoos' } })}>
+                                <button type="button" className="action-card-v2 dashboard-shortcut" onClick={() => navigate('/customer/gallery', { state: { initialViewMode: 'My Tattoos' } })}>
                                     <div className="action-icon-wrapper gold">
                                         <Award size={20} />
                                     </div>
@@ -424,9 +425,10 @@ function CustomerPortal() {
                                         <span className="action-title-v2">My Tattoo History</span>
                                         <span className="action-subtitle-v2">View your completed works</span>
                                     </div>
+                                    <ArrowRight className="dashboard-shortcut-arrow" size={18} aria-hidden="true" />
                                 </button>
 
-                                <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/bookings')}>
+                                <button type="button" className="action-card-v2 dashboard-shortcut" onClick={() => navigate('/customer/bookings')}>
                                     <div className="action-icon-wrapper purple">
                                         <Calendar size={20} />
                                     </div>
@@ -434,6 +436,7 @@ function CustomerPortal() {
                                         <span className="action-title-v2">Schedule Session</span>
                                         <span className="action-subtitle-v2">Book your next masterpiece</span>
                                     </div>
+                                    <ArrowRight className="dashboard-shortcut-arrow" size={18} aria-hidden="true" />
                                 </button>
                             </div>
 
@@ -492,10 +495,10 @@ function CustomerPortal() {
                             </div>
 
                             {/* Reports & Feedback — Quick Access Card */}
-                            <div
-                                className="action-card-v2 glass-card"
+                            <button
+                                type="button"
+                                className="action-card-v2 dashboard-shortcut dashboard-shortcut-reports"
                                 onClick={() => navigate('/customer/reports')}
-                                style={{ marginTop: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '16px', padding: '20px 24px' }}
                             >
                                 <div className="action-icon-wrapper" style={{ background: 'rgba(190,144,85,0.12)' }}>
                                     <MessageSquare size={22} color="#be9055" />
@@ -504,8 +507,8 @@ function CustomerPortal() {
                                     <span className="action-title-v2">Reports & Feedback</span>
                                     <span className="action-subtitle-v2">Submit bug reports or share your feedback</span>
                                 </div>
-                                <ArrowRight size={18} color="#94a3b8" />
-                            </div>
+                                <ArrowRight className="dashboard-shortcut-arrow" size={18} aria-hidden="true" />
+                            </button>
                         </>
                     )}
                 </div>
