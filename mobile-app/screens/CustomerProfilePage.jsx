@@ -150,6 +150,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   };
 
   const handleEdit = () => {
+    Keyboard.dismiss();
     setEditProfileErrors({});
     setEditForm({
       ...profile,
@@ -157,6 +158,12 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
       phone: getPhilippineLocalMobileNumber(profile.phone),
     });
     setEditProfileVisible(true);
+  };
+
+  const closeEditProfileModal = () => {
+    Keyboard.dismiss();
+    setEditProfileErrors({});
+    setEditProfileVisible(false);
   };
   const handleMedicalEdit = () => { setMedicalForm({ ...medicalNotes }); setMedicalVisible(true); };
 
@@ -599,16 +606,22 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
       </ScrollView>
 
       {/* Edit Profile Modal */}
-      <Modal visible={isEditProfileVisible} animationType="fade" transparent>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+      <Modal visible={isEditProfileVisible} animationType="fade" transparent onRequestClose={closeEditProfileModal} statusBarTranslucent>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+          <View style={[styles.modalCard, styles.editProfileModalCard]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit Profile</Text>
-              <TouchableOpacity onPress={() => { Keyboard.dismiss(); setEditProfileVisible(false); setEditProfileErrors({}); }}>
+              <TouchableOpacity onPress={closeEditProfileModal} accessibilityRole="button" accessibilityLabel="Close edit profile">
                 <X size={24} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.editProfileScroll}
+              contentContainerStyle={styles.editProfileScrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            >
               {[
                 { label: 'First Name *', key: 'first_name', kb: 'default', max: 50 },
                 { label: 'Middle Name (Optional)', key: 'middle_name', kb: 'default', max: 50 },
@@ -1039,6 +1052,9 @@ const getStyles = (theme) => StyleSheet.create({
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15,13,14,0.85)', justifyContent: 'center', padding: 20 },
   modalCard: { backgroundColor: theme.surface, borderRadius: borderRadius.xl, padding: 24, maxHeight: '85%', borderWidth: 1, borderColor: theme.border },
+  editProfileModalCard: { height: '85%', minHeight: 0 },
+  editProfileScroll: { flex: 1, minHeight: 0 },
+  editProfileScrollContent: { paddingBottom: 8 },
   passwordModalCard: { height: '85%', paddingBottom: 16 },
   passwordScroll: { flex: 1, minHeight: 0 },
   passwordScrollContent: { paddingBottom: 20 },
