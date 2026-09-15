@@ -19,7 +19,7 @@ beforeEach(() => {
 
 test.each(['paid', 'unpaid', 'downpayment_paid'])('completed %s bookings retain an appointment-specific Aftercare link', (payment_status) => {
   render(<AppointmentAftercareLink appointment={{ id: 111, status: 'completed', service_type: 'General Session', payment_status }} />);
-  expect(screen.getByRole('link', { name: 'Aftercare' })).toHaveAttribute('href', '/customer/aftercare?appointmentId=111');
+  expect(screen.getByRole('link', { name: 'View Aftercare' })).toHaveAttribute('href', '/customer/aftercare?appointmentId=111');
 });
 
 test.each(['Piercing', 'Consultation'])('does not advertise tattoo aftercare for %s', (service_type) => {

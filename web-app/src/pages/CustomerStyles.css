@@ -401,14 +401,56 @@
     padding: 4px 10px;
 }
 
-.customer-st-6c6e14b5 {
-    padding: 6px 14px;
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background-color: #10b981;
-    border: none;
+.booking-payment-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 7px;
+}
+
+.booking-payment-actions .customer-st-abded735 {
+    min-width: 116px;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.booking-payment-actions .appointment-aftercare-btn {
+    min-width: 136px;
+    min-height: 34px;
+    padding: 7px 10px;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid rgba(190, 144, 85, 0.42);
+    border-radius: 9px;
+    background: linear-gradient(135deg, #fffaf3, #f8efe2);
+    color: #8a5d27;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    box-shadow: 0 2px 6px rgba(120, 82, 35, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.booking-payment-actions .appointment-aftercare-btn:hover {
+    border-color: #be9055;
+    background: linear-gradient(135deg, #be9055, #a9783f);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 5px 12px rgba(190, 144, 85, 0.24);
+}
+
+.booking-payment-actions .appointment-aftercare-btn:focus-visible {
+    outline: 3px solid rgba(190, 144, 85, 0.24);
+    outline-offset: 2px;
+}
+
+.appointment-aftercare-btn .appointment-aftercare-arrow {
+    transition: transform 0.2s ease;
+}
+
+.appointment-aftercare-btn:hover .appointment-aftercare-arrow {
+    transform: translateX(2px);
 }
 
 .customer-st-48e66a80 {

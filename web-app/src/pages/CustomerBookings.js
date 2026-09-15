@@ -1234,7 +1234,7 @@ function CustomerBookings(){
                                                         )}
                                                     </td>
                                                     <td data-label="Payment">
-                                                        <div className="customer-st-929a545b" style={{display: 'flex', justifyContent: 'flex-start'}}>
+                                                        <div className="customer-st-929a545b booking-payment-actions">
                                                             {a.status === 'pending' && a.price > 0 && a.payment_status === 'unpaid' ? (
                                                                 <button 
                                                                     className="btn btn-primary" 
@@ -1260,8 +1260,8 @@ function CustomerBookings(){
                                                             ) : (
                                                                 <span className="customer-st-48e66a80" >-</span>
                                                             )}
+                                                            <AppointmentAftercareLink appointment={a} />
                                                         </div>
-                                                        <AppointmentAftercareLink appointment={a} />
                                                     </td>
                                                 </tr>
                                             ))}</tbody>
@@ -1619,11 +1619,12 @@ function CustomerBookings(){
 
                             {selectedApt.status.toLowerCase() === 'completed' && (
                                 <button 
-                                    className="btn btn-primary"
-                                    style={{ padding: '8px 16px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #1e293b, #0f172a)', color: 'white', border: 'none', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}
+                                    className="btn btn-action-next-session"
                                     onClick={() => handleRequestNextSession(selectedApt)}
                                 >
-                                    <Layers size={16}/> Request Next Session
+                                    <PlusCircle size={17} aria-hidden="true" />
+                                    <span>Request Next Session</span>
+                                    <ArrowRight size={15} className="next-session-arrow" aria-hidden="true" />
                                 </button>
                             )}
                             
@@ -1950,10 +1951,10 @@ function CustomerBookings(){
             {/* Custom New Booking Modal */}
             {isBookingModalOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content large" style={{ width: '95vw', maxWidth: '1050px', height: '92vh', maxHeight: '900px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <div className="modal-content large wizard-card" style={{ width: '95vw', maxWidth: '1050px', height: '92vh', maxHeight: '900px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         <div className="modal-header">
                             <h2 className="customer-st-da70abb8" ><Sparkles size={24} color="#be9055" /> New Booking Request</h2>
-                            <button className="close-btn" onClick={closeBookingModal}><X size={24} /></button>
+                            <button className="close-btn" type="button" aria-label="Close new booking" onClick={closeBookingModal}><X size={24} /></button>
                         </div>
                         <div style={{ padding: '0 24px', paddingTop: '16px' }} >
                             <div className="customer-st-befb1147" >

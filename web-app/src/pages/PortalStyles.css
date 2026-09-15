@@ -1276,6 +1276,44 @@ body.sidenav-collapsed .portal-layout .portal-container {
     border: 1px solid rgba(190,144,85,0.3);
 }
 
+.btn.btn-action-next-session {
+    flex: 1.35;
+    min-width: 215px;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1px solid #a9783f;
+    background: linear-gradient(135deg, #be9055, #a9783f);
+    color: #fff;
+    font-size: 0.88rem;
+    font-weight: 700;
+    box-shadow: 0 5px 12px rgba(169, 120, 63, 0.24);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.btn.btn-action-next-session:hover {
+    color: #fff;
+    filter: brightness(1.04);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(169, 120, 63, 0.3);
+}
+
+.btn.btn-action-next-session:focus-visible {
+    outline: 3px solid rgba(190, 144, 85, 0.28);
+    outline-offset: 2px;
+}
+
+.btn.btn-action-next-session .next-session-arrow {
+    transition: transform 0.2s ease;
+}
+
+.btn.btn-action-next-session:hover .next-session-arrow {
+    transform: translateX(2px);
+}
+
 .btn-action-reschedule {
     display: flex;
     align-items: center;
@@ -2081,6 +2119,36 @@ body.sidenav-collapsed .portal-layout .portal-container {
 .wizard-card textarea.form-input {
     min-height: 100px;
     resize: vertical;
+}
+
+/* Keep the booking close control legible if another feature loads a global
+   .close-btn rule later in the CSS cascade (for example, the chat widget). */
+.wizard-card .modal-header .close-btn {
+    position: absolute;
+    top: 50%;
+    right: 1.5rem;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    transform: translateY(-50%);
+    border: 1px solid #e2e8f0;
+    border-radius: 50%;
+    background: #f8fafc;
+    color: #64748b;
+    opacity: 1;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.wizard-card .modal-header .close-btn:hover {
+    border-color: #cbd5e1;
+    background: #f1f5f9;
+    color: #1e293b;
+    opacity: 1;
+}
+
+.wizard-card .modal-header .close-btn:focus-visible {
+    outline: 3px solid rgba(190, 144, 85, 0.25);
+    outline-offset: 2px;
 }
 
 .wizard-step-indicator {

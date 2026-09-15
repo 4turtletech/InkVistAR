@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart } from 'lucide-react';
+import { ArrowRight, Heart } from 'lucide-react';
 
 export default function AppointmentAftercareLink({ appointment }) {
   const service = String(appointment.service_type || '').trim().toLowerCase();
@@ -9,9 +9,10 @@ export default function AppointmentAftercareLink({ appointment }) {
   return (
     <Link to={`/customer/aftercare?appointmentId=${encodeURIComponent(appointment.id)}`}
       onClick={(event) => event.stopPropagation()}
-      className="btn btn-primary customer-st-6c6e14b5"
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-      <Heart size={14} /> Aftercare
+      className="btn appointment-aftercare-btn">
+      <Heart size={15} aria-hidden="true" />
+      <span>View Aftercare</span>
+      <ArrowRight size={14} className="appointment-aftercare-arrow" aria-hidden="true" />
     </Link>
   );
 }
