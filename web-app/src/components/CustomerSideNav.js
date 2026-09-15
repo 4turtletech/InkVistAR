@@ -9,7 +9,6 @@ import {
     ChevronLeft,
     ChevronRight,
     LogOut,
-    Sparkles,
     Bell,
     Building2,
     Home,
@@ -107,7 +106,6 @@ function CustomerSideNav() {
         { label: 'My Bookings', icon: Calendar, path: '/customer/bookings' },
         { label: 'Aftercare', icon: Heart, path: '/customer/aftercare' },
         { label: 'Gallery', icon: Image, path: '/customer/gallery' },
-        { label: 'Try-On Tattoo', icon: Sparkles, path: '/customer/try-on', disabled: true },
         { label: 'Notifications', icon: Bell, path: '/customer/notifications' },
         { label: 'Profile', icon: User, path: '/customer/profile' },
     ];
