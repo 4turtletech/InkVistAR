@@ -1,4 +1,13 @@
-import { artistProfileErrors, composeCustomerName, customerProfileErrors, normalizePhilippineMobileNumber, normalizeProfileText, profileNameError, suggestCustomerNameParts } from './validation';
+import { artistProfileErrors, composeCustomerName, customerProfileErrors, isStrongPassword, normalizePhilippineMobileNumber, normalizeProfileText, passwordStrengthFeedback, profileNameError, suggestCustomerNameParts } from './validation';
+
+describe('password validation', () => {
+    test('accepts the same special characters as the backend policy', () => {
+        expect(isStrongPassword('Hello@_1234')).toBe(true);
+        expect(passwordStrengthFeedback('Hello_1234').hasSymbol).toBe(true);
+        expect(isStrongPassword('hello_1234')).toBe(false);
+        expect(isStrongPassword('HelloWorld1')).toBe(false);
+    });
+});
 
 describe('Philippine mobile number validation', () => {
     test.each([

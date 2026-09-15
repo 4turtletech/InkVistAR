@@ -757,8 +757,8 @@ export const getAdminStaff = async () => {
 };
 
 // Admin: Analytics
-export const getAdminAnalytics = async () => {
-  return fetchAPI('/admin/analytics');
+export const getAdminAnalytics = async (timeframe = 'all') => {
+  return fetchAPI(`/admin/analytics?timeframe=${encodeURIComponent(timeframe)}`);
 };
 
 // Admin: Point of Sale (POS) & Billing

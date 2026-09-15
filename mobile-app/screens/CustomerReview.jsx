@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Animated,
 } from 'react-native';
 import { ArrowLeft, Star, Sparkles } from 'lucide-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../src/context/ThemeContext';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
@@ -46,7 +45,6 @@ export const CustomerReview = ({ route, navigation }) => {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const appointmentId = route.params?.appointmentId;
-  const artistId = route.params?.artistId;
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -64,16 +62,13 @@ export const CustomerReview = ({ route, navigation }) => {
 
   const handleSubmit = async () => {
     if (rating === 0) { Alert.alert('Missing Rating', 'Please select a star rating.'); return; }
+    if (!appointmentId) { Alert.alert('Review Unavailable', 'This review is not linked to a valid appointment.'); return; }
     try {
       setSubmitting(true);
-      const userStr = await AsyncStorage.getItem('user_data');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        const res = await submitReview({ customer_id: user.id, artist_id: artistId, appointment_id: appointmentId, rating, comment });
-        if (res.success) {
-          Alert.alert('Thank You', 'Your review has been submitted for moderation.', [{ text: 'OK', onPress: () => navigation.goBack() }]);
-        } else { Alert.alert('Error', res.message || 'Failed to submit review.'); }
-      }
+      const res = await submitReview({ appointment_id: appointmentId, rating, comment });
+      if (res.success) {
+        Alert.alert('Thank You', 'Your review has been submitted for moderation.', [{ text: 'OK', onPress: () => navigation.goBack() }]);
+      } else { Alert.alert('Error', res.message || 'Failed to submit review.'); }
     } catch (e) { Alert.alert('Error', 'An error occurred while submitting.'); }
     finally { setSubmitting(false); }
   };

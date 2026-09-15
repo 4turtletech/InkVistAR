@@ -225,7 +225,9 @@ export function CustomerNotifications({ onBack, userId }) {
       try { navigation.navigate('customer-transactions', { openAppointmentId: item.related_id }); } catch (e) { }
     } else if (item.type?.startsWith('aftercare_')) {
       try { navigation.navigate('CustomerAftercare'); } catch (e) { }
-    } else if (item.type?.startsWith('appointment_') || item.type === 'review_prompt' || item.type === 'system') {
+    } else if (item.type === 'review_prompt') {
+      try { navigation.navigate('customer-review', { appointmentId: item.related_id }); } catch (e) { }
+    } else if (item.type?.startsWith('appointment_') || item.type === 'system') {
       try { navigation.navigate('customer-main', { screen: 'Appointments', params: { openAppointmentId: item.related_id } }); } catch (e) { }
     }
   };

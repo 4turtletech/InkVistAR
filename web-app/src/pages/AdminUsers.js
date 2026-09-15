@@ -81,7 +81,7 @@ function AdminUsers() {
     const [artistModal, setArtistModal] = useState({ mounted: false, visible: false });
     const [selectedArtist, setSelectedArtist] = useState(null);
     const [artistActiveTab, setArtistActiveTab] = useState('profile');
-    const [artistDetails, setArtistDetails] = useState({ profile: {}, appointments: [], portfolio: [], stats: {} });
+    const [artistDetails, setArtistDetails] = useState({ profile: {}, appointments: [], portfolio: [], stats: {}, blockedDates: [] });
     const [artistFormData, setArtistFormData] = useState({});
     const [artistErrors, setArtistErrors] = useState({});
     const [isSavingArtist, setIsSavingArtist] = useState(false);
@@ -664,12 +664,13 @@ function AdminUsers() {
         openArtistModalAnim();
 
         try {
-            const [dashboardRes, portfolioRes] = await Promise.all([
+            const [dashboardRes, portfolioRes, blockedDatesRes] = await Promise.all([
                 Axios.get(`${API_URL}/api/artist/dashboard/${artist.id}`),
-                Axios.get(`${API_URL}/api/artist/${artist.id}/portfolio`)
+                Axios.get(`${API_URL}/api/artist/${artist.id}/portfolio`),
+                Axios.get(`${API_URL}/api/artist/${artist.id}/blocked-dates`)
             ]);
 
-            if (dashboardRes.data.success && portfolioRes.data.success) {
+            if (dashboardRes.data.success && portfolioRes.data.success && blockedDatesRes.data.success) {
                 const data = dashboardRes.data;
                 const nameParts = suggestCustomerNameParts(data.artist);
                 const localPhone = String(data.artist.phone || '')
@@ -679,7 +680,8 @@ function AdminUsers() {
                     .slice(0, 10);
                 setArtistDetails({
                     profile: data.artist, appointments: data.appointments || [],
-                    portfolio: portfolioRes.data.works || [], stats: data.stats || {}
+                    portfolio: portfolioRes.data.works || [], stats: data.stats || {},
+                    blockedDates: blockedDatesRes.data.blockedDates || []
                 });
                 setArtistFormData({
                     ...nameParts,
@@ -807,17 +809,31 @@ function AdminUsers() {
             showAlert("Error", "Please select a date", "danger");
             return;
         }
-        setBlockDateModal({ isOpen: false, date: '' });
         try {
-            await Axios.post(`${API_URL}/api/admin/appointments`, {
-                customerId: selectedArtist.id, artistId: selectedArtist.id,
-                date, startTime: '09:00', endTime: '17:00',
-                designTitle: 'BLOCKED', status: 'cancelled', notes: 'Day off / Unavailable'
-            });
+            await Axios.post(`${API_URL}/api/admin/artists/${selectedArtist.id}/blocked-dates`, { date });
+            setArtistDetails(prev => ({
+                ...prev,
+                blockedDates: [...new Set([...(prev.blockedDates || []), date])].sort()
+            }));
+            setBlockDateModal({ isOpen: false, date: '' });
             showAlert("Success", "Date blocked successfully", "success");
         } catch (error) {
             console.error("Error blocking date:", error);
-            showAlert("Error", "Failed to block date", "danger");
+            showAlert("Error", error.response?.data?.message || "Failed to block date", "danger");
+        }
+    };
+
+    const unblockArtistDate = async (date) => {
+        try {
+            await Axios.delete(`${API_URL}/api/admin/artists/${selectedArtist.id}/blocked-dates/${encodeURIComponent(date)}`);
+            setArtistDetails(prev => ({
+                ...prev,
+                blockedDates: (prev.blockedDates || []).filter(blockedDate => blockedDate !== date)
+            }));
+            showAlert("Success", "Date unblocked successfully", "success");
+        } catch (error) {
+            console.error("Error unblocking date:", error);
+            showAlert("Error", error.response?.data?.message || "Failed to unblock date", "danger");
         }
     };
 
@@ -906,6 +922,19 @@ function AdminUsers() {
                 <h3>Upcoming Schedule</h3>
                 <button className="btn btn-secondary" onClick={handleBlockDate}>Block Date</button>
             </div>
+            {(artistDetails.blockedDates || []).length > 0 && (
+                <div className="artist-blocked-dates" aria-label="Blocked dates">
+                    <span className="artist-blocked-dates-label">Unavailable dates</span>
+                    <div className="artist-blocked-date-list">
+                        {artistDetails.blockedDates.map(date => (
+                            <span className="artist-blocked-date-chip" key={date}>
+                                {new Date(`${date}T00:00:00`).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                <button type="button" onClick={() => unblockArtistDate(date)} aria-label={`Unblock ${date}`} title="Unblock date"><X size={13} /></button>
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
             <div className="table-responsive">
                 <table className="data-table">
                     <thead><tr><th>Date</th><th>Time</th><th>Client</th><th>Service</th><th>Status</th></tr></thead>

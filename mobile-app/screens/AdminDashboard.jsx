@@ -71,7 +71,7 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
       const [dashRes, apptRes, analyticsRes, payoutRes] = await Promise.all([
         getAdminDashboard(),
         getAdminAppointments(),
-        getAdminAnalytics(),
+        getAdminAnalytics('monthly'),
         getAdminPayoutAlerts(),
       ]);
 
@@ -157,8 +157,8 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
     if (data.users) {
       setStats(prev => ({ ...prev, totalUsers: data.users.total || prev.totalUsers, activeArtists: data.artists?.length || prev.activeArtists }));
     }
-    if (data.revenue) setStats(prev => ({ ...prev, totalRevenue: data.revenue.total || prev.totalRevenue }));
-    if (data.appointments) setStats(prev => ({ ...prev, totalAppointments: data.appointments.total || prev.totalAppointments }));
+    if (data.revenue) setStats(prev => ({ ...prev, totalRevenue: Number(data.revenue.total ?? prev.totalRevenue) }));
+    if (data.appointments) setStats(prev => ({ ...prev, totalAppointments: Number(data.appointments.total ?? prev.totalAppointments) }));
 
     if (data.artists) {
       setArtistStatus(data.artists.map(a => ({
@@ -282,8 +282,8 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
       >
         <StaggerItem index={0}>
           <View style={styles.statsGrid}>
-            <StatCard icon={DollarSign} label="Revenue" value={`P${formatCurrency(stats.totalRevenue)}`} color={theme.success} bgColor={`${theme.success}15`} onPress={() => navigation?.navigate?.('admin-analytics')} />
-            <StatCard icon={Calendar} label="Bookings" value={String(stats.totalAppointments)} color={theme.gold} bgColor={`${theme.gold}15`} onPress={() => navigation?.navigate?.('Bookings')} />
+            <StatCard icon={DollarSign} label="Revenue (Month)" value={`P${formatCurrency(stats.totalRevenue)}`} color={theme.success} bgColor={`${theme.success}15`} onPress={() => navigation?.navigate?.('admin-analytics')} />
+            <StatCard icon={Calendar} label="Bookings (Month)" value={String(stats.totalAppointments)} color={theme.gold} bgColor={`${theme.gold}15`} onPress={() => navigation?.navigate?.('Bookings')} />
             <StatCard icon={Users} label="Total Users" value={String(stats.totalUsers)} color={theme.info} bgColor={`${theme.info}15`} onPress={() => navigation?.navigate?.('Users')} />
             <StatCard icon={Palette} label="Active Artists" value={String(stats.activeArtists)} color={theme.warning} bgColor={`${theme.warning}15`} />
           </View>

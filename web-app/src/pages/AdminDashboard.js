@@ -13,6 +13,7 @@ import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL, logoutWebSession } from '../config';
 import { getDisplayCode, formatTime12Hour, formatStatus } from '../utils/formatters';
+import { matchesAppointmentSearch } from '../utils/adminDashboardFilters';
 
 function AdminDashboard() {
     const [stats, setStats] = useState({
@@ -448,11 +449,7 @@ function AdminDashboard() {
 
     // Filter and paginate appointments
     const filteredAppointments = appointments.filter(apt => {
-        const matchesSearch =
-            (apt.client_name || '').toLowerCase().includes(appointmentSearch.toLowerCase()) ||
-            (apt.artist_name || '').toLowerCase().includes(appointmentSearch.toLowerCase());
-
-        if (!matchesSearch) return false;
+        if (!matchesAppointmentSearch(apt, appointmentSearch)) return false;
 
         if (appointmentFilter === 'upcoming') {
             const today = new Date().toISOString().split('T')[0];
@@ -582,7 +579,7 @@ function AdminDashboard() {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                                         <div className="stat-icon-wrapper purple"><Calendar size={24} /></div>
                                         <div className="stat-info-v2" style={{ border: 'none' }}>
-                                            <span className="stat-label-v2">Appointments</span>
+                                            <span className="stat-label-v2">Appointments (Month)</span>
                                             <h3 className="stat-value-v2">{analyticsData.appointments?.total || 0}</h3>
                                         </div>
                                     </div>

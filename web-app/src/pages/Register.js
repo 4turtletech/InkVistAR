@@ -7,7 +7,7 @@ import Navbar from '../components/Navbar';
 import TermsOfServiceModal from '../components/TermsOfServiceModal';
 import './Login.css'; // Using Login styles for consistency
 import CountryCodeSelect from '../components/CountryCodeSelect';
-import { filterName, filterDigits } from '../utils/validation';
+import { filterName, filterDigits, isStrongPassword, passwordStrengthFeedback } from '../utils/validation';
 import './Register.css';
 
 const PasswordStrengthMeter = ({ feedback }) => {
@@ -134,13 +134,7 @@ function Register() {
 
     // Live password feedback
     if (name === 'password') {
-      setPasswordFeedback({
-        hasMinLength: value.length >= 8,
-        hasUppercase: /[A-Z]/.test(value),
-        hasLowercase: /[a-z]/.test(value),
-        hasNumber: /[0-9]/.test(value),
-        hasSymbol: /[@$!%*?&#]/.test(value)
-      });
+      setPasswordFeedback(passwordStrengthFeedback(sanitizedValue));
     }
 
     // Real-time validation as user types
@@ -159,10 +153,9 @@ function Register() {
     }
 
     if (name === 'password') {
-      const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
       if (!value) errorMsg = "Password is required";
       else if (value.length < 8) errorMsg = "Password must be at least 8 characters";
-      else if (!strongRegex.test(value)) errorMsg = "Password needs uppercase, lowercase, number, and symbol";
+      else if (!isStrongPassword(value)) errorMsg = "Password needs uppercase, lowercase, number, and symbol";
     }
 
     if (name === 'confirmPassword') {

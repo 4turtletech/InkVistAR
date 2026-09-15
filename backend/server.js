@@ -43,6 +43,7 @@ const { normalizePhilippineMobileNumber } = require('./services/phoneNumber');
 const { normalizeArtistProfileInput, normalizeCustomerProfileInput, normalizeStructuredNameInput } = require('./services/profileValidation');
 const { normalizeAdminWalkInIdentity, storedWalkInEmail, storedWalkInName } = require('./services/walkInIdentity');
 const { buildAdminAppointmentConflictCheck } = require('./services/appointmentConflictPolicy');
+const { ArtistAvailabilityInputError, normalizeBlockedDate } = require('./services/artistAvailabilityPolicy');
 const { isRegisteredAppointmentCustomer, getAppointmentScheduleChange } = require('./services/appointmentNotificationPolicy');
 const { normalizeServiceType, resolveAftercareService, isTattooAftercare, TATTOO_AFTERCARE_SQL } = require('./services/aftercarePolicy');
 const { createSessionInventoryService, InventoryOperationError } = require('./services/sessionInventoryService');
@@ -938,6 +939,22 @@ db.getConnection((err, connection) => {
           }
         });
       }
+    });
+
+    // Persist whole-day artist availability independently from appointments.
+    db.query(`
+      CREATE TABLE IF NOT EXISTS artist_blocked_dates (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        artist_id INT NOT NULL,
+        blocked_date DATE NOT NULL,
+        created_by INT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_artist_blocked_date (artist_id, blocked_date),
+        INDEX idx_blocked_date (blocked_date)
+      )
+    `, (err) => {
+      if (err) console.error('[WARN] Error creating artist_blocked_dates table:', err.message);
+      else console.log('[OK] Artist blocked dates table ready');
     });
 
     // Create Slot Locks Table (used as a database-level mutex for concurrent booking requests)
@@ -4351,8 +4368,111 @@ app.get('/api/artist/:artistId/availability', (req, res) => {
 
   db.query(query, [artistId], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'DB Error: ' + err.message });
-    res.json({ success: true, bookings: results });
+    db.query(
+      'SELECT blocked_date FROM artist_blocked_dates WHERE artist_id = ? AND blocked_date >= CURDATE() ORDER BY blocked_date',
+      [artistId],
+      (blockedErr, blockedRows) => {
+        if (blockedErr) return res.status(500).json({ success: false, message: 'DB Error: ' + blockedErr.message });
+        res.json({
+          success: true,
+          bookings: results,
+          blockedDates: blockedRows.map((row) => String(row.blocked_date).slice(0, 10)),
+        });
+      }
+    );
   });
+});
+
+// Persisted whole-day artist availability controls used by admin scheduling.
+app.get('/api/artist/:artistId/blocked-dates', (req, res) => {
+  db.query(
+    'SELECT blocked_date FROM artist_blocked_dates WHERE artist_id = ? AND blocked_date >= CURDATE() ORDER BY blocked_date',
+    [req.params.artistId],
+    (err, rows) => {
+      if (err) return res.status(500).json({ success: false, message: 'Failed to load blocked dates.' });
+      res.json({ success: true, blockedDates: rows.map((row) => String(row.blocked_date).slice(0, 10)) });
+    }
+  );
+});
+
+app.post('/api/admin/artists/:artistId/blocked-dates', async (req, res) => {
+  const artistId = Number(req.params.artistId);
+  let blockedDate;
+  try {
+    blockedDate = normalizeBlockedDate(req.body?.date, getManilaDateString());
+  } catch (error) {
+    if (error instanceof ArtistAvailabilityInputError) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
+    }
+    throw error;
+  }
+
+  if (!Number.isInteger(artistId) || artistId <= 0) {
+    return res.status(400).json({ success: false, message: 'Select a valid artist.' });
+  }
+
+  try {
+    const artists = await queryAsync(
+      db,
+      "SELECT id FROM users WHERE id = ? AND user_type = 'artist' AND is_deleted = 0 LIMIT 1",
+      [artistId]
+    );
+    if (!artists.length) return res.status(404).json({ success: false, message: 'Artist not found.' });
+
+    const appointments = await queryAsync(
+      db,
+      `SELECT id FROM appointments
+       WHERE artist_id = ? AND appointment_date = ?
+         AND status NOT IN ('cancelled', 'rejected') AND is_deleted = 0
+       LIMIT 1`,
+      [artistId, blockedDate]
+    );
+    if (appointments.length) {
+      return res.status(409).json({
+        success: false,
+        message: 'This artist already has an appointment on that date. Reschedule or cancel it before blocking the day.',
+      });
+    }
+
+    await queryAsync(
+      db,
+      `INSERT INTO artist_blocked_dates (artist_id, blocked_date, created_by)
+       VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE blocked_date = VALUES(blocked_date)`,
+      [artistId, blockedDate, getAdminId(req) || null]
+    );
+    logAction(getAdminId(req), 'BLOCK_ARTIST_DATE', `Blocked ${blockedDate} for artist ID ${artistId}`, req.ip);
+    res.json({ success: true, date: blockedDate, message: 'Date blocked successfully.' });
+  } catch (error) {
+    console.error('[ERROR] Could not block artist date:', error);
+    res.status(500).json({ success: false, message: 'Failed to block date.' });
+  }
+});
+
+app.delete('/api/admin/artists/:artistId/blocked-dates/:date', async (req, res) => {
+  const artistId = Number(req.params.artistId);
+  let blockedDate;
+  try {
+    blockedDate = normalizeBlockedDate(req.params.date, getManilaDateString());
+  } catch (error) {
+    if (error instanceof ArtistAvailabilityInputError) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
+    }
+    throw error;
+  }
+  if (!Number.isInteger(artistId) || artistId <= 0) {
+    return res.status(400).json({ success: false, message: 'Select a valid artist.' });
+  }
+
+  db.query(
+    'DELETE FROM artist_blocked_dates WHERE artist_id = ? AND blocked_date = ?',
+    [artistId, blockedDate],
+    (err, result) => {
+      if (err) return res.status(500).json({ success: false, message: 'Failed to unblock date.' });
+      if (!result.affectedRows) return res.status(404).json({ success: false, message: 'Blocked date not found.' });
+      logAction(getAdminId(req), 'UNBLOCK_ARTIST_DATE', `Unblocked ${blockedDate} for artist ID ${artistId}`, req.ip);
+      res.json({ success: true, message: 'Date unblocked successfully.' });
+    }
+  );
 });
 
 // Get global studio concurrency availability (Whole-Day Limit)
@@ -4463,7 +4583,7 @@ app.post('/api/customer/appointments', async (req, res) => {
     processBooking(artistId);
   }
 
-  function processBooking(finalArtistId) {
+  async function processBooking(finalArtistId) {
     const currentArtistId = finalArtistId;
 
     // Validation for time and date
@@ -4518,6 +4638,24 @@ app.post('/api/customer/appointments', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Appointments can only be booked up to 3 months in advance.' });
     }
     // --- End Validation ---
+
+    try {
+      const blockedDates = await queryAsync(
+        db,
+        'SELECT id FROM artist_blocked_dates WHERE artist_id = ? AND blocked_date = ? LIMIT 1',
+        [currentArtistId, date]
+      );
+      if (blockedDates.length) {
+        return res.status(409).json({
+          success: false,
+          code: 'ARTIST_UNAVAILABLE',
+          message: 'The selected artist is unavailable on this date. Please choose another date or artist.',
+        });
+      }
+    } catch (error) {
+      console.error('[ERROR] Could not verify artist blocked date:', error);
+      return res.status(500).json({ success: false, message: 'Unable to verify artist availability.' });
+    }
 
     // Double Booking Check (only if they picked a time)
     if (finalStartTime) {
@@ -5499,6 +5637,34 @@ app.post('/api/admin/appointments', async (req, res) => {
     return res.status(400).json({ success: false, message: 'customerId, artistId, and date are required.' });
   }
 
+  if (artistId !== 'admin') {
+    try {
+      const artistsToCheck = [artistId, secondaryArtistId]
+        .filter((value) => value !== undefined && value !== null && value !== '')
+        .map(Number)
+        .filter((value) => Number.isInteger(value) && value > 0);
+      if (artistsToCheck.length) {
+        const placeholders = artistsToCheck.map(() => '?').join(', ');
+        const blockedDates = await queryAsync(
+          db,
+          `SELECT artist_id FROM artist_blocked_dates
+           WHERE artist_id IN (${placeholders}) AND blocked_date = ? LIMIT 1`,
+          [...artistsToCheck, date]
+        );
+        if (blockedDates.length) {
+          return res.status(409).json({
+            success: false,
+            code: 'ARTIST_UNAVAILABLE',
+            message: 'An assigned artist is unavailable on this date. Please choose another date or artist.',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[ERROR] Could not verify blocked dates for appointment:', error);
+      return res.status(500).json({ success: false, message: 'Unable to verify artist availability.' });
+    }
+  }
+
   // Sanitize waiverAcceptedAt to MySQL DATETIME format
   let sanitizedWaiverAt = null;
   if (waiverAcceptedAt) {
@@ -6477,7 +6643,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
       }
     }
 
-    db.query(query, params, (err, result) => {
+    const performUpdate = () => db.query(query, params, (err, result) => {
       if (err) {
         // If the error is about unknown columns (migrations not yet applied), retry without optional new columns
         if (err.code === 'ER_BAD_FIELD_ERROR') {
@@ -6521,6 +6687,36 @@ app.put('/api/admin/appointments/:id', (req, res) => {
 
       processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason, rescheduleReason, isReferral: body.isReferral });
     });
+
+    const effectiveStatus = String(status ?? oldAppt.status ?? '').toLowerCase();
+    if (['cancelled', 'rejected'].includes(effectiveStatus)) return performUpdate();
+
+    const effectiveDate = String(date ?? oldAppt.appointment_date ?? '').slice(0, 10);
+    const effectiveArtistIds = [artistId ?? oldAppt.artist_id, secondaryArtistId === undefined ? oldAppt.secondary_artist_id : secondaryArtistId]
+      .map(Number)
+      .filter((value) => Number.isInteger(value) && value > 0);
+    if (!effectiveDate || !effectiveArtistIds.length) return performUpdate();
+
+    const placeholders = effectiveArtistIds.map(() => '?').join(', ');
+    db.query(
+      `SELECT artist_id FROM artist_blocked_dates
+       WHERE artist_id IN (${placeholders}) AND blocked_date = ? LIMIT 1`,
+      [...effectiveArtistIds, effectiveDate],
+      (blockedErr, blockedRows) => {
+        if (blockedErr) {
+          console.error('[ERROR] Could not verify blocked dates for appointment update:', blockedErr);
+          return res.status(500).json({ success: false, message: 'Unable to verify artist availability.' });
+        }
+        if (blockedRows.length) {
+          return res.status(409).json({
+            success: false,
+            code: 'ARTIST_UNAVAILABLE',
+            message: 'An assigned artist is unavailable on this date. Please choose another date or artist.',
+          });
+        }
+        performUpdate();
+      }
+    );
   });
 });
 

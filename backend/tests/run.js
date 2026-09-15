@@ -27,3 +27,4 @@ require('./invoiceService.test');
 require('./posCheckoutService.test');
 require('./commissionPolicy.test');
 require('./payoutService.test');
+require('./artistAvailabilityPolicy.test');

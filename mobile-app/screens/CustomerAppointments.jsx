@@ -11,7 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Calendar, List, ChevronLeft, ChevronRight, ChevronRight as ChevronR,
-  X, Plus, CreditCard, ShieldAlert, Info, Layers, CheckCircle, Circle
+  X, Plus, CreditCard, ShieldAlert, Info, Layers, CheckCircle, Circle, Star
 } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import * as Haptics from 'expo-haptics';
@@ -657,6 +657,20 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
                   <Text style={modalS.cancelText}>Cancel</Text>
                 </AnimatedTouchable>
               </View>
+            )}
+
+            {modalTab === 'details' && selectedAppointment?.status === 'completed' && (
+              <AnimatedTouchable
+                style={[modalS.payBtn, { backgroundColor: theme.gold, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, marginTop: 16 }]}
+                onPress={() => {
+                  const appointmentId = selectedAppointment.id;
+                  handleSelectAppointment(null);
+                  navigation.navigate('customer-review', { appointmentId });
+                }}
+              >
+                <Star size={18} color={theme.backgroundDeep} />
+                <Text style={[modalS.payText, { color: theme.backgroundDeep }]}>Leave a Review</Text>
+              </AnimatedTouchable>
             )}
 
             <AnimatedTouchable style={modalS.closeBtn} onPress={() => handleSelectAppointment(null)}>

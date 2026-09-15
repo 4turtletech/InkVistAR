@@ -194,6 +194,60 @@
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
 }
 
+.artist-blocked-dates {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 12px 0 16px;
+    padding: 12px 14px;
+    border: 1px solid #f1d7d7;
+    border-radius: 12px;
+    background: #fff8f8;
+}
+
+.artist-blocked-dates-label {
+    flex: 0 0 auto;
+    padding-top: 5px;
+    color: #991b1b;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.artist-blocked-date-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.artist-blocked-date-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 7px 5px 10px;
+    border: 1px solid #fecaca;
+    border-radius: 999px;
+    background: #fff;
+    color: #7f1d1d;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.artist-blocked-date-chip button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #fee2e2;
+    color: #991b1b;
+    cursor: pointer;
+}
+
 
 /* .header-title-area styles are now defined globally in AdminStyles.css */
 

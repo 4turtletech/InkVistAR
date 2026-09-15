@@ -18,6 +18,20 @@ export const filterDigits = (val) => {
     return val.replace(/[^0-9]/g, '');
 };
 
+export const passwordStrengthFeedback = (value = '') => ({
+    hasMinLength: value.length >= 8,
+    hasUppercase: /[A-Z]/.test(value),
+    hasLowercase: /[a-z]/.test(value),
+    hasNumber: /[0-9]/.test(value),
+    hasSymbol: /[^A-Za-z0-9]/.test(value),
+});
+
+export const isStrongPassword = (value) => {
+    if (typeof value !== 'string' || value.length > 128) return false;
+    const feedback = passwordStrengthFeedback(value);
+    return Object.values(feedback).every(Boolean);
+};
+
 /**
  * Accepts common Philippine mobile formats and returns a consistent E.164
  * value. Examples: 09171234567, 9171234567, and +639171234567.
