@@ -4836,8 +4836,13 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
       const currentDateNorm = new Date(appt.appointment_date);
       newDateObj.setHours(0, 0, 0, 0);
       currentDateNorm.setHours(0, 0, 0, 0);
-      if (String(newDate).slice(0, 10) < getManilaDateString()) {
+      const newDateKey = String(newDate).slice(0, 10);
+      const minimumNoticeDate = getManilaDateString(new Date(Date.now() + msInAWeek));
+      if (newDateKey < getManilaDateString()) {
         return res.status(400).json({ success: false, message: 'Sessions cannot be rescheduled to a date that has already passed.' });
+      }
+      if (newDateKey < minimumNoticeDate) {
+        return res.status(400).json({ success: false, message: `The new appointment date must be at least 1 week from today (${minimumNoticeDate} or later).` });
       }
       if (newDateObj <= currentDateNorm) {
         return res.status(400).json({ success: false, message: 'You can only reschedule to a later date than your current appointment.' });

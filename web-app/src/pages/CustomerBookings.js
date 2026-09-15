@@ -24,6 +24,19 @@ const toLocalDateOnly = (value) => {
     return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
 };
 
+const toDateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const getManilaToday = () => {
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).formatToParts(new Date());
+    const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+    return new Date(Number(values.year), Number(values.month) - 1, Number(values.day));
+};
+
 function CustomerBookings(){
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -803,6 +816,73 @@ function CustomerBookings(){
         'Other'
     ];
 
+    const getEarliestDirectRescheduleDate = (appt) => {
+        const oneWeekFromToday = getManilaToday();
+        oneWeekFromToday.setDate(oneWeekFromToday.getDate() + 7);
+
+        const currentAppointmentDay = toLocalDateOnly(appt?.appointment_date);
+        if (!currentAppointmentDay) return oneWeekFromToday;
+
+        const dayAfterCurrentAppointment = new Date(currentAppointmentDay);
+        dayAfterCurrentAppointment.setDate(dayAfterCurrentAppointment.getDate() + 1);
+        return dayAfterCurrentAppointment > oneWeekFromToday ? dayAfterCurrentAppointment : oneWeekFromToday;
+    };
+
+    const getDirectRescheduleDateAvailability = (date, appt) => {
+        const dateKey = toDateKey(date);
+        const earliestDate = getEarliestDirectRescheduleDate(appt);
+        const maxDate = getManilaToday();
+        maxDate.setMonth(maxDate.getMonth() + 3);
+
+        const isAlreadyBooked = appointments.some(a => {
+            if (String(a.id) === String(appt?.id) || ['completed', 'cancelled', 'rejected'].includes((a.status || '').toLowerCase())) return false;
+            const appointmentDay = toLocalDateOnly(a.appointment_date);
+            return appointmentDay ? toDateKey(appointmentDay) === dateKey : false;
+        });
+
+        const dateData = bookedDates[dateKey] || { consultationTimes: [], piercingTimes: [], sessionCount: 0 };
+        const service = (appt?.service_type || '').toLowerCase();
+        let isFull = false;
+        let isBusy = false;
+
+        if (service === 'consultation') {
+            isFull = dateData.consultationTimes.length >= 7;
+            isBusy = dateData.consultationTimes.length >= 5;
+        } else if (service === 'piercing') {
+            isFull = dateData.piercingTimes.length >= 7;
+            isBusy = dateData.piercingTimes.length >= 1;
+        } else if (service === 'tattoo + piercing') {
+            isFull = dateData.sessionCount >= studioCapacity || dateData.piercingTimes.length >= 7;
+            isBusy = dateData.sessionCount >= Math.max(1, studioCapacity - 1) || dateData.piercingTimes.length >= 5;
+        } else {
+            isFull = dateData.sessionCount >= studioCapacity;
+            isBusy = dateData.sessionCount >= Math.max(1, studioCapacity - 1);
+        }
+
+        const isBeforeMinimum = date < earliestDate;
+        const isTooFar = date > maxDate;
+        return {
+            available: !isBeforeMinimum && !isTooFar && !isAlreadyBooked && !isFull,
+            isBeforeMinimum,
+            isTooFar,
+            isAlreadyBooked,
+            isFull,
+            isBusy
+        };
+    };
+
+    const findNearestDirectRescheduleDate = (appt) => {
+        const candidate = getEarliestDirectRescheduleDate(appt);
+        const maxDate = getManilaToday();
+        maxDate.setMonth(maxDate.getMonth() + 3);
+
+        while (candidate <= maxDate) {
+            if (getDirectRescheduleDateAvailability(candidate, appt).available) return new Date(candidate);
+            candidate.setDate(candidate.getDate() + 1);
+        }
+        return null;
+    };
+
     const handleOpenReschedule = (appt) => {
         const now = new Date();
         const apptDate = new Date(appt.appointment_date);
@@ -841,14 +921,12 @@ function CustomerBookings(){
             return;
         }
 
-        const currentAppointmentDay = toLocalDateOnly(appt.appointment_date);
-        const firstEligibleDay = currentAppointmentDay
-            ? new Date(currentAppointmentDay.getFullYear(), currentAppointmentDay.getMonth(), currentAppointmentDay.getDate() + 1)
-            : new Date();
+        const nearestAvailableDay = findNearestDirectRescheduleDate(appt);
+        const initialCalendarDay = nearestAvailableDay || getEarliestDirectRescheduleDate(appt);
 
-        setRescheduleDate('');
+        setRescheduleDate(nearestAvailableDay ? toDateKey(nearestAvailableDay) : '');
         setRescheduleTime('');
-        setRescheduleMonth(new Date(firstEligibleDay.getFullYear(), firstEligibleDay.getMonth(), 1));
+        setRescheduleMonth(new Date(initialCalendarDay.getFullYear(), initialCalendarDay.getMonth(), 1));
         setRescheduleReason('');
         setRescheduleReasonText('');
         setShowRescheduleConfirm(false);
@@ -861,9 +939,9 @@ function CustomerBookings(){
             return;
         }
         const selectedDay = toLocalDateOnly(rescheduleDate);
-        const currentAppointmentDay = toLocalDateOnly(selectedApt?.appointment_date);
-        if (!selectedDay || (currentAppointmentDay && selectedDay <= currentAppointmentDay)) {
-            showAlert("Invalid Date", "Please select a date later than your current appointment.", "warning");
+        const earliestDate = getEarliestDirectRescheduleDate(selectedApt);
+        if (!selectedDay || selectedDay < earliestDate) {
+            showAlert("Invalid Date", `Please select ${earliestDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })} or a later available date.`, "warning");
             return;
         }
         if (!rescheduleReason) {
@@ -1054,28 +1132,7 @@ function CustomerBookings(){
 
     const renderRescheduleCalendar = () => {
         const days = [];
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        
-        const now = new Date();
-        const twelveHoursFromNow = new Date(now.getTime() + 12 * 60 * 60 * 1000);
-        twelveHoursFromNow.setHours(0,0,0,0);
-
-        const maxDate = new Date();
-        maxDate.setMonth(today.getMonth() + 3);
-
-        const currentApptDate = toLocalDateOnly(selectedApt?.appointment_date);
-
-        // Collect all dates where this customer already has active appointments (excluding the one being rescheduled)
-        const bookedDateSet = new Set();
-        appointments.forEach(a => {
-            if (a.id !== selectedApt?.id && !['completed', 'cancelled', 'rejected'].includes(a.status)) {
-                const d = typeof a.appointment_date === 'string' 
-                    ? a.appointment_date.substring(0, 10) 
-                    : new Date(a.appointment_date).toISOString().split('T')[0];
-                bookedDateSet.add(d);
-            }
-        });
+        const earliestDate = getEarliestDirectRescheduleDate(selectedApt);
 
         const daysInM = new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth() + 1, 0).getDate();
         const firstDay = new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth(), 1).getDay();
@@ -1085,37 +1142,14 @@ function CustomerBookings(){
             const dateStr = `${rescheduleMonth.getFullYear()}-${String(rescheduleMonth.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
             const dateObj = new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth(), i);
             const isSelected = rescheduleDate === dateStr;
-            const isPast = dateObj < twelveHoursFromNow;
-            const isTooFar = dateObj > maxDate;
-            const isNotLaterThanCurrentAppt = currentApptDate ? dateObj <= currentApptDate : false;
-            const isAlreadyBooked = bookedDateSet.has(dateStr);
-            
-            const dateData = bookedDates[dateStr] || { consultationTimes: [], piercingTimes: [], sessionCount: 0 };
-            // Evaluate based on the service type of the appointment being rescheduled
-            let isFull = false;
-            let isBusy = false;
-            const apptService = (selectedApt?.service_type || '').toLowerCase();
-            if (apptService === 'consultation') {
-                isFull = dateData.consultationTimes.length >= 7;
-                isBusy = dateData.consultationTimes.length >= 5;
-            } else if (apptService === 'piercing') {
-                isFull = dateData.piercingTimes.length >= 7;
-                isBusy = dateData.piercingTimes.length >= 1; // Show as limited if any slot is taken
-            } else if (apptService === 'tattoo + piercing') {
-                isFull = dateData.sessionCount >= studioCapacity || dateData.piercingTimes.length >= 7;
-                isBusy = dateData.sessionCount >= Math.max(1, studioCapacity - 1) || dateData.piercingTimes.length >= 5;
-            } else {
-                isFull = dateData.sessionCount >= studioCapacity;
-                isBusy = dateData.sessionCount >= Math.max(1, studioCapacity - 1);
-            }
-
-            const isDisabled = isPast || isTooFar || isNotLaterThanCurrentAppt || isAlreadyBooked || isFull;
+            const { available, isBeforeMinimum, isTooFar, isAlreadyBooked, isFull, isBusy } = getDirectRescheduleDateAvailability(dateObj, selectedApt);
+            const isDisabled = !available;
 
             let bgColor = 'white';
             let textColor = '#1e293b';
             let borderColor = '#e2e8f0';
 
-            if (isPast || isTooFar || isNotLaterThanCurrentAppt) {
+            if (isBeforeMinimum || isTooFar) {
                 bgColor = '#f8fafc';
                 textColor = '#cbd5e1';
                 borderColor = 'transparent';
@@ -1139,9 +1173,9 @@ function CustomerBookings(){
 
             days.push(
                 <div key={i} className={`calendar-day ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
-                    style={{ backgroundColor: bgColor, color: textColor, border: isSelected ? '2px solid #be9055' : `1px solid ${borderColor}`, opacity: isPast || isTooFar || isNotLaterThanCurrentAppt ? 0.4 : (isAlreadyBooked || isFull ? 0.65 : 1), boxShadow: isSelected ? '0 0 0 3px rgba(193, 154, 107, 0.2)' : 'none' }}
+                    style={{ backgroundColor: bgColor, color: textColor, border: isSelected ? '2px solid #be9055' : `1px solid ${borderColor}`, opacity: isBeforeMinimum || isTooFar ? 0.4 : (isAlreadyBooked || isFull ? 0.65 : 1), boxShadow: isSelected ? '0 0 0 3px rgba(193, 154, 107, 0.2)' : 'none' }}
                     onClick={() => { if (!isDisabled) setRescheduleDate(dateStr); }}
-                    title={isAlreadyBooked ? 'You already have a session on this date' : isNotLaterThanCurrentAppt ? 'Choose a date after the current appointment' : isFull ? 'This date is fully booked' : ''}
+                    title={isAlreadyBooked ? 'You already have a session on this date' : isBeforeMinimum ? `Available from ${earliestDate.toLocaleDateString()}` : isFull ? 'This date is fully booked' : isTooFar ? 'Dates are limited to 3 months ahead' : ''}
                 >
                     <span style={{ fontWeight: isSelected ? '700' : '500' }}>{i}</span>
                 </div>
@@ -1723,7 +1757,7 @@ function CustomerBookings(){
                                     <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                                         <AlertTriangle size={18} color="#d97706" style={{ marginTop: '2px', flexShrink: 0 }} />
                                         <div style={{ fontSize: '0.85rem', color: '#92400e', lineHeight: '1.5' }}>
-                                            <strong>Reschedule Policy:</strong> You may reschedule <strong>once</strong> per appointment. Rescheduling is only allowed if the appointment is more than 1 week away. This action cannot be undone.
+                                            <strong>Reschedule Policy:</strong> You may reschedule <strong>once</strong> per appointment. Dates within the next week and dates on or before your current appointment are disabled. The earliest available date is shown automatically. This action cannot be undone.
                                         </div>
                                     </div>
 
