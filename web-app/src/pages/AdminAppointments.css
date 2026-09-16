@@ -1,5 +1,15 @@
 /* Admin Appointments Styles */
 
+.appointment-client-contact {
+    display: block;
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
 /* Match the consistent inner gutter used throughout the admin portal. */
 .admin-page-with-sidenav .appointments-page {
     padding: 2rem;

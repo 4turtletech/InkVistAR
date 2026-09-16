@@ -477,6 +477,7 @@ function AdminAppointments() {
                         id: apt.id,
                         bookingCode: apt.booking_code,
                         clientName: finalClientName,
+                        clientPhone: String(apt.client_phone || (isGuest ? apt.guest_phone : '') || '').trim().replace(/^(null|undefined)$/i, ''),
                         clientId: apt.customer_id,
                         artistName: apt.artist_name,
                         artistId: apt.artist_id,
@@ -2089,6 +2090,9 @@ function AdminAppointments() {
                                                                 verticalAlign: 'middle', letterSpacing: '0.02em'
                                                             }} title="This booking was made by an unregistered guest">GUEST</span>
                                                         )}
+                                                        <span className="appointment-client-contact">
+                                                            Contact Number: {appointment.clientPhone || 'Not provided'}
+                                                        </span>
                                                     </td>
                                                     <td data-label="Staff">{appointment.artistName}</td>
                                                     <td data-label="Service" className="admin-st-775cebbf" title={appointment.serviceType}>
@@ -2780,8 +2784,17 @@ function AdminAppointments() {
                                                                         </span>
                                                                     </div>
                                                                 )}
-                                                                <span className="admin-st-0e40c814" style={{ fontSize: '0.95rem', fontWeight: '600' }}>
+                                                                <span className="admin-st-0e40c814" style={{ fontSize: '0.95rem', fontWeight: '600', minWidth: 0 }}>
                                                                     {clients.find(c => c.id == formData.clientId)?.name || clientSearch}
+                                                                    <span className="appointment-client-contact">
+                                                                        Contact Number: {String(
+                                                                            clients.find(c => c.id == formData.clientId)?.phone
+                                                                            || (String(selectedAppointment?.clientId || selectedAppointment?.customer_id) === String(formData.clientId)
+                                                                                ? selectedAppointment?.clientPhone || selectedAppointment?.client_phone
+                                                                                : '')
+                                                                            || ''
+                                                                        ).trim().replace(/^(null|undefined)$/i, '') || 'Not provided'}
+                                                                    </span>
                                                                 </span>
                                                             </div>
                                                             <button type="button" onClick={() => { setFormData(prev => ({ ...prev, clientId: null })); setClientSearch(''); }} className="admin-st-f32d59a5">
