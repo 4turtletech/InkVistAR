@@ -1,10 +1,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createSocketAuthorizer } = require('../services/socketAuthorization');
+const { passwordVersion } = require('../services/tokenService');
 
 function createAuthorizer() {
   const tokenService = {
-    verifyAccessToken: (token) => token === 'valid' ? { sub: '4', role: 'customer' } : { sub: '3', role: 'artist' },
+    verifyAccessToken: (token) => ({ ...(token === 'valid' ? { sub: '4', role: 'customer' } : { sub: '3', role: 'artist' }), pv: passwordVersion('test-hash') }),
   };
   const pool = {
     promise: () => ({
@@ -18,6 +19,7 @@ function createAuthorizer() {
             is_verified: 1,
             is_deleted: 0,
             account_status: 'active',
+            password_hash: 'test-hash',
           }]];
         }
         if (sql.includes('FROM appointments') && Number(params[0]) === 42 && Number(params[1]) === 3) return [[{ id: 42 }]];

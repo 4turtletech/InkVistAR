@@ -5,6 +5,7 @@ require('./socketAuthorization.test');
 require('./supportSessionResume.test');
 require('./supportSessionPolicy.test');
 require('./passwordRecovery.test');
+require('./passwordFlows.test');
 require('./paymongoWebhook.test');
 require('./workflowEngine.test');
 require('./materialTraceability.test');

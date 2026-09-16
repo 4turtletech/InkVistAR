@@ -277,6 +277,7 @@ function AppContent() {
   const [user, setUser] = useState(null);
   const [showOTP, setShowOTP] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
+  const [recoveryChallenge, setRecoveryChallenge] = useState('');
   const [isResetMode, setIsResetMode] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginUserType, setLoginUserType] = useState('customer');
@@ -415,13 +416,13 @@ function AppContent() {
     const result = await requestPasswordRecovery(email);
     if (result.success) {
       setLoginEmail(email);
+      setRecoveryChallenge(result.challenge);
       setLoginUserType(selectedType);
       setIsResetMode(true);
       setShowOTP(false);
       setShowResetPassword(true);
-    } else {
-      Alert.alert('Error', result.message || 'Failed to start password recovery.');
     }
+    return result;
   }, []);
 
   const handleOTPVerified = useCallback((verifiedUser) => {
@@ -546,6 +547,7 @@ function AppContent() {
               {() => (
                 <ResetPasswordPage
                   email={loginEmail}
+                  challenge={recoveryChallenge}
                   onSubmit={handlePasswordReset}
                   onComplete={handlePasswordResetComplete}
                 />

@@ -61,6 +61,13 @@ function Login() {
     const [resendTimer, setResendTimer] = useState(300);
     const [resendAttempts, setResendAttempts] = useState(0);
     const [resending, setResending] = useState(false);
+    const [recoveryChallenge, setRecoveryChallenge] = useState('');
+    const [recoveryCooldown, setRecoveryCooldown] = useState(0);
+    useEffect(() => {
+        if (!recoveryCooldown) return;
+        const timer = setTimeout(() => setRecoveryCooldown(n => Math.max(0, n - 1)), 1000);
+        return () => clearTimeout(timer);
+    }, [recoveryCooldown]);
     const otpExpired = (view === 'forgot-otp' || view === 'verify-account') && resendTimer <= 0;
     const displayedOtpError = otpError || (otpExpired ? 'This verification code has expired. Request a new code.' : '');
 
@@ -319,11 +326,16 @@ function Login() {
         setLoading(true);
         try {
             const response = await Axios.post(`${API_URL}/api/password-recovery/request`, {
-                email: resetEmail
+                email: resetEmail, codeFlow: true
             });
             if (response.data.success) {
                 setRecoveryToken('');
-                setView('reset-password');
+                setRecoveryChallenge(response.data.challenge);
+                setOtp(['', '', '', '', '', '']);
+                beginOtpWindow(response);
+                setRecoveryCooldown(60);
+                setResendAttempts(0);
+                setView('forgot-otp');
             } else {
                 setErrors(prev => ({ ...prev, resetEmail: response.data.message || 'Unable to start password recovery.' }));
             }
@@ -347,11 +359,12 @@ function Login() {
         setOtpError('');
         setLoading(true);
         try {
-            const response = await Axios.post(`${API_URL}/api/verify-otp`, {
+            const response = await Axios.post(`${API_URL}/api/password-recovery/verify`, {
                 email: resetEmail,
-                otp: otp.join('')
+                code: otp.join(''), challenge: recoveryChallenge
             });
             if (response.data.success) {
+                setRecoveryToken(response.data.resetToken);
                 setView('reset-password');
             } else {
                 showOtpFailure(response.data.message, 'The verification code is incorrect.');
@@ -586,40 +599,17 @@ function Login() {
                         </p>
                         <button type="submit" className="login-btn" disabled={loading}>{loading ? 'Verifying...' : 'Verify OTP'}</button>
                         <div className="login-footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                            {resendTimer > 0 ? (
-                                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
-                                    Code expires in {Math.floor(resendTimer / 60)}:{(resendTimer % 60).toString().padStart(2, '0')}
-                                </p>
-                            ) : resendAttempts >= 3 ? (
-                                <>
-                                <span className="otp-expired-indicator">CODE EXPIRED</span>
-                                <p style={{ fontSize: '0.8rem', color: '#ef4444', margin: 0, fontWeight: 500 }}>
-                                    Maximum resend attempts reached. Please try again later.
-                                </p>
-                                </>
-                            ) : (
-                                <>
-                                <span className="otp-expired-indicator">CODE EXPIRED</span>
-                                <button type="button" disabled={resending} onClick={async () => {
-                                    setResending(true);
-                                    setError('');
-                                    setOtpError('');
-                                    try {
-                                        const response = await Axios.post(`${API_URL}/api/send-otp`, { email: resetEmail });
-                                        beginOtpWindow(response);
-                                        setResendAttempts(prev => prev + 1);
-                                        setOtp(['', '', '', '', '', '']);
-                                        otpRefs.current[0]?.focus();
-                                    } catch (err) {
-                                        setOtpError(err.response?.data?.message || 'Failed to resend OTP.');
-                                    } finally {
-                                        setResending(false);
-                                    }
-                                }} style={{background: 'none', border: 'none', color: '#be9055', cursor: resending ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '0.85rem', textDecoration: 'underline', padding: 0}}>
-                                    {resending ? 'Resending...' : "Didn't receive it? Resend Code"}
-                                </button>
-                                </>
-                            )}
+                            <p>Code expires in {Math.floor(resendTimer / 60)}:{String(resendTimer % 60).padStart(2, '0')}. Check your Spam/Junk folder too.</p>
+                            <button type="button" disabled={resending || recoveryCooldown > 0} onClick={async () => {
+                                setResending(true); setOtpError('');
+                                try {
+                                    const response = await Axios.post(`${API_URL}/api/password-recovery/request`, { email: resetEmail, codeFlow: true });
+                                    setRecoveryChallenge(response.data.challenge);
+                                    setOtp(['', '', '', '', '', '']);
+                                    beginOtpWindow(response); setRecoveryCooldown(60);
+                                } catch (err) { setOtpError(err.response?.data?.message || 'Unable to send code. Please try again.'); }
+                                finally { setResending(false); }
+                            }}>{resending ? 'Sending…' : recoveryCooldown ? `Resend in ${recoveryCooldown}s` : 'Resend Code'}</button>
                             <button type="button" onClick={() => { setView('forgot-email'); setError(''); setOtpError(''); }} style={{background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '0.85rem'}}>Back</button>
                         </div>
                     </form>
@@ -630,23 +620,21 @@ function Login() {
                     <>
                     <h2 className="login-title" style={{ fontSize: '1.1rem', marginTop: '1.5rem' }}>New Password</h2>
                     <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>
-                        Enter the recovery code sent to <strong>{resetEmail}</strong>. It expires after 30 minutes and works once.
+                        Email verified. Choose a new password for <strong>{resetEmail}</strong>.
                     </p>
                     {error && <p className="error-message">{error}</p>}
                     <form onSubmit={handlePasswordReset} className="login-form">
+                        {errors.recoveryToken && <p role="alert">Your reset session expired. Please request a new code.</p>}
+                        <button type="button" onClick={() => { setRecoveryToken(''); setView('forgot-email'); }}>Start again</button>
                         <div className="form-group" style={{ position: 'relative' }}>
-                            <input type="text" name="recoveryToken" className={`form-input ${errors.recoveryToken ? 'error' : ''}`} placeholder="32-character recovery code" value={recoveryToken} onChange={handleChange(setRecoveryToken, 'recoveryToken')} onBlur={handleBlur} autoCapitalize="none" autoComplete="one-time-code" required maxLength={32} />
-                            {errors.recoveryToken && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.recoveryToken}</small>}
-                        </div>
-                        <div className="form-group" style={{ position: 'relative' }}>
-                            <input type={showNewPassword ? 'text' : 'password'} name="newPassword" className={`form-input ${errors.newPassword ? 'error' : ''}`} placeholder="New Password" value={newPassword} onChange={handleChange(setNewPassword, 'newPassword')} onFocus={() => setResetPasswordFocused(true)} onBlur={(e) => { handleBlur(e); if (!newPassword) setResetPasswordFocused(false); }} onPaste={(e) => e.preventDefault()} required maxLength={128} />
+                            <input type={showNewPassword ? 'text' : 'password'} name="newPassword" className={`form-input ${errors.newPassword ? 'error' : ''}`} placeholder="New Password" value={newPassword} onChange={handleChange(setNewPassword, 'newPassword')} onFocus={() => setResetPasswordFocused(true)} onBlur={(e) => { handleBlur(e); if (!newPassword) setResetPasswordFocused(false); }} required maxLength={128} />
                             <div className="password-toggle" onClick={() => setShowNewPassword(!showNewPassword)}>
                                 {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </div>
                             {errors.newPassword && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.newPassword}</small>}
                         </div>
                         <div className="form-group" style={{ position: 'relative' }}>
-                            <input type={showConfirmNewPassword ? 'text' : 'password'} name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={confirmPassword} onChange={handleChange(setConfirmPassword, 'confirmPassword')} onBlur={handleBlur} onPaste={(e) => e.preventDefault()} required maxLength={128} />
+                            <input type={showConfirmNewPassword ? 'text' : 'password'} name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={confirmPassword} onChange={handleChange(setConfirmPassword, 'confirmPassword')} onBlur={handleBlur} required maxLength={128} />
                             <div className="password-toggle" onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}>
                                 {showConfirmNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </div>

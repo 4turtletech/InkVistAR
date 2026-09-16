@@ -102,10 +102,12 @@ function createPasswordRecoveryService(pool) {
        LIMIT 1`,
       [identity.email]
     );
-    if (!users[0]) return { delivery: null };
+    const challenge = crypto.randomBytes(24).toString('hex');
+    if (!users[0]) return { delivery: null, challenge };
 
-    const token = createRecoveryToken();
-    const expiresAt = new Date(Date.now() + RECOVERY_TTL_MINUTES * 60 * 1000);
+    const code = metadata.codeFlow ? crypto.randomInt(100000, 1000000).toString() : null;
+    const token = code ? `${challenge}:${code}` : createRecoveryToken();
+    const expiresAt = new Date(Date.now() + (code ? 10 : RECOVERY_TTL_MINUTES) * 60 * 1000);
     const connection = await database.getConnection();
     try {
       await connection.beginTransaction();
@@ -135,21 +137,57 @@ function createPasswordRecoveryService(pool) {
     }
 
     return {
+      challenge,
       delivery: {
         email: users[0].email,
         token,
+        code,
         expiresAt,
       },
     };
   };
 
   const revokeRecoveryToken = async (rawToken) => {
-    if (!isRecoveryTokenFormat(rawToken)) return;
+    if (!rawToken) return;
     await initialize();
     await database.query(
       'UPDATE password_recovery_tokens SET revoked_at = COALESCE(revoked_at, NOW()) WHERE token_hash = ?',
       [hashRecoveryToken(rawToken)]
     );
+  };
+
+  // Exchange a short email code for a high-entropy, reset-only authorization.
+  const verifyCode = async ({ email, code, challenge }, metadata = {}) => {
+    await initialize();
+    const identity = identifiers(email, metadata.ip);
+    await enforceRateLimit(identity, 'confirm');
+    await recordEvent(database, identity, 'confirm', false);
+    const invalid = () => new PasswordRecoveryError('recovery_token_invalid', 'The code is incorrect or expired. Request a new code.', 400);
+    if (!/^\d{6}$/.test(String(code)) || !/^[a-f0-9]{48}$/.test(String(challenge))) throw invalid();
+    const connection = await database.getConnection();
+    let finished = false;
+    try {
+      await connection.beginTransaction();
+      const [rows] = await connection.query(`SELECT pr.* FROM password_recovery_tokens pr JOIN users u ON u.id = pr.user_id
+        WHERE u.email = ? AND u.is_deleted = 0 AND COALESCE(u.account_status, 'active') = 'active'
+        AND pr.used_at IS NULL AND pr.revoked_at IS NULL ORDER BY pr.id DESC LIMIT 1 FOR UPDATE`, [identity.email]);
+      const record = rows[0];
+      if (!record || new Date(record.expires_at).getTime() <= Date.now() || Number(record.failed_attempts) >= Number(record.max_attempts)) throw invalid();
+      if (hashRecoveryToken(`${challenge}:${code}`) !== record.token_hash) {
+        await connection.query('UPDATE password_recovery_tokens SET failed_attempts = failed_attempts + 1, revoked_at = IF(failed_attempts >= max_attempts, NOW(), revoked_at) WHERE id = ?', [record.id]);
+        await connection.commit();
+        finished = true;
+        throw invalid();
+      }
+      const token = createRecoveryToken();
+      await connection.query('UPDATE password_recovery_tokens SET token_hash = ?, expires_at = ?, failed_attempts = 0 WHERE id = ?', [hashRecoveryToken(token), new Date(Date.now() + 10 * 60 * 1000), record.id]);
+      await connection.commit();
+      finished = true;
+      return { token };
+    } catch (error) {
+      if (!finished) await connection.rollback();
+      throw error;
+    } finally { connection.release(); }
   };
 
   const confirmRecovery = async ({ email, token, newPassword }, metadata = {}) => {
@@ -176,7 +214,7 @@ function createPasswordRecoveryService(pool) {
         `SELECT pr.*, u.password_hash
          FROM password_recovery_tokens pr
          JOIN users u ON u.id = pr.user_id
-         WHERE u.email = ? AND pr.used_at IS NULL AND pr.revoked_at IS NULL
+         WHERE u.email = ? AND u.is_deleted = 0 AND COALESCE(u.account_status, 'active') = 'active' AND pr.used_at IS NULL AND pr.revoked_at IS NULL
          ORDER BY pr.id DESC LIMIT 1 FOR UPDATE`,
         [identity.email]
       );
@@ -254,6 +292,7 @@ function createPasswordRecoveryService(pool) {
     requestRecovery,
     confirmRecovery,
     revokeRecoveryToken,
+    verifyCode,
   };
 }
 

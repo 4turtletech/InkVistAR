@@ -11,7 +11,7 @@ export const artistPhoneError = (value) => !value || /^9\d{9}$/.test(nationalPHP
 export const artistPhonePayload = value => value ? `+63${nationalPHPhone(value)}` : '';
 
 export const artistPasswordRules = (value = '') => [
-  { label: 'At least 8 characters', met: value.length >= 8 },
+  { label: '8 to 128 characters', met: value.length >= 8 && value.length <= 128 },
   { label: 'One uppercase letter', met: /[A-Z]/.test(value) },
   { label: 'One lowercase letter', met: /[a-z]/.test(value) },
   { label: 'One number', met: /\d/.test(value) },

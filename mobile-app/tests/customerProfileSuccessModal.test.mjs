@@ -31,9 +31,11 @@ test('change-password action stays outside the bounded keyboard-aware scroll reg
   assert.ok(scrollEnd > -1 && actions > scrollEnd, 'Password actions should remain fixed below the scroll area.');
 });
 
-test('password success message asks for a new-password login without a second OTP', () => {
+test('signed-in password success preserves the current session without an OTP', () => {
   for (const profileSource of [source, artistSource]) {
-    assert.match(profileSource, /Your password was updated successfully\. Please sign in with your new password\./);
+    assert.match(profileSource, /Password updated\. Other devices have been signed out\./);
     assert.doesNotMatch(profileSource, /6-digit verification code was sent/);
   }
+  const passwordHandler = source.slice(source.indexOf('const handlePasswordSave'), source.indexOf('const togglePasswordVisibility'));
+  assert.doesNotMatch(passwordHandler, /sendOtp|verifyOtp|onLogout/);
 });

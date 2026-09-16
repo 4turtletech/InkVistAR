@@ -2068,7 +2068,7 @@ function buildEmailHtml(contentHtml) {
 </html>`;
 }
 
-async function sendEmail(to, subject, html) {
+async function sendEmail(to, subject, html, timeout = 0) {
   if (!EMAIL_API_KEY) {
     console.log('[WARN] EMAIL_API_KEY missing. Email delivery skipped.');
     return false;
@@ -2076,6 +2076,7 @@ async function sendEmail(to, subject, html) {
 
   try {
     const response = await fetch('https://api.resend.com/emails', {
+      timeout,
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${EMAIL_API_KEY}`,
@@ -2104,18 +2105,18 @@ async function sendEmail(to, subject, html) {
 
 const generateNumericOtp = () => crypto.randomInt(100000, 1000000).toString();
 
-async function sendPasswordRecoveryEmail({ email, token }) {
+async function sendPasswordRecoveryEmail({ email, token, code }) {
   const html = buildEmailHtml(`
     <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Reset Your Password</h2>
     <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">A password recovery request was received</p>
     <p style="margin:0 0 16px;">Return to the InkVistAR password recovery screen and enter the recovery code below.</p>
     <div style="margin:20px 0;padding:16px;background:#1a1a1a;border:2px solid rgba(193,154,107,0.3);border-radius:12px;text-align:center;word-break:break-all;">
-      <span style="font-size:20px;font-weight:800;letter-spacing:2px;color:#C19A6B;font-family:'Courier New',monospace;">${token}</span>
+      <span style="font-size:20px;font-weight:800;letter-spacing:2px;color:#C19A6B;font-family:'Courier New',monospace;">${code || token}</span>
     </div>
-    <p style="margin:0 0 8px;font-size:13px;color:#64748b;text-align:center;">This code expires in 30 minutes and can be used only once.</p>
+    <p style="margin:0 0 8px;font-size:13px;color:#64748b;text-align:center;">This code expires in ${code ? 10 : 30} minutes and can be used only once.</p>
     <p style="margin:0;font-size:12px;color:#555;text-align:center;">If you did not request this, you can safely ignore this email. Your password has not changed.</p>
   `);
-  const delivered = await sendEmail(email, 'Reset Your InkVistAR Password', html);
+  const delivered = await sendEmail(email, 'Reset Your InkVistAR Password', html, 15000);
   if (!delivered) throw new Error('Password recovery email delivery is not configured.');
 }
 
@@ -2366,11 +2367,37 @@ const debugOnly = (req, res, next) => {
   next();
 };
 
+const changePassword = require('./services/passwordChangeService').createPasswordChangeService(db, tokenService);
+const disconnectPasswordSessions = (userId) => {
+  for (const socket of io.sockets.sockets.values()) {
+    if (Number(socket.auth?.userId) === Number(userId)) socket.disconnect(true);
+  }
+};
+app.post('/api/auth/change-password', authenticate, async (req, res) => {
+  try {
+    await passwordRecoveryService.initialize();
+    const clientType = isMobileLoginRequest(req) ? 'mobile' : 'web';
+    const session = await changePassword(req.auth.userId, req.body.currentPassword, req.body.newPassword, {
+      clientType, ip: req.ip, userAgent: req.headers['user-agent'],
+    });
+    const transport = deliverRefreshToken(req, res, session.refreshToken, clientType);
+    disconnectPasswordSessions(req.auth.userId);
+    sendEmail(session.email, 'InkVistAR - Password Changed', buildEmailHtml('<h2>Password changed</h2><p>Your password was updated. Other devices have been signed out. If this was not you, reset your password and contact support.</p>'))
+      .catch(error => console.error('[AUTH] Password change notice failed:', error.message));
+    logAction(req.auth.userId, 'PASSWORD_CHANGED', 'Password updated; other sessions revoked', req.ip);
+    return res.json({ success: true, message: 'Password updated. Other devices have been signed out.', accessToken: session.accessToken, ...transport });
+  } catch (error) {
+    return res.status(error.status || 500).json({ success: false, code: error.code, message: error.status ? error.message : 'Unable to update your password. Please try again.' });
+  }
+});
 app.use('/api/auth', createAuthRouter({ tokenService, authenticate }));
 app.use('/api/password-recovery', createPasswordRecoveryRouter({
   passwordRecoveryService,
   sendRecoveryEmail: sendPasswordRecoveryEmail,
-  logPasswordReset: (userId, ip) => logAction(userId, 'PASSWORD_RESET', 'User completed token-based password recovery.', ip || '::1'),
+  logPasswordReset: (userId, ip) => {
+    disconnectPasswordSessions(userId);
+    logAction(userId, 'PASSWORD_RESET', 'User completed password recovery.', ip || '::1');
+  },
 }));
 app.use(createHighRiskProtection({ authenticate, pool: db }));
 // These modular routes are registered before the legacy monolith routes below.

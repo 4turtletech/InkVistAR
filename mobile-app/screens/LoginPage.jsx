@@ -42,6 +42,8 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetEmailError, setResetEmailError] = useState('');
+  const [resetSending, setResetSending] = useState(false);
+  const resetRequestLock = useRef(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -151,15 +153,22 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
     } else { setFailedAttempts(0); }
   };
 
-  const handleResetSubmit = () => {
+  const handleResetSubmit = async () => {
+    if (resetRequestLock.current) return;
     Keyboard.dismiss();
     const cleanResetEmail = resetEmail.trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!cleanResetEmail) { setResetEmailError('Email is required'); return; }
     if (!emailRegex.test(cleanResetEmail)) { setResetEmailError('Please enter a valid email address'); return; }
     setResetEmailError('');
-    if (onForgotPassword) { onForgotPassword(cleanResetEmail, 'customer'); setShowForgotModal(false); setResetEmail(''); }
-    else { showToast('Not connected yet.', 'error'); setShowForgotModal(false); }
+    resetRequestLock.current = true;
+    setResetSending(true);
+    try {
+      const result = await onForgotPassword?.(cleanResetEmail, 'customer');
+      if (result?.success) { setShowForgotModal(false); setResetEmail(''); }
+      else setResetEmailError(result?.message || 'Unable to send the code. Please try again.');
+    } catch (_) { setResetEmailError('Check your connection and try again.'); }
+    finally { resetRequestLock.current = false; setResetSending(false); }
   };
 
   const openForgotPasswordModal = () => {
@@ -368,9 +377,9 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
                   {resetEmailError}
                 </Text>
               ) : null}
-                <TouchableOpacity onPress={handleResetSubmit} activeOpacity={0.8}>
+                <TouchableOpacity onPress={handleResetSubmit} disabled={resetSending} activeOpacity={0.8}>
                   <View style={styles.button}>
-                    <Text style={styles.buttonText}>SEND RECOVERY CODE</Text>
+                    <Text style={styles.buttonText}>{resetSending ? 'SENDING CODE...' : 'SEND RECOVERY CODE'}</Text>
                   </View>
                 </TouchableOpacity>
             </View>

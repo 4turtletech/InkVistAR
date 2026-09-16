@@ -13,8 +13,9 @@ import { CheckCircle2, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { colors, typography, borderRadius, shadows } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { mapPasswordRecoveryFailure } from '../src/utils/passwordRecoveryValidation';
+import RecoveryCodeForm from '../components/RecoveryCodeForm';
 
-export function ResetPasswordPage({ email, onSubmit, onComplete }) {
+export function ResetPasswordPage({ email, challenge, onSubmit, onComplete }) {
   const { theme } = useTheme();
   const [recoveryToken, setRecoveryToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -29,14 +30,14 @@ export function ResetPasswordPage({ email, onSubmit, onComplete }) {
   const confirmPasswordRef = useRef(null);
 
   const getRecoveryTokenError = (text) => {
-    if (!text) return 'Recovery code is required';
-    if (!/^[a-fA-F0-9]{32}$/.test(text.trim())) return 'Enter the 32-character code from your email';
+    if (!/^[a-fA-F0-9]{32}$/.test(text.trim())) return 'Verify your email again to reset your password.';
     return '';
   };
 
   const getPasswordError = (text) => {
     if (!text) return 'Password is required';
     if (text.length < 8) return 'At least 8 characters';
+    if (text.length > 128) return 'Use no more than 128 characters';
     if (!/[A-Z]/.test(text)) return 'Requires 1 uppercase letter';
     if (!/[a-z]/.test(text)) return 'Requires 1 lowercase letter';
     if (!/\d/.test(text)) return 'Requires 1 number';
@@ -80,6 +81,7 @@ export function ResetPasswordPage({ email, onSubmit, onComplete }) {
   };
 
   const handleSubmit = async () => {
+    if (loading) return;
     recoveryTokenRef.current?.blur();
     passwordRef.current?.blur();
     confirmPasswordRef.current?.blur();
@@ -133,35 +135,11 @@ export function ResetPasswordPage({ email, onSubmit, onComplete }) {
         <View style={[styles.iconWrap, { backgroundColor: theme.primaryLight, borderColor: theme.gold }]}>
           <Lock size={28} color={theme.gold} />
         </View>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>Reset Password</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Enter the recovery code sent to {email}, then choose a new password. The code expires after 30 minutes and works once.</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{recoveryToken ? 'New Password' : 'Verify Email'}</Text>
+        {!recoveryToken ? <RecoveryCodeForm email={email} challenge={challenge} onVerified={setRecoveryToken} onCancel={onComplete} /> : <>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Email verified. Choose a new password.</Text>
 
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: theme.textPrimary }]}>Recovery Code</Text>
-          <View style={[styles.passwordWrap, { backgroundColor: theme.darkBgSecondary, borderColor: theme.border }, errors.recoveryToken && styles.inputError]}>
-            <TextInput
-              ref={recoveryTokenRef}
-              style={[styles.input, { color: theme.textPrimary }]}
-              placeholder="32-character code"
-              placeholderTextColor={theme.textTertiary}
-              selectionColor={theme.gold}
-              value={recoveryToken}
-              onChangeText={(text) => {
-                setRecoveryToken(text.replace(/\s/g, ''));
-                if (submitAttempted || errors.recoveryToken) {
-                  setErrors(prev => ({ ...prev, recoveryToken: getRecoveryTokenError(text), submit: '' }));
-                }
-              }}
-              autoCapitalize="none"
-              autoCorrect={false}
-              maxLength={32}
-              returnKeyType="next"
-              onSubmitEditing={() => passwordRef.current?.focus()}
-              blurOnSubmit={false}
-            />
-          </View>
-          {errors.recoveryToken ? <Text style={[styles.errorText, { color: theme.error }]}>{errors.recoveryToken}</Text> : null}
-        </View>
+        {errors.recoveryToken && <Text style={{ color: theme.error }}>Your reset session expired. Go back and request a new code.</Text>}
 
         <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: theme.textPrimary }]}>New Password</Text>
@@ -208,6 +186,8 @@ export function ResetPasswordPage({ email, onSubmit, onComplete }) {
             {loading ? <ActivityIndicator size="small" color="#ffffff" /> : <Text style={styles.buttonText}>Submit</Text>}
           </LinearGradient>
         </TouchableOpacity>
+        <TouchableOpacity disabled={loading} onPress={onComplete} style={{ padding: 16 }}><Text style={{ color: theme.primary }}>Back to Login</Text></TouchableOpacity>
+        </>}
       </View>
           </ScrollView>
       </KeyboardAvoidingView>

@@ -278,7 +278,8 @@ export const loginUser = async (email, password, userType) => {
 export const requestPasswordRecovery = async (email) => {
   return fetchAPI('/password-recovery/request', {
     method: 'POST',
-    body: JSON.stringify({ email: sanitizeInput(email) })
+    skipAuthRefresh: true,
+    body: JSON.stringify({ email: sanitizeInput(email), codeFlow: true })
   });
 };
 
@@ -286,6 +287,7 @@ export const requestPasswordRecovery = async (email) => {
 export const resetUserPassword = async (email, token, newPassword) => {
   return fetchAPI('/password-recovery/confirm', {
     method: 'POST',
+    skipAuthRefresh: true,
     body: JSON.stringify({ email: sanitizeInput(email), token: String(token || '').trim(), newPassword })
   });
 };
@@ -406,10 +408,13 @@ export const updateAppointmentDetails = async (appointmentId, details) => {
 
 // Artist: Change Password
 export const changeArtistPassword = async (artistId, currentPassword, newPassword) => {
-  return fetchAPI('/artist/change-password', {
+  const result = await fetchAPI('/auth/change-password', {
     method: 'POST',
-    body: JSON.stringify({ artistId, currentPassword, newPassword })
+    requireAuth: true,
+    body: JSON.stringify({ currentPassword, newPassword, clientType: 'mobile' })
   });
+  if (result.success) await saveAuthSession(result);
+  return result;
 };
 
 // Artist: Get Clients
@@ -926,8 +931,5 @@ export const getAdminPayoutAlerts = async () => {
 };
 
 export const changeCustomerPassword = async (customerId, currentPassword, newPassword) => {
-  return fetchAPI('/customer/change-password', {
-    method: 'POST',
-    body: JSON.stringify({ customerId, currentPassword, newPassword })
-  });
+  return changeArtistPassword(customerId, currentPassword, newPassword);
 };

@@ -12,6 +12,34 @@ const EXPIRY = 'inkvistar_access_token_expiry';
 const jwt = (seconds, id = 'token') => `header.${Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + seconds, jti: id })).toString('base64url')}.signature`;
 const response = (status, data = {}) => ({ status, ok: status >= 200 && status < 300, json: async () => data, text: async () => JSON.stringify(data) });
 
+test('mobile customer and artist password changes persist the replacement session', async () => {
+  for (const method of ['changeCustomerPassword', 'changeArtistPassword']) {
+    const fresh = jwt(900, 'password-changed');
+    const client = mobile(async (url, options) => {
+      assert.ok(url.endsWith('/auth/change-password'));
+      assert.ok(options.headers.Authorization);
+      assert.deepEqual(JSON.parse(options.body), { currentPassword: 'OldPassword1!', newPassword: 'NewPassword2_', clientType: 'mobile' });
+      return response(200, { success: true, accessToken: fresh, refreshToken: 'new-family' });
+    });
+    client.storage.set(ACCESS, jwt(900, 'old'));
+    client.storage.set(EXPIRY, String(Date.now() + 900000));
+    assert.equal((await client[method](9, 'OldPassword1!', 'NewPassword2_')).success, true);
+    assert.equal(client.storage.get(ACCESS), fresh);
+    assert.equal(client.storage.get(REFRESH), 'new-family');
+  }
+});
+
+test('mobile recovery never refreshes unrelated stale credentials or creates a login session', async () => {
+  const client = mobile(async (url, options) => {
+    assert.ok(url.includes('/password-recovery/'));
+    if (url.endsWith('/request')) assert.equal(JSON.parse(options.body).codeFlow, true);
+    return response(200, { success: true });
+  });
+  assert.equal((await client.requestPasswordRecovery('user@example.test')).success, true);
+  assert.equal((await client.resetUserPassword('user@example.test', 'a'.repeat(32), 'NewPassword2_')).success, true);
+  assert.equal(client.storage.get(REFRESH), 'refresh-original');
+});
+
 function mobile(fetch) {
   const storage = new Map([[ACCESS, jwt(-1)], [REFRESH, 'refresh-original'], [EXPIRY, String(Date.now() - 1000)]]);
   const source = fs.readFileSync(path.join(__dirname, '../../mobile-app/src/utils/api.js'), 'utf8')
@@ -26,7 +54,7 @@ function mobile(fetch) {
       deleteItemAsync: async key => { storage.delete(key); },
     },
   };
-  vm.runInNewContext(`${source}\nmodule.exports = { fetchAPI, getSocketAuthToken, removeAuthToken, saveAuthSession };`, context);
+  vm.runInNewContext(`${source}\nmodule.exports = { fetchAPI, getSocketAuthToken, removeAuthToken, saveAuthSession, changeCustomerPassword, changeArtistPassword, requestPasswordRecovery, resetUserPassword };`, context);
   return { ...context.module.exports, storage };
 }
 

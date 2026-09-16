@@ -87,7 +87,7 @@ test('invalid phone lengths/prefixes are rejected, never silently truncated', ()
 });
 test('password reports each missing rule and distinguishes empty confirmation', () => {
   assert.deepEqual(artistPasswordRules('abc').filter(r => !r.met).map(r => r.label),
-    ['At least 8 characters', 'One uppercase letter', 'One number', 'One special character']);
+    ['8 to 128 characters', 'One uppercase letter', 'One number', 'One special character']);
   const errors = artistPasswordErrors({ current: 'test', new: 'Valid123!', confirm: '' });
   assert.equal(errors.confirm, 'Please confirm your new password');
   assert.equal(errors.new, undefined);

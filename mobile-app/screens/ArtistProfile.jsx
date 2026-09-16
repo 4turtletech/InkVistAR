@@ -181,8 +181,8 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
       setAlertModal({
         visible: true,
         title: 'Password Changed',
-        message: 'Your password was updated successfully. Please sign in with your new password.',
-        onConfirm: onLogout,
+        message: 'Password updated. Other devices have been signed out.',
+        onConfirm: () => setAlertModal(prev => ({ ...prev, visible: false })),
       });
     } catch (e) {
       console.error('handlePasswordSave error:', e);

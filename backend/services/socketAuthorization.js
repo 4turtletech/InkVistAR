@@ -1,4 +1,5 @@
 const ACTIVE_ROLES = new Set(['admin', 'manager', 'artist', 'customer']);
+const { passwordVersion } = require('./tokenService');
 const STAFF_ROLES = new Set(['admin', 'manager']);
 
 const positiveInteger = (value) => {
@@ -21,18 +22,20 @@ function createSocketAuthorizer({ tokenService, pool }) {
     if (!userId) throw new Error('Invalid socket access token.');
 
     const [rows] = await database.query(
-      `SELECT id, name, user_type, is_verified, is_deleted, account_status
+      `SELECT id, name, user_type, is_verified, is_deleted, account_status, password_hash
        FROM users WHERE id = ? LIMIT 1`,
       [userId]
     );
     const user = rows[0];
     if (!user || user.is_deleted || user.is_verified === 0
       || ['banned', 'deactivated'].includes(user.account_status)
+      || claims.pv !== passwordVersion(user.password_hash)
       || claims.role !== user.user_type || !ACTIVE_ROLES.has(user.user_type)) {
       throw new Error('Socket authentication is no longer valid.');
     }
 
-    socket.auth = { userId: user.id, role: user.user_type, user };
+    const { password_hash, ...safeUser } = user;
+    socket.auth = { userId: user.id, role: user.user_type, user: safeUser };
   };
 
   const authorizeSupportRoom = (socket, rawRoom) => {

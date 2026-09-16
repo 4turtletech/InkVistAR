@@ -1,3 +1,4 @@
+import ChangePasswordButton from '../components/ChangePasswordButton';
 import './CustomerStyles.css';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -67,21 +68,6 @@ function CustomerProfile() {
     }));
     const [isEditing, setIsEditing] = useState(false);
     const [originalProfile, setOriginalProfile] = useState(null);
-    const [passwords, setPasswords] = useState({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-    });
-    const [passwordErrors, setPasswordErrors] = useState({});
-    const [showPassword, setShowPassword] = useState(false);
-    const [showNewPassword, setShowNewPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [passwordFocused, setPasswordFocused] = useState(false);
-    const [passwordFeedback, setPasswordFeedback] = useState({
-        hasMinLength: false, hasUppercase: false, hasLowercase: false,
-        hasNumber: false, hasSymbol: false
-    });
-    const [showChangePassword, setShowChangePassword] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
@@ -309,28 +295,6 @@ function CustomerProfile() {
             preferences: String(profile.preferences || '').trim()
         };
 
-        // Password validation
-        if (showChangePassword) {
-            const fieldErrors = {};
-            if (!passwords.currentPassword) fieldErrors.currentPassword = 'Current password is required';
-            if (!passwords.newPassword) fieldErrors.newPassword = 'New password is required';
-            if (!passwords.confirmPassword) fieldErrors.confirmPassword = 'Please confirm your new password';
-
-            const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
-            if (passwords.newPassword && !strongRegex.test(passwords.newPassword)) {
-                fieldErrors.newPassword = 'Use 8+ characters with uppercase, lowercase, number, and symbol';
-            }
-            if (passwords.confirmPassword && passwords.newPassword !== passwords.confirmPassword) {
-                fieldErrors.confirmPassword = 'New passwords do not match';
-            }
-
-            setPasswordErrors(fieldErrors);
-            if (Object.keys(fieldErrors).length > 0) {
-                setSaving(false);
-                return;
-            }
-        }
-
         try {
             // Update profile details including health data
             await Axios.put(`${API_URL}/api/customer/profile/${customerId}`, {
@@ -341,24 +305,6 @@ function CustomerProfile() {
                 allergens: selectedAllergens
             });
 
-            // Change password if requested and new password is provided
-            if (showChangePassword && passwords.newPassword) {
-                const pwRes = await Axios.post(`${API_URL}/api/customer/change-password`, {
-                    customerId,
-                    currentPassword: passwords.currentPassword,
-                    newPassword: passwords.newPassword
-                });
-
-                // Password changes revoke active sessions, but no longer
-                // de-verify the account or require a second OTP.
-                if (pwRes.data.requiresLogin || pwRes.data.requireReverification) {
-                    localStorage.removeItem('user');
-                    localStorage.removeItem('token');
-                    setSuccessModal({ mounted: true, visible: false, message: 'Password changed successfully. Please sign in with your new password.' });
-                    setTimeout(() => setSuccessModal(prev => ({ ...prev, visible: true })), 10);
-                    return;
-                }
-            }
 
             // Update localStorage with new profile image
             const updatedUser = {
@@ -374,22 +320,10 @@ function CustomerProfile() {
 
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
             setProfile(normalizedProfile);
-            setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
-            setPasswordErrors({});
-            setShowChangePassword(false);
             setIsEditing(false);
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'Failed to update profile';
-            const normalizedError = errorMessage.toLowerCase();
-            if (normalizedError.includes('current password')) {
-                setPasswordErrors(prev => ({ ...prev, currentPassword: errorMessage }));
-                setMessage({ type: '', text: '' });
-            } else if (showChangePassword && normalizedError.includes('password')) {
-                setPasswordErrors(prev => ({ ...prev, newPassword: errorMessage }));
-                setMessage({ type: '', text: '' });
-            } else {
-                setMessage({ type: 'error', text: errorMessage });
-            }
+            setMessage({ type: 'error', text: errorMessage });
             console.error('Profile update error:', error);
         }
         setSaving(false);
@@ -574,6 +508,7 @@ function CustomerProfile() {
                                             <button className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#be9055', border: 'none', color: 'white' }} onClick={() => { setOriginalProfile({ ...profile }); setIsEditing(true); }}>
                                                 <Edit2 size={16} /> Edit Profile
                                             </button>
+                                            <ChangePasswordButton />
                                         </div>
                                     </div>
                                 ) : (
@@ -806,57 +741,9 @@ function CustomerProfile() {
                                                 <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     <Lock size={20} color="#be9055" /> Password &amp; Security
                                                 </h3>
-                                                <button type="button" onClick={() => { setShowChangePassword(!showChangePassword); setPasswordErrors({}); }}
-                                                    style={{ padding: '8px 16px', backgroundColor: showChangePassword ? '#f1f5f9' : '#be9055', color: showChangePassword ? '#475569' : 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500', transition: 'all 0.2s' }}>
-                                                    {showChangePassword ? 'Cancel' : 'Change Password'}
-                                                </button>
+                                                <ChangePasswordButton />
                                             </div>
-                                            {showChangePassword && (
-                                                <div style={{ padding: '20px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                                                    <div className="form-group" style={{ marginBottom: '16px' }}>
-                                                        <label className="artist-profile-form-label"><Lock size={16} /> Current Password</label>
-                                                        <div style={{ position: 'relative' }}>
-                                                            <input className={`form-input artist-profile-input ${passwordErrors.currentPassword ? 'error' : ''}`} type={showPassword ? 'text' : 'password'} value={passwords.currentPassword}
-                                                                onChange={e => { setPasswords({ ...passwords, currentPassword: e.target.value }); setPasswordErrors(prev => ({ ...prev, currentPassword: '' })); }}
-                                                                placeholder="Enter current password" style={{ paddingRight: '40px' }} maxLength={128} aria-invalid={Boolean(passwordErrors.currentPassword)} />
-                                                            <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-                                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                                            </button>
-                                                        </div>
-                                                        {passwordErrors.currentPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{passwordErrors.currentPassword}</small>}
-                                                    </div>
-                                                    <div className="grid-2col">
-                                                        <div className="form-group">
-                                                            <label className="artist-profile-form-label"><Lock size={16} /> New Password</label>
-                                                            <div style={{ position: 'relative' }}>
-                                                                <input type={showNewPassword ? 'text' : 'password'} className={`form-input artist-profile-input ${passwordErrors.newPassword ? 'error' : ''}`} value={passwords.newPassword}
-                                                                    onChange={e => { const val = e.target.value.slice(0, 50); setPasswords({ ...passwords, newPassword: val }); setPasswordErrors(prev => ({ ...prev, newPassword: '' })); setPasswordFeedback({ hasMinLength: val.length >= 8, hasUppercase: /[A-Z]/.test(val), hasLowercase: /[a-z]/.test(val), hasNumber: /[0-9]/.test(val), hasSymbol: /[@$!%*?&#]/.test(val) }); }}
-                                                                    onFocus={() => setPasswordFocused(true)} onBlur={() => { if (!passwords.newPassword) setPasswordFocused(false); }}
-                                                                    placeholder="Min. 8 characters" style={{ paddingRight: '40px' }} maxLength={128} aria-invalid={Boolean(passwordErrors.newPassword)} />
-                                                                <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-                                                                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                                                </button>
-                                                            </div>
-                                                            {passwordErrors.newPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{passwordErrors.newPassword}</small>}
-                                                        </div>
-                                                        <div className="form-group">
-                                                            <label className="artist-profile-form-label"><Lock size={16} /> Confirm New Password</label>
-                                                            <div style={{ position: 'relative' }}>
-                                                                <input type={showConfirmPassword ? 'text' : 'password'} className={`form-input artist-profile-input ${passwordErrors.confirmPassword ? 'error' : ''}`} value={passwords.confirmPassword}
-                                                                    onChange={e => { setPasswords({ ...passwords, confirmPassword: e.target.value }); setPasswordErrors(prev => ({ ...prev, confirmPassword: '' })); }}
-                                                                    placeholder="Re-enter new password" style={{ paddingRight: '40px' }} maxLength={128} aria-invalid={Boolean(passwordErrors.confirmPassword)} />
-                                                                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-                                                                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                                                </button>
-                                                            </div>
-                                                            {passwordErrors.confirmPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{passwordErrors.confirmPassword}</small>}
-                                                        </div>
-                                                    </div>
-                                                    <div style={{ overflow: 'hidden', maxHeight: passwordFocused ? '200px' : '0', opacity: passwordFocused ? 1 : 0, transition: 'max-height 0.3s ease, opacity 0.3s ease', marginTop: passwordFocused ? '4px' : '0' }}>
-                                                        <PasswordStrengthMeter feedback={passwordFeedback} />
-                                                    </div>
-                                                </div>
-                                            )}
+
                                         </div>
 
                                         {/* Save Bar */}

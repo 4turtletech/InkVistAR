@@ -6,7 +6,7 @@ const { authorize } = require('../middleware/authorize');
 const { createAuthenticate } = require('../middleware/authenticate');
 const { requireOwnership } = require('../middleware/ownership');
 const { safeUser } = require('../routes/auth');
-const { createTokenService, hashRefreshToken } = require('../services/tokenService');
+const { createTokenService, hashRefreshToken, passwordVersion } = require('../services/tokenService');
 const {
   deliverRefreshToken,
   getRefreshToken,
@@ -195,7 +195,7 @@ test('authentication middleware loads current account state and safe users omit 
     },
   };
   const authenticate = createAuthenticate({
-    tokenService: { verifyAccessToken: () => ({ sub: '9', role: 'manager' }) },
+    tokenService: { verifyAccessToken: () => ({ sub: '9', role: 'manager', pv: passwordVersion(databaseUser.password_hash) }) },
     pool: { promise: () => database },
   });
   const result = await invokeMiddleware(authenticate, request);

@@ -1,3 +1,4 @@
+const { passwordVersion } = require('../services/tokenService');
 function createAuthenticate({ tokenService, pool }) {
   const database = pool.promise();
 
@@ -28,7 +29,7 @@ function createAuthenticate({ tokenService, pool }) {
     try {
       const [rows] = await database.query(
         `SELECT id, name, email, user_type, is_verified, is_deleted, account_status,
-                is_superadmin, must_change_password
+                is_superadmin, must_change_password, password_hash
          FROM users WHERE id = ? LIMIT 1`,
         [userId]
       );
@@ -38,6 +39,9 @@ function createAuthenticate({ tokenService, pool }) {
       }
       if (claims.role !== user.user_type) {
         return res.status(401).json({ success: false, message: 'Authentication is no longer valid.' });
+      }
+      if (claims.pv !== passwordVersion(user.password_hash)) {
+        return res.status(401).json({ success: false, message: 'Please renew your session.', code: 'access_token_invalid' });
       }
 
       req.auth = {

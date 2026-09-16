@@ -21,6 +21,7 @@ class AuthTokenError extends Error {
 }
 
 const hashRefreshToken = (token) => crypto.createHash('sha256').update(String(token)).digest('hex');
+const passwordVersion = (hash) => crypto.createHash('sha256').update(String(hash || '')).digest('hex');
 const createRefreshToken = () => crypto.randomBytes(48).toString('base64url');
 const normalizeClientType = (value) => value === 'mobile' ? 'mobile' : 'web';
 const normalizeIp = (value) => String(value || '').split(',')[0].trim().slice(0, 45) || null;
@@ -43,7 +44,7 @@ function createTokenService(pool) {
   };
 
   const signAccessToken = (user) => jwt.sign(
-    { role: user.user_type },
+    { role: user.user_type, pv: passwordVersion(user.password_hash) },
     JWT_ACCESS_SECRET,
     {
       algorithm: 'HS256',
@@ -80,10 +81,10 @@ function createTokenService(pool) {
     return { id: result.insertId, expiresAt };
   };
 
-  const issueSession = async (user, metadata = {}) => {
+  const issueSession = async (user, metadata = {}, connection = database) => {
     await initialize();
     const rawRefreshToken = createRefreshToken();
-    await insertRefreshToken(database, user.id, crypto.randomUUID(), rawRefreshToken, metadata);
+    await insertRefreshToken(connection, user.id, crypto.randomUUID(), rawRefreshToken, metadata);
     return {
       accessToken: signAccessToken(user),
       refreshToken: rawRefreshToken,
@@ -104,7 +105,7 @@ function createTokenService(pool) {
       await connection.beginTransaction();
       const [rows] = await connection.query(
         `SELECT rt.*, u.name, u.email, u.user_type, u.is_verified, u.is_deleted,
-                u.account_status, u.is_superadmin, u.must_change_password
+                u.account_status, u.is_superadmin, u.must_change_password, u.password_hash
          FROM refresh_tokens rt
          JOIN users u ON u.id = rt.user_id
          WHERE rt.token_hash = ?
@@ -160,6 +161,7 @@ function createTokenService(pool) {
         user_type: record.user_type,
         is_superadmin: record.is_superadmin,
         must_change_password: record.must_change_password,
+        password_hash: record.password_hash,
       };
       return {
         accessToken: signAccessToken(user),
@@ -205,4 +207,5 @@ module.exports = {
   AuthTokenError,
   createTokenService,
   hashRefreshToken,
+  passwordVersion,
 };
