@@ -31,12 +31,25 @@ export const cancelAppointment = async (appointmentId, { reason, isGracePeriod =
   });
 };
 
-// Reschedule appointment
-export const rescheduleAppointment = async (appointmentId, newDate, newTime) => {
+// Reschedule appointment (direct — appointment > 7 days away)
+export const rescheduleAppointment = async (appointmentId, newDate, newTime, reason) => {
   return fetchAPI(`/customer/appointments/${appointmentId}/reschedule`, {
     method: 'PUT',
-    body: JSON.stringify({ newDate, newTime }),
+    body: JSON.stringify({ newDate, newTime, reason }),
   });
+};
+
+// Submit a reschedule request (appointment < 7 days away, requires admin approval)
+export const submitRescheduleRequest = async (appointmentId, { requestedDate, requestedTime, reason }) => {
+  return fetchAPI(`/customer/appointments/${appointmentId}/reschedule-request`, {
+    method: 'POST',
+    body: JSON.stringify({ requestedDate, requestedTime, reason }),
+  });
+};
+
+// Get reschedule request status for an appointment
+export const getRescheduleRequestStatus = async (appointmentId, customerId) => {
+  return fetchAPI(`/customer/appointments/${appointmentId}/reschedule-request?customerId=${customerId}`);
 };
 
 // Get saved designs

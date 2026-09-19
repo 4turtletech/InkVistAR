@@ -11,7 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Calendar, List, ChevronLeft, ChevronRight, ChevronRight as ChevronR,
-  X, Plus, CreditCard, ShieldAlert, Info, Layers, CheckCircle, Circle, Star
+  X, Plus, CreditCard, ShieldAlert, Info, Layers, CheckCircle, Circle, Star, Clock, RotateCcw
 } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import * as Haptics from 'expo-haptics';
@@ -21,8 +21,10 @@ import { colors, typography, borderRadius, shadows } from '../src/theme';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { getCustomerAppointments, createCheckoutSession, createConsentRecord, getPaymentStatus, getCustomerTransactions, API_URL } from '../src/utils/api';
-import { cancelAppointment } from '../src/api/customerAPI';
+import { cancelAppointment, rescheduleAppointment, submitRescheduleRequest, getRescheduleRequestStatus } from '../src/api/customerAPI';
 import { customerSignatureError } from '../src/utils/consentValidation';
+import { formatTime } from '../src/utils/formatters';
+import { calendarCells, shiftCalendarMonth } from '../src/utils/bookingValidation';
 
 const ITEMS_PER_PAGE = 5;
 const PAYMENT_WAIVER_TEXT = [
@@ -110,6 +112,15 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
   // B-M2: project timeline for selected appointment
   const [projectTimeline, setProjectTimeline] = useState(null);
   const [projectTimelineLoading, setProjectTimelineLoading] = useState(false);
+
+  // Reschedule state
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [rescheduleData, setRescheduleData] = useState({ date: null, time: null, reason: '' });
+  const [rescheduleMonth, setRescheduleMonth] = useState(new Date());
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
+  const [rescheduleError, setRescheduleError] = useState('');
+  const [calendarAvailability, setCalendarAvailability] = useState({});
+  const [totalArtists, setTotalArtists] = useState(1);
 
   useEffect(() => {
     Animated.loop(
@@ -352,6 +363,101 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
         } catch (e) { Alert.alert('Error', 'Could not connect.'); }
       }},
     ]);
+  };
+
+  const fetchAvailability = async () => {
+    try {
+      const r = await (await fetch(`${API_URL}/public/calendar-availability`)).json();
+      if (r.success) {
+        setTotalArtists(r.totalArtists || 1);
+        const bookings = {};
+        r.bookings.forEach(b => {
+          const ds = typeof b.appointment_date === 'string' ? b.appointment_date.substring(0, 10) : new Date(b.appointment_date).toISOString().split('T')[0];
+          if (!bookings[ds]) bookings[ds] = { consultationTimes: [], sessionCount: 0 };
+          const sType = (b.service_type || '').toLowerCase();
+          if (sType === 'consultation') {
+             if (b.start_time) bookings[ds].consultationTimes.push(b.start_time.substring(0, 5));
+          } else {
+             bookings[ds].sessionCount += 1;
+          }
+        });
+        setCalendarAvailability(bookings);
+      }
+    } catch (e) {}
+  };
+
+  const handleOpenReschedule = async (appt) => {
+    const apptDate = new Date(appt.appointment_date);
+    if (appt.start_time) {
+      const [h, m] = appt.start_time.split(':');
+      apptDate.setHours(parseInt(h), parseInt(m), 0, 0);
+    } else {
+      apptDate.setHours(23, 59, 59, 999);
+    }
+
+    const msIn12Hours = 12 * 60 * 60 * 1000;
+    if (apptDate - new Date() < msIn12Hours) {
+      Alert.alert('Cannot Reschedule', 'Appointments less than 12 hours away cannot be rescheduled.');
+      return;
+    }
+
+    await fetchAvailability();
+    
+    setRescheduleData({ date: null, time: null, reason: '' });
+    setRescheduleMonth(new Date());
+    setRescheduleError('');
+    setShowRescheduleModal(true);
+  };
+
+  const handleRescheduleSubmit = async () => {
+    if (!rescheduleData.date) return setRescheduleError('Please select a new date.');
+    
+    const sType = (selectedAppointment?.service_type || '').toLowerCase();
+    const isConsult = sType === 'consultation' || sType === 'piercing';
+    if (isConsult && !rescheduleData.time) return setRescheduleError('Please select a new time.');
+    
+    if (!rescheduleData.reason.trim()) return setRescheduleError('Please provide a reason.');
+
+    setRescheduleLoading(true);
+    setRescheduleError('');
+
+    try {
+      const apptDate = new Date(selectedAppointment.appointment_date);
+      if (selectedAppointment.start_time) {
+        const [h, m] = selectedAppointment.start_time.split(':');
+        apptDate.setHours(parseInt(h), parseInt(m), 0, 0);
+      } else {
+        apptDate.setHours(23, 59, 59, 999);
+      }
+
+      const now = new Date();
+      const msInAWeek = 7 * 24 * 60 * 60 * 1000;
+      const timeUntilAppt = apptDate - now;
+
+      let result;
+      if (timeUntilAppt >= msInAWeek) {
+        result = await rescheduleAppointment(selectedAppointment.id, rescheduleData.date, rescheduleData.time, rescheduleData.reason);
+      } else {
+        result = await submitRescheduleRequest(selectedAppointment.id, {
+          requestedDate: rescheduleData.date,
+          requestedTime: rescheduleData.time,
+          reason: rescheduleData.reason
+        });
+      }
+
+      if (result.success) {
+        setShowRescheduleModal(false);
+        setSelectedAppointment(null);
+        fetchAppointments();
+        Alert.alert(timeUntilAppt >= msInAWeek ? 'Rescheduled' : 'Request Submitted', result.message || 'Reschedule processed.');
+      } else {
+        setRescheduleError(result.message || 'Failed to reschedule.');
+      }
+    } catch (e) {
+      setRescheduleError('Network error occurred.');
+    } finally {
+      setRescheduleLoading(false);
+    }
   };
 
   // Calendar
@@ -650,7 +756,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
 
             {modalTab === 'details' && ['pending', 'confirmed', 'pending_schedule'].includes(selectedAppointment?.status) && (
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-                <AnimatedTouchable style={[modalS.cancelBtn, { flex: 1, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border }]} onPress={() => { Alert.alert('Reschedule Request', 'To reschedule, please contact your artist directly or message the studio via the Chat portal.', [{ text: 'Go to Chat', onPress: () => { handleSelectAppointment(null); navigation.navigate('Chat'); } }, { text: 'Close', style: 'cancel' }]); }}>
+                <AnimatedTouchable style={[modalS.cancelBtn, { flex: 1, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border }]} onPress={() => handleOpenReschedule(selectedAppointment)}>
                   <Text style={[modalS.cancelText, { color: theme.textPrimary }]}>Reschedule</Text>
                 </AnimatedTouchable>
                 <AnimatedTouchable style={[modalS.cancelBtn, { flex: 1, marginTop: 0 }]} onPress={() => handleCancel(selectedAppointment)}>
@@ -840,6 +946,130 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
         </View>
       </Modal>
 
+      {/* Reschedule Modal */}
+      <Modal visible={showRescheduleModal} animationType="slide" transparent>
+        <View style={modalS.overlay}>
+          <View style={[modalS.content, { height: '85%' }]}>
+            <View style={modalS.header}>
+              <Text style={modalS.title}>Reschedule Appointment</Text>
+              <TouchableOpacity style={{ padding: 4 }} onPress={() => setShowRescheduleModal(false)}><X size={24} color={theme.textPrimary} /></TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Date Selection */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={modalS.label}>Select Date</Text>
+                <View style={styles.calCard}>
+                  <View style={styles.calHeader}>
+                    <TouchableOpacity onPress={() => setRescheduleMonth(shiftCalendarMonth(rescheduleMonth, -1))} style={styles.monthBtn}><ChevronLeft size={20} color={theme.textPrimary} /></TouchableOpacity>
+                    <Text style={styles.monthText}>{rescheduleMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}</Text>
+                    <TouchableOpacity onPress={() => setRescheduleMonth(shiftCalendarMonth(rescheduleMonth, 1))} style={styles.monthBtn}><ChevronRight size={20} color={theme.textPrimary} /></TouchableOpacity>
+                  </View>
+                  <View style={styles.weekRow}>
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <Text key={d} style={styles.weekDayText}>{d}</Text>)}
+                  </View>
+                  <View style={styles.daysGrid}>
+                    {calendarCells(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth()).map((day, idx) => {
+                      if (!day) return <View key={`empty-${idx}`} style={styles.dayCell} />;
+                      const dateStr = `${rescheduleMonth.getFullYear()}-${String(rescheduleMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                      
+                      const dObj = new Date(dateStr);
+                      dObj.setHours(0, 0, 0, 0);
+                      const tObj = new Date();
+                      tObj.setHours(0, 0, 0, 0);
+                      const isPast = dObj <= tObj;
+                      
+                      const isSel = rescheduleData.date === dateStr;
+                      
+                      return (
+                        <TouchableOpacity 
+                          key={idx} 
+                          style={[styles.dayCell, isSel && styles.selectedDay, isPast && { opacity: 0.3 }]}
+                          disabled={isPast}
+                          onPress={() => {
+                            setRescheduleData(prev => ({ ...prev, date: dateStr, time: null }));
+                          }}>
+                          <Text style={[styles.dayText, isSel && styles.selectedDayText]}>{day}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              </View>
+
+              {/* Time Selection */}
+              {rescheduleData.date && ['consultation', 'piercing'].includes((selectedAppointment?.service_type || '').toLowerCase()) && (
+                <View style={{ marginBottom: 24 }}>
+                  <Text style={modalS.label}>Select Time</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'].map(t => {
+                      const isSel = rescheduleData.time === t;
+                      const dateBookings = calendarAvailability[rescheduleData.date]?.consultationTimes || [];
+                      const timeCount = dateBookings.filter(bTime => bTime === t).length;
+                      let isOccupied = timeCount >= totalArtists;
+
+                      // Same day past time check
+                      const todayStr = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' })).toLocaleDateString('en-CA');
+                      if (!isOccupied && rescheduleData.date === todayStr) {
+                        const now = new Date();
+                        const currentMins = now.getHours() * 60 + now.getMinutes();
+                        const [h, m] = t.split(':').map(Number);
+                        const slotMins = h * 60 + m;
+                        if (currentMins >= slotMins - 15) isOccupied = true;
+                      }
+
+                      return (
+                        <TouchableOpacity 
+                          key={t}
+                          disabled={isOccupied}
+                          style={[{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: borderRadius.md, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface }, isSel && { backgroundColor: theme.gold, borderColor: theme.gold }, isOccupied && { backgroundColor: theme.surfaceLight, opacity: 0.5 }]}
+                          onPress={() => setRescheduleData(prev => ({ ...prev, time: t }))}
+                        >
+                          <Text style={[{ ...typography.bodySmall, color: theme.textPrimary, fontWeight: '500' }, isSel && { color: theme.backgroundDeep }, isOccupied && { color: theme.textTertiary }]}>{formatTime(t)}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {/* Tattoo Session Notice */}
+              {rescheduleData.date && !['consultation', 'piercing'].includes((selectedAppointment?.service_type || '').toLowerCase()) && (
+                <View style={{ backgroundColor: theme.gold + '20', padding: 14, borderRadius: borderRadius.md, marginBottom: 24, flexDirection: 'row', alignItems: 'center' }}>
+                  <Clock size={20} color={theme.gold} style={{ marginRight: 10 }} />
+                  <Text style={{ ...typography.bodySmall, color: theme.textPrimary, flex: 1 }}>Tattoo sessions require custom time blocks. The studio will assign your exact start time.</Text>
+                </View>
+              )}
+
+              {/* Reason */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={modalS.label}>Reason for Rescheduling</Text>
+                <TextInput
+                  style={{ backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.md, padding: 12, ...typography.body, color: theme.textPrimary, minHeight: 80 }}
+                  placeholder="Why do you need to change this appointment?"
+                  placeholderTextColor={theme.textTertiary}
+                  multiline
+                  value={rescheduleData.reason}
+                  onChangeText={(text) => setRescheduleData(prev => ({ ...prev, reason: text }))}
+                />
+              </View>
+              
+              {!!rescheduleError && (
+                <Text style={[modalS.submissionError, { color: theme.error }]}>{rescheduleError}</Text>
+              )}
+            </ScrollView>
+
+            <View style={{ marginTop: 10 }}>
+              <AnimatedTouchable style={[modalS.payBtn, { backgroundColor: theme.gold, paddingVertical: 14 }]} onPress={handleRescheduleSubmit} disabled={rescheduleLoading}>
+                {rescheduleLoading ? <ActivityIndicator color="#fff" /> : <Text style={[modalS.payText, { textAlign: 'center' }]}>Submit Reschedule</Text>}
+              </AnimatedTouchable>
+              <AnimatedTouchable style={modalS.closeBtn} onPress={() => setShowRescheduleModal(false)}>
+                <Text style={modalS.closeBtnText}>Cancel</Text>
+              </AnimatedTouchable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

@@ -78,6 +78,7 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [bookedDates, setBookedDates] = useState({});
+  const [totalArtists, setTotalArtists] = useState(1);
 
   // Animations
   const stepAnimWidth = useRef(new Animated.Value(20)).current; 
@@ -140,6 +141,7 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
     try {
       const r = await (await fetch(`${API_URL}/public/calendar-availability`)).json();
       if (r.success) {
+        setTotalArtists(r.totalArtists || 1);
         const bookings = {};
         r.bookings.forEach(b => {
           const ds = typeof b.appointment_date === 'string' ? b.appointment_date.substring(0, 10) : new Date(b.appointment_date).toISOString().split('T')[0];
@@ -689,9 +691,37 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
               <View style={styles.timeGrid}>
                 {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'].map(t => {
                   const isSelected = formData.time === t;
+
+                  // Capacity check
+                  const dateBookings = bookedDates[formData.date]?.consultationTimes || [];
+                  const timeCount = dateBookings.filter(bTime => bTime === t).length;
+                  let isOccupied = timeCount >= totalArtists;
+
+                  // Past time check (Same-Day)
+                  if (!isOccupied && formData.date) {
+                    const todayStr = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' })).toLocaleDateString('en-CA'); // Get YYYY-MM-DD in Manila time safely
+                    if (formData.date === todayStr) {
+                      const now = new Date();
+                      const currentMins = now.getHours() * 60 + now.getMinutes();
+                      const [h, m] = t.split(':').map(Number);
+                      const slotMins = h * 60 + m;
+                      if (currentMins >= slotMins - 15) {
+                        isOccupied = true;
+                      }
+                    }
+                  }
+
                   return (
-                    <TouchableOpacity key={t} style={[styles.timePill, isSelected && styles.timePillActive]} onPress={() => { triggerFeedback(); handleInput('time', t); }}>
-                      <Text style={[styles.timeTxt, isSelected && styles.timeTxtActive]}>
+                    <TouchableOpacity 
+                      key={t} 
+                      style={[
+                        styles.timePill, 
+                        isSelected && styles.timePillActive,
+                        isOccupied && { opacity: 0.4, backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }
+                      ]} 
+                      disabled={isOccupied}
+                      onPress={() => { triggerFeedback(); handleInput('time', t); }}>
+                      <Text style={[styles.timeTxt, isSelected && styles.timeTxtActive, isOccupied && { color: '#94a3b8' }]}>
                         {formatTime(t)}
                       </Text>
                     </TouchableOpacity>
