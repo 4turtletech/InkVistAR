@@ -12,6 +12,7 @@ import { typography, borderRadius, shadows } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { API_URL, getCustomerAppointments, createCustomerAppointment } from '../src/utils/api';
 import { formatTime } from '../src/utils/formatters';
+import { pickImageWithCompression } from '../src/utils/imageUtils';
 import { tattooBodyParts, piercingBodyParts, calendarCells, shiftCalendarMonth, changeBookingServices, toggleBookingPlacement, bookingPlacementErrors } from '../src/utils/bookingValidation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -209,11 +210,12 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
     setErrors(prev => ({ ...prev, [field]: errorMsg }));
   };
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return;
-    let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 3], quality: 0.5, base64: true });
-    if (!result.canceled) handleInput('referenceImage', 'data:image/jpeg;base64,' + result.assets[0].base64);
+  const pickImage = () => {
+    pickImageWithCompression(
+      (base64Img) => handleInput('referenceImage', base64Img),
+      (error) => console.log('Image picker error:', error),
+      { aspect: [4, 3] }
+    );
   };
 
   const validateStep = () => {

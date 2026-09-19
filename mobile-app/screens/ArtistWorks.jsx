@@ -20,6 +20,7 @@ import { EmptyState } from '../src/components/shared/EmptyState';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { getArtistPortfolio, addArtistWork, updateArtistWork, deleteArtistWork, updateArtistWorkVisibility } from '../src/utils/api';
 import { getPortfolioTitleError } from '../src/utils/portfolioValidation';
+import { pickImageWithCompression } from '../src/utils/imageUtils';
 
 const CAT_ICONS = { all: Grid3x3, Realism: Eye, Traditional: Palette, Japanese: Brush, Tribal: Flame, 'Fine Line': Pencil };
 
@@ -69,11 +70,15 @@ export function ArtistWorks({ onBack, artistId }) {
 
   const onRefresh = async () => { setRefreshing(true); await loadPortfolio(); setRefreshing(false); };
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { setImageError('Photo access is required. Enable it in your device settings or use an image URL.'); return; }
-    let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 3], quality: 0.5, base64: true });
-    if (!result.canceled) { setNewWorkImage(`data:image/jpeg;base64,${result.assets[0].base64}`); setImageError(''); }
+  const pickImage = () => {
+    pickImageWithCompression(
+      (base64Img) => {
+        setNewWorkImage(base64Img);
+        setImageError('');
+      },
+      (error) => setImageError(error),
+      { aspect: [4, 3] }
+    );
   };
 
   const resetForm = () => { setNewWorkTitle(''); setNewWorkImage(''); setImageError(''); setNewWorkDescription(''); setNewWorkPriceEstimate(''); setTitleError(''); setNewWorkCategory('Realism'); setIsPublic(true); setEditingWorkId(null); setUploadType('url'); setHasSubmitted(false); setSubmissionError(''); };

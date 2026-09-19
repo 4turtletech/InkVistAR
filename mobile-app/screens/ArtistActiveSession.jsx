@@ -20,6 +20,7 @@ import { fetchAPI } from '../src/utils/api';
 import { HealthAlertPanel } from '../src/components/shared/HealthAlertPanel';
 import { useSessionTimer } from '../src/hooks/useSessionTimer';
 import { mergeSessionDetails } from '../src/utils/sessionState';
+import { pickImageWithCompression } from '../src/utils/imageUtils';
 
 export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const { theme: colors, hapticsEnabled } = useTheme();
@@ -261,31 +262,13 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   };
 
   const pickImage = (type) => {
-    Alert.alert('Select Photo', 'Choose how you want to add a photo', [
-      { text: 'Take Photo', onPress: () => launchCamera(type) },
-      { text: 'Choose from Gallery', onPress: () => launchGallery(type) },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  };
-
-  const launchCamera = async (type) => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') { showAlert('Permission Denied', 'Camera access is required to take photos.'); return; }
-    let result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.5, base64: true });
-    if (!result.canceled) {
-      editSessionField(type, `data:image/jpeg;base64,${result.assets[0].base64}`);
-      setMediaErrors(current => ({ ...current, [type]: '' }));
-    }
-  };
-
-  const launchGallery = async (type) => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { showAlert('Permission Denied', 'Photo library access is required.'); return; }
-    let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', allowsEditing: true, quality: 0.5, base64: true });
-    if (!result.canceled) {
-      editSessionField(type, `data:image/jpeg;base64,${result.assets[0].base64}`);
-      setMediaErrors(current => ({ ...current, [type]: '' }));
-    }
+    pickImageWithCompression(
+      (base64Img) => {
+        editSessionField(type, base64Img);
+        setMediaErrors(current => ({ ...current, [type]: '' }));
+      },
+      (error) => showAlert('Permission Denied', error)
+    );
   };
 
   const processStatusUpdate = async (newStatus, isFullyComplete = true, nextAuditLog = auditLog) => {

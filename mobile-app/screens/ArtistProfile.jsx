@@ -18,6 +18,7 @@ import { useTheme } from '../src/context/ThemeContext';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { getInitials, formatCurrency } from '../src/utils/formatters';
+import { pickImageWithCompression } from '../src/utils/imageUtils';
 import { getArtistDashboard, updateArtistProfile, changeArtistPassword } from '../src/utils/api';
 import { nationalPHPhone, artistPhoneError, artistPhonePayload, artistPasswordRules, artistPasswordErrors } from '../src/utils/artistProfileValidation';
 import {
@@ -198,41 +199,12 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
       Animated.spring(avatarScale, { toValue: 1.15, useNativeDriver: true }),
       Animated.spring(avatarScale, { toValue: 1, friction: 3, tension: 100, useNativeDriver: true })
     ]).start();
-    Alert.alert('Profile Picture', 'How would you like to update your photo?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Take Photo', onPress: takePhoto },
-      { text: 'Choose from Library', onPress: pickImage },
-    ]);
-  };
-
-  const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Camera permission is needed to take a photo.');
-      return;
-    }
-    let result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true, aspect: [1, 1], quality: 0.5, base64: true,
-    });
-    if (!result.canceled && result.assets[0].base64) {
-      const base64Img = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      setPendingImage(base64Img);
-    }
-  };
-
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Camera roll permission is needed.');
-      return;
-    }
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: 'images', allowsEditing: true, aspect: [1, 1], quality: 0.5, base64: true,
-    });
-    if (!result.canceled && result.assets[0].base64) {
-      const base64Img = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      setPendingImage(base64Img);
-    }
+    
+    pickImageWithCompression(
+      (base64Img) => setPendingImage(base64Img),
+      (error) => Alert.alert('Error', error),
+      { aspect: [1, 1] }
+    );
   };
 
   if (loading && !editModalVisible && !passwordModalVisible && !refreshing) return <SafeAreaView style={styles.container}><PremiumLoader message="Loading profile..." /></SafeAreaView>;

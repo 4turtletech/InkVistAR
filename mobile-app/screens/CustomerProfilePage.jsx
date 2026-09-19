@@ -288,25 +288,12 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
     }
   };
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      customAlert('Permission Denied', 'Sorry, we need camera roll permissions to update your profile picture.');
-      return;
-    }
-
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: 'images',
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-      base64: true,
-    });
-
-    if (!result.canceled && result.assets[0].base64) {
-      const base64Img = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      setPendingImage(base64Img);
-    }
+  const pickImage = () => {
+    pickImageWithCompression(
+      (base64Img) => setPendingImage(base64Img),
+      (error) => customAlert('Error', error),
+      { aspect: [1, 1] }
+    );
   };
 
   const calculateCompletion = () => {
