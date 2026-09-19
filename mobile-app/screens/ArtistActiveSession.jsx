@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import {
   ArrowLeft, Play, Pause, CheckCircle2, Camera, Package, Palette,
-  XCircle, Briefcase, Zap, Plus, Save, Clock, ChevronUp, ShieldAlert, X, Layers, CheckCircle, Circle
+  XCircle, Briefcase, Zap, Plus, Minus, Save, Clock, ChevronUp, ShieldAlert, X, Layers, CheckCircle, Circle
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -243,9 +243,44 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     ]);
   };
 
-  const pickImage = async (type) => {
+  const handleDecrementMaterial = async (materialId) => {
+    if (!appointment?.id || !materialId) return;
+    setAddingMaterial(true);
+    try {
+      const r = await fetchAPI(`/appointments/${appointment.id}/materials/${materialId}/decrement`, { method: 'POST' });
+      if (r.success) {
+        fetchSessionMaterials();
+      } else {
+        showAlert('Error', r.message || 'Failed to decrement.');
+      }
+    } catch (e) {
+      showAlert('Error', 'Connection failed');
+    } finally {
+      setAddingMaterial(false);
+    }
+  };
+
+  const pickImage = (type) => {
+    Alert.alert('Select Photo', 'Choose how you want to add a photo', [
+      { text: 'Take Photo', onPress: () => launchCamera(type) },
+      { text: 'Choose from Gallery', onPress: () => launchGallery(type) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const launchCamera = async (type) => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') { showAlert('Permission Denied', 'Camera access is required to take photos.'); return; }
+    let result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.5, base64: true });
+    if (!result.canceled) {
+      editSessionField(type, `data:image/jpeg;base64,${result.assets[0].base64}`);
+      setMediaErrors(current => ({ ...current, [type]: '' }));
+    }
+  };
+
+  const launchGallery = async (type) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { showAlert('Permission Denied', 'Photo access is required.'); return; }
+    if (status !== 'granted') { showAlert('Permission Denied', 'Photo library access is required.'); return; }
     let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', allowsEditing: true, quality: 0.5, base64: true });
     if (!result.canceled) {
       editSessionField(type, `data:image/jpeg;base64,${result.assets[0].base64}`);
@@ -465,29 +500,30 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
             {status === 'in_progress' && (
               <View style={styles.timerContainer}>
                 <View style={[styles.statusRing, isPaused && { borderColor: colors.gold }]}>
-                  <Text style={[styles.timerText, isPaused && { color: colors.gold }]}>{timerReady ? formatTime(elapsedSeconds) : '--:--:--'}</Text>
+                  <Text style={[styles.timerText, isPaused && { color: colors.gold }]} adjustsFontSizeToFit numberOfLines={1}>{timerReady ? formatTime(elapsedSeconds) : '--:--:--'}</Text>
                   <Text style={styles.timerLabel}>{isPaused ? 'SESSION PAUSED' : 'SESSION DURATION'}</Text>
                 </View>
 
-                {/* Pause/Resume and Complete Buttons Row */}
-                <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
-                  <AnimatedTouchable style={[styles.actionBtn, { flex: 1, backgroundColor: isPaused ? colors.gold : colors.surfaceLight, borderWidth: 1, borderColor: colors.gold }]} onPress={handlePauseResume} disabled={loading || !timerReady}>
-                    <View style={{ marginRight: 10 }}>
-                      {isPaused ? <Play size={18} color={colors.backgroundDeep} /> : <Pause size={18} color={colors.gold} />}
-                    </View>
-                    <Text style={[styles.actionBtnText, { color: isPaused ? colors.backgroundDeep : colors.gold }]}>{isPaused ? 'Resume' : 'Pause'}</Text>
-                  </AnimatedTouchable>
-                  
+                {/* Pause/Resume Button (Full Width) */}
+                <AnimatedTouchable style={[styles.actionBtn, { backgroundColor: isPaused ? colors.gold : colors.surfaceLight, borderWidth: 1, borderColor: colors.gold, marginTop: 24, paddingVertical: 16 }]} onPress={handlePauseResume} disabled={loading || !timerReady}>
+                  <View style={{ marginRight: 10 }}>
+                    {isPaused ? <Play size={20} color={colors.backgroundDeep} /> : <Pause size={20} color={colors.gold} />}
+                  </View>
+                  <Text style={[styles.actionBtnText, { color: isPaused ? colors.backgroundDeep : colors.gold, fontSize: 16 }]}>{isPaused ? 'Resume' : 'Pause'}</Text>
+                </AnimatedTouchable>
+
+                {/* Complete + Abort Row */}
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
                   <AnimatedTouchable style={[styles.actionBtn, { flex: 1, backgroundColor: colors.success }]} onPress={() => handleUpdateStatus('completed')} disabled={loading || !detailsReady || !timerReady}>
-                    <View style={{ marginRight: 10 }}><CheckCircle2 size={18} color="#ffffff" /></View>
-                    <Text style={styles.actionBtnText}>Complete</Text>
+                    <View style={{ marginRight: 8 }}><CheckCircle2 size={16} color="#ffffff" /></View>
+                    <Text style={[styles.actionBtnText, { fontSize: 14 }]}>Complete</Text>
+                  </AnimatedTouchable>
+
+                  <AnimatedTouchable style={[styles.actionBtn, { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.error }]} onPress={handleAbortSession} disabled={loading || !detailsReady || !timerReady}>
+                    <View style={{ marginRight: 8 }}><XCircle size={16} color={colors.error} /></View>
+                    <Text style={[styles.actionBtnText, { color: colors.error, fontSize: 14 }]}>Abort</Text>
                   </AnimatedTouchable>
                 </View>
-                
-                <AnimatedTouchable style={[styles.actionBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.error, marginTop: 12 }]} onPress={handleAbortSession} disabled={loading || !detailsReady || !timerReady}>
-                  <View style={{ marginRight: 10 }}><XCircle size={18} color={colors.error} /></View>
-                  <Text style={[styles.actionBtnText, { color: colors.error }]}>Abort Session</Text>
-                </AnimatedTouchable>
               </View>
             )}
 
@@ -727,8 +763,16 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
                           <Text style={styles.matName}>{mat.item_name}</Text>
                           <Text style={styles.matUnit}>{mat.unit}</Text>
                         </View>
-                        <View style={styles.matQty}><Text style={styles.matQtyText}>{mat.quantity}</Text></View>
-                        {mat.status === 'hold' && <AnimatedTouchable onPress={() => handleReleaseMaterial(mat.id)} style={{ marginLeft: 8 }}><XCircle size={18} color={colors.error} /></AnimatedTouchable>}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(190,144,85,0.1)', borderRadius: 16, paddingHorizontal: 4, paddingVertical: 2 }}>
+                          <AnimatedTouchable onPress={() => handleDecrementMaterial(mat.id)} disabled={mat.quantity <= 1} style={{ padding: 6, opacity: mat.quantity <= 1 ? 0.3 : 1 }}>
+                            <Minus size={14} color={colors.gold} />
+                          </AnimatedTouchable>
+                          <Text style={{ ...typography.body2, color: colors.gold, fontWeight: '600', marginHorizontal: 8 }}>{mat.quantity}</Text>
+                          <AnimatedTouchable onPress={() => handleQuickAdd(mat.inventory_id, 1)} style={{ padding: 6 }}>
+                            <Plus size={14} color={colors.gold} />
+                          </AnimatedTouchable>
+                        </View>
+                        {mat.status === 'hold' && <AnimatedTouchable onPress={() => handleReleaseMaterial(mat.id)} style={{ marginLeft: 12 }}><XCircle size={18} color={colors.error} /></AnimatedTouchable>}
                       </View>
                     ))}
                   </View>
@@ -956,7 +1000,7 @@ const getStyles = (colors) => StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surface,
     shadowColor: colors.gold, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.3, shadowRadius: 15, elevation: 10,
   },
-  timerText: { fontSize: 44, fontWeight: '800', color: colors.gold, letterSpacing: 2, fontFamily: 'Georgia' },
+  timerText: { fontSize: 36, fontWeight: '800', color: colors.gold, letterSpacing: 2, fontFamily: 'Georgia', paddingHorizontal: 12 },
   timerLabel: { ...typography.bodyXSmall, color: colors.textTertiary, letterSpacing: 2, marginTop: 4 },
 
   // Tracker UI

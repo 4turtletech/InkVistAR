@@ -906,7 +906,9 @@ export const AdminInventory = ({ navigation, route }) => {
                   <View style={styles.historyCard}>
                     <View style={styles.historyTop}>
                       <Text style={styles.historyReason}>{item.reason || 'Transaction'}</Text>
-                      <Text style={styles.historyDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+                      <Text style={styles.historyDate}>
+                        {new Date(item.created_at).toLocaleDateString()} | {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                      </Text>
                     </View>
                     <View style={styles.historyTop}>
                       <Text style={styles.historyItem}>{item.item_name}</Text>
