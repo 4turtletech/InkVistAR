@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import {
   ArrowLeft, Calendar, Package, DollarSign, TrendingUp, Users,
-  X, ChevronRight, BarChart2, CheckCircle, XCircle, Clock, Filter, Home, Palette, Plus, Trash2, Edit2,
+  X, ChevronRight, ChevronDown, Check, BarChart2, CheckCircle, XCircle, Clock, Filter, Home, Palette, Plus, Trash2, Edit2,
   Download, FileSpreadsheet, FileText, Share2,
 } from 'lucide-react-native';
 import { BarChart, PieChart } from 'react-native-chart-kit';
@@ -105,6 +105,7 @@ export const AdminAnalytics = ({ navigation }) => {
   const [exportError, setExportError] = useState('');
 
   // Custom date range
+  const [showPeriodMenu, setShowPeriodMenu] = useState(false);
   const [customDateModal, setCustomDateModal] = useState(false);
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -420,33 +421,20 @@ export const AdminAnalytics = ({ navigation }) => {
         </AnimatedTouchable>
       </View>
 
-      {/* Period Filter */}
-      <View style={styles.periodBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 10 }}>
-          {PERIODS.map(p => (
-            <AnimatedTouchable
-              key={p.key}
-              style={[styles.periodPill, period === p.key && styles.periodPillActive]}
-              onPress={() => {
-                if (p.key === 'custom') {
-                  setPendingStart(customStart);
-                  setPendingEnd(customEnd);
-                  setDateValidationAttempted(false);
-                  setCustomDateModal(true);
-                } else {
-                  setPeriod(p.key);
-                }
-              }}
-            >
-              {period === p.key && p.key !== 'custom' && <Filter size={12} color={theme.backgroundDeep} style={{ marginRight: 4 }} />}
-              <Text style={[styles.periodPillText, period === p.key && styles.periodPillTextActive]}>
-                {p.key === 'custom' && customStart && customEnd
-                  ? `${customStart} → ${customEnd}`
-                  : p.label}
-              </Text>
-            </AnimatedTouchable>
-          ))}
-        </ScrollView>
+      {/* Period Filter Trigger */}
+      <View style={[styles.periodBar, { paddingHorizontal: 16, paddingVertical: 10, paddingBottom: 16 }]}>
+        <AnimatedTouchable 
+          style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: theme.borderLight, alignSelf: 'flex-start', ...shadows.subtle }}
+          onPress={() => setShowPeriodMenu(true)}
+        >
+          <Filter size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
+          <Text style={{ ...typography.bodySmall, color: theme.textSecondary, fontWeight: '500' }}>
+            Period: <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>
+              {period === 'custom' && customStart && customEnd ? `${customStart} → ${customEnd}` : (PERIODS.find(p => p.key === period)?.label || 'This Month')}
+            </Text>
+          </Text>
+          <ChevronDown size={16} color={theme.textSecondary} style={{ marginLeft: 8 }} />
+        </AnimatedTouchable>
       </View>
 
       <ScrollView
@@ -899,6 +887,40 @@ export const AdminAnalytics = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+      {/* Period Selection Bottom Sheet */}
+      <Modal visible={showPeriodMenu} animationType="slide" transparent>
+        <View style={styles.bottomSheetOverlay}>
+          <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowPeriodMenu(false)} activeOpacity={1} />
+          <View style={styles.bottomSheetContent}>
+            <View style={styles.bottomSheetHandle} />
+            <Text style={styles.bottomSheetTitle}>Select Period</Text>
+            {PERIODS.map(p => {
+              const isSelected = period === p.key;
+              return (
+                <TouchableOpacity
+                  key={p.key}
+                  style={[styles.bottomSheetOption, isSelected && { backgroundColor: theme.surfaceLight }]}
+                  onPress={() => {
+                    setShowPeriodMenu(false);
+                    if (p.key === 'custom') {
+                      setPendingStart(customStart);
+                      setPendingEnd(customEnd);
+                      setDateValidationAttempted(false);
+                      setCustomDateModal(true);
+                    } else {
+                      setPeriod(p.key);
+                    }
+                  }}
+                >
+                  <Text style={[styles.bottomSheetOptionText, isSelected && { color: theme.gold, fontWeight: '700' }]}>{p.label}</Text>
+                  {isSelected && <Check size={20} color={theme.gold} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -1012,4 +1034,23 @@ const getStyles = (theme, insets) => StyleSheet.create({
     padding: 14, borderWidth: 1, borderColor: theme.border,
     ...typography.body, color: theme.textPrimary, marginTop: 6,
   },
+  
+  // Bottom Sheet
+  bottomSheetOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
+  },
+  bottomSheetContent: {
+    backgroundColor: theme.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 24, paddingBottom: 40, ...shadows.cardStrong,
+  },
+  bottomSheetHandle: {
+    width: 40, height: 4, backgroundColor: theme.border, borderRadius: 2,
+    alignSelf: 'center', marginBottom: 20,
+  },
+  bottomSheetTitle: { ...typography.h4, color: theme.textPrimary, marginBottom: 16 },
+  bottomSheetOption: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 16, paddingHorizontal: 16, borderRadius: 12, marginBottom: 4,
+  },
+  bottomSheetOptionText: { ...typography.body, color: theme.textPrimary },
 });
