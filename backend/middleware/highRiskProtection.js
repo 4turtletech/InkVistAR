@@ -66,7 +66,8 @@ function classifyRequest(req) {
     '/api/verify-otp', '/api/verify', '/api/register', '/api/resend-verification',
     '/api/gallery/categories', '/api/gallery/homepage', '/api/gallery/works', '/api/gallery/art-of-the-day',
     '/api/customer/artists', '/api/public/calendar-availability',
-    '/api/inventory/jewelry', '/api/testimonials', '/api/ar/config',
+    '/api/inventory/jewelry', '/api/testimonials', '/api/guest-feedback',
+    '/api/live-support/availability', '/api/ar/config',
     '/api/contact', '/api/chat', '/api/payments/webhook',
   ]);
   if (path.startsWith('/api/auth/') || path.startsWith('/api/password-recovery/') || publicExact.has(path)) return null;

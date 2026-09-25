@@ -287,6 +287,89 @@ const queryAsync = (dbOrPool, sql, params = []) => new Promise((resolve, reject)
     else resolve(results);
   });
 });
+
+const LIVE_SUPPORT_DEFAULTS = Object.freeze({
+  enabled: true,
+  openHour: 13,
+  closeHour: 20,
+  timezone: 'Asia/Manila',
+});
+
+const parseSettingData = (value) => {
+  if (!value) return {};
+  if (typeof value === 'object') return value;
+  try { return JSON.parse(value); } catch (_) { return {}; }
+};
+
+const getManilaHour = (date = new Date()) => Number(new Intl.DateTimeFormat('en-US', {
+  timeZone: LIVE_SUPPORT_DEFAULTS.timezone,
+  hour: '2-digit',
+  hourCycle: 'h23',
+}).format(date));
+
+const formatSupportHour = (hour) => {
+  const normalized = Number(hour) % 24;
+  const suffix = normalized >= 12 ? 'PM' : 'AM';
+  return `${normalized % 12 || 12}:00 ${suffix}`;
+};
+
+const getLiveSupportAvailability = async () => {
+  let configured = {};
+  try {
+    const rows = await queryAsync(db, 'SELECT data FROM app_settings WHERE section = ? LIMIT 1', ['live_support']);
+    configured = parseSettingData(rows[0]?.data);
+  } catch (error) {
+    console.error('[LIVE SUPPORT] Could not read availability settings:', error.message);
+  }
+
+  const openHour = Number.isInteger(Number(configured.openHour)) ? Number(configured.openHour) : LIVE_SUPPORT_DEFAULTS.openHour;
+  const closeHour = Number.isInteger(Number(configured.closeHour)) ? Number(configured.closeHour) : LIVE_SUPPORT_DEFAULTS.closeHour;
+  const enabled = configured.enabled !== false;
+  const currentHour = getManilaHour();
+  const withinHours = openHour < closeHour
+    ? currentHour >= openHour && currentHour < closeHour
+    : currentHour >= openHour || currentHour < closeHour;
+  const available = enabled && withinHours;
+  const hoursLabel = `${formatSupportHour(openHour)} - ${formatSupportHour(closeHour)} (PHT)`;
+
+  return {
+    enabled,
+    withinHours,
+    available,
+    openHour,
+    closeHour,
+    timezone: LIVE_SUPPORT_DEFAULTS.timezone,
+    hoursLabel,
+    reason: !enabled ? 'disabled_by_admin' : withinHours ? 'available' : 'outside_working_hours',
+    message: available
+      ? `Live agents are available until ${formatSupportHour(closeHour)} PHT.`
+      : !enabled
+        ? 'Live agent chat is temporarily unavailable. You can still use the AI assistant.'
+        : `Live agent chat is available daily from ${hoursLabel}. You can still use the AI assistant.`,
+  };
+};
+
+const guestFeedbackAttempts = new Map();
+const getGuestFeedbackClientKey = (req) => {
+  const forwarded = String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim();
+  const connectingIp = String(req.headers?.['cf-connecting-ip'] || '').trim();
+  const remote = String(req.socket?.remoteAddress || req.ip || 'unknown');
+  return `${remote}|${connectingIp || forwarded || 'direct'}`;
+};
+const isGuestFeedbackRateLimited = (ipAddress) => {
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000;
+  const key = String(ipAddress || 'unknown');
+  for (const [ip, attempts] of guestFeedbackAttempts.entries()) {
+    const recent = attempts.filter((timestamp) => now - timestamp < windowMs);
+    if (recent.length) guestFeedbackAttempts.set(ip, recent);
+    else guestFeedbackAttempts.delete(ip);
+  }
+  const attempts = guestFeedbackAttempts.get(key) || [];
+  if (attempts.length >= 5) return true;
+  guestFeedbackAttempts.set(key, [...attempts, now]);
+  return false;
+};
 const tokenService = createTokenService(db);
 const passwordRecoveryService = createPasswordRecoveryService(db);
 const authenticate = createAuthenticate({ tokenService, pool: db });
@@ -1762,6 +1845,25 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(reviewsTableQuery, (err) => { if (err) console.error('[WARN] Error checking reviews table:', err.message); else console.log('[OK] Reviews table ready'); });
+
+    // Guest website feedback is moderated separately from appointment reviews.
+    const guestFeedbackTableQuery = `
+      CREATE TABLE IF NOT EXISTS guest_feedback (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        display_name VARCHAR(100) NULL,
+        email VARCHAR(254) NULL,
+        rating TINYINT NULL,
+        comment TEXT NULL,
+        status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+        is_showcased BOOLEAN DEFAULT FALSE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_guest_feedback_status_created (status, created_at)
+      )
+    `;
+    db.query(guestFeedbackTableQuery, (err) => {
+      if (err) console.error('[WARN] Error checking guest_feedback table:', err.message);
+      else console.log('[OK] Guest Feedback table ready');
+    });
 
     // Create Session Materials Table
     const sessionMaterialsTableQuery = `
@@ -11573,6 +11675,44 @@ app.post('/api/admin/settings', (req, res) => {
   });
 });
 
+// Public live-support status. Server time is authoritative so client clocks cannot bypass hours.
+app.get('/api/live-support/availability', async (req, res) => {
+  try {
+    const availability = await getLiveSupportAvailability();
+    res.set('Cache-Control', 'no-store');
+    return res.json({ success: true, ...availability });
+  } catch (error) {
+    console.error('[LIVE SUPPORT] Availability request failed:', error.message);
+    return res.status(503).json({ success: false, available: false, message: 'Live support availability could not be checked.' });
+  }
+});
+
+// Admin switch for accepting new live-agent conversations.
+app.put('/api/admin/live-support/availability', async (req, res) => {
+  if (typeof req.body?.enabled !== 'boolean') {
+    return res.status(400).json({ success: false, message: 'Enabled must be true or false.' });
+  }
+
+  try {
+    const rows = await queryAsync(db, 'SELECT data FROM app_settings WHERE section = ? LIMIT 1', ['live_support']);
+    const existing = parseSettingData(rows[0]?.data);
+    const nextSetting = { ...LIVE_SUPPORT_DEFAULTS, ...existing, enabled: req.body.enabled };
+    const jsonData = JSON.stringify(nextSetting);
+    await queryAsync(
+      db,
+      'INSERT INTO app_settings (section, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = ?',
+      ['live_support', jsonData, jsonData]
+    );
+    const availability = await getLiveSupportAvailability();
+    io.emit('live_support_availability', availability);
+    logAction(getAdminId(req), 'UPDATE_LIVE_SUPPORT', `${req.body.enabled ? 'Enabled' : 'Disabled'} new live support sessions`, req.ip);
+    return res.json({ success: true, ...availability });
+  } catch (error) {
+    console.error('[LIVE SUPPORT] Availability update failed:', error.message);
+    return res.status(500).json({ success: false, message: 'Live support availability could not be updated.' });
+  }
+});
+
 
 // Manager: Dashboard Stats
 app.get('/api/manager/dashboard', (req, res) => {
@@ -12247,10 +12387,17 @@ io.on('connection', (socket) => {
   });
 
   // Customer explicitly initiates a live support session.
-  socket.on('start_support_session', (data) => {
+  socket.on('start_support_session', async (data) => {
     const { room } = data || {};
     if (!socketAuthorizer.authorizeSupportRoom(socket, room) || !socket.rooms.has(room)) {
       return rejectSocketAction(socket, 'start_support_session');
+    }
+    if (!activeSupportSessions[room]) {
+      const availability = await getLiveSupportAvailability();
+      if (!availability.available) {
+        socket.emit('support_unavailable', availability);
+        return;
+      }
     }
     const name = socketAuthorizer.displayName(socket);
     if (!activeSupportSessions[room]) {
@@ -12408,14 +12555,80 @@ io.on('connection', (socket) => {
 
 // ========== TESTIMONIALS API ==========
 
+// POST /api/guest-feedback (Public, moderated before it can be displayed)
+app.post('/api/guest-feedback', (req, res) => {
+  if (req.body?.website) return res.json({ success: true, message: 'Thank you for your feedback.' });
+  if (isGuestFeedbackRateLimited(getGuestFeedbackClientKey(req))) {
+    return res.status(429).json({ success: false, message: 'Too many feedback attempts. Please try again later.' });
+  }
+
+  const displayName = String(req.body?.displayName || '').trim().slice(0, 100);
+  const email = String(req.body?.email || '').trim().toLowerCase().slice(0, 254);
+  const comment = String(req.body?.comment || '').trim().slice(0, 2000);
+  const numericRating = Number(req.body?.rating);
+  const rating = Number.isInteger(numericRating) && numericRating >= 1 && numericRating <= 5 ? numericRating : null;
+
+  if (!rating && !comment) {
+    return res.status(400).json({ success: false, message: 'Please provide a rating or written feedback.' });
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
+  }
+
+  db.query(
+    'INSERT INTO guest_feedback (display_name, email, rating, comment, status, is_showcased) VALUES (?, ?, ?, ?, ?, ?)',
+    [displayName || null, email || null, rating, comment || null, 'pending', false],
+    (error) => {
+      if (error) {
+        console.error('[GUEST FEEDBACK] Submission failed:', error.message);
+        return res.status(500).json({ success: false, message: 'Your feedback could not be submitted right now.' });
+      }
+      return res.status(201).json({ success: true, message: 'Thank you. Your feedback was submitted for review.' });
+    }
+  );
+});
+
+app.get('/api/admin/guest-feedback', (req, res) => {
+  db.query('SELECT * FROM guest_feedback ORDER BY created_at DESC', (error, results) => {
+    if (error) return res.status(500).json({ success: false, message: 'Guest feedback could not be loaded.' });
+    return res.json({ success: true, feedback: results });
+  });
+});
+
+app.put('/api/admin/guest-feedback/:id', (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  const status = ['pending', 'approved', 'rejected'].includes(req.body?.status) ? req.body.status : null;
+  const showcased = req.body?.is_showcased === true || req.body?.is_showcased === 1;
+  if (!Number.isInteger(id) || id <= 0 || !status) {
+    return res.status(400).json({ success: false, message: 'A valid feedback record and status are required.' });
+  }
+  db.query(
+    'UPDATE guest_feedback SET status = ?, is_showcased = ? WHERE id = ?',
+    [status, status === 'approved' ? showcased : false, id],
+    (error, result) => {
+      if (error) return res.status(500).json({ success: false, message: 'Guest feedback could not be updated.' });
+      if (!result.affectedRows) return res.status(404).json({ success: false, message: 'Guest feedback was not found.' });
+      return res.json({ success: true, message: 'Guest feedback updated.' });
+    }
+  );
+});
+
 // GET /api/testimonials (Public, fetch active testimonials)
 app.get('/api/testimonials', (req, res) => {
   const query = `
-    SELECT r.id, r.rating, r.comment as content, u.name as customer_name, 'none' as media_type
+    SELECT CONCAT('review-', r.id) AS id, r.rating, r.comment AS content,
+           u.name AS customer_name, 'none' AS media_type, 'verified' AS source, r.created_at
     FROM reviews r
     JOIN users u ON r.customer_id = u.id
     WHERE r.is_showcased = 1 AND r.status = 'approved'
-    ORDER BY r.created_at DESC
+    UNION ALL
+    SELECT CONCAT('guest-', gf.id) AS id, COALESCE(gf.rating, 5) AS rating,
+           COALESCE(NULLIF(gf.comment, ''), 'Guest rating submitted.') AS content,
+           COALESCE(NULLIF(gf.display_name, ''), 'Guest Visitor') AS customer_name,
+           'none' AS media_type, 'guest' AS source, gf.created_at
+    FROM guest_feedback gf
+    WHERE gf.is_showcased = 1 AND gf.status = 'approved'
+    ORDER BY created_at DESC
   `;
   db.query(query, (err, results) => {
     if (err) {

@@ -89,6 +89,13 @@ test('the optimized homepage gallery remains a public read-only route', () => {
   assert.equal(classifyRequest({ method: 'GET', path: '/api/gallery/homepage' }), null);
 });
 
+test('guest feedback and live-support status are public while their admin controls stay protected', () => {
+  assert.equal(classifyRequest({ method: 'POST', path: '/api/guest-feedback' }), null);
+  assert.equal(classifyRequest({ method: 'GET', path: '/api/live-support/availability' }), null);
+  assert.equal(classifyRequest({ method: 'GET', path: '/api/admin/guest-feedback' }).kind, 'role');
+  assert.equal(classifyRequest({ method: 'PUT', path: '/api/admin/live-support/availability' }).kind, 'role');
+});
+
 test('admin routes require authentication and reject customer roles', async () => {
   const middleware = createHarness();
   const unauthenticated = await invoke(middleware, { path: '/api/admin/users' });

@@ -16,6 +16,114 @@
     margin: 0 2rem 2rem;
 }
 
+.live-support-admin-control {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    max-width: 520px;
+    padding: 10px 13px;
+    border: 1px solid #d8dee8;
+    border-left-width: 4px;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.live-support-admin-control.is-available {
+    border-left-color: #16a36a;
+}
+
+.live-support-admin-control.is-unavailable {
+    border-left-color: #d49426;
+}
+
+.live-support-admin-status {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    min-width: 0;
+    color: #64748b;
+}
+
+.live-support-admin-status svg {
+    flex: 0 0 auto;
+    margin-top: 2px;
+}
+
+.live-support-admin-status div {
+    display: grid;
+    gap: 2px;
+}
+
+.live-support-admin-status strong {
+    color: #263248;
+    font-size: 0.82rem;
+}
+
+.live-support-admin-status span {
+    color: #64748b;
+    font-size: 0.7rem;
+    line-height: 1.35;
+}
+
+.live-support-admin-status .live-support-admin-error {
+    color: #b42318;
+}
+
+.live-support-switch {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 7px;
+    color: #475569;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.live-support-switch input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.live-support-switch-track {
+    position: relative;
+    width: 38px;
+    height: 22px;
+    border-radius: 12px;
+    background: #cbd5e1;
+    transition: background 0.2s ease;
+}
+
+.live-support-switch-track span {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+    transition: transform 0.2s ease;
+}
+
+.live-support-switch input:checked + .live-support-switch-track {
+    background: #16875b;
+}
+
+.live-support-switch input:checked + .live-support-switch-track span {
+    transform: translateX(16px);
+}
+
+.live-support-switch input:focus-visible + .live-support-switch-track {
+    outline: 3px solid rgba(190, 144, 85, 0.3);
+    outline-offset: 2px;
+}
+
+.live-support-switch input:disabled + .live-support-switch-track {
+    opacity: 0.55;
+}
+
 .glass-panel {
     background: rgba(255, 255, 255, 0.45); /* Light base for chat panels */
     backdrop-filter: blur(20px) saturate(180%);
@@ -293,6 +401,16 @@
 
 /* ========== MOBILE RESPONSIVE ========== */
 @media (max-width: 768px) {
+    .chat-page-wrapper .portal-header,
+    .chat-page-wrapper .header-actions {
+        align-items: stretch;
+    }
+
+    .live-support-admin-control {
+        max-width: none;
+        justify-content: space-between;
+    }
+
     .admin-chat-layout {
         flex-direction: column;
         height: calc(100vh - 80px);

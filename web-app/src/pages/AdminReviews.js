@@ -18,10 +18,25 @@ function AdminReviews() {
     const fetchReviews = async () => {
         try {
             setLoading(true);
-            const res = await Axios.get(`${API_URL}/api/admin/reviews`);
-            if (res.data.success) {
-                setReviews(res.data.reviews || []);
-            }
+            const [reviewResponse, guestResponse] = await Promise.all([
+                Axios.get(`${API_URL}/api/admin/reviews`),
+                Axios.get(`${API_URL}/api/admin/guest-feedback`),
+            ]);
+            const verifiedReviews = (reviewResponse.data.reviews || []).map((review) => ({
+                ...review,
+                recordId: review.id,
+                id: `verified-${review.id}`,
+                reviewType: 'verified',
+            }));
+            const guestFeedback = (guestResponse.data.feedback || []).map((feedback) => ({
+                ...feedback,
+                recordId: feedback.id,
+                id: `guest-${feedback.id}`,
+                reviewType: 'guest',
+                customer_name: feedback.display_name || 'Anonymous guest',
+                artist_name: 'Studio experience',
+            }));
+            setReviews([...verifiedReviews, ...guestFeedback].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
             setLoading(false);
         } catch (e) {
             console.error(e);
@@ -29,11 +44,18 @@ function AdminReviews() {
         }
     };
 
-    const handleModeration = async (id, status, is_showcased = undefined) => {
+    const handleModeration = async (review, status, is_showcased = undefined) => {
         try {
-            const res = await Axios.put(`${API_URL}/api/admin/reviews/${id}`, { status, is_showcased });
+            const endpoint = review.reviewType === 'guest'
+                ? `${API_URL}/api/admin/guest-feedback/${review.recordId}`
+                : `${API_URL}/api/admin/reviews/${review.recordId}`;
+            const res = await Axios.put(endpoint, { status, is_showcased });
             if (res.data.success) {
-                setReviews(reviews.map(r => r.id === id ? { ...r, status, is_showcased: is_showcased !== undefined ? is_showcased : r.is_showcased } : r));
+                setReviews(reviews.map(r => r.id === review.id ? {
+                    ...r,
+                    status,
+                    is_showcased: status === 'approved' && is_showcased !== undefined ? is_showcased : status === 'approved' ? r.is_showcased : false,
+                } : r));
             }
         } catch (e) {
             console.error(e);
@@ -46,6 +68,7 @@ function AdminReviews() {
     const rejectedCount = reviews.filter(r => r.status === 'rejected').length;
 
     const renderStars = (rating) => {
+        if (!rating) return <span style={{ color: '#94a3b8', fontSize: '0.82rem' }}>Comment only</span>;
         return (
             <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                 {[1, 2, 3, 4, 5].map(star => (
@@ -68,7 +91,7 @@ function AdminReviews() {
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
                         <div style={{ textAlign: 'center', flex: '1 1 auto' }}>
                             <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b', margin: '0 0 8px 0' }}>Review Moderation</h2>
-                            <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>Approve or reject customer reviews before they appear on artist pages.</p>
+                            <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>Moderate verified appointment reviews and feedback submitted by website guests.</p>
                         </div>
                         <div style={{ display: 'flex', flexShrink: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: 'rgba(193, 154, 107, 0.1)', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, color: '#97754b' }}>
@@ -135,7 +158,7 @@ function AdminReviews() {
                                     <thead>
                                         <tr>
                                             <th style={{ padding: '14px 20px' }}>Client</th>
-                                            <th style={{ padding: '14px 20px' }}>Artist</th>
+                                            <th style={{ padding: '14px 20px' }}>Context</th>
                                             <th style={{ padding: '14px 20px' }}>Rating</th>
                                             <th style={{ padding: '14px 20px', width: '35%' }}>Comment</th>
                                             <th style={{ padding: '14px 20px' }}>Date</th>
@@ -145,7 +168,19 @@ function AdminReviews() {
                                     <tbody>
                                         {filteredReviews.map(r => (
                                             <tr key={r.id} style={{ transition: 'background 0.15s' }}>
-                                                <td style={{ fontWeight: 600, padding: '16px 20px', color: '#1e293b' }}>{r.customer_name}</td>
+                                                <td style={{ fontWeight: 600, padding: '16px 20px', color: '#1e293b' }}>
+                                                    {r.customer_name}
+                                                    <div style={{ marginTop: '5px' }}>
+                                                        <span style={{
+                                                            display: 'inline-block', padding: '2px 7px', borderRadius: '4px',
+                                                            background: r.reviewType === 'guest' ? '#fff7ed' : '#eff6ff',
+                                                            color: r.reviewType === 'guest' ? '#9a5416' : '#1d4ed8',
+                                                            fontSize: '0.67rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em'
+                                                        }}>
+                                                            {r.reviewType === 'guest' ? 'Website guest' : 'Verified client'}
+                                                        </span>
+                                                    </div>
+                                                </td>
                                                 <td style={{ padding: '16px 20px', color: '#475569' }}>{r.artist_name}</td>
                                                 <td style={{ padding: '16px 20px' }}>
                                                     {renderStars(r.rating)}
@@ -172,7 +207,7 @@ function AdminReviews() {
                                                     {activeTab === 'pending' && (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                             <button 
-                                                                onClick={() => handleModeration(r.id, 'approved')} 
+                                                                onClick={() => handleModeration(r, 'approved')}
                                                                 style={{ 
                                                                     display: 'flex', alignItems: 'center', gap: '6px',
                                                                     background: '#ecfdf5', color: '#059669', 
@@ -185,7 +220,7 @@ function AdminReviews() {
                                                                 <CheckCircle size={16} /> Approve
                                                             </button>
                                                             <button 
-                                                                onClick={() => handleModeration(r.id, 'rejected')} 
+                                                                onClick={() => handleModeration(r, 'rejected')}
                                                                 style={{ 
                                                                     display: 'flex', alignItems: 'center', gap: '6px',
                                                                     background: '#fef2f2', color: '#dc2626', 
@@ -210,7 +245,7 @@ function AdminReviews() {
                                                             <input 
                                                                 type="checkbox" 
                                                                 checked={r.is_showcased === 1 || r.is_showcased === true} 
-                                                                onChange={(e) => handleModeration(r.id, 'approved', e.target.checked)}
+                                                                onChange={(e) => handleModeration(r, 'approved', e.target.checked)}
                                                                 style={{ cursor: 'pointer', accentColor: '#3b82f6', width: '16px', height: '16px' }}
                                                             />
                                                             <span style={{ fontSize: '0.85rem', color: r.is_showcased ? '#1d4ed8' : '#64748b', fontWeight: r.is_showcased ? 600 : 400 }}>
@@ -221,7 +256,7 @@ function AdminReviews() {
                                                     )}
                                                     {activeTab === 'rejected' && (
                                                         <button 
-                                                            onClick={() => handleModeration(r.id, 'approved')} 
+                                                            onClick={() => handleModeration(r, 'approved')}
                                                             style={{ 
                                                                 display: 'flex', alignItems: 'center', gap: '6px',
                                                                 background: '#f8fafc', color: '#475569', 

@@ -61,15 +61,32 @@
     margin: 0 0 10px;
 }
 
-.footer-section ul li a {
+.footer-section ul li a,
+.footer-link-button {
     color: #999;
     text-decoration: none;
     transition: color 0.3s;
     font-size: 0.9rem;
 }
 
-.footer-section ul li a:hover {
+.footer-link-button {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.footer-section ul li a:hover,
+.footer-link-button:hover {
     color: #be9055;
+}
+
+.footer-link-button:focus-visible {
+    color: #be9055;
+    outline: 2px solid #be9055;
+    outline-offset: 4px;
 }
 
 .contact-item {

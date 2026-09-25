@@ -1,11 +1,15 @@
+import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Instagram, Facebook } from 'lucide-react';
 import './Footer.css';
 import { readStoredUser } from '../utils/bookingNavigation';
+import GuestFeedbackModal from './GuestFeedbackModal';
 
 const Footer = () => {
     const user = readStoredUser();
     const canBookConsultation = !user || user.type === 'customer';
+    const [feedbackOpen, setFeedbackOpen] = useState(false);
     return (
+        <>
         <footer className="footer">
             <div className="footer-content">
                 <div className="footer-section">
@@ -28,6 +32,7 @@ const Footer = () => {
                         <li><a href="/artists">Artists</a></li>
                         <li><a href="/gallery">Gallery</a></li>
                         {canBookConsultation && <li><a href="/book">Book Consultation</a></li>}
+                        {!user && <li><button type="button" className="footer-link-button" onClick={() => setFeedbackOpen(true)}>Share Feedback</button></li>}
                         <li><a href="/terms">Terms & Conditions</a></li>
                     </ul>
                 </div>
@@ -65,6 +70,8 @@ const Footer = () => {
                 <p>&copy; {new Date().getFullYear()} InkVistAR / Inkvictus Tattoo Studio. All Rights Reserved. | <a href="/terms">Terms & Conditions</a></p>
             </div>
         </footer>
+        <GuestFeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+        </>
     );
 };
 

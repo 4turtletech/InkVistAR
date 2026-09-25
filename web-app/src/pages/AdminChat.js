@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
-import { MessageSquare, Calendar, Activity } from 'lucide-react';
+import { MessageSquare, Activity, Clock3 } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import ChatWidget from '../components/ChatWidget';
 import './PortalStyles.css';
@@ -14,11 +14,33 @@ function AdminChat() {
     const [liveSessions, setLiveSessions] = useState([]);
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [connectionError, setConnectionError] = useState('');
+    const [availability, setAvailability] = useState({
+        enabled: true,
+        available: false,
+        withinHours: false,
+        loading: true,
+        hoursLabel: '1:00 PM - 8:00 PM (PHT)',
+        message: 'Checking live support availability…',
+    });
+    const [availabilityError, setAvailabilityError] = useState('');
+    const [isUpdatingAvailability, setIsUpdatingAvailability] = useState(false);
     const selectedRef = useRef(null);
     const socketRef = useRef(null);
     selectedRef.current = selectedAppointment;
 
     useEffect(() => {
+
+        const loadAvailability = async () => {
+            try {
+                const response = await Axios.get(`${API_URL}/api/live-support/availability`);
+                setAvailability({ ...response.data, loading: false });
+                setAvailabilityError('');
+            } catch (_) {
+                setAvailability((current) => ({ ...current, loading: false }));
+                setAvailabilityError('Availability status could not be loaded.');
+            }
+        };
+        loadAvailability();
 
         const socket = io(SOCKET_URL, {
             autoConnect: false,
@@ -32,6 +54,10 @@ function AdminChat() {
         });
         socket.on('connect_error', () => setConnectionError('Unable to connect to live support. Retrying...'));
         socket.on('authorization_error', () => setConnectionError('Live support authorization failed. Please sign in again.'));
+        socket.on('live_support_availability', (nextAvailability) => {
+            setAvailability({ ...nextAvailability, loading: false });
+            setAvailabilityError('');
+        });
 
         socket.on('support_sessions_update', (sessions) => {
             const sorted = [...sessions].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -60,6 +86,22 @@ function AdminChat() {
         setSelectedAppointment(null);
     };
 
+    const handleAvailabilityChange = async () => {
+        if (isUpdatingAvailability || availability.loading) return;
+        setIsUpdatingAvailability(true);
+        setAvailabilityError('');
+        try {
+            const response = await Axios.put(`${API_URL}/api/admin/live-support/availability`, {
+                enabled: !availability.enabled,
+            });
+            setAvailability({ ...response.data, loading: false });
+        } catch (error) {
+            setAvailabilityError(error.response?.data?.message || 'Live support availability could not be updated.');
+        } finally {
+            setIsUpdatingAvailability(false);
+        }
+    };
+
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
@@ -71,6 +113,26 @@ function AdminChat() {
                         {connectionError && <p className="header-subtitle" style={{ color: '#dc2626' }}>{connectionError}</p>}
                     </div>
                     <div className="header-actions">
+                        <div className={`live-support-admin-control ${availability.available ? 'is-available' : 'is-unavailable'}`}>
+                            <div className="live-support-admin-status">
+                                <Clock3 size={17} aria-hidden="true" />
+                                <div>
+                                    <strong>{availability.loading ? 'Checking status…' : availability.available ? 'Accepting live chats' : 'Live chat unavailable'}</strong>
+                                    <span>{availability.message}</span>
+                                    {availabilityError && <span className="live-support-admin-error">{availabilityError}</span>}
+                                </div>
+                            </div>
+                            <label className="live-support-switch">
+                                <input
+                                    type="checkbox"
+                                    checked={availability.enabled}
+                                    onChange={handleAvailabilityChange}
+                                    disabled={availability.loading || isUpdatingAvailability}
+                                />
+                                <span className="live-support-switch-track" aria-hidden="true"><span /></span>
+                                <span>{availability.enabled ? 'Enabled' : 'Disabled'}</span>
+                            </label>
+                        </div>
                         <button
                             className="btn btn-secondary"
                             onClick={handleEndSelectedChat}

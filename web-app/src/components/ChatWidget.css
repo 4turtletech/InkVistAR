@@ -266,6 +266,35 @@
     padding: 0;
 }
 
+.live-support-indicator {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 9px 14px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.73rem;
+    line-height: 1.4;
+}
+
+.live-support-indicator.available {
+    background: #ecfdf5;
+    color: #166534;
+}
+
+.live-support-indicator.unavailable {
+    background: #fffbeb;
+    color: #92400e;
+}
+
+.live-support-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    margin-top: 3px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
 .chat-retry-btn {
     margin-top: 10px;
     padding: 5px 12px;

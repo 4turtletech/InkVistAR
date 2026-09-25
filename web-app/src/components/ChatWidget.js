@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import io from 'socket.io-client';
 import Axios from 'axios';
-import { MessageSquare, X, Send, User, Bot, UserSquare, Check, CheckCheck, LogOut } from 'lucide-react';
+import { MessageSquare, X, Send, User, Bot, Check, CheckCheck, LogOut } from 'lucide-react';
 import { API_URL, SOCKET_URL, getSocketAccessToken } from '../config';
 import './ChatWidget.css';
 
@@ -17,11 +17,13 @@ const createLiveSupportWelcome = () => ({
 export default function ChatWidget({ room = null, currentUser = 'Guest', userName = 'Guest User', customerName = '', isAdminMode = false, initialMessages = null, initiallyOpen = false }) {
   // Initialize state from sessionStorage or defaults
   const [isOpen, setIsOpen] = useState(isAdminMode || initiallyOpen);
-
-  // Operating Hours Check: Uncomment ONE of the two lines below
-  const currentHour = new Date().getHours();
-  const isShopOpen = true; // Always available (for testing)
-  // const isShopOpen = currentHour >= 13 && currentHour < 20; // Shop hours: 1 PM - 8 PM
+  const [liveSupportAvailability, setLiveSupportAvailability] = useState({
+    available: false,
+    loading: !isAdminMode,
+    message: 'Checking live agent availability…',
+    hoursLabel: '1:00 PM - 8:00 PM (PHT)',
+  });
+  const isShopOpen = liveSupportAvailability.available;
 
   // Track unique session ID for customers
   const [sessionId] = useState(() => {
@@ -144,6 +146,36 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
     }
   };
 
+  useEffect(() => {
+    if (isAdminMode) return undefined;
+    let active = true;
+    const loadAvailability = async () => {
+      try {
+        const response = await Axios.get(`${API_URL}/api/live-support/availability`);
+        if (active) setLiveSupportAvailability({ ...response.data, loading: false });
+      } catch (_) {
+        if (active) {
+          setLiveSupportAvailability({
+            available: false,
+            loading: false,
+            reason: 'unreachable',
+            hoursLabel: '1:00 PM - 8:00 PM (PHT)',
+            message: 'Live agent availability could not be checked. Please use the AI assistant for now.',
+          });
+        }
+      }
+    };
+    loadAvailability();
+    const interval = window.setInterval(loadAvailability, 60000);
+    const focusHandler = () => loadAvailability();
+    window.addEventListener('focus', focusHandler);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', focusHandler);
+    };
+  }, [isAdminMode]);
+
   // Persist state to sessionStorage whenever it changes
   useEffect(() => {
     if (!isAdminMode) {
@@ -223,12 +255,31 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
       }
     };
 
+    const supportUnavailableHandler = (availability) => {
+      if (isAdminMode) return;
+      const nextAvailability = { ...availability, available: false, loading: false };
+      setLiveSupportAvailability(nextAvailability);
+      explicitLiveStartRef.current = false;
+      setIsHumanMode(false);
+      sessionStorage.removeItem('chat_isHumanMode');
+      setBotMessages(prev => [...prev, {
+        id: `support-unavailable-${Date.now()}`,
+        sender: 'bot',
+        text: availability?.message || 'Live agent chat is currently unavailable. I can still help you here.',
+        timestamp: new Date(),
+      }]);
+    };
+
     socket.on('connect', connectHandler);
     socket.on('disconnect', disconnectHandler);
     socket.on('connect_error', connectErrorHandler);
     socket.on('authorization_error', authorizationErrorHandler);
     socket.on('receive_message', receiveMessageHandler);
     socket.on('session_closed', sessionClosedHandler);
+    socket.on('support_unavailable', supportUnavailableHandler);
+    socket.on('live_support_availability', (availability) => {
+      if (!isAdminMode) setLiveSupportAvailability({ ...availability, loading: false });
+    });
     const visibilityHandler = () => {
       if (document.visibilityState === 'visible' && socket.connected && !isAdminMode) {
         socket.emit('resume_support_session', { room: activeRoom });
@@ -409,6 +460,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
                 <button
                   type="button"
                   className={`chat-mode-btn ${isHumanMode ? 'active' : ''}`}
+                  disabled={!isHumanMode && (!isShopOpen || liveSupportAvailability.loading)}
                   onClick={() => {
                     if (!isHumanMode && !isShopOpen) return;
                     if (!isHumanMode) {
@@ -421,7 +473,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
                       setIsHumanMode(true);
                     }
                   }}
-                  title={!isShopOpen ? 'Live agents are currently offline (Hours: 1 PM - 8 PM)' : isHumanMode ? 'Currently chatting with an agent' : 'Switch to Live Agent'}
+                  title={!isShopOpen ? liveSupportAvailability.message : isHumanMode ? 'Currently chatting with an agent' : 'Switch to Live Agent'}
                   aria-pressed={isHumanMode}
                 >
                   <User size={16} />
@@ -442,6 +494,13 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
             )}
           </div>
         </div>
+
+        {!isAdminMode && !isHumanMode && (
+          <div className={`live-support-indicator ${isShopOpen ? 'available' : 'unavailable'}`} role="status">
+            <span className="live-support-dot" aria-hidden="true" />
+            <span>{liveSupportAvailability.message}</span>
+          </div>
+        )}
 
         <div className="chat-messages" ref={chatContainerRef}>
           {activeMessages.map((msg) => {

@@ -551,7 +551,7 @@ function Home() {
                                                             <div className="perspective-avatar">{(testimony.customer_name || 'C')[0].toUpperCase()}</div>
                                                             <div>
                                                                 <h4 className="perspective-name">{testimony.customer_name || 'Inkvictus Client'}</h4>
-                                                                <span className="perspective-label">Verified Client</span>
+                                                                <span className="perspective-label">{testimony.source === 'guest' ? 'Website Guest' : 'Verified Client'}</span>
                                                             </div>
                                                         </div>
                                                     </div>
