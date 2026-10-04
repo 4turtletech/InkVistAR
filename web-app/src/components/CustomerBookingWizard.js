@@ -7,6 +7,7 @@ import io from 'socket.io-client';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import WaiverFormModal from './WaiverFormModal';
 import { formatTime12Hour } from '../utils/formatters';
+import { compressImage } from '../utils/imageUtils';
 const BodyModelViewer = lazy(() => import('./BodyModelViewer'));
 
 export default function CustomerBookingWizard({ customerId, onBack, isPublic = false }) {
@@ -294,11 +295,9 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFormData(prev => ({ ...prev, referenceImage: reader.result }));
-            };
-            reader.readAsDataURL(file);
+            compressImage(file).then(base64 => {
+                setFormData(prev => ({ ...prev, referenceImage: base64 }));
+            }).catch(e => console.error(e));
         }
     };
 

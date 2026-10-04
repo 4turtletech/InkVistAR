@@ -130,8 +130,9 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     };
     try {
       const r = await fetchAPI(`/appointments/${appointment.id}/details`);
-      if (r.success && r.appointment) {
-        restoreDetails(r.appointment);
+      const payloadDetails = r.data || r.appointment;
+      if (r.success && payloadDetails) {
+        restoreDetails(payloadDetails);
         return;
       }
     } catch (e) { /* endpoint may not exist yet on production */ }

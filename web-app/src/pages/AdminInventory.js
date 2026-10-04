@@ -16,6 +16,7 @@ import ImageCropper from '../components/ImageCropper';
 import CustomSelect from '../components/CustomSelect';
 import { API_URL } from '../config';
 import { generateReportHeader, downloadCsv } from '../utils/csvExport';
+import { compressImage } from '../utils/imageUtils';
 
 const INVENTORY_CATEGORIES = [
     { value: 'ink', label: 'Ink' },
@@ -294,11 +295,9 @@ function AdminInventory() {
         }
 
         // Read file and open cropper
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setCropperImage(reader.result);
-        };
-        reader.readAsDataURL(file);
+        compressImage(file).then(base64 => {
+            setCropperImage(base64);
+        }).catch(e => console.error(e));
         e.target.value = ''; // Reset so same file can be re-selected
     };
 
@@ -1617,10 +1616,7 @@ function AdminInventory() {
                                                     <td style={{ fontSize: '0.8rem', color: '#64748b', whiteSpace: 'nowrap' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                             <Clock size={13} style={{ flexShrink: 0, opacity: 0.5 }} />
-                                                            {new Date(t.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                        </div>
-                                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px', paddingLeft: '19px' }}>
-                                                            {new Date(t.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                                                            {new Date(t.created_at).toLocaleDateString()} | {new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                                                         </div>
                                                     </td>
                                                     <td>

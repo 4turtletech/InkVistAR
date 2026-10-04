@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import Axios from 'axios';
 import { X, Send, Mail, Users, AlertTriangle, ImagePlus, Trash2 } from 'lucide-react';
 import { API_URL } from '../config';
+import { compressImage } from '../utils/imageUtils';
 
 export default function MarketingEmailModal({ isOpen, onClose }) {
     const [subject, setSubject] = useState('');
@@ -27,12 +28,10 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            setImageBase64(ev.target.result);
+        compressImage(file).then(base64 => {
+            setImageBase64(base64);
             setImageName(file.name);
-        };
-        reader.readAsDataURL(file);
+        }).catch(e => console.error(e));
     };
 
     const removeImage = () => {

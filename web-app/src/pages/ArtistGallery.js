@@ -9,6 +9,7 @@ import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
 import { TATTOO_STYLES } from '../constants/tattooStyles';
+import { compressImage } from '../utils/imageUtils';
 
 function ArtistGallery() {
     const [works, setWorks] = useState([]);
@@ -120,13 +121,12 @@ function ArtistGallery() {
             setFormErrors(prev => ({ ...prev, imageUrl: 'Image must be 5MB or smaller' }));
             return;
         }
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setCropperSrc(reader.result);
+        compressImage(file).then(base64 => {
+            setCropperSrc(base64);
             setFormErrors(prev => ({ ...prev, imageUrl: '' }));
-        };
-        reader.onerror = () => setFormErrors(prev => ({ ...prev, imageUrl: 'The image could not be read' }));
-        reader.readAsDataURL(file);
+        }).catch(() => {
+            setFormErrors(prev => ({ ...prev, imageUrl: 'The image could not be read' }));
+        });
     };
 
     const handleImageUpload = (e) => {

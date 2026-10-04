@@ -14,6 +14,7 @@ import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 import { formatStatus } from '../utils/formatters';
+import { compressImage } from '../utils/imageUtils';
 
 const isEditableInvoiceRecord = (invoice) =>
     (invoice?.record_source === 'invoice' || Boolean(invoice?.invoice_number)) &&
@@ -388,12 +389,12 @@ function AdminBilling() {
             setSettlementErrors(prev => ({ ...prev, proof: 'Choose a JPEG, PNG, or WEBP image no larger than 3 MB.' }));
             return;
         }
-        const reader = new FileReader();
-        reader.onload = () => {
-            setSettlementForm(prev => ({ ...prev, proof: String(reader.result || '') }));
+        compressImage(file).then(base64 => {
+            setSettlementForm(prev => ({ ...prev, proof: String(base64 || '') }));
             setSettlementErrors(prev => ({ ...prev, proof: '' }));
-        };
-        reader.readAsDataURL(file);
+        }).catch(() => {
+            setSettlementErrors(prev => ({ ...prev, proof: 'Failed to process image.' }));
+        });
     };
 
     const submitSettlement = async (event) => {

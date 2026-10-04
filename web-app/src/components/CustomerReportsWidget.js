@@ -3,6 +3,7 @@ import Axios from 'axios';
 import { API_URL } from '../config';
 import { MessageSquare, Plus, X, Send, ChevronDown, ChevronUp, Paperclip, Shield, UserCircle } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
+import { compressImage } from '../utils/imageUtils';
 
 const STATUS_CONFIG = {
   open: { label: 'Open', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
@@ -83,9 +84,9 @@ function CustomerReportsWidget({ customerId }) {
       setConfirmDialog({ isOpen: true, title: 'File Too Large', message: 'Attachment must be under 3MB.', type: 'danger', isAlert: true, onConfirm: () => setConfirmDialog({ isOpen: false }) });
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => setForm(prev => ({ ...prev, attachment: reader.result }));
-    reader.readAsDataURL(file);
+    compressImage(file).then(base64 => {
+      setForm(prev => ({ ...prev, attachment: base64 }));
+    }).catch(e => console.error(e));
   };
 
   const handleSubmit = async (e) => {

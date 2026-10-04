@@ -13,6 +13,7 @@ import { API_URL } from '../config';
 import { getDisplayCode, formatTime12Hour, formatStatus, getStatusColor } from '../utils/formatters';
 import { generateReportHeader, downloadCsv } from '../utils/csvExport';
 import { getSessionPaymentStatus } from '../utils/sessionPayment';
+import { compressImage } from '../utils/imageUtils';
 
 function ArtistAppointments() {
     const [appointments, setAppointments] = useState([]);
@@ -273,32 +274,6 @@ function ArtistAppointments() {
         }
     };
 
-    const compressImage = (file, maxWidth = 1200, quality = 0.7) => {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    if (width > maxWidth) {
-                        height = Math.round((height * maxWidth) / width);
-                        width = maxWidth;
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', quality));
-                };
-                img.onerror = reject;
-                img.src = e.target.result;
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-    };
 
     const handleUploadDraft = async (e, id) => {
         const file = e.target.files[0];

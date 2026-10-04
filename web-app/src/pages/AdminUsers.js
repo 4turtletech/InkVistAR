@@ -19,6 +19,7 @@ import CountryCodeSelect from '../components/CountryCodeSelect';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
 import CustomSelect from '../components/CustomSelect';
 import { composeCustomerName, customerProfileErrors, filterName, filterDigits, suggestCustomerNameParts } from '../utils/validation';
+import { compressImage } from '../utils/imageUtils';
 
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
@@ -1028,13 +1029,13 @@ function AdminUsers() {
             setCreateErrors(prev => ({ ...prev, profileImage: 'Image must be under 5MB' }));
             return;
         }
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            setProfileImagePreview(ev.target.result);
-            setCreateFormData(prev => ({ ...prev, profileImage: ev.target.result }));
+        compressImage(file).then(base64 => {
+            setProfileImagePreview(base64);
+            setCreateFormData(prev => ({ ...prev, profileImage: base64 }));
             setCreateErrors(prev => ({ ...prev, profileImage: '' }));
-        };
-        reader.readAsDataURL(file);
+        }).catch(() => {
+            setCreateErrors(prev => ({ ...prev, profileImage: 'Failed to process image' }));
+        });
     };
 
     const validateCreateField = (name, value) => {

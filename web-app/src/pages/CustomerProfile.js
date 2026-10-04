@@ -19,6 +19,7 @@ import {
     normalizeProfileText,
     suggestCustomerNameParts,
 } from '../utils/validation';
+import { compressImage } from '../utils/imageUtils';
 
 const PasswordStrengthMeter = ({ feedback }) => {
     const steps = [
@@ -232,11 +233,11 @@ function CustomerProfile() {
                 setMessage({ type: 'error', text: 'Image size must be less than 5MB.' });
                 return;
             }
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setCropperImage(reader.result);
-            };
-            reader.readAsDataURL(file);
+            compressImage(file).then(base64 => {
+                setCropperImage(base64);
+            }).catch(() => {
+                setMessage({ type: 'error', text: 'Failed to process image.' });
+            });
             e.target.value = '';
         }
     };

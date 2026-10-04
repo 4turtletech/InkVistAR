@@ -3,6 +3,7 @@ import Axios from 'axios';
 import { Trash2, Edit2, Plus, X, Globe, Lock, Video, Image, PlaySquare, Star } from 'lucide-react';
 import { API_URL } from '../config';
 import ConfirmModal from './ConfirmModal';
+import { compressImage } from '../utils/imageUtils';
 import '../pages/AdminUsers.css'; // Reusing established admin styles
 
 function AdminTestimonials() {
@@ -131,11 +132,9 @@ function AdminTestimonials() {
         // In a real app, you'd upload the file to a cloud bucket like AWS S3 or Supabase and get a URL back.
         // Or send it directly as base64 to the backend. Given this system uses LONGTEXT for base64
         // in previous implementations (e.g. portfolio_works), we'll read as base64.
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setFormData({ ...formData, media_url: reader.result });
-        };
-        reader.readAsDataURL(file);
+        compressImage(file).then(base64 => {
+            setFormData({ ...formData, media_url: base64 });
+        }).catch(e => console.error(e));
     };
 
     return (

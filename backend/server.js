@@ -4786,35 +4786,41 @@ app.post('/api/customer/appointments', async (req, res) => {
       return res.status(500).json({ success: false, message: 'Unable to verify artist availability.' });
     }
 
-    // Double Booking Check (only if they picked a time)
+    // Double Booking & Studio Capacity Check (only if they picked a time)
     if (finalStartTime) {
-      let checkQuery = `
-      SELECT id FROM appointments 
-      WHERE appointment_date = ? AND start_time = ? AND status != 'cancelled' AND is_deleted = 0
-      AND (`;
+      try {
+        const checkResults = await queryAsync(db, 
+          `SELECT id, customer_id, artist_id FROM appointments 
+           WHERE appointment_date = ? AND start_time = ? AND status NOT IN ('cancelled', 'rejected') AND is_deleted = 0`,
+          [date, finalStartTime]
+        );
 
-      let queryParams = [date, finalStartTime];
+        const artistRes = await queryAsync(db,
+          `SELECT COUNT(id) as totalArtists FROM users WHERE user_type = 'artist' AND is_deleted = 0`
+        );
+        const totalArtists = Math.max(1, artistRes[0]?.totalArtists || 1);
 
-      if (artistId) { // Only check artist collision if they specifically requested an artist
-        checkQuery += ` artist_id = ? OR `;
-        queryParams.push(artistId);
-      }
+        const activeCustomerId = isGuest ? null : finalCustomerId;
+        
+        let conflictReason = null;
 
-      checkQuery += ` customer_id = ? ) `;
-      queryParams.push(isGuest ? null : finalCustomerId);
-
-      db.query(checkQuery, queryParams, (checkErr, checkResults) => {
-        if (checkErr) {
-          console.error('[ERROR] Error checking double booking:', checkErr);
-          return res.status(500).json({ success: false, message: 'Database error' });
+        if (activeCustomerId && checkResults.some(a => a.customer_id === activeCustomerId)) {
+          conflictReason = 'You already have an appointment scheduled at this time.';
+        } else if (artistId && checkResults.some(a => a.artist_id === artistId)) {
+          conflictReason = 'The selected artist is already booked at this time.';
+        } else if (!artistId && checkResults.length >= totalArtists) {
+          conflictReason = 'Scheduling Conflict: This time slot is already taken. Please select a different time.';
         }
 
-        if (checkResults.length > 0) {
-          return res.status(400).json({ success: false, message: 'Scheduling Conflict: This time slot is already taken. Please select a different time.' });
+        if (conflictReason) {
+          return res.status(400).json({ success: false, message: conflictReason });
         }
 
         insertAppointment();
-      });
+      } catch (checkErr) {
+        console.error('[ERROR] Error checking double booking:', checkErr);
+        return res.status(500).json({ success: false, message: 'Database error while checking availability' });
+      }
     } else {
       insertAppointment();
     }
@@ -4935,7 +4941,7 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
   db.query(
     `SELECT ap.*, u.name as artist_name FROM appointments ap JOIN users u ON ap.artist_id = u.id WHERE ap.id = ? AND ap.customer_id = ? AND ap.is_deleted = 0`,
     [id, customerId],
-    (err, results) => {
+    async (err, results) => {
       if (err) return res.status(500).json({ success: false, message: 'Database error.' });
       if (!results.length) return res.status(404).json({ success: false, message: 'Appointment not found or you do not have permission.' });
 
@@ -4977,61 +4983,86 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
         return res.status(400).json({ success: false, message: 'You can only reschedule to a later date than your current appointment.' });
       }
 
-      // 6. Check for date conflict with other active appointments for this customer
-      db.query(
-        `SELECT id FROM appointments WHERE customer_id = ? AND id != ? AND appointment_date = ? AND status NOT IN ('completed', 'cancelled', 'rejected') AND is_deleted = 0`,
-        [customerId, id, newDate],
-        (conflictErr, conflicts) => {
-          if (conflictErr) return res.status(500).json({ success: false, message: 'Database error checking conflicts.' });
+      // 6. Check for date/time conflict & capacity
+      try {
+        if (newTime) {
+          const checkResults = await queryAsync(db,
+            `SELECT id, customer_id, artist_id FROM appointments 
+             WHERE appointment_date = ? AND start_time = ? AND status NOT IN ('cancelled', 'rejected') AND is_deleted = 0 AND id != ?`,
+            [newDate, newTime, id]
+          );
+
+          const artistRes = await queryAsync(db,
+            `SELECT COUNT(id) as totalArtists FROM users WHERE user_type = 'artist' AND is_deleted = 0`
+          );
+          const totalArtists = Math.max(1, artistRes[0]?.totalArtists || 1);
+
+          let conflictReason = null;
+          if (checkResults.some(a => a.customer_id === customerId)) {
+            conflictReason = 'You already have another session booked at this time.';
+          } else if (appt.artist_id && checkResults.some(a => a.artist_id === appt.artist_id)) {
+            conflictReason = 'The selected artist is already booked at this time.';
+          } else if (!appt.artist_id && checkResults.length >= totalArtists) {
+            conflictReason = 'Scheduling Conflict: This time slot is already taken. Please select a different time.';
+          }
+
+          if (conflictReason) {
+            return res.status(400).json({ success: false, message: conflictReason });
+          }
+        } else {
+          const conflicts = await queryAsync(db,
+            `SELECT id FROM appointments WHERE customer_id = ? AND id != ? AND appointment_date = ? AND status NOT IN ('completed', 'cancelled', 'rejected') AND is_deleted = 0`,
+            [customerId, id, newDate]
+          );
           if (conflicts.length > 0) {
             return res.status(400).json({ success: false, message: 'You already have another session booked on this date. Please choose a different date.' });
           }
+        }
 
-          // 7. Perform the reschedule + append reason to notes
-          const reasonSuffix = reason ? `\n\n--- Reschedule Reason (by customer) ---\n${reason}` : '';
-          const updatedNotes = (appt.notes || '') + reasonSuffix;
+        // 7. Perform the reschedule + append reason to notes
+        const reasonSuffix = reason ? `\n\n--- Reschedule Reason (by customer) ---\n${reason}` : '';
+        const updatedNotes = (appt.notes || '') + reasonSuffix;
 
-          db.query(
-            `UPDATE appointments SET appointment_date = ?, start_time = COALESCE(?, start_time), reschedule_count = reschedule_count + 1, notes = ? WHERE id = ?`,
-            [newDate, newTime || null, updatedNotes, id],
-            (updateErr, result) => {
-              if (updateErr) return res.status(500).json({ success: false, message: 'Failed to reschedule: ' + updateErr.message });
+        await queryAsync(db,
+          `UPDATE appointments SET appointment_date = ?, start_time = COALESCE(?, start_time), reschedule_count = reschedule_count + 1, notes = ? WHERE id = ?`,
+          [newDate, newTime || null, updatedNotes, id]
+        );
 
-              console.log(`[INFO] Customer ${customerId} rescheduled Appt #${id} to ${newDate} ${newTime || ''} (Reason: ${reason || 'Not provided'})`);
+        console.log(`[INFO] Customer ${customerId} rescheduled Appt #${id} to ${newDate} ${newTime || ''} (Reason: ${reason || 'Not provided'})`);
 
-              const reasonText = reason ? `\nReason: ${reason}` : '';
+        const reasonText = reason ? `\nReason: ${reason}` : '';
 
-              // Notify artist
-              if (appt.artist_id) {
-                db.query('SELECT user_type FROM users WHERE id = ?', [appt.artist_id], (aErr, aRes) => {
-                  if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
-                    createNotification(appt.artist_id, 'Appointment Rescheduled', `A client has rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.${reasonText}`, 'appointment_rescheduled', id);
-                  }
-                });
-              }
-              // Notify admins
-              db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
-                if (!adminErr && admins.length > 0) {
-                  admins.forEach(admin => {
-                    createNotification(admin.id, 'Appointment Rescheduled', `Customer rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.${reasonText}`, 'appointment_rescheduled', id);
-                  });
-                }
-              });
-              // Notify customer
-              createNotification(customerId, 'Reschedule Confirmed', `Your appointment #${id} has been rescheduled to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
-
-              res.json({ success: true, message: 'Appointment rescheduled successfully.' });
+        // Notify artist
+        if (appt.artist_id) {
+          db.query('SELECT user_type FROM users WHERE id = ?', [appt.artist_id], (aErr, aRes) => {
+            if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
+              createNotification(appt.artist_id, 'Appointment Rescheduled', `A client has rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.${reasonText}`, 'appointment_rescheduled', id);
             }
-          );
-        } // end conflict check callback
-      ); // end conflict check query
+          });
+        }
+        // Notify admins
+        db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
+          if (!adminErr && admins.length > 0) {
+            admins.forEach(admin => {
+              createNotification(admin.id, 'Appointment Rescheduled', `Customer rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.${reasonText}`, 'appointment_rescheduled', id);
+            });
+          }
+        });
+        // Notify customer
+        createNotification(customerId, 'Reschedule Confirmed', `Your appointment #${id} has been rescheduled to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
+
+        res.json({ success: true, message: 'Appointment rescheduled successfully.' });
+      } catch (err) {
+        console.error('[ERROR] Failed to reschedule appointment:', err);
+        return res.status(500).json({ success: false, message: 'Database error checking conflicts or updating.' });
+      }
     }
   );
 });
 
 // ========== RESCHEDULE REQUEST SYSTEM ==========
 // Customer submits a reschedule REQUEST (for appointments within 1 week but ≥12 hours away)
-app.post('/api/customer/appointments/:id/reschedule-request', (req, res) => {
+app.post('/api/customer/appointments/:id/reschedule-request', async (req, res) => {
   const { id } = req.params;
   const customerId = req.auth.userId;
   const { requestedDate, requestedTime, reason } = req.body;
@@ -5044,7 +5075,7 @@ app.post('/api/customer/appointments/:id/reschedule-request', (req, res) => {
   db.query(
     `SELECT ap.*, u.name as customer_name, u.email as customer_email, ap.booking_code FROM appointments ap JOIN users u ON ap.customer_id = u.id WHERE ap.id = ? AND ap.customer_id = ? AND ap.is_deleted = 0`,
     [id, customerId],
-    (err, results) => {
+    async (err, results) => {
       if (err) return res.status(500).json({ success: false, message: 'Database error.' });
       if (!results.length) return res.status(404).json({ success: false, message: 'Appointment not found or you do not have permission.' });
 
@@ -5085,81 +5116,115 @@ app.post('/api/customer/appointments/:id/reschedule-request', (req, res) => {
       }
 
       // 6. Check no existing pending request for this appointment
-      db.query(
-        `SELECT id FROM reschedule_requests WHERE appointment_id = ? AND status = 'pending'`,
-        [id],
-        (pendingErr, pendingRes) => {
-          if (pendingErr) return res.status(500).json({ success: false, message: 'Database error checking existing requests.' });
-          if (pendingRes.length > 0) {
-            return res.status(400).json({ success: false, message: 'You already have a pending reschedule request for this appointment. Please wait for it to be reviewed.' });
-          }
-
-          // 7. Validate requested date
-          const reqDateObj = new Date(requestedDate);
-          reqDateObj.setHours(0, 0, 0, 0);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          if (reqDateObj <= today) {
-            return res.status(400).json({ success: false, message: 'Requested date must be in the future.' });
-          }
-          const maxDate = new Date();
-          maxDate.setMonth(today.getMonth() + 3);
-          if (reqDateObj > maxDate) {
-            return res.status(400).json({ success: false, message: 'Requested date cannot be more than 3 months in the future.' });
-          }
-
-          // 8. Insert the reschedule request with 24-hour expiry
-          const expiresAt = getLocalDatetime(new Date(Date.now() + 24 * 60 * 60 * 1000));
-
-          db.query(
-            `INSERT INTO reschedule_requests (appointment_id, customer_id, requested_date, requested_time, reason, status, expires_at) VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
-            [id, customerId, requestedDate, requestedTime || null, reason, expiresAt],
-            (insertErr, insertResult) => {
-              if (insertErr) return res.status(500).json({ success: false, message: 'Failed to submit reschedule request: ' + insertErr.message });
-
-              console.log(`[INFO] Customer ${customerId} submitted reschedule request for Appt #${id} → ${requestedDate} (Reason: ${reason})`);
-
-              const bookingCode = appt.booking_code || `#${id}`;
-              const currentDateStr = new Date(appt.appointment_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-              const newDateStr = new Date(requestedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-
-              // Notify all admins/managers
-              db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager") AND is_deleted = 0', (adminErr, admins) => {
-                if (!adminErr && admins.length > 0) {
-                  admins.forEach(admin => {
-                    createNotification(admin.id, 'Reschedule Request', `${appt.customer_name} requests to reschedule [${bookingCode}] from ${currentDateStr} to ${newDateStr}. Reason: ${reason}. This request expires in 24 hours — please review.`, 'reschedule_request', parseInt(id));
-                  });
-                }
-              });
-
-              // Notify customer
-              createNotification(customerId, 'Reschedule Request Submitted', `Your request to reschedule appointment [${bookingCode}] to ${newDateStr} has been submitted. The studio will review it within 24 hours.`, 'reschedule_request', parseInt(id));
-
-              // Email customer
-              if (appt.customer_email) {
-                const emailHtml = buildEmailHtml(`
-                  <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Reschedule Request Submitted</h2>
-                  <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Your request is being reviewed by the studio</p>
-                  <p style="margin:0 0 16px;">Hello ${appt.customer_name},</p>
-                  <p style="margin:0 0 16px;">We have received your request to reschedule appointment <strong>[${bookingCode}]</strong>.</p>
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
-                    <div style="text-align:left;display:inline-block;background-color:#faf8f5;border:1px solid #e2ddd5;border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
-                      <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:110px;">Current Date:</strong> <span style="color:#ef4444;text-decoration:line-through;">${currentDateStr}</span></p>
-                      <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:110px;">Requested:</strong> <span style="color:#10b981;font-weight:700;">${newDateStr}</span></p>
-                      <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:110px;">Reason:</strong> <span style="color:#C19A6B;">${reason}</span></p>
-                    </div>
-                  </td></tr></table>
-                  <p style="margin:0 0 16px;line-height:1.6;">Our team will review your request and respond within <strong>24 hours</strong>. If no action is taken, the request will expire and your original appointment will remain unchanged.</p>
-                  <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">- The InkVistAR Studio Team</p>
-                `);
-                sendResendEmail(appt.customer_email, `InkVistAR: Reschedule Request [${bookingCode}]`, emailHtml);
-              }
-
-              res.json({ success: true, message: 'Reschedule request submitted successfully. The studio will review it within 24 hours.', requestId: insertResult.insertId });
-            }
-          );
+      try {
+        const pendingRes = await queryAsync(db,
+          `SELECT id FROM reschedule_requests WHERE appointment_id = ? AND status = 'pending'`,
+          [id]
+        );
+        if (pendingRes.length > 0) {
+          return res.status(400).json({ success: false, message: 'You already have a pending reschedule request for this appointment. Please wait for it to be reviewed.' });
         }
-      );
+
+        // 7. Validate requested date
+        const reqDateObj = new Date(requestedDate);
+        reqDateObj.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (reqDateObj <= today) {
+          return res.status(400).json({ success: false, message: 'Requested date must be in the future.' });
+        }
+        const maxDate = new Date();
+        maxDate.setMonth(today.getMonth() + 3);
+        if (reqDateObj > maxDate) {
+          return res.status(400).json({ success: false, message: 'Requested date cannot be more than 3 months in the future.' });
+        }
+
+        // --- Capacity Check ---
+        if (requestedTime) {
+          const checkResults = await queryAsync(db,
+            `SELECT id, customer_id, artist_id FROM appointments 
+             WHERE appointment_date = ? AND start_time = ? AND status NOT IN ('cancelled', 'rejected') AND is_deleted = 0 AND id != ?`,
+            [requestedDate, requestedTime, id]
+          );
+
+          const artistRes = await queryAsync(db,
+            `SELECT COUNT(id) as totalArtists FROM users WHERE user_type = 'artist' AND is_deleted = 0`
+          );
+          const totalArtists = Math.max(1, artistRes[0]?.totalArtists || 1);
+
+          let conflictReason = null;
+          if (checkResults.some(a => a.customer_id === customerId)) {
+            conflictReason = 'You already have another session booked at this time.';
+          } else if (appt.artist_id && checkResults.some(a => a.artist_id === appt.artist_id)) {
+            conflictReason = 'The selected artist is already booked at this time.';
+          } else if (!appt.artist_id && checkResults.length >= totalArtists) {
+            conflictReason = 'Scheduling Conflict: This time slot is already taken. Please select a different time.';
+          }
+
+          if (conflictReason) {
+            return res.status(400).json({ success: false, message: conflictReason });
+          }
+        } else {
+          const conflicts = await queryAsync(db,
+            `SELECT id FROM appointments WHERE customer_id = ? AND id != ? AND appointment_date = ? AND status NOT IN ('completed', 'cancelled', 'rejected') AND is_deleted = 0`,
+            [customerId, id, requestedDate]
+          );
+          if (conflicts.length > 0) {
+            return res.status(400).json({ success: false, message: 'You already have another session booked on this date. Please choose a different date.' });
+          }
+        }
+
+        // 8. Insert the reschedule request with 24-hour expiry
+        const expiresAt = getLocalDatetime(new Date(Date.now() + 24 * 60 * 60 * 1000));
+
+        const insertResult = await queryAsync(db,
+          `INSERT INTO reschedule_requests (appointment_id, customer_id, requested_date, requested_time, reason, status, expires_at) VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
+          [id, customerId, requestedDate, requestedTime || null, reason, expiresAt]
+        );
+
+        console.log(`[INFO] Customer ${customerId} submitted reschedule request for Appt #${id} → ${requestedDate} (Reason: ${reason})`);
+
+        const bookingCode = appt.booking_code || `#${id}`;
+        const currentDateStr = new Date(appt.appointment_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        const newDateStr = new Date(requestedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+        // Notify all admins/managers
+        db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager") AND is_deleted = 0', (adminErr, admins) => {
+          if (!adminErr && admins.length > 0) {
+            admins.forEach(admin => {
+              createNotification(admin.id, 'Reschedule Request', `${appt.customer_name} requests to reschedule [${bookingCode}] from ${currentDateStr} to ${newDateStr}. Reason: ${reason}. This request expires in 24 hours — please review.`, 'reschedule_request', parseInt(id));
+            });
+          }
+        });
+
+        // Notify customer
+        createNotification(customerId, 'Reschedule Request Submitted', `Your request to reschedule appointment [${bookingCode}] to ${newDateStr} has been submitted. The studio will review it within 24 hours.`, 'reschedule_request', parseInt(id));
+
+        // Email customer
+        if (appt.customer_email) {
+          const emailHtml = buildEmailHtml(`
+            <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Reschedule Request Submitted</h2>
+            <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Your request is being reviewed by the studio</p>
+            <p style="margin:0 0 16px;">Hello ${appt.customer_name},</p>
+            <p style="margin:0 0 16px;">We have received your request to reschedule appointment <strong>[${bookingCode}]</strong>.</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+              <div style="text-align:left;display:inline-block;background-color:#faf8f5;border:1px solid #e2ddd5;border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:110px;">Current Date:</strong> <span style="color:#ef4444;text-decoration:line-through;">${currentDateStr}</span></p>
+                <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:110px;">Requested:</strong> <span style="color:#10b981;font-weight:700;">${newDateStr}</span></p>
+                <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:110px;">Reason:</strong> <span style="color:#C19A6B;">${reason}</span></p>
+              </div>
+            </td></tr></table>
+            <p style="margin:0 0 16px;line-height:1.6;">Our team will review your request and respond within <strong>24 hours</strong>. If no action is taken, the request will expire and your original appointment will remain unchanged.</p>
+            <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">- The InkVistAR Studio Team</p>
+          `);
+          sendResendEmail(appt.customer_email, `InkVistAR: Reschedule Request [${bookingCode}]`, emailHtml);
+        }
+
+        res.json({ success: true, message: 'Reschedule request submitted successfully. The studio will review it within 24 hours.', requestId: insertResult.insertId });
+      } catch (err) {
+        console.error('[ERROR] Failed to submit reschedule request:', err);
+        return res.status(500).json({ success: false, message: 'Database error checking existing requests or submitting request.' });
+      }
     }
   );
 });
@@ -7997,6 +8062,23 @@ app.post('/api/appointments/:id/release-material', async (req, res) => {
   }
 });
 
+// Decrement a material hold by 1
+app.post('/api/appointments/:id/materials/:materialId/decrement', async (req, res) => {
+  const appointmentId = parseInt(req.params.id, 10);
+  const materialId = parseInt(req.params.materialId, 10);
+
+  if (isNaN(appointmentId) || isNaN(materialId)) {
+    return res.status(400).json({ success: false, message: 'Valid appointmentId and materialId are required.' });
+  }
+
+  try {
+    await sessionInventoryService.decrementMaterialHold({ appointmentId, materialId });
+    res.json({ success: true, message: 'Material decremented successfully.' });
+  } catch (error) {
+    return sendInventoryOperationError(res, error, 'Unable to decrement the material.');
+  }
+});
+
 // Update appointment status
 app.put('/api/appointments/:id/status', async (req, res) => {
   const { id } = req.params;
@@ -8553,7 +8635,7 @@ app.get('/api/appointments/:id/details', (req, res) => {
     (err, results) => {
       if (err) return res.status(500).json({ success: false, message: 'Database error' });
       if (results.length === 0) return res.status(404).json({ success: false, message: 'Appointment not found' });
-      res.json({ success: true, appointment: results[0] });
+      res.json({ success: true, data: results[0] });
     }
   );
 });

@@ -84,7 +84,7 @@ function createSessionInventoryService(pool) {
 
     if (Number(item.current_stock) < quantityToReserve) {
       throw new InventoryOperationError(
-        `Insufficient stock for "${item.name}". Available: ${item.current_stock}, Required: ${quantityToReserve}.`,
+        `Insufficient stock for "${item.name}". Available: ${item.current_stock ?? 0}, Required: ${quantityToReserve}.`,
         409,
         'insufficient_stock'
       );
@@ -163,6 +163,35 @@ function createSessionInventoryService(pool) {
         throw new InventoryOperationError('Materials cannot be added to a closed session.', 409, 'session_closed');
       }
       return reserveInventory(connection, appointment.id, asPositiveInteger(inventoryId, 'Inventory ID'), quantity);
+    });
+  }
+
+  async function decrementMaterialHold({ appointmentId, materialId }) {
+    return withTransaction(async (connection) => {
+      await loadAppointment(connection, asPositiveInteger(appointmentId, 'Appointment ID'));
+      const [materials] = await connection.query(
+        'SELECT * FROM session_materials WHERE id = ? AND appointment_id = ? FOR UPDATE',
+        [asPositiveInteger(materialId, 'Material ID'), appointmentId]
+      );
+      const material = materials[0];
+      if (!material) {
+        throw new InventoryOperationError('Material record not found for this appointment.', 404, 'material_not_found');
+      }
+      if (material.status !== 'hold') {
+        throw new InventoryOperationError(
+          `Material #${materialId} has already been ${material.status}. It cannot be decremented.`,
+          409,
+          'material_already_resolved'
+        );
+      }
+      if (Number(material.quantity) <= 1) {
+        await connection.query(`UPDATE session_materials SET status = 'released' WHERE id = ? AND status = 'hold'`, [materialId]);
+        await connection.query('UPDATE inventory SET current_stock = current_stock + ? WHERE id = ?', [material.quantity, material.inventory_id]);
+      } else {
+        await connection.query(`UPDATE session_materials SET quantity = quantity - 1 WHERE id = ?`, [materialId]);
+        await connection.query('UPDATE inventory SET current_stock = current_stock + 1 WHERE id = ?', [material.inventory_id]);
+      }
+      return material;
     });
   }
 
@@ -332,6 +361,7 @@ function createSessionInventoryService(pool) {
     addMaterial,
     adjustStock,
     permanentlyDeleteInventory,
+    decrementMaterialHold,
     releaseMaterial,
     transitionStatus,
   };

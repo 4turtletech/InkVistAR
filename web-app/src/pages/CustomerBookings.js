@@ -11,6 +11,7 @@ import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
 import ImageLightbox from '../components/ImageLightbox';
 import { getDisplayCode, formatTime12Hour } from '../utils/formatters';
+import { compressImage } from '../utils/imageUtils';
 const BodyModelViewer = lazy(() => import('../components/BodyModelViewer'));
 
 const toLocalDateOnly = (value) => {
@@ -420,11 +421,9 @@ function CustomerBookings(){
                 showAlert('Validation Error', 'Upload failed. File size must be under 5MB.', 'warning');
                 return;
             }
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setBookingData(prev => ({ ...prev, referenceImage: reader.result }));
-            };
-            reader.readAsDataURL(file);
+            compressImage(file).then(base64 => {
+                setBookingData(prev => ({ ...prev, referenceImage: base64 }));
+            }).catch(e => console.error(e));
         }
     };
 

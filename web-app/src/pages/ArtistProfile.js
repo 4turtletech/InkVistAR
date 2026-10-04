@@ -17,6 +17,7 @@ import { getPhoneParts } from '../constants/countryCodes';
 import CountryCodeSelect from '../components/CountryCodeSelect';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
 import { artistProfileErrors, filterName, filterDigits, clampNumber, normalizeProfileText } from '../utils/validation';
+import { compressImage } from '../utils/imageUtils';
 const PasswordStrengthMeter = ({ feedback }) => {
   const steps = [
     { met: feedback.hasMinLength, hint: 'At least 8 characters' },
@@ -142,11 +143,11 @@ function ArtistProfile() {
                 setMessage({ type: 'error', text: 'Image size must be less than 5MB' });
                 return;
             }
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setCropperImage(reader.result);
-            };
-            reader.readAsDataURL(file);
+            compressImage(file).then(base64 => {
+                setCropperImage(base64);
+            }).catch(() => {
+                setMessage({ type: 'error', text: 'Failed to process image.' });
+            });
             e.target.value = '';
         }
     };

@@ -12,6 +12,7 @@ import './ArtistStyles.css';
 import { API_URL, SOCKET_URL, getSocketAccessToken } from '../config';
 import { getSessionPaymentStatus, shouldShowInQueue } from '../utils/sessionPayment';
 import { formatTime12Hour, formatStatus, getStatusColor } from '../utils/formatters';
+import { compressImage } from '../utils/imageUtils';
 
 const readHealthSnapshot = (screening) => {
     if (!screening?.screening_snapshot) return {};
@@ -639,37 +640,16 @@ function ArtistSessions() {
                 e.target.value = '';
                 return;
             }
-            if (file.size > 5 * 1024 * 1024) { // 5MB max
-                showAlert('Validation Error', 'Upload failed. File size must be under 5MB.', 'warning');
-                e.target.value = '';
-                return;
-            }
 
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; // Resize to max 800px width
-                    const scaleSize = MAX_WIDTH / img.width;
-                    const finalWidth = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
-                    const finalHeight = img.width > MAX_WIDTH ? img.height * scaleSize : img.height;
-                    
-                    canvas.width = finalWidth;
-                    canvas.height = finalHeight;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
-                const resizedBase64 = canvas.toDataURL('image/jpeg', 0.7); // 70% quality jpeg
-                    setSessionData(prev => ({ ...prev, [type]: resizedBase64 }));
-                    setErrors(prev => ({ ...prev, [type]: '' }));
-                    addAuditEntry(`Uploaded ${type === 'beforePhoto' ? 'Before' : 'After'} Photo`);
-                    // Sync photo to partner in dual-artist sessions
-                    emitSessionUpdate('photo_uploaded', { photoType: type, photoUrl: resizedBase64 });
-                };
-                img.src = reader.result;
-            };
-            reader.readAsDataURL(file);
+            compressImage(file, 800).then(resizedBase64 => {
+                setSessionData(prev => ({ ...prev, [type]: resizedBase64 }));
+                setErrors(prev => ({ ...prev, [type]: '' }));
+                addAuditEntry(`Uploaded ${type === 'beforePhoto' ? 'Before' : 'After'} Photo`);
+                emitSessionUpdate('photo_uploaded', { photoType: type, photoUrl: resizedBase64 });
+            }).catch(e => {
+                console.error(e);
+                showAlert('Error', 'Failed to process image.', 'danger');
+            });
         } else {
             e.target.value = '';
         }
