@@ -8,7 +8,7 @@ import {
   ScrollView, SafeAreaView, Image, ActivityIndicator, Modal, TouchableOpacity, Platform, Dimensions, Alert
 } from 'react-native';
 import {
-  ArrowLeft, Play, Pause, CheckCircle2, Camera, Image as ImageIcon, Package, Palette,
+  ArrowLeft, Play, Pause, CheckCircle2, Camera, Package, Palette,
   XCircle, Briefcase, Zap, Plus, Minus, Save, Clock, ChevronUp, ShieldAlert, X, Layers, CheckCircle, Circle
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -19,7 +19,7 @@ import { fetchAPI } from '../src/utils/api';
 import { HealthAlertPanel } from '../src/components/shared/HealthAlertPanel';
 import { useSessionTimer } from '../src/hooks/useSessionTimer';
 import { mergeSessionDetails } from '../src/utils/sessionState';
-import { chooseImageWithCompression, takeImageWithCompression } from '../src/utils/imageUtils';
+import { pickImageWithCompression } from '../src/utils/imageUtils';
 
 export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const { theme: colors, hapticsEnabled } = useTheme();
@@ -255,13 +255,12 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     }
   };
 
-  const pickImage = async (type, source) => {
+  const pickImage = async (type) => {
     if (photoBusy || loading) return;
     setPhotoBusy(type);
     setMediaErrors(current => ({ ...current, [type]: '' }));
-    const select = source === 'camera' ? takeImageWithCompression : chooseImageWithCompression;
     try {
-      await select(
+      await pickImageWithCompression(
         (base64Img) => {
           editSessionField(type, base64Img);
           setMediaErrors(current => ({ ...current, [type]: '' }));
@@ -496,11 +495,11 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
                 </View>
 
                 {/* Pause/Resume Button (Full Width) */}
-                <AnimatedTouchable style={[styles.actionBtn, { backgroundColor: isPaused ? colors.gold : colors.surfaceLight, borderWidth: 1, borderColor: colors.gold, marginTop: 24, paddingVertical: 16 }]} onPress={handlePauseResume} disabled={loading || !timerReady}>
+                <AnimatedTouchable style={[styles.actionBtn, { backgroundColor: colors.gold, marginTop: 24, paddingVertical: 16 }]} onPress={handlePauseResume} disabled={loading || !timerReady}>
                   <View style={{ marginRight: 10 }}>
-                    {isPaused ? <Play size={20} color={colors.backgroundDeep} /> : <Pause size={20} color={colors.gold} />}
+                    {isPaused ? <Play size={20} color={colors.backgroundDeep} /> : <Pause size={20} color={colors.backgroundDeep} />}
                   </View>
-                  <Text style={[styles.actionBtnText, { color: isPaused ? colors.backgroundDeep : colors.gold, fontSize: 16 }]}>{isPaused ? 'Resume' : 'Pause'}</Text>
+                  <Text style={[styles.actionBtnText, { color: colors.backgroundDeep, fontSize: 16 }]}>{isPaused ? 'Resume' : 'Pause'}</Text>
                 </AnimatedTouchable>
 
                 {/* Complete + Abort Row */}
@@ -687,31 +686,20 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
                   <Text style={styles.mediaFieldLabel}>{isBeforePhoto ? 'Before Photo *' : 'After Photo *'}</Text>
                   <TouchableOpacity
                     style={[styles.photoBox, fieldError && styles.photoBoxError]}
-                    onPress={() => sessionData[type]
-                      ? setFullscreenImage({ uri: sessionData[type], label: isBeforePhoto ? 'Before Photo' : 'After Photo' })
-                      : pickImage(type, 'camera')}
+                    onPress={() => pickImage(type)}
                     activeOpacity={0.8}
-                    accessibilityLabel={sessionData[type] ? `View ${isBeforePhoto ? 'Before' : 'After'} Photo` : `Take ${isBeforePhoto ? 'Before' : 'After'} Photo`}
+                    accessibilityLabel={`${sessionData[type] ? 'Replace' : 'Add'} ${isBeforePhoto ? 'Before' : 'After'} Photo`}
                   >
                     {photoBusy === type ? <ActivityIndicator color={colors.gold} /> : sessionData[type] ? <Image source={{ uri: sessionData[type] }} style={styles.uploadedPhoto} /> : (
                       <View style={styles.photoPlaceholder}>
                         <Camera size={28} color={fieldError ? colors.error : colors.textTertiary} />
                         <Text style={[styles.photoLabel, fieldError && styles.photoLabelError]}>
-                          Tap to take photo
+                          Tap to add photo
                         </Text>
                       </View>
                     )}
                   </TouchableOpacity>
-                  <View style={styles.photoActions}>
-                    <TouchableOpacity style={styles.photoActionButton} onPress={() => pickImage(type, 'camera')} disabled={!!photoBusy || loading} accessibilityRole="button" accessibilityLabel={`Take ${isBeforePhoto ? 'Before' : 'After'} Photo with camera`}>
-                      <Camera size={15} color={colors.gold} />
-                      <Text style={styles.photoActionText}>Camera</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.photoActionButton} onPress={() => pickImage(type, 'gallery')} disabled={!!photoBusy || loading} accessibilityRole="button" accessibilityLabel={`Choose ${isBeforePhoto ? 'Before' : 'After'} Photo from gallery`}>
-                      <ImageIcon size={15} color={colors.gold} />
-                      <Text style={styles.photoActionText}>Gallery</Text>
-                    </TouchableOpacity>
-                  </View>
+                  {!!sessionData[type] && <Text style={styles.replacePhotoHint}>Tap photo to replace</Text>}
                   {!!fieldError && <Text accessibilityRole="alert" style={styles.mediaErrorText}>{fieldError}</Text>}
                 </View>
               );
@@ -972,9 +960,7 @@ const getStyles = (colors) => StyleSheet.create({
   photoField: { width: '48%' },
   mediaFieldLabel: { ...typography.bodySmall, color: colors.textPrimary, fontWeight: '700', marginBottom: 8 },
   photoBox: { width: '100%', aspectRatio: 1, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  photoActions: { flexDirection: 'row', gap: 6, marginTop: 8 },
-  photoActionButton: { flex: 1, minHeight: 36, paddingHorizontal: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 1, borderColor: colors.borderGold, borderRadius: 8, backgroundColor: colors.surface },
-  photoActionText: { ...typography.bodyXSmall, color: colors.gold, fontWeight: '700' },
+  replacePhotoHint: { ...typography.bodyXSmall, color: colors.textTertiary, textAlign: 'center', marginTop: 6 },
   photoBoxError: { borderColor: colors.error, backgroundColor: `${colors.error}0D` },
   uploadedPhoto: { width: '100%', height: '100%', resizeMode: 'cover' },
   photoPlaceholder: { alignItems: 'center' },
@@ -1004,7 +990,7 @@ const getStyles = (colors) => StyleSheet.create({
   saveBtnText: { color: colors.backgroundDeep, ...typography.button, fontSize: 16 },
   // Modals
   // Timer & Ring
-  timerContainer: { alignItems: 'center', marginVertical: 20 },
+  timerContainer: { width: '100%', alignItems: 'center', marginVertical: 20 },
   statusRing: {
     width: 220, height: 220, borderRadius: 110, borderWidth: 4, borderColor: colors.gold,
     justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surface,
