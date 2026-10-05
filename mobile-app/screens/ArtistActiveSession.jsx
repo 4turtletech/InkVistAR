@@ -8,10 +8,9 @@ import {
   ScrollView, SafeAreaView, Image, ActivityIndicator, Modal, TouchableOpacity, Platform, Dimensions, Alert
 } from 'react-native';
 import {
-  ArrowLeft, Play, Pause, CheckCircle2, Camera, Package, Palette,
+  ArrowLeft, Play, Pause, CheckCircle2, Camera, Image as ImageIcon, Package, Palette,
   XCircle, Briefcase, Zap, Plus, Minus, Save, Clock, ChevronUp, ShieldAlert, X, Layers, CheckCircle, Circle
 } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { typography } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
@@ -20,7 +19,7 @@ import { fetchAPI } from '../src/utils/api';
 import { HealthAlertPanel } from '../src/components/shared/HealthAlertPanel';
 import { useSessionTimer } from '../src/hooks/useSessionTimer';
 import { mergeSessionDetails } from '../src/utils/sessionState';
-import { pickImageWithCompression } from '../src/utils/imageUtils';
+import { chooseImageWithCompression, takeImageWithCompression } from '../src/utils/imageUtils';
 
 export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const { theme: colors, hapticsEnabled } = useTheme();
@@ -44,6 +43,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const [completionModalVisible, setCompletionModalVisible] = useState(false);
   const [validationModal, setValidationModal] = useState({ visible: false, title: '', message: '', type: 'validation', onDismiss: null });
   const [mediaErrors, setMediaErrors] = useState({ beforePhoto: '', afterPhoto: '' });
+  const [photoBusy, setPhotoBusy] = useState(null);
   const [abortReason, setAbortReason] = useState('');
   const [draftImage, setDraftImage] = useState(null);
   const [refImage, setRefImage] = useState(null);
@@ -174,14 +174,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   };
 
   const showPhotoRequired = (field, title, message) => {
-    setMediaErrors(current => ({ ...current, [field]: message }));
-    setValidationModal({
-      visible: true,
-      title,
-      message,
-      type: 'validation',
-      onDismiss: null,
-    });
+    setMediaErrors(current => ({ ...current, [field]: `${title}: ${message}` }));
   };
 
   const showSessionPopup = (title, message, onDismiss) => {
@@ -262,18 +255,27 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     }
   };
 
-  const pickImage = (type) => {
-    pickImageWithCompression(
-      (base64Img) => {
-        editSessionField(type, base64Img);
-        setMediaErrors(current => ({ ...current, [type]: '' }));
-      },
-      (error) => showAlert('Permission Denied', error)
-    );
+  const pickImage = async (type, source) => {
+    if (photoBusy || loading) return;
+    setPhotoBusy(type);
+    setMediaErrors(current => ({ ...current, [type]: '' }));
+    const select = source === 'camera' ? takeImageWithCompression : chooseImageWithCompression;
+    try {
+      await select(
+        (base64Img) => {
+          editSessionField(type, base64Img);
+          setMediaErrors(current => ({ ...current, [type]: '' }));
+        },
+        (error) => setMediaErrors(current => ({ ...current, [type]: error })),
+        { allowsEditing: false }
+      );
+    } finally {
+      setPhotoBusy(null);
+    }
   };
 
   const processStatusUpdate = async (newStatus, isFullyComplete = true, nextAuditLog = auditLog) => {
-    if (loading || !timerReady || !detailsReady) return;
+    if (loading || photoBusy || !timerReady || !detailsReady) return;
     setLoading(true);
     try {
       if (['in_progress', 'completed'].includes(newStatus) && (sessionData.notes || sessionData.beforePhoto || sessionData.afterPhoto)) {
@@ -310,7 +312,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   };
 
   const handleUpdateStatus = async (newStatus) => {
-    if (loading || !timerReady || !detailsReady) return;
+    if (loading || photoBusy || !timerReady || !detailsReady) return;
     if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     let nextAuditLog = auditLog;
@@ -388,7 +390,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   };
 
   const handleSaveDetails = async () => {
-    if (!appointment?.id || loading || !detailsReady) return false;
+    if (!appointment?.id || loading || photoBusy || !detailsReady) return false;
     if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLoading(true);
     try {
@@ -474,8 +476,13 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
           {!!timerError && <Text accessibilityRole="alert" style={{ color: colors.error, marginBottom: 12 }}>{timerError}</Text>}
           {/* Action Buttons & Timer */}
           <View style={styles.actionSection}>
+            {!!(mediaErrors.beforePhoto || mediaErrors.afterPhoto) && (
+              <Text accessibilityRole="alert" style={[styles.mediaErrorText, { alignSelf: 'stretch', marginBottom: 12 }]}>
+                {mediaErrors.beforePhoto || mediaErrors.afterPhoto}
+              </Text>
+            )}
             {status === 'confirmed' && (
-              <AnimatedTouchable style={[styles.actionBtn, { backgroundColor: colors.gold }]} onPress={() => handleUpdateStatus('in_progress')} disabled={loading || !detailsReady || !timerReady}>
+              <AnimatedTouchable style={[styles.actionBtn, { backgroundColor: colors.gold }]} onPress={() => handleUpdateStatus('in_progress')} disabled={loading || !!photoBusy || !detailsReady || !timerReady}>
                 <View style={{ marginRight: 10 }}><Play size={18} color={colors.backgroundDeep} /></View>
                 <Text style={[styles.actionBtnText, { color: colors.backgroundDeep }]}>Start Session</Text>
               </AnimatedTouchable>
@@ -498,7 +505,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
 
                 {/* Complete + Abort Row */}
                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-                  <AnimatedTouchable style={[styles.actionBtn, { flex: 1, backgroundColor: colors.success }]} onPress={() => handleUpdateStatus('completed')} disabled={loading || !detailsReady || !timerReady}>
+                  <AnimatedTouchable style={[styles.actionBtn, { flex: 1, backgroundColor: colors.success }]} onPress={() => handleUpdateStatus('completed')} disabled={loading || !!photoBusy || !detailsReady || !timerReady}>
                     <View style={{ marginRight: 8 }}><CheckCircle2 size={16} color="#ffffff" /></View>
                     <Text style={[styles.actionBtnText, { fontSize: 14 }]}>Complete</Text>
                   </AnimatedTouchable>
@@ -670,27 +677,41 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
 
           {/* Photos */}
           <Text style={styles.sectionTitle}>Session Media</Text>
+          <Text style={styles.mediaHint}>Before photo is required to start. After photo is required to complete.</Text>
           <View style={styles.photoGrid}>
             {['beforePhoto', 'afterPhoto'].map(type => {
               const fieldError = mediaErrors[type];
               const isBeforePhoto = type === 'beforePhoto';
               return (
                 <View key={type} style={styles.photoField}>
+                  <Text style={styles.mediaFieldLabel}>{isBeforePhoto ? 'Before Photo *' : 'After Photo *'}</Text>
                   <TouchableOpacity
                     style={[styles.photoBox, fieldError && styles.photoBoxError]}
-                    onPress={() => pickImage(type)}
+                    onPress={() => sessionData[type]
+                      ? setFullscreenImage({ uri: sessionData[type], label: isBeforePhoto ? 'Before Photo' : 'After Photo' })
+                      : pickImage(type, 'camera')}
                     activeOpacity={0.8}
-                    accessibilityLabel={isBeforePhoto ? 'Upload required Before Photo' : 'Upload After Photo'}
+                    accessibilityLabel={sessionData[type] ? `View ${isBeforePhoto ? 'Before' : 'After'} Photo` : `Take ${isBeforePhoto ? 'Before' : 'After'} Photo`}
                   >
-                    {sessionData[type] ? <Image source={{ uri: sessionData[type] }} style={styles.uploadedPhoto} /> : (
+                    {photoBusy === type ? <ActivityIndicator color={colors.gold} /> : sessionData[type] ? <Image source={{ uri: sessionData[type] }} style={styles.uploadedPhoto} /> : (
                       <View style={styles.photoPlaceholder}>
                         <Camera size={28} color={fieldError ? colors.error : colors.textTertiary} />
                         <Text style={[styles.photoLabel, fieldError && styles.photoLabelError]}>
-                          {isBeforePhoto ? 'Before Photo *' : 'After Photo *'}
+                          Tap to take photo
                         </Text>
                       </View>
                     )}
                   </TouchableOpacity>
+                  <View style={styles.photoActions}>
+                    <TouchableOpacity style={styles.photoActionButton} onPress={() => pickImage(type, 'camera')} disabled={!!photoBusy || loading} accessibilityRole="button" accessibilityLabel={`Take ${isBeforePhoto ? 'Before' : 'After'} Photo with camera`}>
+                      <Camera size={15} color={colors.gold} />
+                      <Text style={styles.photoActionText}>Camera</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.photoActionButton} onPress={() => pickImage(type, 'gallery')} disabled={!!photoBusy || loading} accessibilityRole="button" accessibilityLabel={`Choose ${isBeforePhoto ? 'Before' : 'After'} Photo from gallery`}>
+                      <ImageIcon size={15} color={colors.gold} />
+                      <Text style={styles.photoActionText}>Gallery</Text>
+                    </TouchableOpacity>
+                  </View>
                   {!!fieldError && <Text accessibilityRole="alert" style={styles.mediaErrorText}>{fieldError}</Text>}
                 </View>
               );
@@ -715,7 +736,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
             <Text style={styles.sectionTitle}>Session Notes</Text>
             <View style={styles.notesCard}>
               <TextInput style={styles.notesInput} placeholder="Record session details, skin reaction, etc..." placeholderTextColor={colors.textTertiary} value={sessionData.notes} onChangeText={t => editSessionField('notes', t)} multiline numberOfLines={4} onFocus={scrollToNotes} />
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveDetails} disabled={loading || !detailsReady} activeOpacity={0.8}>
+               <TouchableOpacity style={styles.saveBtn} onPress={handleSaveDetails} disabled={loading || !!photoBusy || !detailsReady} activeOpacity={0.8}>
                 <View style={{ marginRight: 10 }}><Save size={18} color={colors.backgroundDeep} /></View>
                 <Text style={styles.saveBtnText}>Save Details</Text>
               </TouchableOpacity>
@@ -946,9 +967,14 @@ const getStyles = (colors) => StyleSheet.create({
   actionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, paddingHorizontal: 28, borderRadius: 12, width: '100%' },
   actionBtnText: { color: '#ffffff', fontSize: 17, fontWeight: '700' },
   sectionTitle: { ...typography.h4, color: colors.textPrimary, marginBottom: 14 },
+  mediaHint: { ...typography.bodyXSmall, color: colors.textSecondary, marginTop: -6, marginBottom: 12 },
   photoGrid: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 },
   photoField: { width: '48%' },
+  mediaFieldLabel: { ...typography.bodySmall, color: colors.textPrimary, fontWeight: '700', marginBottom: 8 },
   photoBox: { width: '100%', aspectRatio: 1, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  photoActions: { flexDirection: 'row', gap: 6, marginTop: 8 },
+  photoActionButton: { flex: 1, minHeight: 36, paddingHorizontal: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 1, borderColor: colors.borderGold, borderRadius: 8, backgroundColor: colors.surface },
+  photoActionText: { ...typography.bodyXSmall, color: colors.gold, fontWeight: '700' },
   photoBoxError: { borderColor: colors.error, backgroundColor: `${colors.error}0D` },
   uploadedPhoto: { width: '100%', height: '100%', resizeMode: 'cover' },
   photoPlaceholder: { alignItems: 'center' },

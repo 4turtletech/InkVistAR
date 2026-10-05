@@ -66,13 +66,13 @@ test('legacy sessions without history start at zero without inventing past time'
   assert.equal(timerElapsedMs(timer, 55000), 5000);
 });
 
-test('missing session photos use an in-app popup and inline media validation', () => {
+test('missing session photos use inline validation', () => {
   const source = readFileSync(new URL('../screens/ArtistActiveSession.jsx', import.meta.url), 'utf8');
   assert.match(source, /showPhotoRequired\('beforePhoto', 'Before Photo Required'/);
   assert.match(source, /showPhotoRequired\('afterPhoto', 'After Photo Required'/);
-  assert.match(source, /visible=\{validationModal\.visible\}/);
   assert.match(source, /accessibilityRole="alert" style=\{styles\.mediaErrorText\}/);
   assert.match(source, /styles\.photoBoxError/);
+  assert.doesNotMatch(source.slice(source.indexOf('const showPhotoRequired'), source.indexOf('const showSessionPopup')), /setValidationModal/);
   assert.doesNotMatch(source, /showAlert\('Before Photo Required'/);
   assert.doesNotMatch(source, /showAlert\('Validation Error', 'Please upload an ["']After/);
 });

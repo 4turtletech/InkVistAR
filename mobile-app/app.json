@@ -55,6 +55,13 @@
       ],
       "./plugins/withIosDeploymentTarget",
       "./plugins/withIosSceneLifecycle",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "InkVistAR uses the camera to document tattoo and piercing sessions and select profile or portfolio photos.",
+          "photosPermission": "InkVistAR uses your photo library to attach session, profile, portfolio, and booking images."
+        }
+      ],
       "expo-notifications",
       "expo-font",
       "expo-secure-store"
