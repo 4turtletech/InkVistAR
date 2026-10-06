@@ -6913,7 +6913,34 @@ app.put('/api/admin/appointments/:id', (req, res) => {
             message: 'An assigned artist is unavailable on this date. Please choose another date or artist.',
           });
         }
-        performUpdate();
+        const effectiveStartTime = startTime ?? oldAppt.start_time;
+        const effectiveCustomerId = customerId ?? oldAppt.customer_id;
+        // Walk-in condition: guest name is provided or customer ID is 0/null/undefined
+        const isWalkIn = (!effectiveCustomerId || effectiveCustomerId === 0 || walkInIdentity !== undefined || oldAppt.guest_name);
+        
+        const adminConflictCheck = buildAdminAppointmentConflictCheck({
+          date: effectiveDate,
+          startTime: effectiveStartTime,
+          artistId: effectiveArtistIds[0],
+          customerId: effectiveCustomerId,
+          isWalkIn: isWalkIn,
+          excludeAppointmentId: id
+        });
+        
+        db.query(adminConflictCheck.query, adminConflictCheck.params, (conflictErr, conflictRows) => {
+          if (conflictErr) {
+            console.error('[ERROR] Error checking conflicts during admin update:', conflictErr);
+            return res.status(500).json({ success: false, message: 'Database error checking availability.' });
+          }
+          if (conflictRows.length > 0) {
+            return res.status(409).json({
+              success: false,
+              code: 'SLOT_TAKEN',
+              message: 'Scheduling Conflict: The artist or client already has an appointment at this date and time.'
+            });
+          }
+          performUpdate();
+        });
       }
     );
   });

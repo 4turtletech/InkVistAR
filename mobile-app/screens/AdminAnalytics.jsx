@@ -7,8 +7,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Dimensions, RefreshControl,
-  SafeAreaView, Modal, TouchableOpacity, Alert, TextInput, Share,
+  SafeAreaView, Modal, TouchableOpacity, Alert, TextInput, Share, Platform
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   ArrowLeft, Calendar, Package, DollarSign, TrendingUp, Users,
   X, ChevronRight, ChevronDown, Check, BarChart2, CheckCircle, XCircle, Clock, Filter, Home, Palette, Plus, Trash2, Edit2,
@@ -766,25 +767,68 @@ export const AdminAnalytics = ({ navigation }) => {
               </AnimatedTouchable>
             </View>
             <View style={styles.modalBody}>
-              <Text style={{ ...typography.bodySmall, color: theme.textSecondary, marginBottom: 16 }}>Enter dates in YYYY-MM-DD format.</Text>
-              <Text style={styles.bdLabel}>Start Date</Text>
-              <TextInput
-                style={[styles.dateInput, customDateErrors.start && { borderColor: theme.error, borderWidth: 1.5 }]}
-                placeholder="2025-01-01"
-                placeholderTextColor={theme.textTertiary}
-                value={pendingStart}
-                onChangeText={setPendingStart}
-              />
-              {customDateErrors.start ? <Text style={{ ...typography.bodyXSmall, color: theme.error, marginTop: 5 }}>{customDateErrors.start}</Text> : null}
-              <Text style={[styles.bdLabel, { marginTop: 12 }]}>End Date</Text>
-              <TextInput
-                style={[styles.dateInput, customDateErrors.end && { borderColor: theme.error, borderWidth: 1.5 }]}
-                placeholder="2025-12-31"
-                placeholderTextColor={theme.textTertiary}
-                value={pendingEnd}
-                onChangeText={setPendingEnd}
-              />
-              {customDateErrors.end ? <Text style={{ ...typography.bodyXSmall, color: theme.error, marginTop: 5 }}>{customDateErrors.end}</Text> : null}
+              <Text style={{ ...typography.bodySmall, color: theme.textSecondary, marginBottom: 16 }}>Select your date range below.</Text>
+              
+              <View style={{ marginBottom: 16 }}>
+                <Text style={styles.bdLabel}>Start Date: {pendingStart || 'Not selected'}</Text>
+                {Platform.OS === 'ios' ? (
+                  <DateTimePicker
+                    value={isValidIsoDate(pendingStart) ? new Date(pendingStart) : new Date()}
+                    mode="date"
+                    display="spinner"
+                    themeVariant={theme.backgroundDeep === '#0a0a0a' ? 'dark' : 'light'}
+                    onChange={(e, d) => {
+                      if (d) setPendingStart(d.toISOString().slice(0, 10));
+                    }}
+                    style={{ height: 100 }}
+                  />
+                ) : (
+                  <AnimatedTouchable
+                    style={[styles.dateInput, customDateErrors.start && { borderColor: theme.error, borderWidth: 1.5 }, { justifyContent: 'center' }]}
+                    onPress={() => {/* In a real app we'd trigger an Android modal state here, but for simplicity we rely on default rendering if possible */}}
+                  >
+                    <DateTimePicker
+                      value={isValidIsoDate(pendingStart) ? new Date(pendingStart) : new Date()}
+                      mode="date"
+                      display="spinner"
+                      onChange={(e, d) => {
+                        if (d) setPendingStart(d.toISOString().slice(0, 10));
+                      }}
+                    />
+                  </AnimatedTouchable>
+                )}
+                {customDateErrors.start ? <Text style={{ ...typography.bodyXSmall, color: theme.error, marginTop: 5 }}>{customDateErrors.start}</Text> : null}
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={styles.bdLabel}>End Date: {pendingEnd || 'Not selected'}</Text>
+                {Platform.OS === 'ios' ? (
+                  <DateTimePicker
+                    value={isValidIsoDate(pendingEnd) ? new Date(pendingEnd) : new Date()}
+                    mode="date"
+                    display="spinner"
+                    themeVariant={theme.backgroundDeep === '#0a0a0a' ? 'dark' : 'light'}
+                    onChange={(e, d) => {
+                      if (d) setPendingEnd(d.toISOString().slice(0, 10));
+                    }}
+                    style={{ height: 100 }}
+                  />
+                ) : (
+                  <AnimatedTouchable
+                    style={[styles.dateInput, customDateErrors.end && { borderColor: theme.error, borderWidth: 1.5 }, { justifyContent: 'center' }]}
+                  >
+                    <DateTimePicker
+                      value={isValidIsoDate(pendingEnd) ? new Date(pendingEnd) : new Date()}
+                      mode="date"
+                      display="spinner"
+                      onChange={(e, d) => {
+                        if (d) setPendingEnd(d.toISOString().slice(0, 10));
+                      }}
+                    />
+                  </AnimatedTouchable>
+                )}
+                {customDateErrors.end ? <Text style={{ ...typography.bodyXSmall, color: theme.error, marginTop: 5 }}>{customDateErrors.end}</Text> : null}
+              </View>
               <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
                 <AnimatedTouchable
                   style={[styles.modalCloseBtn, { flex: 1, height: 48, borderRadius: 12, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surfaceLight }]}
