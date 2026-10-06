@@ -112,6 +112,8 @@ export const AdminAnalytics = ({ navigation }) => {
   const [customEnd, setCustomEnd] = useState('');
   const [pendingStart, setPendingStart] = useState('');
   const [pendingEnd, setPendingEnd] = useState('');
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
   const [dateValidationAttempted, setDateValidationAttempted] = useState(false);
   const customDateErrors = useMemo(
     () => getCustomDateErrors(pendingStart, pendingEnd, dateValidationAttempted),
@@ -770,65 +772,108 @@ export const AdminAnalytics = ({ navigation }) => {
               <Text style={{ ...typography.bodySmall, color: theme.textSecondary, marginBottom: 16 }}>Select your date range below.</Text>
               
               <View style={{ marginBottom: 16 }}>
-                <Text style={styles.bdLabel}>Start Date: {pendingStart || 'Not selected'}</Text>
-                {Platform.OS === 'ios' ? (
-                  <DateTimePicker
-                    value={isValidIsoDate(pendingStart) ? new Date(pendingStart) : new Date()}
-                    mode="date"
-                    display="spinner"
-                    themeVariant={theme.backgroundDeep === '#0a0a0a' ? 'dark' : 'light'}
-                    onChange={(e, d) => {
-                      if (d) setPendingStart(d.toISOString().slice(0, 10));
-                    }}
-                    style={{ height: 100 }}
-                  />
-                ) : (
-                  <AnimatedTouchable
-                    style={[styles.dateInput, customDateErrors.start && { borderColor: theme.error, borderWidth: 1.5 }, { justifyContent: 'center' }]}
-                    onPress={() => {/* In a real app we'd trigger an Android modal state here, but for simplicity we rely on default rendering if possible */}}
-                  >
-                    <DateTimePicker
-                      value={isValidIsoDate(pendingStart) ? new Date(pendingStart) : new Date()}
-                      mode="date"
-                      display="spinner"
-                      onChange={(e, d) => {
-                        if (d) setPendingStart(d.toISOString().slice(0, 10));
-                      }}
-                    />
-                  </AnimatedTouchable>
-                )}
+                <Text style={styles.bdLabel}>Start Date</Text>
+                <AnimatedTouchable
+                  style={[styles.dateInput, customDateErrors.start && { borderColor: theme.error, borderWidth: 1.5 }, { justifyContent: 'center' }]}
+                  onPress={() => setShowStartPicker(true)}
+                >
+                  <Text style={{ color: pendingStart ? theme.text : theme.textTertiary }}>
+                    {pendingStart || 'Select Start Date'}
+                  </Text>
+                </AnimatedTouchable>
                 {customDateErrors.start ? <Text style={{ ...typography.bodyXSmall, color: theme.error, marginTop: 5 }}>{customDateErrors.start}</Text> : null}
               </View>
 
               <View style={{ marginBottom: 16 }}>
-                <Text style={styles.bdLabel}>End Date: {pendingEnd || 'Not selected'}</Text>
-                {Platform.OS === 'ios' ? (
+                <Text style={styles.bdLabel}>End Date</Text>
+                <AnimatedTouchable
+                  style={[styles.dateInput, customDateErrors.end && { borderColor: theme.error, borderWidth: 1.5 }, { justifyContent: 'center' }]}
+                  onPress={() => setShowEndPicker(true)}
+                >
+                  <Text style={{ color: pendingEnd ? theme.text : theme.textTertiary }}>
+                    {pendingEnd || 'Select End Date'}
+                  </Text>
+                </AnimatedTouchable>
+                {customDateErrors.end ? <Text style={{ ...typography.bodyXSmall, color: theme.error, marginTop: 5 }}>{customDateErrors.end}</Text> : null}
+              </View>
+
+              {/* Start Date Picker Modal/Dialog */}
+              {showStartPicker && (
+                Platform.OS === 'ios' ? (
+                  <Modal visible={showStartPicker} transparent animationType="slide">
+                    <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                      <View style={{ backgroundColor: theme.surface, padding: 16, borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                          <Text style={styles.bdLabel}>Select Start Date</Text>
+                          <AnimatedTouchable onPress={() => setShowStartPicker(false)}>
+                            <Text style={{ color: theme.gold, fontWeight: '600' }}>Done</Text>
+                          </AnimatedTouchable>
+                        </View>
+                        <DateTimePicker
+                          value={isValidIsoDate(pendingStart) ? new Date(pendingStart) : new Date()}
+                          mode="date"
+                          display="spinner"
+                          themeVariant={theme.backgroundDeep === '#0a0a0a' ? 'dark' : 'light'}
+                          onChange={(e, d) => {
+                            if (d) setPendingStart(d.toISOString().slice(0, 10));
+                          }}
+                        />
+                      </View>
+                    </View>
+                  </Modal>
+                ) : (
+                  <DateTimePicker
+                    value={isValidIsoDate(pendingStart) ? new Date(pendingStart) : new Date()}
+                    mode="date"
+                    display="spinner"
+                    onChange={(e, d) => {
+                      setShowStartPicker(false);
+                      if (e.type === 'set' && d) {
+                        setPendingStart(d.toISOString().slice(0, 10));
+                      }
+                    }}
+                  />
+                )
+              )}
+
+              {/* End Date Picker Modal/Dialog */}
+              {showEndPicker && (
+                Platform.OS === 'ios' ? (
+                  <Modal visible={showEndPicker} transparent animationType="slide">
+                    <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                      <View style={{ backgroundColor: theme.surface, padding: 16, borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                          <Text style={styles.bdLabel}>Select End Date</Text>
+                          <AnimatedTouchable onPress={() => setShowEndPicker(false)}>
+                            <Text style={{ color: theme.gold, fontWeight: '600' }}>Done</Text>
+                          </AnimatedTouchable>
+                        </View>
+                        <DateTimePicker
+                          value={isValidIsoDate(pendingEnd) ? new Date(pendingEnd) : new Date()}
+                          mode="date"
+                          display="spinner"
+                          themeVariant={theme.backgroundDeep === '#0a0a0a' ? 'dark' : 'light'}
+                          onChange={(e, d) => {
+                            if (d) setPendingEnd(d.toISOString().slice(0, 10));
+                          }}
+                        />
+                      </View>
+                    </View>
+                  </Modal>
+                ) : (
                   <DateTimePicker
                     value={isValidIsoDate(pendingEnd) ? new Date(pendingEnd) : new Date()}
                     mode="date"
                     display="spinner"
-                    themeVariant={theme.backgroundDeep === '#0a0a0a' ? 'dark' : 'light'}
                     onChange={(e, d) => {
-                      if (d) setPendingEnd(d.toISOString().slice(0, 10));
+                      setShowEndPicker(false);
+                      if (e.type === 'set' && d) {
+                        setPendingEnd(d.toISOString().slice(0, 10));
+                      }
                     }}
-                    style={{ height: 100 }}
                   />
-                ) : (
-                  <AnimatedTouchable
-                    style={[styles.dateInput, customDateErrors.end && { borderColor: theme.error, borderWidth: 1.5 }, { justifyContent: 'center' }]}
-                  >
-                    <DateTimePicker
-                      value={isValidIsoDate(pendingEnd) ? new Date(pendingEnd) : new Date()}
-                      mode="date"
-                      display="spinner"
-                      onChange={(e, d) => {
-                        if (d) setPendingEnd(d.toISOString().slice(0, 10));
-                      }}
-                    />
-                  </AnimatedTouchable>
-                )}
-                {customDateErrors.end ? <Text style={{ ...typography.bodyXSmall, color: theme.error, marginTop: 5 }}>{customDateErrors.end}</Text> : null}
-              </View>
+                )
+              )}
               <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
                 <AnimatedTouchable
                   style={[styles.modalCloseBtn, { flex: 1, height: 48, borderRadius: 12, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surfaceLight }]}
