@@ -1,7 +1,7 @@
 {
   "redirects": [
     {
-      "source": "/:path((?!booking-confirmation/?$).*)",
+      "source": "/:path((?!booking-confirmation/?$|static/|favicon\\.ico$|manifest\\.json$|asset-manifest\\.json$|robots\\.txt$).*)",
       "destination": "https://inkvictustattoo.com/",
       "permanent": false,
       "missing": [
