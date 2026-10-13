@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import SiteCurtain, {
+  SITE_CURTAIN_COOKIE_KEY,
   SITE_CURTAIN_STORAGE_KEY,
   SITE_CURTAIN_TAP_COUNT,
 } from './SiteCurtain';
@@ -7,6 +8,8 @@ import SiteCurtain, {
 describe('SiteCurtain', () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    document.cookie = `${SITE_CURTAIN_COOKIE_KEY}=; Max-Age=0; Path=/`;
+    window.history.replaceState({}, '', '/');
   });
 
   test('renders only the blank curtain before it is unlocked', () => {
@@ -28,6 +31,29 @@ describe('SiteCurtain', () => {
 
     expect(screen.getByText('Private application')).toBeInTheDocument();
     expect(window.sessionStorage.getItem(SITE_CURTAIN_STORAGE_KEY)).toBe('1');
+    expect(document.cookie).toContain(`${SITE_CURTAIN_COOKIE_KEY}=1`);
+  });
+
+  test('removes the private access query after unlocking', () => {
+    window.history.replaceState({}, '', '/?privateAccess=1');
+    const { container } = render(
+      <SiteCurtain><div>Private application</div></SiteCurtain>
+    );
+    const hotspot = container.querySelector('.site-curtain-hotspot');
+
+    for (let click = 0; click < SITE_CURTAIN_TAP_COUNT; click += 1) {
+      fireEvent.click(hotspot);
+    }
+
+    expect(window.location.search).toBe('');
+  });
+
+  test('recognizes an existing browser access cookie', () => {
+    document.cookie = `${SITE_CURTAIN_COOKIE_KEY}=1; Path=/`;
+
+    render(<SiteCurtain><div>Private application</div></SiteCurtain>);
+
+    expect(screen.getByText('Private application')).toBeInTheDocument();
   });
 
   test('allows explicitly bypassed technical flows', () => {

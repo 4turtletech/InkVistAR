@@ -1,4 +1,28 @@
 {
+  "redirects": [
+    {
+      "source": "/:path((?!booking-confirmation/?$).*)",
+      "destination": "https://inkvictustattoo.com/",
+      "permanent": false,
+      "missing": [
+        {
+          "type": "query",
+          "key": "privateAccess",
+          "value": "1"
+        },
+        {
+          "type": "query",
+          "key": "mobileCaptcha",
+          "value": "register"
+        },
+        {
+          "type": "cookie",
+          "key": "inkvistar_site_access",
+          "value": "1"
+        }
+      ]
+    }
+  ],
   "headers": [
     {
       "source": "/static/(.*)",

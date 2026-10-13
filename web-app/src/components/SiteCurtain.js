@@ -1,15 +1,41 @@
 import { useRef, useState } from 'react';
 
 export const SITE_CURTAIN_STORAGE_KEY = 'inkvistar-site-unlocked';
+export const SITE_CURTAIN_COOKIE_KEY = 'inkvistar_site_access';
 export const SITE_CURTAIN_TAP_COUNT = 10;
 export const SITE_CURTAIN_TAP_WINDOW_MS = 10000;
+export const SITE_CURTAIN_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
+
+const hasAccessCookie = () => document.cookie
+  .split(';')
+  .map((part) => part.trim())
+  .some((part) => part === `${SITE_CURTAIN_COOKIE_KEY}=1`);
 
 const hasSessionAccess = () => {
   try {
-    return window.sessionStorage.getItem(SITE_CURTAIN_STORAGE_KEY) === '1';
+    return window.sessionStorage.getItem(SITE_CURTAIN_STORAGE_KEY) === '1'
+      || hasAccessCookie();
   } catch {
     return false;
   }
+};
+
+const rememberBrowserAccess = () => {
+  const isProductionDomain = window.location.hostname === 'inkvictusstudio.com'
+    || window.location.hostname.endsWith('.inkvictusstudio.com');
+  const domain = isProductionDomain ? '; Domain=inkvictusstudio.com' : '';
+  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+
+  document.cookie = `${SITE_CURTAIN_COOKIE_KEY}=1; Max-Age=${SITE_CURTAIN_COOKIE_MAX_AGE}; Path=/; SameSite=Lax${secure}${domain}`;
+};
+
+const removePrivateAccessQuery = () => {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has('privateAccess')) return;
+
+  url.searchParams.delete('privateAccess');
+  const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState({}, document.title, nextUrl);
 };
 
 const rememberSessionAccess = () => {
@@ -42,6 +68,8 @@ const SiteCurtain = ({ children, bypass = false }) => {
     if (tapCountRef.current < SITE_CURTAIN_TAP_COUNT) return;
 
     rememberSessionAccess();
+    rememberBrowserAccess();
+    removePrivateAccessQuery();
     tapCountRef.current = 0;
     firstTapAtRef.current = 0;
     setUnlocked(true);
