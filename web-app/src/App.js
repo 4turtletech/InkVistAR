@@ -5,6 +5,7 @@ import './styles/premium-transitions.css';
 
 import Home from './pages/Home';
 import { MAINTENANCE_CONFIG } from './maintenanceConfig';
+import SiteCurtain from './components/SiteCurtain';
 const Login = lazy(() => import('./pages/Login'));
 const Artists = lazy(() => import('./pages/Artists'));
 const PublicArtistProfile = lazy(() => import('./pages/PublicArtistProfile'));
@@ -101,13 +102,14 @@ function App() {
   const isMobileCaptchaRequest = new URLSearchParams(window.location.search).get('mobileCaptcha') === 'register';
 
   return (
-    <Suspense fallback={<RouteLoader />}>
-      {isMobileCaptchaRequest ? (
-        <CaptchaBoundary><MobileCaptcha /></CaptchaBoundary>
-      ) : (
-        <div className="App">
-          <Router>
-            <Routes>
+    <SiteCurtain bypass={isMobileCaptchaRequest}>
+      <Suspense fallback={<RouteLoader />}>
+        {isMobileCaptchaRequest ? (
+          <CaptchaBoundary><MobileCaptcha /></CaptchaBoundary>
+        ) : (
+          <div className="App">
+            <Router>
+              <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/artists" element={<Artists />} />
             <Route path="/artist/:id" element={<PublicArtistProfile />} />
@@ -162,11 +164,12 @@ function App() {
             <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminBusinessReports /></ProtectedRoute>} />
 
-            </Routes>
-          </Router>
-        </div>
-      )}
-    </Suspense>
+              </Routes>
+            </Router>
+          </div>
+        )}
+      </Suspense>
+    </SiteCurtain>
   );
 }
 

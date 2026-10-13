@@ -60,6 +60,8 @@ const renderAt = (path, user = null) => {
 describe('application routing', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
+    sessionStorage.setItem('inkvistar-site-unlocked', '1');
     window.history.pushState({}, '', '/');
   });
 
@@ -127,6 +129,7 @@ describe('application routing', () => {
   });
 
   test('preserves the native mobile CAPTCHA entry point', async () => {
+    sessionStorage.clear();
     renderAt('/?mobileCaptcha=register');
 
     expect(await screen.findByText('Mobile CAPTCHA page')).toBeInTheDocument();
